@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+message StreamMsg {
+    string node = 1;
+    string category = 2;
+    string type = 3;
+    string topic = 4;
+    bytes data = 5;
+    string addr = 6;
+}
+
+service Stream {
+    rpc TunnelStreaming (stream StreamMsg) returns (stream StreamMsg) {
+    }
+}

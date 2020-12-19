@@ -1,0 +1,18 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - geraldwang
+  - attleewang
+  - feeli
+  - kaiyuechen
+  - nebulazhang
+  - randomcheng
+  - zhiguohong
+reviewers:
+  - geraldwang
+  - attleewang
+  - feeli
+  - kaiyuechen
+  - nebulazhang
+  - randomcheng
+  - zhiguohong

@@ -1,0 +1,14 @@
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: servicegrid-demo
+  namespace: default
+spec:
+  gridUniqKey: zone
+  template:
+    selector:
+      appGrid: nginx
+    ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 9376

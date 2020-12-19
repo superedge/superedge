@@ -1,0 +1,21 @@
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: deploymentgrid-demo
+  namespace: default
+spec:
+  gridUniqKey: zone
+  template:
+    selector:
+      matchLabels:
+        appGrid: nginx
+    template:
+      metadata:
+        labels:
+          appGrid: nginx
+      spec:
+        containers:
+          - name: nginx
+            image: nginx:1.7.9
+            ports:
+              - containerPort: 80
