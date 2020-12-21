@@ -23,7 +23,7 @@
 ***edgeadm change --kubeconfig admin.kubeconfig***
 + 将边缘集群回退成普通集群
 ***edgeadm revert --kubeconfig admin.kubeconfig***
-- [**edgeadm 详细使用**](./install_edgeadm_CN.md)
+- [**edgeadm 详细使用**](./install_via_edgeadm_CN.md)
 
 ### 手工部署
-- [**手工部署**](./install_manual_CN.md)
+- [**手工部署**](./install_manually_CN.md)
