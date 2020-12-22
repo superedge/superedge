@@ -24,8 +24,8 @@ SuperEdge具有如下特性:
 
 
 ## 体系架构
-<div align="left">
-  <img src="docs/img/superedge_arch.png" width=70% title="SuperEdge Architecture">
+<div align="center">
+  <img src="docs/img/superedge_arch.png" width=80% title="SuperEdge Architecture">
 </div>
 
 云端组件：
@@ -45,6 +45,14 @@ SuperEdge具有如下特性:
 ## 联系
 如果您有任何疑问或需要支持，请随时与我们联系：
 - [**邮件列表**](https://groups.google.com/g/superedge)
+- Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- 扫码加入微信交流群：
+
+> 微信或者企业微信扫码添加管理员微信，拉您进入交流的微信群, 进群暗号edge。
+
+<div align="center">
+  <img src="docs/img/we_chat_work.png" width=60% title="we chat work">
+</div>
 
 ## 许可证
 [**许可证**](./LICENSE)
