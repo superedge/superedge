@@ -46,7 +46,7 @@ For any question or support, feel free to contact us via:
 > Add administrator WeChat add you join in Wechat Group by scanning WeChat or Work WeChat, and code 'edge' for entering the group.
 
 <div align="center">
-  <img src="docs/img/we_chat_work.png" width=60% title="we chat work">
+  <img src="docs/img/we_chat_work.png" width=30% title="we chat work">
 </div>
 
 ## License

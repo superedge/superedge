@@ -51,7 +51,7 @@ SuperEdge具有如下特性:
 > 微信或者企业微信扫码添加管理员微信，拉您进入交流的微信群, 进群暗号edge。
 
 <div align="center">
-  <img src="docs/img/we_chat_work.png" width=60% title="we chat work">
+  <img src="docs/img/we_chat_work.png" width=30% title="we chat work">
 </div>
 
 ## 许可证
