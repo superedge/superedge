@@ -41,13 +41,6 @@ For installation, deployment, and administration, see our [**Tutorial**](docs/in
 For any question or support, feel free to contact us via:
 - [mailing list](https://groups.google.com/g/superedge)
 - Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
-- WeChatWork：
-
-> Add administrator WeChat add you join in Wechat Group by scanning WeChat or Work WeChat, and code 'edge' for entering the group.
-
-<div align="center">
-  <img src="docs/img/we_chat_work.png" width=30% title="we chat work">
-</div>
 
 ## License
 
