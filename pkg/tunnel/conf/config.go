@@ -17,8 +17,8 @@ limitations under the License.
 package conf
 
 import (
-	"superedge/pkg/tunnel/util"
 	"github.com/BurntSushi/toml"
+	"superedge/pkg/tunnel/util"
 )
 
 var TunnelConf *Tunnel

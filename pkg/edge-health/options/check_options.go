@@ -17,8 +17,8 @@ limitations under the License.
 package options
 
 import (
-	"superedge/pkg/edge-health/checkplugin"
 	"github.com/spf13/pflag"
+	"superedge/pkg/edge-health/checkplugin"
 )
 
 type CheckOptions struct {
