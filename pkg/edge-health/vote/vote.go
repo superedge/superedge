@@ -21,12 +21,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	log "k8s.io/klog"
+	admissionutil "superedge/pkg/edge-health-admission/util"
 	"superedge/pkg/edge-health/check"
 	"superedge/pkg/edge-health/common"
 	"superedge/pkg/edge-health/data"
 	"superedge/pkg/edge-health/util"
 	"time"
-	admissionutil "superedge/pkg/edge-health-admission/util"
 )
 
 var UnreachNoExecuteTaint = &corev1.Taint{
@@ -108,7 +108,7 @@ func (vote VoteEdge) Vote() {
 						} else {
 							log.V(2).Infof("update yes vote of %s to master", nodenew.Name)
 						}
-					} else if index, flag := admissionutil.TaintExistsPosition(node.Spec.Taints, UnreachNoExecuteTaint); flag{
+					} else if index, flag := admissionutil.TaintExistsPosition(node.Spec.Taints, UnreachNoExecuteTaint); flag {
 						nodenew := node.DeepCopy()
 						nodenew.Spec.Taints = append(nodenew.Spec.Taints[:index], nodenew.Spec.Taints[index+1:]...)
 						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {

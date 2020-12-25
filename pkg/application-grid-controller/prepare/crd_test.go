@@ -1,13 +1,13 @@
 package prepare
 
 import (
-	"superedge/pkg/application-grid-controller/controller/common"
-	"superedge/pkg/util/kubeclient"
 	"gopkg.in/yaml.v2"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"regexp"
+	"superedge/pkg/application-grid-controller/controller/common"
+	"superedge/pkg/util/kubeclient"
 	"testing"
 )
 

@@ -17,15 +17,15 @@ limitations under the License.
 package tcp
 
 import (
+	uuid "github.com/satori/go.uuid"
+	"k8s.io/klog"
+	"net"
 	"superedge/pkg/tunnel/conf"
 	"superedge/pkg/tunnel/context"
 	"superedge/pkg/tunnel/model"
 	"superedge/pkg/tunnel/proxy/tcp/tcpmng"
 	"superedge/pkg/tunnel/proxy/tcp/tcpmsg"
 	"superedge/pkg/tunnel/util"
-	uuid "github.com/satori/go.uuid"
-	"k8s.io/klog"
-	"net"
 )
 
 type TcpProxy struct {

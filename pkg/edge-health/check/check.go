@@ -17,14 +17,14 @@ limitations under the License.
 package check
 
 import (
-	"superedge/pkg/edge-health/checkplugin"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog"
+	"superedge/pkg/edge-health/checkplugin"
+	"superedge/pkg/edge-health/common"
+	"superedge/pkg/edge-health/data"
 	"sync"
 )
 

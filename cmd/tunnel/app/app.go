@@ -17,6 +17,8 @@ limitations under the License.
 package app
 
 import (
+	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"superedge/cmd/tunnel/app/options"
 	"superedge/pkg/tunnel/conf"
 	. "superedge/pkg/tunnel/model"
@@ -26,8 +28,6 @@ import (
 	"superedge/pkg/util"
 	"superedge/pkg/version"
 	"superedge/pkg/version/verflag"
-	"github.com/spf13/cobra"
-	"k8s.io/klog"
 )
 
 func NewTunnelCommand() *cobra.Command {
