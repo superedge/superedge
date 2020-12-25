@@ -17,6 +17,8 @@ limitations under the License.
 package stream
 
 import (
+	"k8s.io/klog"
+	"os"
 	"superedge/pkg/tunnel/conf"
 	"superedge/pkg/tunnel/context"
 	"superedge/pkg/tunnel/model"
@@ -24,8 +26,6 @@ import (
 	"superedge/pkg/tunnel/proxy/stream/streammsg"
 	"superedge/pkg/tunnel/token"
 	"superedge/pkg/tunnel/util"
-	"k8s.io/klog"
-	"os"
 )
 
 type Stream struct {
