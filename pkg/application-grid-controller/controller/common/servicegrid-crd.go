@@ -1,6 +1,5 @@
 package common
 
-
 const ServiceGridCRDYaml = `
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

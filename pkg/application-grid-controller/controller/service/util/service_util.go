@@ -93,7 +93,7 @@ func KeepConsistence(g *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service 
 	copyObj.Spec.Ports = g.Spec.Template.Ports
 	if g.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
 		for k, port := range copyObj.Spec.Ports {
-			if _, ok := oldServiceNameNodePort[port.Name]; ok{
+			if _, ok := oldServiceNameNodePort[port.Name]; ok {
 				if newServiceNameNodePort[port.Name] == 0 && oldServiceNameNodePort[port.Name] != 0 {
 					copyObj.Spec.Ports[k].NodePort = oldServiceNameNodePort[port.Name]
 				}

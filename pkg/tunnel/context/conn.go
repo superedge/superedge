@@ -19,8 +19,8 @@ package context
 import "superedge/pkg/tunnel/proto"
 
 type conn struct {
-	uid      string
-	ch       chan *proto.StreamMsg
+	uid string
+	ch  chan *proto.StreamMsg
 }
 
 func (c *conn) Send2Conn(msg *proto.StreamMsg) {

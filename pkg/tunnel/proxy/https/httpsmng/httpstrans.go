@@ -17,12 +17,12 @@ limitations under the License.
 package httpsmng
 
 import (
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog"
 	"net"
+	"superedge/pkg/tunnel/context"
+	"superedge/pkg/tunnel/proto"
+	"superedge/pkg/tunnel/util"
 )
 
 func NetRead(conn net.Conn, uid string, node context.Node, stop, complete chan struct{}) {

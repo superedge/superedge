@@ -102,7 +102,7 @@ func Test_ChannelzSever(t *testing.T) {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
 	}
-	conn, clictx, cancle, err :=connect.StartClient()
+	conn, clictx, cancle, err := connect.StartClient()
 	if err != nil {
 		t.Errorf("failed to grpc client err: %v", err)
 		return
