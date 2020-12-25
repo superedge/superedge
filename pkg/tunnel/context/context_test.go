@@ -18,30 +18,34 @@ package context
 
 import (
 	"flag"
-	"k8s.io/klog"
+	"os"
 	"superedge/pkg/tunnel/util"
 	"testing"
+
+	"k8s.io/klog"
 )
 
 func Test_Send_Msg(t *testing.T) {
-	klog.InitFlags(nil)
-	err := flag.Set("v", "8")
+	fs := flag.NewFlagSet("Test_Send_Msg", flag.ExitOnError)
+	klog.InitFlags(fs)
+	err := fs.Set("v", "8")
 	if err != nil {
 		t.Errorf("failed to set klog level err: %s", err)
 		return
 	}
-	flag.Parse()
+	fs.Parse(os.Args[0:])
 	GetContext().AddNode("node1")
 
 }
 
 func Test_Klog(t *testing.T) {
-	klog.InitFlags(nil)
-	err := flag.Set("v", "8")
+	fs := flag.NewFlagSet("Test_Klog", flag.ExitOnError)
+	klog.InitFlags(fs)
+	err := fs.Set("v", "8")
 	if err != nil {
 		t.Errorf("failed to set klog level err: %s", err)
 		return
 	}
-	flag.Parse()
+	fs.Parse(os.Args[0:])
 	GetContext().AddModule(util.STREAM)
 }
