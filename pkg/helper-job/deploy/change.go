@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,7 +34,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/deprecated/scheme"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -260,9 +261,14 @@ func writeKubeAPIYaml(kubeClient *kubernetes.Clientset, srcFile, dstFile string)
 	if err != nil {
 		return err
 	}
-	util.WriteWithBufio(dstFile, string(yamlByte))
+	err = util.WriteWithBufio(dstFile, string(yamlByte))
+	if err != nil {
+		return err
+	}
 
-	decode := scheme.Codecs.UniversalDeserializer().Decode
+	var Scheme = runtime.NewScheme()
+	var Codecs = serializer.NewCodecFactory(Scheme)
+	decode := Codecs.UniversalDeserializer().Decode
 	obj, _, err := decode(yamlByte, nil, nil)
 	if err != nil {
 		return err
@@ -283,8 +289,10 @@ func writeKubeAPIYaml(kubeClient *kubernetes.Clientset, srcFile, dstFile string)
 	if err != nil {
 		return err
 	}
-	util.WriteWithBufio(srcFile, string(data))
-
+	err = util.WriteWithBufio(srcFile, string(data))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -405,6 +413,9 @@ func checkKubletHealthz() error {
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return false, nil
+		}
 		klog.Infof("Check kubelet healthz get resp: %s body: %s", util.ToJson(resp), util.ToJson(body))
 
 		return resp.StatusCode == http.StatusOK, nil

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +build tools
+//+build tools
 
 // This package imports things required by build scripts, to force `go mod` to see them as dependencies
 package build

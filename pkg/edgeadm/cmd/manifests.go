@@ -67,8 +67,13 @@ func outputYamlFile(yamlPath string) error {
 
 	for yamlName := range yamlMap {
 		filePath := yamlPath + "/" + yamlName
-		if !util.IsFileExist(filePath) {
-			util.WriteWithBufio(filePath, yamlMap[yamlName])
+		if util.IsFileExist(filePath) {
+			continue
+		}
+
+		err := util.WriteWithBufio(filePath, yamlMap[yamlName])
+		if err != nil {
+			util.OutPutMessage(fmt.Sprintf("Failed to write file %s", filePath))
 		}
 	}
 

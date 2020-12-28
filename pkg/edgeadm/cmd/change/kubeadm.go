@@ -114,8 +114,7 @@ func (c *changeAction) runKubeamdChange() error {
 }
 
 func (c *changeAction) createLiteApiServerCert() error {
-	c.clientSet.CoreV1().ConfigMaps("kube-system").Delete(
-		context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{})
+	 c.clientSet.CoreV1().ConfigMaps("kube-system").Delete(context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{}) //nolint
 
 	kubeService, err := c.clientSet.CoreV1().Services(
 		constant.NAMESPACE_DEFAULT).Get(context.TODO(), constant.SERVICE_KUBERNETES, metav1.GetOptions{})
@@ -295,7 +294,9 @@ func (c *changeAction) getServiceCert(commonName string, dns []string, ips []str
 		},
 		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	})
-
+	if err != nil {
+		return nil, nil, err
+	}
 	serverCertData := util.EncodeCertPEM(serverCert)
 	serverKeyData, err := keyutil.MarshalPrivateKeyToPEM(serverKey)
 	if err != nil {

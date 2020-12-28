@@ -85,7 +85,7 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	} else { // nolint
 		// TODO: other edge CRDs in future.
 	}
 

@@ -18,6 +18,7 @@ package main
 
 import (
 	goflag "flag"
+	"fmt"
 	"k8s.io/klog"
 	"os"
 
@@ -34,21 +35,30 @@ const (
 func main() {
 	cmd := app.NewEdgeadmCommand()
 
+	klog.InitFlags(goflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(flag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-	pflag.Set("logtostderr", "true")
+	if err := pflag.Set("logtostderr", "true"); err != nil {
+		fmt.Printf("Failed to set logtostderr, %s\n", err)
+		os.Exit(1)
+	}
 
-	klog.InitFlags(nil)
 	defer klog.Flush()
 
 	// We do not want these flags to show up in --help
 	// These MarkHidden calls must be after the lines above
-	pflag.CommandLine.MarkHidden("version")
-	pflag.CommandLine.MarkHidden("log-dir")
+	if err := pflag.CommandLine.MarkHidden("version"); err != nil {
+		fmt.Printf("Set CommandLine MarkHidden version failed, %s\n", err)
+		os.Exit(1)
+	}
+	if err := pflag.CommandLine.MarkHidden("log-dir"); err != nil {
+		fmt.Printf("Set CommandLine MarkHidden log-dir failed, %s\n", err)
+		os.Exit(1)
+	}
 
-	cmd.GenBashCompletionFile(bashCompleteFile)
+	cmd.GenBashCompletionFile(bashCompleteFile) // nolint
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-	return
+	return // nolint
 }

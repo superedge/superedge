@@ -56,6 +56,8 @@ func NewDeploymentControllerRefManager(
 		BaseControllerRefManager: BaseControllerRefManager{
 			Controller:   controller,
 			Selector:     selector,
+			canAdoptErr:  nil,
+			canAdoptOnce: sync.Once{},
 			CanAdoptFunc: canAdopt,
 		},
 		controllerKind: controllerKind,

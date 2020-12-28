@@ -29,7 +29,7 @@ func NewEdgeadmCommand() *cobra.Command {
 		Use:   "edgeadm COMMAND [arg...]",
 		Short: "edgeadm use to manage edge cluster",
 		Run: func(cmd *cobra.Command, _ []string) {
-			cmd.Help()
+			cmd.Help() // nolint
 		},
 	}
 

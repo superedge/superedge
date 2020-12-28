@@ -66,15 +66,17 @@ func DeleteByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
 }
 
 func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role string) error {
+	ctx := context.Background()
 	if role == constant.NODE_ROLE_NODE {
 		label := labels.SelectorFromSet(labels.Set(map[string]string{"app": "helper"}))
-		if err := ClearJob(clientSet, label.String()); err != nil {
+		if err := ClearJob(ctx, clientSet, label.String()); err != nil {
 			return err
 		}
 	}
 
 	if action == constant.ACTION_CHANGE {
-		kubeclient.DeleteResourceWithFile(clientSet, manifests.HelperJobRbacYaml, "")
+		_ = kubeclient.DeleteResourceWithFile(clientSet, manifests.HelperJobRbacYaml, "")
+
 		time.Sleep(time.Second)
 
 		if err := kubeclient.CreateResourceWithFile(clientSet, manifests.HelperJobRbacYaml, ""); err != nil {
@@ -87,7 +89,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 		return err
 	}
 
-	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -107,7 +109,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 		}
 
 		if _, ok := node.Labels[constant.KubernetesDefaultRoleLabel]; !ok && role == constant.NODE_ROLE_NODE {
-			kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
+			_ = kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
 
 			time.Sleep(time.Duration(3) * time.Second)
 			if err := kubeclient.CreateResourceWithFile(clientSet, helperYaml, option); err != nil {
@@ -117,7 +119,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 		}
 
 		if _, ok := node.Labels[constant.KubernetesDefaultRoleLabel]; ok && role == constant.NODE_ROLE_MASTER {
-			kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
+			_ = kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
 
 			time.Sleep(time.Duration(3) * time.Second)
 			if err := kubeclient.CreateResourceWithFile(clientSet, helperYaml, option); err != nil {
@@ -151,17 +153,17 @@ func GetMasterIps(clientSet *kubernetes.Clientset) ([]string, error) {
 	return masterIPs, nil
 }
 
-func ClearJob(clientSet *kubernetes.Clientset, label string) error {
+func ClearJob(ctx context.Context, clientSet *kubernetes.Clientset, label string) error {
 	var gracePeriodSeconds int64 = 0
 	jobOpts := metav1.ListOptions{
 		LabelSelector: label,
 	}
-	jods, err := clientSet.BatchV1().Jobs("kube-system").List(context.TODO(), jobOpts)
+	jods, err := clientSet.BatchV1().Jobs("kube-system").List(ctx, jobOpts)
 	if err != nil {
 		return err
 	}
 	for _, job := range jods.Items {
-		clientSet.BatchV1().Jobs("kube-system").Delete(context.TODO(), job.Name, metav1.DeleteOptions{
+		_ = clientSet.BatchV1().Jobs("kube-system").Delete(ctx, job.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: &gracePeriodSeconds,
 		})
 	}
@@ -169,12 +171,12 @@ func ClearJob(clientSet *kubernetes.Clientset, label string) error {
 	podOpts := metav1.ListOptions{
 		LabelSelector: label,
 	}
-	pods, err := clientSet.CoreV1().Pods("kube-system").List(context.TODO(), podOpts)
+	pods, err := clientSet.CoreV1().Pods("kube-system").List(ctx, podOpts)
 	if err != nil {
 		return err
 	}
 	for _, pod := range pods.Items {
-		clientSet.CoreV1().Pods("kube-system").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{
+		_ = clientSet.CoreV1().Pods("kube-system").Delete(ctx, pod.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: &gracePeriodSeconds,
 		})
 	}

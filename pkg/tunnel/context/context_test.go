@@ -33,9 +33,13 @@ func Test_Send_Msg(t *testing.T) {
 		t.Errorf("failed to set klog level err: %s", err)
 		return
 	}
-	fs.Parse(os.Args[0:])
+	arg := os.Args[0:]
+	err = fs.Parse(arg)
+	if err != nil {
+		t.Errorf("Parse %s failed %s", arg, err)
+		return
+	}
 	GetContext().AddNode("node1")
-
 }
 
 func Test_Klog(t *testing.T) {
@@ -46,6 +50,11 @@ func Test_Klog(t *testing.T) {
 		t.Errorf("failed to set klog level err: %s", err)
 		return
 	}
-	fs.Parse(os.Args[0:])
+	arg := os.Args[0:]
+	err = fs.Parse(arg)
+	if err != nil {
+		t.Errorf("Parse %s failed %s", arg, err)
+		return
+	}
 	GetContext().AddModule(util.STREAM)
 }
