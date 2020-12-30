@@ -23,7 +23,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 </div>
 
 ### Cloud components:
-* [**tunnel-cloud**](docs/components/tunnel.md): Maintains a long network connection to `tunnel-edge` services. Supports TCP/HTTP/HTTPS network proxies.
+* [**tunnel-cloud**](docs/components/tunnel.md): Maintains a persistent network connection to `tunnel-edge` services. Supports TCP/HTTP/HTTPS network proxies.
 * [**application-grid controller**](docs/components/service-group.md): A Kubernetes CRD controller as part of ServiceGroup. It manages DeploymentGrids and ServiceGrids CRDs and control applications and network traffic on edge worker nodes.
 * [**edge-
 admission**](docs/components/edge-health.md): Assists Kubernetes controllers by providing real-time health check status from `edge-health` services distributed on all edge worker nodes.
