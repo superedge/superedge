@@ -79,7 +79,7 @@ spec:
 
 # How to use ServiceGroup
 
-Taking the deployment of nginx as an example, we hope to deploy nginx services in multiple node groups. We need to do the following:
+Taking the deployment of echo-service as an example, we hope to deploy echo-service services in multiple node groups. We need to do the following:
 
 ## Determines the unique identity of the ServiceGroup
 This step is logical planning, and no actual operation is required. For example, we use the uniqkey for the ServiceGroup logical tag to be created as: zone.
@@ -93,7 +93,7 @@ For example, we select node12 and node14 and label them with zone = nodeunit1; n
 
 If you want to use more than one ServiceGroup, assign each ServiceGroup a different uniqkey.
 
-## deploy deploymentGrid
+## Deploy deploymentGrid
 ```yaml
 apiVersion: superedge.io/v1
 kind: DeploymentGrid
@@ -103,24 +103,44 @@ metadata:
 spec:
   gridUniqKey: zone
   template:
+    replicas: 2
     selector:
       matchLabels:
-        appGrid: nginx
-    replicas: 2
+        appGrid: echo
+    strategy: {}
     template:
       metadata:
+        creationTimestamp: null
         labels:
-          appGrid: nginx
+          appGrid: echo
       spec:
         containers:
-        - name: nginx
-          image: nginx:1.7.9
+        - image: superedge/echoserver:2.2
+          name: echo
           ports:
-          - containerPort: 80
+          - containerPort: 8080
             protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
 ```
 
-### Deploy serviceGrid
+## Deploy serviceGrid
 ```yaml
 apiVersion: superedge.io/v1
 kind: ServiceGrid
@@ -131,14 +151,14 @@ spec:
   gridUniqKey: zone
   template:
     selector:
-      appGrid: nginx
+      appGrid: echo
     ports:
     - protocol: TCP
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ```
 Since the gridUniqKey field is set to zone, the key of the label we use when grouping nodes is zone. If there are three NodeUnits,
-labeled by zone: zone-0, zone: zone-1, zone: zone-2 for them. at this time, each NodeUnit has the deployment of nginx and the corresponding pod.
+labeled by zone: zone-0, zone: zone-1, zone: zone-2 for them. at this time, each NodeUnit has the deployment of echo-service and the corresponding pod.
 If a service is accessed through servicename and clusterip in the node, the request will only be sent to the nodes in this group.
 ```
 [~]# kubectl get deploy
@@ -151,6 +171,19 @@ deploymentgrid-demo-zone-2   2/2     2            2           85s
 NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 kubernetes             ClusterIP   172.19.0.1     <none>        443/TCP   87m
 servicegrid-demo-svc   ClusterIP   172.19.0.177   <none>        80/TCP    80s
+
+# execute on zone-0 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node0
+...
+# execute on zone-1 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node1
+...
+# execute on zone-2 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node2
+...
 ```
 
 In addition, if a new NodeUnit that are added to the cluster after the DeploymentGrid and ServiceGrid resources are deployed,
