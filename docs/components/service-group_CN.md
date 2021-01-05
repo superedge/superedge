@@ -66,7 +66,7 @@ spec:
 
     
 # 操作步骤
-以在边缘部署nginx为例，我们希望在多个节点组内分别部署nginx服务，需要做如下事情：
+以在边缘部署echo-service为例，我们希望在多个节点组内分别部署echo-service服务，需要做如下事情：
 
 ## 确定ServiceGroup唯一标识
 这一步是逻辑规划，不需要做任何实际操作。我们将目前要创建的serviceGroup逻辑标记使用的 UniqKey为：zone。
@@ -90,24 +90,44 @@ metadata:
 spec:
   gridUniqKey: zone
   template:
+    replicas: 2
     selector:
       matchLabels:
-        appGrid: nginx
-    replicas: 2
+        appGrid: echo
+    strategy: {}
     template:
       metadata:
+        creationTimestamp: null
         labels:
-          appGrid: nginx
+          appGrid: echo
       spec:
         containers:
-        - name: nginx
-          image: nginx:1.7.9
+        - image: superedge/echoserver:2.2
+          name: echo
           ports:
-          - containerPort: 80
+          - containerPort: 8080
             protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
 ```
 
-### 部署serviceGrid
+## 部署serviceGrid
 ```yaml
 apiVersion: superedge.io/v1
 kind: ServiceGrid
@@ -118,13 +138,14 @@ spec:
   gridUniqKey: zone
   template:
     selector:
-      appGrid: nginx
+      appGrid: echo
     ports:
     - protocol: TCP
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ```
-gridUniqKey字段设置为了zone，所以我们在将节点分组时采用的label的key为zone，如果有三组节点，分别为他们添加zone: zone-0, zone: zone-1 ,zone: zone-2的label即可；这时，每组节点内都有了nginx的deployment和对应的pod，在节点内访问统一的service-name也只会将请求发向本组的节点。
+
+gridUniqKey字段设置为了zone，所以我们在将节点分组时采用的label的key为zone，如果有三组节点，分别为他们添加zone: zone-0, zone: zone-1 ,zone: zone-2的label即可；这时，每组节点内都有了echo-service的deployment和对应的pod，在节点内访问统一的service-name也只会将请求发向本组的节点。
 
 ```
 [~]# kubectl get deploy
@@ -137,6 +158,19 @@ deploymentgrid-demo-zone-2   2/2     2            2           85s
 NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 kubernetes             ClusterIP   172.19.0.1     <none>        443/TCP   87m
 servicegrid-demo-svc   ClusterIP   172.19.0.177   <none>        80/TCP    80s
+
+# execute on zone-0 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node0
+...
+# execute on zone-1 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node1
+...
+# execute on zone-2 nodeunit
+[~]# curl 172.19.0.177|grep "node name"
+        node name:      node2
+...
 ```
 
 另外，对于部署了DeploymentGrid和ServiceGrid后才添加进集群的节点组，该功能会在新的节点组内自动创建指定的deployment和service。
