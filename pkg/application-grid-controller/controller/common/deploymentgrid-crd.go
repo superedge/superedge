@@ -14,6 +14,8 @@ spec:
     plural: deploymentgrids
     singular: deploymentgrid
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: DeploymentGrid is the Schema for the deploymentgrids API

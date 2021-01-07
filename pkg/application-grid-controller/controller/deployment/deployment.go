@@ -18,6 +18,7 @@ package deployment
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -145,7 +146,7 @@ func (dgc *DeploymentGridController) deleteDeployment(obj interface{}) {
 func (dgc *DeploymentGridController) resolveControllerRef(namespace string, controllerRef *metav1.OwnerReference) *crdv1.DeploymentGrid {
 	// We can't look up by UID, so look up by Name and then verify UID.
 	// Don't even try to look up by Name if it's the wrong Kind.
-	if controllerRef.Kind != controllerKind.Kind {
+	if controllerRef.Kind != util.ControllerKind.Kind {
 		return nil
 	}
 	d, err := dgc.dpGridLister.DeploymentGrids(namespace).Get(controllerRef.Name)
