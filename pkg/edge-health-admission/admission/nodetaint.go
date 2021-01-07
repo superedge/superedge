@@ -19,14 +19,14 @@ package admission
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edge-health-admission/util"
+	edgeutil "github.com/superedge/superedge/pkg/util"
 	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"superedge/pkg/edge-health-admission/util"
-	edgeutil "superedge/pkg/util"
 
 	"net/http"
 )

@@ -19,6 +19,10 @@ package connect
 import (
 	"context"
 	"fmt"
+	ctx "github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/token"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -28,10 +32,6 @@ import (
 	"k8s.io/klog"
 	"os"
 	"strings"
-	ctx "superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/token"
-	"superedge/pkg/tunnel/util"
 	"time"
 )
 

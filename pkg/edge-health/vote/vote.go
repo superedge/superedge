@@ -18,14 +18,14 @@ package vote
 
 import (
 	"context"
+	admissionutil "github.com/superedge/superedge/pkg/edge-health-admission/util"
+	"github.com/superedge/superedge/pkg/edge-health/check"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
+	"github.com/superedge/superedge/pkg/edge-health/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	log "k8s.io/klog"
-	admissionutil "superedge/pkg/edge-health-admission/util"
-	"superedge/pkg/edge-health/check"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
-	"superedge/pkg/edge-health/util"
 	"time"
 )
 

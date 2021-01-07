@@ -3,15 +3,15 @@
 package fake
 
 import (
-	clientset "superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	clientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 
+	superedgev1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
+	fakesuperedgev1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	superedgev1 "superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
-	fakesuperedgev1 "superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.

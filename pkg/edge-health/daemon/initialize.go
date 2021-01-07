@@ -18,6 +18,8 @@ package daemon
 
 import (
 	"context"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -25,8 +27,6 @@ import (
 	"k8s.io/klog"
 	"os"
 	"strings"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
 )
 
 func initialize(masterUrl, kubeconfigPath, hostName string) {

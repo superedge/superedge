@@ -5,13 +5,13 @@ package fake
 import (
 	"context"
 
+	superedgeiov1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	superedgeiov1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
 // FakeDeploymentGrids implements DeploymentGridInterface

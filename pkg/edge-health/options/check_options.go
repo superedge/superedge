@@ -18,7 +18,7 @@ package options
 
 import (
 	"github.com/spf13/pflag"
-	"superedge/pkg/edge-health/checkplugin"
+	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 )
 
 type CheckOptions struct {

@@ -3,7 +3,7 @@
 package internalinterfaces
 
 import (
-	versioned "superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

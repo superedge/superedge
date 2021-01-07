@@ -18,13 +18,13 @@ package daemon
 
 import (
 	"context"
+	"github.com/superedge/superedge/cmd/edge-health/app/options"
+	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
+	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/communicate"
+	"github.com/superedge/superedge/pkg/edge-health/vote"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"superedge/cmd/edge-health/app/options"
-	checkpkg "superedge/pkg/edge-health/check"
-	"superedge/pkg/edge-health/checkplugin"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/communicate"
-	"superedge/pkg/edge-health/vote"
 	"sync"
 	"time"
 )

@@ -4,14 +4,14 @@ package v1
 
 import (
 	"context"
-	scheme "superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
+	scheme "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 	"time"
 
+	v1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	v1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
 // ServiceGridsGetter has a method to return a ServiceGridInterface.

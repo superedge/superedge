@@ -18,8 +18,8 @@ limitations under the License.
 package options
 
 import (
-	"superedge/pkg/lite-apiserver/config"
-	"superedge/pkg/lite-apiserver/options"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/options"
 
 	cliflag "k8s.io/component-base/cli/flag"
 )

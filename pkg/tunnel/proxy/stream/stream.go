@@ -17,15 +17,15 @@ limitations under the License.
 package stream
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/model"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/connect"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammsg"
+	"github.com/superedge/superedge/pkg/tunnel/token"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"os"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/model"
-	"superedge/pkg/tunnel/proxy/stream/streammng/connect"
-	"superedge/pkg/tunnel/proxy/stream/streammsg"
-	"superedge/pkg/tunnel/token"
-	"superedge/pkg/tunnel/util"
 )
 
 type Stream struct {

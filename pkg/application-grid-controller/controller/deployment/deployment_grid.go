@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
 func (dgc *DeploymentGridController) addDeploymentGrid(obj interface{}) {

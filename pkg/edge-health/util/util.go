@@ -22,14 +22,14 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edge-health/check"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"golang.org/x/sys/unix"
 	"io"
 	"k8s.io/api/core/v1"
 	"os"
 	"os/signal"
-	"superedge/pkg/edge-health/check"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
 )
 
 func GenerateHmac(communicatedata data.CommunicateData) (string, error) {

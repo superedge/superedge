@@ -18,13 +18,13 @@ package main
 
 import (
 	"flag"
+	"github.com/superedge/superedge/pkg/edge-health-admission/admission"
+	"github.com/superedge/superedge/pkg/edge-health-admission/config"
+	"github.com/superedge/superedge/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"net/http"
-	"superedge/pkg/edge-health-admission/admission"
-	"superedge/pkg/edge-health-admission/config"
-	"superedge/pkg/version"
 	"time"
 )
 

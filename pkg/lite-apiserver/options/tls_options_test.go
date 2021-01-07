@@ -21,7 +21,7 @@ import (
 	"gotest.tools/assert"
 	"testing"
 
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 func TestJson(t *testing.T) {

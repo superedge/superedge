@@ -3,9 +3,9 @@
 package superedge
 
 import (
-	internalinterfaces "superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 
-	v1 "superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
+	v1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 )
 
 // Interface provides access to each of this group's versions.

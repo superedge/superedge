@@ -17,8 +17,8 @@ limitations under the License.
 package context
 
 import (
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"sync"
 )
 

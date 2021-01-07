@@ -27,8 +27,8 @@ import (
 
 	"k8s.io/klog"
 
-	"superedge/pkg/lite-apiserver/cert"
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 type holder struct {

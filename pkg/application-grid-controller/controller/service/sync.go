@@ -25,8 +25,8 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"superedge/pkg/application-grid-controller/controller/service/util"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 )
 
 func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*corev1.Service) error {

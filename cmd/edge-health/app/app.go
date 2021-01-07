@@ -19,13 +19,13 @@ package app
 import (
 	"context"
 	"github.com/spf13/cobra"
+	"github.com/superedge/superedge/cmd/edge-health/app/options"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/daemon"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/klog"
-	"superedge/cmd/edge-health/app/options"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/daemon"
-	"superedge/pkg/util"
-	"superedge/pkg/version"
-	"superedge/pkg/version/verflag"
 )
 
 func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {

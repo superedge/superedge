@@ -24,9 +24,9 @@ import (
 	corev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	crdClientset "superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	crdFactory "superedge/pkg/application-grid-controller/generated/informers/externalversions"
-	crdv1 "superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
+	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	crdFactory "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 )
 
 type ControllerConfig struct {

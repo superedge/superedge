@@ -38,10 +38,10 @@ import (
 	"k8s.io/klog"
 	k8syaml "sigs.k8s.io/yaml"
 
-	"superedge/pkg/helper-job/common"
-	"superedge/pkg/helper-job/constant"
-	"superedge/pkg/util"
-	"superedge/pkg/util/kubeclient"
+	"github.com/superedge/superedge/pkg/helper-job/common"
+	"github.com/superedge/superedge/pkg/helper-job/constant"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func changeMasterJob(kubeClient *kubernetes.Clientset, nodeName string) error {

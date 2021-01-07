@@ -19,11 +19,11 @@ package prepare
 import (
 	"context"
 	"fmt"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"gopkg.in/yaml.v2"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	"superedge/pkg/application-grid-controller/controller/common"
-	"superedge/pkg/util/kubeclient"
 	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"

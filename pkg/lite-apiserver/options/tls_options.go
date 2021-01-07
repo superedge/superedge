@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 
 	"github.com/spf13/pflag"
 	"k8s.io/klog"

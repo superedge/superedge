@@ -19,10 +19,10 @@ package main
 import (
 	goflag "flag"
 	"github.com/spf13/pflag"
+	"github.com/superedge/superedge/cmd/tunnel/app"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"os"
-	"superedge/cmd/tunnel/app"
 )
 
 func main() {

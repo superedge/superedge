@@ -3,9 +3,9 @@
 package fake
 
 import (
+	v1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
-	v1 "superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
 )
 
 type FakeSuperedgeV1 struct {

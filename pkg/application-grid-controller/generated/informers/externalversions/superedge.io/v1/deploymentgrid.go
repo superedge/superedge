@@ -4,16 +4,16 @@ package v1
 
 import (
 	"context"
-	versioned "superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	internalinterfaces "superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
+	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	time "time"
 
+	superedgeiov1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	v1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	superedgeiov1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	v1 "superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 )
 
 // DeploymentGridInformer provides access to a shared informer and lister for
