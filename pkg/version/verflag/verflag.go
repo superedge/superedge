@@ -23,7 +23,7 @@ import (
 
 	flag "github.com/spf13/pflag"
 
-	"superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version"
 )
 
 type versionValue int

@@ -17,8 +17,8 @@ limitations under the License.
 package options
 
 import (
+	"github.com/superedge/superedge/pkg/edge-health/options"
 	cliflag "k8s.io/component-base/cli/flag"
-	"superedge/pkg/edge-health/options"
 )
 
 type Options struct {

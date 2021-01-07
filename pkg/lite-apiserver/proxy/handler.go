@@ -22,9 +22,9 @@ import (
 	"k8s.io/apiserver/pkg/server"
 	"net/http"
 
-	"superedge/pkg/lite-apiserver/cert"
-	"superedge/pkg/lite-apiserver/config"
-	"superedge/pkg/lite-apiserver/storage"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
 )
 
 // EdgeServerHandler is the real handler for each request

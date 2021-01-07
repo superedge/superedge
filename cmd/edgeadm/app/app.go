@@ -19,9 +19,9 @@ package app
 import (
 	"github.com/spf13/cobra"
 
-	"superedge/pkg/edgeadm/cmd"
-	"superedge/pkg/edgeadm/cmd/change"
-	"superedge/pkg/edgeadm/cmd/revert"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/change"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
 )
 
 func NewEdgeadmCommand() *cobra.Command {

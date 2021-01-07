@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/component-base/cli/flag"
 
-	"superedge/cmd/edgeadm/app"
+	"github.com/superedge/superedge/cmd/edgeadm/app"
 )
 
 const (

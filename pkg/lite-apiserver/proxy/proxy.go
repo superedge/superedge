@@ -29,8 +29,8 @@ import (
 
 	"k8s.io/klog"
 
-	"superedge/pkg/lite-apiserver/cert"
-	"superedge/pkg/lite-apiserver/storage"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
 )
 
 const EdgeUpdateHeader = "Edge-Update-Request"

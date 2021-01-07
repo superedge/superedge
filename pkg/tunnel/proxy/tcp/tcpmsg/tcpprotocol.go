@@ -18,12 +18,12 @@ package tcpmsg
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmng"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"net"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/proxy/tcp/tcpmng"
-	"superedge/pkg/tunnel/util"
 )
 
 func BackendHandler(msg *proto.StreamMsg) error {

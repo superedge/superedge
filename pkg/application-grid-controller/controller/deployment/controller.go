@@ -19,8 +19,8 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"superedge/pkg/application-grid-controller/controller"
-	"superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"time"
 
 	"k8s.io/klog"
@@ -44,11 +44,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 
-	crdclientset "superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	crdinformers "superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
-	crdv1listers "superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
+	crdclientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
+	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 )
 
 var controllerKind = crdv1.SchemeGroupVersion.WithKind("DeploymentGrid")

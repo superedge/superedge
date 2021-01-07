@@ -20,13 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edge-health-admission/config"
+	"github.com/superedge/superedge/pkg/edge-health-admission/util"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"superedge/pkg/edge-health-admission/config"
-	"superedge/pkg/edge-health-admission/util"
 
 	"net/http"
 )

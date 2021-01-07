@@ -33,11 +33,11 @@ import (
 	k8scert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
-	"superedge/pkg/edgeadm/common"
-	"superedge/pkg/edgeadm/constant"
-	"superedge/pkg/edgeadm/constant/manifests"
-	"superedge/pkg/util"
-	"superedge/pkg/util/kubeclient"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func (c *changeAction) runKubeamdChange() error {

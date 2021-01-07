@@ -19,10 +19,10 @@ package app
 import (
 	"k8s.io/klog"
 
-	"superedge/cmd/application-grid-wrapper/app/options"
-	"superedge/pkg/application-grid-wrapper/server"
-	"superedge/pkg/util"
-	"superedge/pkg/version/verflag"
+	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
+	"github.com/superedge/superedge/pkg/application-grid-wrapper/server"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version/verflag"
 
 	"github.com/spf13/cobra"
 )

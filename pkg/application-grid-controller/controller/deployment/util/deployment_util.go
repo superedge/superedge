@@ -18,13 +18,13 @@ package util
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"strings"
-	"superedge/pkg/application-grid-controller/controller/common"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
 func GetDeploymentName(g *crdv1.DeploymentGrid, gridValue string) string {

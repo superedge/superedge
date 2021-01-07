@@ -19,11 +19,11 @@ package main
 import (
 	goflag "flag"
 	"github.com/spf13/pflag"
+	"github.com/superedge/superedge/cmd/edge-health/app"
+	"github.com/superedge/superedge/pkg/edge-health/util"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"os"
-	"superedge/cmd/edge-health/app"
-	"superedge/pkg/edge-health/util"
 )
 
 func main() {

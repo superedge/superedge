@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog"
 
-	"superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 func GetClientSet(kubeconfigFile string) (*kubernetes.Clientset, error) {

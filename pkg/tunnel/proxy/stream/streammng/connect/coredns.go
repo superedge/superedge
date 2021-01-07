@@ -20,6 +20,9 @@ import (
 	"bufio"
 	"bytes"
 	cctx "context"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,9 +30,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/util"
 	"time"
 )
 

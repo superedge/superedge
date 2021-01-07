@@ -17,7 +17,7 @@ limitations under the License.
 package data
 
 import (
-	"superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/common"
 	"sync"
 	"time"
 )

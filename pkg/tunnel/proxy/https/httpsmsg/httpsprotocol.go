@@ -18,10 +18,10 @@ package httpsmsg
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/https/httpsmng"
 	"k8s.io/klog"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/proxy/https/httpsmng"
 )
 
 func ConnectingHandler(msg *proto.StreamMsg) error {

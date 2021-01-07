@@ -20,14 +20,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/superedge/superedge/pkg/util"
 	"io/ioutil"
 	"net/http"
-	"superedge/pkg/util"
 
-	"superedge/cmd/lite-apiserver/app/options"
-	edgetls "superedge/pkg/lite-apiserver/cert"
-	"superedge/pkg/lite-apiserver/config"
-	"superedge/pkg/lite-apiserver/proxy"
+	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
+	edgetls "github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/proxy"
 
 	"k8s.io/klog"
 )

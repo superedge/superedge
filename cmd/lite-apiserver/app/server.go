@@ -18,9 +18,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 	"io"
-	"superedge/pkg/version"
-	"superedge/pkg/version/verflag"
 
 	"github.com/moby/term"
 	"github.com/spf13/cobra"
@@ -29,9 +29,9 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
-	"superedge/cmd/lite-apiserver/app/options"
-	"superedge/pkg/lite-apiserver/server"
-	"superedge/pkg/util"
+	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
+	"github.com/superedge/superedge/pkg/lite-apiserver/server"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 var ComponentName = "lite-apiserver"

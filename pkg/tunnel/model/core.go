@@ -17,10 +17,10 @@ limitations under the License.
 package model
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/context"
 	"k8s.io/klog"
 	"os"
 	"os/signal"
-	"superedge/pkg/tunnel/context"
 	"syscall"
 )
 

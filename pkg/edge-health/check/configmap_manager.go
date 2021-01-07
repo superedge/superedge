@@ -18,6 +18,7 @@ package check
 
 import (
 	"context"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
 	runtimeutil "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -26,7 +27,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
-	"superedge/pkg/edge-health/data"
 	"time"
 )
 

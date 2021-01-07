@@ -4,8 +4,8 @@ all: format test build
 # ==============================================================================
 # Build options
 
-ROOT_PACKAGE=superedge
-VERSION_PACKAGE=superedge/pkg/version
+ROOT_PACKAGE=github.com/superedge/superedge
+VERSION_PACKAGE=github.com/superedge/superedge/pkg/version
 
 # ==============================================================================
 # Includes

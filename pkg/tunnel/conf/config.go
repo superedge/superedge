@@ -18,7 +18,7 @@ package conf
 
 import (
 	"github.com/BurntSushi/toml"
-	"superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 )
 
 var TunnelConf *Tunnel

@@ -18,8 +18,8 @@ package context
 
 import (
 	"flag"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"os"
-	"superedge/pkg/tunnel/util"
 	"testing"
 
 	"k8s.io/klog"

@@ -18,8 +18,8 @@ package main
 
 import (
 	"flag"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"os"
-	"superedge/pkg/tunnel/util"
 	"testing"
 )
 

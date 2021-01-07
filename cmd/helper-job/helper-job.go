@@ -26,7 +26,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"superedge/cmd/helper-job/app"
+	"github.com/superedge/superedge/cmd/helper-job/app"
 )
 
 func main() {

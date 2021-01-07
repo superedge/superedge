@@ -19,13 +19,13 @@ package checkplugin
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"io/ioutil"
 	"k8s.io/klog"
 	"net/http"
 	"strconv"
 	"strings"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
 	"sync"
 	"time"
 )

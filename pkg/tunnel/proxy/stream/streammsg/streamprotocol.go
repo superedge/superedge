@@ -18,9 +18,9 @@ package streammsg
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"k8s.io/klog"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
 )
 
 func HeartbeatHandler(msg *proto.StreamMsg) error {

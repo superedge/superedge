@@ -37,12 +37,12 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"superedge/pkg/application-grid-controller/controller"
-	"superedge/pkg/application-grid-controller/controller/common"
-	crdclientset "superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	crdinformers "superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
-	crdv1listers "superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	crdclientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
+	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 )
 
 var controllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
