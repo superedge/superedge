@@ -19,6 +19,10 @@ package connect
 import (
 	ctx "context"
 	"fmt"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/stream"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
@@ -27,10 +31,6 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/proxy/stream/streammng/stream"
-	"superedge/pkg/tunnel/util"
 	"time"
 )
 

@@ -5,10 +5,10 @@ package versioned
 import (
 	"fmt"
 
+	superedgev1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
-	superedgev1 "superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
 )
 
 type Interface interface {

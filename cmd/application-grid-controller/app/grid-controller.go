@@ -19,6 +19,14 @@ package app
 import (
 	"context"
 	"github.com/spf13/cobra"
+	"github.com/superedge/superedge/cmd/application-grid-controller/app/options"
+	"github.com/superedge/superedge/pkg/application-grid-controller/config"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service"
+	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/api/core/v1"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,17 +41,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"os"
-	"superedge/cmd/application-grid-controller/app/options"
-	"superedge/pkg/application-grid-controller/config"
-	"superedge/pkg/application-grid-controller/controller/deployment"
-	"superedge/pkg/application-grid-controller/controller/service"
-	"superedge/pkg/application-grid-controller/prepare"
-	"superedge/pkg/util"
-	"superedge/pkg/version"
-	"superedge/pkg/version/verflag"
 	"time"
 
-	crdClientset "superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 )
 
 func NewGridControllerManagerCommand() *cobra.Command {

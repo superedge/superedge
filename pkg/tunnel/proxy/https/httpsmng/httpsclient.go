@@ -20,14 +20,14 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog"
 	"net"
 	"net/http"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/util"
 )
 
 func Request(msg *proto.StreamMsg) {

@@ -26,7 +26,7 @@ import (
 
 	"k8s.io/klog"
 
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 type FileStorage struct {

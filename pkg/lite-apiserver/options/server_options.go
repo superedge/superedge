@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 type RunServerOptions struct {

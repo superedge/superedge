@@ -18,6 +18,12 @@ package connect
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/stream"
+	tunnel "github.com/superedge/superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/channelz/service"
 	"google.golang.org/grpc/credentials"
@@ -28,12 +34,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/proxy/stream/streammng/stream"
-	tunnel "superedge/pkg/tunnel/util"
-	"superedge/pkg/util"
 	"time"
 )
 

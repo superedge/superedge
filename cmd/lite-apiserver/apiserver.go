@@ -27,7 +27,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"superedge/cmd/lite-apiserver/app"
+	"github.com/superedge/superedge/cmd/lite-apiserver/app"
 )
 
 func main() {

@@ -16,7 +16,7 @@ limitations under the License.
 
 package context
 
-import "superedge/pkg/tunnel/proto"
+import "github.com/superedge/superedge/pkg/tunnel/proto"
 
 type CallBack func(msg *proto.StreamMsg) error
 

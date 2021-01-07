@@ -20,14 +20,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io/ioutil"
 	"k8s.io/klog"
 	"net/http"
 	"strings"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/proto"
-	"superedge/pkg/tunnel/util"
 )
 
 type ServerHandler struct {

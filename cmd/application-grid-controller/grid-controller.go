@@ -26,7 +26,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"superedge/cmd/application-grid-controller/app"
+	"github.com/superedge/superedge/cmd/application-grid-controller/app"
 )
 
 func main() {

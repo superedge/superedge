@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 
-	"superedge/pkg/util"
-	"superedge/pkg/version"
-	"superedge/pkg/version/verflag"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 )
 
 func NewVersionCMD() *cobra.Command {

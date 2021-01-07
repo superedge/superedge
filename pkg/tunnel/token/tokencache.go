@@ -19,10 +19,10 @@ package token
 import (
 	"bufio"
 	"encoding/json"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"os"
 	"strings"
-	"superedge/pkg/tunnel/util"
 	"sync"
 	"time"
 )

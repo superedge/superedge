@@ -27,8 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"superedge/pkg/application-grid-controller/controller/deployment/util"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 )
 
 func (dgc *DeploymentGridController) syncStatus(g *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {

@@ -33,11 +33,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	crdv1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"superedge/pkg/application-grid-controller/controller/common"
-	"superedge/pkg/application-grid-controller/controller/testutil"
-	crdfake "superedge/pkg/application-grid-controller/generated/clientset/versioned/fake"
-	crdinformers "superedge/pkg/application-grid-controller/generated/informers/externalversions"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/testutil"
+	crdfake "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/fake"
+	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions"
 )
 
 func init() {

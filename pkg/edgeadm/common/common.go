@@ -29,10 +29,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
-	"superedge/pkg/edgeadm/constant"
-	"superedge/pkg/edgeadm/constant/manifests"
-	"superedge/pkg/util"
-	"superedge/pkg/util/kubeclient"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func ReadYaml(intputPath, defaults string) string {

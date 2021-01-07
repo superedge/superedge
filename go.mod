@@ -1,4 +1,4 @@
-module superedge
+module github.com/superedge/superedge
 
 go 1.14
 

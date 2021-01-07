@@ -18,14 +18,14 @@ package tcp
 
 import (
 	uuid "github.com/satori/go.uuid"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/model"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmng"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmsg"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"net"
-	"superedge/pkg/tunnel/conf"
-	"superedge/pkg/tunnel/context"
-	"superedge/pkg/tunnel/model"
-	"superedge/pkg/tunnel/proxy/tcp/tcpmng"
-	"superedge/pkg/tunnel/proxy/tcp/tcpmsg"
-	"superedge/pkg/tunnel/util"
 )
 
 type TcpProxy struct {

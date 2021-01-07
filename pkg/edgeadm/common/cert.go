@@ -24,8 +24,8 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/util/keyutil"
 
-	"superedge/pkg/edgeadm/constant"
-	"superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 func GetClientCert(commonName, certPath, keyPath string) ([]byte, []byte, error) {

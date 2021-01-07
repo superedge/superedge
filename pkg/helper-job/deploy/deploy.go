@@ -22,8 +22,8 @@ import (
 
 	"k8s.io/klog"
 
-	"superedge/pkg/helper-job/constant"
-	"superedge/pkg/util/kubeclient"
+	"github.com/superedge/superedge/pkg/helper-job/constant"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func Run() error {

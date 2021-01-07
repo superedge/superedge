@@ -18,12 +18,12 @@ package checkplugin
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"k8s.io/klog"
 	"net"
 	"strconv"
 	"strings"
-	"superedge/pkg/edge-health/common"
-	"superedge/pkg/edge-health/data"
 	"sync"
 	"time"
 )

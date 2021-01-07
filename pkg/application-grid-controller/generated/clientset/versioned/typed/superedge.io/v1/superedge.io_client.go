@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
+	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 
+	v1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	rest "k8s.io/client-go/rest"
-	v1 "superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
 type SuperedgeV1Interface interface {

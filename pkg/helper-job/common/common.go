@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"superedge/pkg/helper-job/constant"
+	"github.com/superedge/superedge/pkg/helper-job/constant"
 )
 
 func GetMasterHosts(clientSet *kubernetes.Clientset) (map[string]string, error) {

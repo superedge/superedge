@@ -22,8 +22,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"superedge/pkg/edgeadm/constant/manifests"
-	"superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 var yamlMap = map[string]string{

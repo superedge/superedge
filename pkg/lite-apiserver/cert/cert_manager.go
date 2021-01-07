@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 
 	"k8s.io/klog"
 )

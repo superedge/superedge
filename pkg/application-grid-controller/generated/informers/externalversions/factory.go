@@ -3,17 +3,17 @@
 package externalversions
 
 import (
+	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	reflect "reflect"
-	versioned "superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	internalinterfaces "superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	sync "sync"
 	time "time"
 
+	superedgeio "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	superedgeio "superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

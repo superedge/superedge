@@ -18,16 +18,16 @@ package app
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/superedge/superedge/cmd/tunnel/app/options"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	. "github.com/superedge/superedge/pkg/tunnel/model"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/https"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/stream"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/klog"
-	"superedge/cmd/tunnel/app/options"
-	"superedge/pkg/tunnel/conf"
-	. "superedge/pkg/tunnel/model"
-	"superedge/pkg/tunnel/proxy/https"
-	"superedge/pkg/tunnel/proxy/stream"
-	"superedge/pkg/tunnel/proxy/tcp"
-	"superedge/pkg/util"
-	"superedge/pkg/version"
-	"superedge/pkg/version/verflag"
 )
 
 func NewTunnelCommand() *cobra.Command {

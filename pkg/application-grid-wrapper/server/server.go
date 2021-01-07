@@ -39,8 +39,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 
-	"superedge/pkg/application-grid-wrapper/server/apis"
-	"superedge/pkg/application-grid-wrapper/storage"
+	"github.com/superedge/superedge/pkg/application-grid-wrapper/server/apis"
+	"github.com/superedge/superedge/pkg/application-grid-wrapper/storage"
 )
 
 type interceptorServer struct {
