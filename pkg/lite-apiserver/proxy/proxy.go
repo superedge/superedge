@@ -218,8 +218,8 @@ func (p *EdgeReverseProxy) handlerError(rw http.ResponseWriter, req *http.Reques
 }
 
 func (p *EdgeReverseProxy) filterErrorToIgnore(err error) bool {
-	// ignore watch error
-	if p.watch {
+	// ignore those requests that do not need cache
+	if !p.needCache {
 		return true
 	}
 
