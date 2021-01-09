@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"time"
 
 	"k8s.io/klog"
@@ -50,8 +51,6 @@ import (
 	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 )
-
-var controllerKind = crdv1.SchemeGroupVersion.WithKind("DeploymentGrid")
 
 type DeploymentGridController struct {
 	dpControl          controller.DPControlInterface
@@ -252,7 +251,7 @@ func (dgc *DeploymentGridController) getDeploymentForGrid(g *crdv1.DeploymentGri
 		return fresh, nil
 	})
 
-	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, g, labelSelector, controllerKind, canAdoptFunc)
+	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, g, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimDeployment(dpList)
 }
 

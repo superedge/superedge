@@ -18,6 +18,7 @@ package deployment
 
 import (
 	"flag"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -234,7 +235,7 @@ func newDeployment(dpg *crdv1.DeploymentGrid, name string) *appsv1.Deployment {
 			Labels: map[string]string{
 				common.GridSelectorName: dpg.Name,
 			},
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dpg, controllerKind)},
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dpg, util.ControllerKind)},
 		},
 		Spec: dpg.Spec.Template,
 	}
@@ -454,7 +455,7 @@ func TestUpdateDeploymentChangeControllerRef(t *testing.T) {
 	c, _, _ := f.newController()
 	// Change ControllerRef and expect both old and new to queue.
 	prev := *dp
-	prev.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(dpg2, controllerKind)}
+	prev.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(dpg2, util.ControllerKind)}
 	next := *dp
 	c.updateDeployment(&prev, &next)
 	if got, want := c.queue.Len(), 2; got != want {

@@ -14,6 +14,8 @@ spec:
     plural: servicegrids
     singular: servicegrid
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: ServiceGrid is the Schema for the servicegrids API
