@@ -27,6 +27,8 @@ import (
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind("DeploymentGrid")
+
 func GetDeploymentName(g *crdv1.DeploymentGrid, gridValue string) string {
 	return fmt.Sprintf("%s-%s", g.Name, gridValue)
 }
@@ -40,6 +42,7 @@ func CreateDeployment(g *crdv1.DeploymentGrid, gridValue string) *appsv1.Deploym
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetDeploymentName(g, gridValue),
 			Namespace: g.Namespace,
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(g, ControllerKind)},
 			Labels: map[string]string{
 				common.GridSelectorName: g.Name,
 			},
