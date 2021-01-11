@@ -30,12 +30,6 @@ import (
 )
 
 func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*corev1.Service) error {
-	existedSvcsMap := make(map[string]*corev1.Service)
-
-	for _, svc := range svcList {
-		existedSvcsMap[svc.Name] = svc
-	}
-
 	var (
 		adds    []*corev1.Service
 		updates []*corev1.Service
@@ -43,21 +37,20 @@ func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*cor
 	)
 
 	name := util.GetServiceName(g)
+	isExistingSvc := false
 	for _, svc := range svcList {
 		if name == svc.Name {
+			isExistingSvc = true
 			template := util.KeepConsistence(g, svc)
 			if !apiequality.Semantic.DeepEqual(template, svc) {
 				updates = append(updates, template)
-				continue
 			}
-
-			updates = append(updates, svc)
-			continue
+		} else {
+			deletes = append(deletes, svc)
 		}
-		deletes = append(deletes, svc)
 	}
 
-	if len(updates) == 0 {
+	if !isExistingSvc {
 		adds = append(adds, util.CreateService(g))
 	}
 
