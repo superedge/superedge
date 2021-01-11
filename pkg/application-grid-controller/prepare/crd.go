@@ -18,10 +18,8 @@ package prepare
 
 import (
 	"context"
-	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
-	"gopkg.in/yaml.v2"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"time"
@@ -40,97 +38,63 @@ type crdPreparator struct {
 	client clientset.Interface
 }
 
+type object struct {
+	Kind string `yaml:"kind"`
+}
+
 func NewCRDPreparator(client clientset.Interface) *crdPreparator {
 	return &crdPreparator{client: client}
 }
 
-func (p *crdPreparator) Prepare(crds ...schema.GroupVersionKind) error {
-	if len(crds) == 0 {
+func (p *crdPreparator) Prepare(gvks ...schema.GroupVersionKind) error {
+	if len(gvks) == 0 {
 		return nil
 	}
 
-	ready, err := p.getReadyCRDs()
-	if err != nil {
-		return err
-	}
-
-	crdStatus := map[schema.GroupVersionKind]*apiext.CustomResourceDefinition{}
-	for _, crdDef := range crds {
-		/*create crd
-		 */
-		crd, err := p.createCRD(crdDef, ready)
+	// create or update specified edge CRDs
+	for _, gvk := range gvks {
+		curCRD, err := p.createOrUpdateCRD(gvk)
 		if err != nil {
 			return err
 		}
-		crdStatus[crdDef] = crd
-	}
-
-	ready, err = p.getReadyCRDs()
-	if err != nil {
-		return err
-	}
-
-	for gvk, crd := range crdStatus {
-		if readyCrd, ok := ready[crd.Name]; ok {
-			crdStatus[gvk] = readyCrd
-		} else {
-			if err := p.waitCRD(crd.Name, gvk, crdStatus); err != nil {
-				return err
-			}
+		if err := p.waitCRD(curCRD.Name); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (p *crdPreparator) createCRD(gvk schema.GroupVersionKind, ready map[string]*apiext.CustomResourceDefinition) (*apiext.CustomResourceDefinition, error) {
+// createOrUpdateCRDs create or update specified edge CRDs
+func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.CustomResourceDefinition, error) {
+	klog.Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
+	defer klog.Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
 	var (
-		crd  *apiext.CustomResourceDefinition
-		data []byte
-		err  error
+		objBytes []byte
+		err      error
 	)
-	//crd := util.ToCustomResourceDefinition(gvk)
-
+	// create specified GroupVersionKind edge CRD
 	if gvk.Kind == "DeploymentGrid" {
-		data, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
+		objBytes, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		objBytes, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if gvk.Kind == "ServiceGrid" {
-		data, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	//klog.V(8).Infof("Create yaml: %s", string(data))
-	objBytes := data
-	obj := new(object)
-	err = yaml.Unmarshal(objBytes, obj)
-	if err != nil {
+	crd := new(apiext.CustomResourceDefinition)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, crd); err != nil {
 		return nil, err
 	}
-	if obj.Kind != "" {
-		crd = new(apiext.CustomResourceDefinition)
-		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, crd); err != nil {
-			return nil, err
-		}
-	}
-
-	if crd != nil {
-		existing, ok := ready[crd.Name]
-		if ok {
-			if !equality.Semantic.DeepEqual(crd.Spec.Validation, existing.Spec.Validation) ||
-				!equality.Semantic.DeepEqual(crd.Spec.Versions, existing.Spec.Versions) {
-				existing.Spec = crd.Spec
-				klog.Infof("Updating CRD %s", crd.Name)
-				return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), existing, metav1.UpdateOptions{})
-			}
-			return existing, nil
-		}
-
+	// create or update relevant edge CRD
+	curCRD, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		// try to create edge CRD
 		klog.Infof("Creating CRD %s", crd.Name)
 		if newCrd, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{}); errors.IsAlreadyExists(err) {
 			return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
@@ -140,31 +104,18 @@ func (p *crdPreparator) createCRD(gvk schema.GroupVersionKind, ready map[string]
 			return newCrd, nil
 		}
 	}
-	return nil, fmt.Errorf("crd is nil")
+	// update edge CRD if necessary
+	if !equality.Semantic.DeepEqual(crd.Spec.Validation, curCRD.Spec.Validation) ||
+		!equality.Semantic.DeepEqual(crd.Spec.Versions, curCRD.Spec.Versions) {
+		curCRD.Spec = crd.Spec
+		klog.Infof("Updating CRD %s", crd.Name)
+		return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), curCRD, metav1.UpdateOptions{})
+	}
+	return curCRD, nil
 }
 
-func (p *crdPreparator) getReadyCRDs() (map[string]*apiext.CustomResourceDefinition, error) {
-	list, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	ready := map[string]*apiext.CustomResourceDefinition{}
-	for i, crd := range list.Items {
-		for _, cond := range crd.Status.Conditions {
-			switch cond.Type {
-			case apiext.Established:
-				if cond.Status == apiext.ConditionTrue {
-					ready[crd.Name] = &list.Items[i]
-				}
-			}
-		}
-	}
-	return ready, nil
-}
-
-func (p *crdPreparator) waitCRD(name string, gvk schema.GroupVersionKind,
-	crdStatus map[schema.GroupVersionKind]*apiext.CustomResourceDefinition) error {
+// waitCRD waits for specified edge CRD to become available
+func (p *crdPreparator) waitCRD(name string) error {
 	klog.Infof("Waiting for CRD %s to become available", name)
 	defer klog.Infof("Done waiting for CRD %s to become available", name)
 
@@ -184,7 +135,6 @@ func (p *crdPreparator) waitCRD(name string, gvk schema.GroupVersionKind,
 			switch cond.Type {
 			case apiext.Established:
 				if cond.Status == apiext.ConditionTrue {
-					crdStatus[gvk] = crd
 					return true, err
 				}
 			case apiext.NamesAccepted:
@@ -196,8 +146,4 @@ func (p *crdPreparator) waitCRD(name string, gvk schema.GroupVersionKind,
 
 		return false, nil
 	})
-}
-
-type object struct {
-	Kind string `yaml:"kind"`
 }
