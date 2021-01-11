@@ -70,25 +70,27 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 	klog.Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
 	defer klog.Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
 	var (
-		objBytes []byte
+		crdBytes []byte
 		err      error
 	)
 	// create specified GroupVersionKind edge CRD
 	if gvk.Kind == "DeploymentGrid" {
-		objBytes, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
+		crdBytes, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
 		if err != nil {
 			return nil, err
 		}
 
-	} else {
-		objBytes, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
+	} else if gvk.Kind == "ServiceGrid" {
+		crdBytes, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		// TODO: other edge CRDs in future.
 	}
 
 	crd := new(apiext.CustomResourceDefinition)
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, crd); err != nil {
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crdBytes, crd); err != nil {
 		return nil, err
 	}
 	// create or update relevant edge CRD
