@@ -123,7 +123,7 @@ func (dgc *DeploymentGridController) deleteDeployment(obj interface{}) {
 		}
 		d, ok = tombstone.Obj.(*appsv1.Deployment)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a Deployment %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object is not a deployment %#v", obj))
 			return
 		}
 	}
