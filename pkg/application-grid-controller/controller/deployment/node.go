@@ -35,13 +35,13 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 		dgc.deleteDeployment(node)
 		return
 	}
-	gs := dgc.getGridForNode(node)
-	if len(gs) == 0 {
+	dgs := dgc.getGridForNode(node)
+	if len(dgs) == 0 {
 		return
 	}
 	klog.V(4).Infof("Node %s added.", node.Name)
-	for _, g := range gs {
-		dgc.enqueueDeploymentGrid(g)
+	for _, dg := range dgs {
+		dgc.enqueueDeploymentGrid(dg)
 	}
 }
 
@@ -51,13 +51,13 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		gs := dgc.getGridForNode(curNode)
-		if len(gs) == 0 {
+		dgs := dgc.getGridForNode(curNode)
+		if len(dgs) == 0 {
 			return
 		}
 		klog.V(4).Infof("Node %s updated.", curNode.Name)
-		for _, g := range gs {
-			dgc.enqueueDeploymentGrid(g)
+		for _, dg := range dgs {
+			dgc.enqueueDeploymentGrid(dg)
 		}
 	}
 }
@@ -76,13 +76,13 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 			return
 		}
 	}
-	gs := dgc.getGridForNode(node)
-	if len(gs) == 0 {
+	dgs := dgc.getGridForNode(node)
+	if len(dgs) == 0 {
 		return
 	}
 	klog.V(4).Infof("Node %s deleted.", node.Name)
-	for _, g := range gs {
-		dgc.enqueueDeploymentGrid(g)
+	for _, dg := range dgs {
+		dgc.enqueueDeploymentGrid(dg)
 	}
 }
 
@@ -96,9 +96,9 @@ func (dgc *DeploymentGridController) getGridForNode(node *v1.Node) []*crdv1.Depl
 		return nil
 	}
 	var deploymentGrids []*crdv1.DeploymentGrid
-	for _, g := range dgList {
-		if _, exist := node.Labels[g.Spec.GridUniqKey]; exist {
-			deploymentGrids = append(deploymentGrids, g)
+	for _, dg := range dgList {
+		if _, exist := node.Labels[dg.Spec.GridUniqKey]; exist {
+			deploymentGrids = append(deploymentGrids, dg)
 		}
 	}
 	if len(deploymentGrids) == 0 {
