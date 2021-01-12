@@ -26,10 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//var (
-//	ServiceTopologyEnabled = utilfeature.DefaultMutableFeatureGate.Enabled(common.ServiceTopology) &&
-//		utilfeature.DefaultMutableFeatureGate.Enabled(common.EndpointSlice)
-//)
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
 
 func GetServiceName(g *crdv1.ServiceGrid) string {
 	return strings.Join([]string{g.Name, "svc"}, "-")
@@ -48,14 +45,10 @@ func CreateService(g *crdv1.ServiceGrid) *corev1.Service {
 		Spec: g.Spec.Template,
 	}
 
-	//if ServiceTopologyEnabled {
-	//	svc.Spec.TopologyKeys = append(svc.Spec.TopologyKeys, g.Spec.GridUniqKey)
-	//} else {
 	keys := make([]string, 1)
 	keys[0] = g.Spec.GridUniqKey
 	keyData, _ := json.Marshal(keys)
 	svc.Annotations[common.TopologyAnnotationsKey] = string(keyData)
-	//}
 
 	return svc
 }
@@ -71,14 +64,11 @@ func KeepConsistence(g *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service 
 		copyObj.Annotations = make(map[string]string)
 	}
 
-	//if ServiceTopologyEnabled {
-	//	copyObj.Spec.TopologyKeys = []string{g.Spec.GridUniqKey}
-	//} else {
 	keys := make([]string, 1)
 	keys[0] = g.Spec.GridUniqKey
 	keyData, _ := json.Marshal(keys)
 	copyObj.Annotations[common.TopologyAnnotationsKey] = string(keyData)
-	//}
+
 	var oldServiceNameNodePort = make(map[string]int32)
 	var newServiceNameNodePort = make(map[string]int32)
 	if g.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {

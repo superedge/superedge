@@ -165,33 +165,33 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 		return err
 	}
 
-	g := grid.DeepCopy()
-	if g.Spec.GridUniqKey == "" {
-		dgc.eventRecorder.Eventf(g, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
+	dg := grid.DeepCopy()
+	if dg.Spec.GridUniqKey == "" {
+		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
 		return nil
 	}
 
 	/* get deploy list for this grid
 	 */
-	dpList, err := dgc.getDeploymentForGrid(g)
+	dpList, err := dgc.getDeploymentForGrid(dg)
 	if err != nil {
 		return err
 	}
 
 	/* gridValues: grid labels in all nodes
 	 */
-	gridValues, err := dgc.getGridValueFromNode(g)
+	gridValues, err := dgc.getGridValueFromNode(dg)
 	if err != nil {
 		return err
 	}
 
-	if g.DeletionTimestamp != nil {
-		return dgc.syncStatus(g, dpList, gridValues)
+	if dg.DeletionTimestamp != nil {
+		return dgc.syncStatus(dg, dpList, gridValues)
 	}
 
 	/*
 	 */
-	return dgc.reconcile(g, dpList, gridValues)
+	return dgc.reconcile(dg, dpList, gridValues)
 }
 
 func (dgc *DeploymentGridController) worker() {
@@ -229,35 +229,35 @@ func (dgc *DeploymentGridController) handleErr(err error, key interface{}) {
 	dgc.queue.Forget(key)
 }
 
-func (dgc *DeploymentGridController) getDeploymentForGrid(g *crdv1.DeploymentGrid) ([]*appsv1.Deployment, error) {
-	dpList, err := dgc.dpLister.Deployments(g.Namespace).List(labels.Everything())
+func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGrid) ([]*appsv1.Deployment, error) {
+	dpList, err := dgc.dpLister.Deployments(dg.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	labelSelector, err := common.GetDefaultSelector(g.Name)
+	labelSelector, err := common.GetDefaultSelector(dg.Name)
 	if err != nil {
 		return nil, err
 	}
 	canAdoptFunc := controller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
-		fresh, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(g.Namespace).Get(context.TODO(), g.Name, metav1.GetOptions{})
+		fresh, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dg.Namespace).Get(context.TODO(), dg.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
-		if fresh.UID != g.UID {
-			return nil, fmt.Errorf("orignal Deployment-grid %v/%v is gone: got uid %v, wanted %v", g.Namespace,
-				g.Name, fresh.UID, g.UID)
+		if fresh.UID != dg.UID {
+			return nil, fmt.Errorf("orignal Deployment-grid %v/%v is gone: got uid %v, wanted %v", dg.Namespace,
+				dg.Name, fresh.UID, dg.UID)
 		}
 		return fresh, nil
 	})
 
-	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, g, labelSelector, util.ControllerKind, canAdoptFunc)
+	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, dg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimDeployment(dpList)
 }
 
-func (dgc *DeploymentGridController) getGridValueFromNode(g *crdv1.DeploymentGrid) ([]string, error) {
+func (dgc *DeploymentGridController) getGridValueFromNode(dg *crdv1.DeploymentGrid) ([]string, error) {
 	labelSelector := labels.NewSelector()
-	gridRequirement, err := labels.NewRequirement(g.Spec.GridUniqKey, selection.Exists, nil)
+	gridRequirement, err := labels.NewRequirement(dg.Spec.GridUniqKey, selection.Exists, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (dgc *DeploymentGridController) getGridValueFromNode(g *crdv1.DeploymentGri
 
 	values := make([]string, 0)
 	for _, n := range nodes {
-		gridVal := n.Labels[g.Spec.GridUniqKey]
+		gridVal := n.Labels[dg.Spec.GridUniqKey]
 		if gridVal != "" {
 			values = append(values, gridVal)
 		}

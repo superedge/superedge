@@ -40,12 +40,11 @@ import (
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	crdclientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 )
-
-var controllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
 
 type ServiceGridController struct {
 	svcControl          controller.SVCControlInterface
@@ -182,21 +181,21 @@ func (sgc *ServiceGridController) syncServiceGrid(key string) error {
 		return err
 	}
 
-	g := grid.DeepCopy()
-	if g.Spec.GridUniqKey == "" {
-		sgc.eventRecorder.Eventf(g, corev1.EventTypeWarning, "Empty", "This service-grid has an empty grid key")
+	sg := grid.DeepCopy()
+	if sg.Spec.GridUniqKey == "" {
+		sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, "Empty", "This service-grid has an empty grid key")
 		return nil
 	}
 
-	svcList, err := sgc.getServiceForGrid(g)
+	svcList, err := sgc.getServiceForGrid(sg)
 	if err != nil {
 		return err
 	}
 
-	if g.DeletionTimestamp != nil {
+	if sg.DeletionTimestamp != nil {
 		return nil
 	}
-	return sgc.reconcile(g, svcList)
+	return sgc.reconcile(sg, svcList)
 }
 
 func (sgc *ServiceGridController) enqueue(serviceGrid *crdv1.ServiceGrid) {
@@ -209,28 +208,28 @@ func (sgc *ServiceGridController) enqueue(serviceGrid *crdv1.ServiceGrid) {
 	sgc.queue.Add(key)
 }
 
-func (sgc *ServiceGridController) getServiceForGrid(g *crdv1.ServiceGrid) ([]*corev1.Service, error) {
-	svcList, err := sgc.svcLister.Services(g.Namespace).List(labels.Everything())
+func (sgc *ServiceGridController) getServiceForGrid(sg *crdv1.ServiceGrid) ([]*corev1.Service, error) {
+	svcList, err := sgc.svcLister.Services(sg.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	labelSelector, err := common.GetDefaultSelector(g.Name)
+	labelSelector, err := common.GetDefaultSelector(sg.Name)
 	if err != nil {
 		return nil, err
 	}
 	canAdoptFunc := controller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
-		fresh, err := sgc.crdClient.SuperedgeV1().ServiceGrids(g.Namespace).Get(context.TODO(), g.Name, metav1.GetOptions{})
+		fresh, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sg.Namespace).Get(context.TODO(), sg.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
-		if fresh.UID != g.UID {
-			return nil, fmt.Errorf("orignal Service-grid %v/%v is gone: got uid %v, wanted %v", g.Namespace,
-				g.Name, fresh.UID, g.UID)
+		if fresh.UID != sg.UID {
+			return nil, fmt.Errorf("orignal Service-grid %v/%v is gone: got uid %v, wanted %v", sg.Namespace,
+				sg.Name, fresh.UID, sg.UID)
 		}
 		return fresh, nil
 	})
 
-	cm := controller.NewServiceControllerRefManager(sgc.svcControl, g, labelSelector, controllerKind, canAdoptFunc)
+	cm := controller.NewServiceControllerRefManager(sgc.svcControl, sg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimService(svcList)
 }

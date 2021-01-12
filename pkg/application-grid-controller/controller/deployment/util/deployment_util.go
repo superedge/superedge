@@ -40,8 +40,8 @@ func GetGridValueFromName(g *crdv1.DeploymentGrid, name string) string {
 func CreateDeployment(g *crdv1.DeploymentGrid, gridValue string) *appsv1.Deployment {
 	dp := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetDeploymentName(g, gridValue),
-			Namespace: g.Namespace,
+			Name:            GetDeploymentName(g, gridValue),
+			Namespace:       g.Namespace,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(g, ControllerKind)},
 			Labels: map[string]string{
 				common.GridSelectorName: g.Name,
