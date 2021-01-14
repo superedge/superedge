@@ -52,7 +52,7 @@ func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList
 }
 
 func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
-	existedDPsMap := make(map[string]*appsv1.Deployment)
+	existedDPMap := make(map[string]*appsv1.Deployment)
 
 	for _, dp := range dpList {
 		existedDPMap[dp.Name] = dp
@@ -101,7 +101,7 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		return err
 	}
 
-	return dgc.syncStatus(dg, updates, gridValues)
+	return dgc.syncStatus(dg, updatedDPList, gridValues)
 }
 
 func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*appsv1.Deployment) error {
