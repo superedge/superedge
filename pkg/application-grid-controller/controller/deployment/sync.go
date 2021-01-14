@@ -31,28 +31,28 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 )
 
-func (dgc *DeploymentGridController) syncStatus(g *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
+func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
 	wanted := sets.NewString()
 	for _, v := range gridValues {
-		wanted.Insert(util.GetDeploymentName(g, v))
+		wanted.Insert(util.GetDeploymentName(dg, v))
 	}
 
 	states := make(map[string]appsv1.DeploymentStatus)
 	for _, dp := range dpList {
 		if wanted.Has(dp.Name) {
-			states[util.GetGridValueFromName(g, dp.Name)] = dp.Status
+			states[util.GetGridValueFromName(dg, dp.Name)] = dp.Status
 		}
 	}
-	g.Status.States = states
-	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(g.Namespace).UpdateStatus(context.TODO(), g, metav1.UpdateOptions{})
+	dg.Status.States = states
+	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dg.Namespace).UpdateStatus(context.TODO(), dg, metav1.UpdateOptions{})
 	if err != nil && errors.IsConflict(err) {
 		return nil
 	}
 	return err
 }
 
-func (dgc *DeploymentGridController) reconcile(g *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
-	existedDPMap := make(map[string]*appsv1.Deployment)
+func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
+	existedDPsMap := make(map[string]*appsv1.Deployment)
 
 	for _, dp := range dpList {
 		existedDPMap[dp.Name] = dp
@@ -62,7 +62,7 @@ func (dgc *DeploymentGridController) reconcile(g *crdv1.DeploymentGrid, dpList [
 	for _, v := range gridValues {
 		/* nginx-zone1
 		 */
-		wanted.Insert(util.GetDeploymentName(g, v))
+		wanted.Insert(util.GetDeploymentName(dg, v))
 	}
 
 	var (
@@ -73,19 +73,15 @@ func (dgc *DeploymentGridController) reconcile(g *crdv1.DeploymentGrid, dpList [
 	)
 
 	for _, v := range gridValues {
-		name := util.GetDeploymentName(g, v)
-		spec := *g.Spec.Template.DeepCopy()
-		spec.Template.Spec.NodeSelector = map[string]string{
-			g.Spec.GridUniqKey: v,
-		}
+		name := util.GetDeploymentName(dg, v)
 
 		dp, found := existedDPMap[name]
 		if !found {
-			adds = append(adds, util.CreateDeployment(g, v))
+			adds = append(adds, util.CreateDeployment(dg, v))
 			continue
 		}
 
-		template := util.KeepConsistence(g, dp, v)
+		template := util.KeepConsistence(dg, dp, v)
 		if !apiequality.Semantic.DeepEqual(template, dp) {
 			updates = append(updates, template)
 			updatedDPList = append(updatedDPList, template)
@@ -105,7 +101,7 @@ func (dgc *DeploymentGridController) reconcile(g *crdv1.DeploymentGrid, dpList [
 		return err
 	}
 
-	return dgc.syncStatus(g, updatedDPList, gridValues)
+	return dgc.syncStatus(dg, updates, gridValues)
 }
 
 func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*appsv1.Deployment) error {

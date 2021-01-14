@@ -64,9 +64,9 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 	errCh := make(chan error, totalSize)
 
 	for i := range adds {
-		go func(d *corev1.Service) {
+		go func(svc *corev1.Service) {
 			defer wg.Done()
-			_, err := sgc.kubeClient.CoreV1().Services(d.Namespace).Create(context.TODO(), d, metav1.CreateOptions{})
+			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			if err != nil {
 				errCh <- err
 			}
@@ -74,9 +74,9 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 	}
 
 	for i := range updates {
-		go func(d *corev1.Service) {
+		go func(svc *corev1.Service) {
 			defer wg.Done()
-			_, err := sgc.kubeClient.CoreV1().Services(d.Namespace).Update(context.TODO(), d, metav1.UpdateOptions{})
+			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
 			}
@@ -84,9 +84,9 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 	}
 
 	for i := range deletes {
-		go func(d *corev1.Service) {
+		go func(svc *corev1.Service) {
 			defer wg.Done()
-			err := sgc.kubeClient.CoreV1().Services(d.Namespace).Delete(context.TODO(), d.Name, metav1.DeleteOptions{})
+			err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 			if err != nil {
 				errCh <- err
 			}

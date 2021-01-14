@@ -18,6 +18,7 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
@@ -26,76 +27,72 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//var (
-//	ServiceTopologyEnabled = utilfeature.DefaultMutableFeatureGate.Enabled(common.ServiceTopology) &&
-//		utilfeature.DefaultMutableFeatureGate.Enabled(common.EndpointSlice)
-//)
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
 
-func GetServiceName(g *crdv1.ServiceGrid) string {
-	return strings.Join([]string{g.Name, "svc"}, "-")
+func GetServiceName(sg *crdv1.ServiceGrid) string {
+	return strings.Join([]string{sg.Name, "svc"}, "-")
 }
 
-func CreateService(g *crdv1.ServiceGrid) *corev1.Service {
+func CreateService(sg *crdv1.ServiceGrid) *corev1.Service {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetServiceName(g),
-			Namespace: g.Namespace,
+			Name:      GetServiceName(sg),
+			Namespace: sg.Namespace,
 			Labels: map[string]string{
-				common.GridSelectorName: g.Name,
+				common.GridSelectorName: sg.Name,
 			},
 			Annotations: make(map[string]string),
 		},
-		Spec: g.Spec.Template,
+		Spec: sg.Spec.Template,
 	}
 
-	//if ServiceTopologyEnabled {
-	//	svc.Spec.TopologyKeys = append(svc.Spec.TopologyKeys, g.Spec.GridUniqKey)
-	//} else {
 	keys := make([]string, 1)
-	keys[0] = g.Spec.GridUniqKey
+	keys[0] = sg.Spec.GridUniqKey
 	keyData, _ := json.Marshal(keys)
 	svc.Annotations[common.TopologyAnnotationsKey] = string(keyData)
-	//}
 
 	return svc
 }
 
-func KeepConsistence(g *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service {
+// constructServicePortIdentify construct the name identify for service port
+func constructServicePortIdentify(port *corev1.ServicePort) string {
+	return fmt.Sprintf("%s-%s-%d-%s-%d", port.Name, port.Protocol, port.Port, port.TargetPort.String(), port.NodePort)
+}
+
+func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service {
 	copyObj := svc.DeepCopy()
 	if copyObj.Labels == nil {
 		copyObj.Labels = make(map[string]string)
 	}
-	copyObj.Labels[common.GridSelectorName] = g.Name
+	copyObj.Labels[common.GridSelectorName] = sg.Name
 
 	if copyObj.Annotations == nil {
 		copyObj.Annotations = make(map[string]string)
 	}
 
-	//if ServiceTopologyEnabled {
-	//	copyObj.Spec.TopologyKeys = []string{g.Spec.GridUniqKey}
-	//} else {
 	keys := make([]string, 1)
-	keys[0] = g.Spec.GridUniqKey
+	keys[0] = sg.Spec.GridUniqKey
 	keyData, _ := json.Marshal(keys)
 	copyObj.Annotations[common.TopologyAnnotationsKey] = string(keyData)
-	//}
+
 	var oldServiceNameNodePort = make(map[string]int32)
 	var newServiceNameNodePort = make(map[string]int32)
-	if g.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
+	if sg.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
 		for _, port := range copyObj.Spec.Ports {
-			oldServiceNameNodePort[port.Name] = port.NodePort
+			oldServiceNameNodePort[constructServicePortIdentify(&port)] = port.NodePort
 		}
-		for _, port := range g.Spec.Template.Ports {
-			newServiceNameNodePort[port.Name] = port.NodePort
+		for _, port := range sg.Spec.Template.Ports {
+			newServiceNameNodePort[constructServicePortIdentify(&port)] = port.NodePort
 		}
 	}
 
-	copyObj.Spec.Ports = g.Spec.Template.Ports
-	if g.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
+	copyObj.Spec.Selector = sg.Spec.Template.Selector
+	copyObj.Spec.Ports = sg.Spec.Template.Ports
+	if sg.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
 		for k, port := range copyObj.Spec.Ports {
-			if _, ok := oldServiceNameNodePort[port.Name]; ok {
+			if _, ok := oldServiceNameNodePort[constructServicePortIdentify(&port)]; ok {
 				if newServiceNameNodePort[port.Name] == 0 && oldServiceNameNodePort[port.Name] != 0 {
-					copyObj.Spec.Ports[k].NodePort = oldServiceNameNodePort[port.Name]
+					copyObj.Spec.Ports[k].NodePort = oldServiceNameNodePort[constructServicePortIdentify(&port)]
 				}
 			}
 		}
