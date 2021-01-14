@@ -148,7 +148,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 			return false, nil
 		}
 		if err := release(obj); err != nil {
-			// If the pod no longer exists, ignore the error.
+			// If the object no longer exists, ignore the error.
 			if errors.IsNotFound(err) {
 				return false, nil
 			}
@@ -171,7 +171,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 	}
 	// Selector matches. Try to adopt.
 	if err := adopt(obj); err != nil {
-		// If the pod no longer exists, ignore the error.
+		// If the object no longer exists, ignore the error.
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
