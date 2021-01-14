@@ -110,6 +110,7 @@ func genLocalEndpoints(eps *v1.Endpoints) *v1.Endpoints {
 	return nep
 }
 
+// pruneEndpoints filters endpoints using serviceTopology rules combined by services topologyKeys and node labels
 func pruneEndpoints(hostName string,
 	nodes map[types.NamespacedName]*nodeContainer,
 	services map[types.NamespacedName]*serviceContainer,
@@ -138,37 +139,37 @@ func pruneEndpoints(hostName string,
 	newEps := eps.DeepCopy()
 	for si := range newEps.Subsets {
 		subnet := &newEps.Subsets[si]
-		subnet.Addresses = filterConcernedAddress(svc.keys, hostName, nodes, subnet.Addresses)
-		subnet.NotReadyAddresses = filterConcernedAddress(svc.keys, hostName, nodes, subnet.NotReadyAddresses)
+		subnet.Addresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.Addresses)
+		subnet.NotReadyAddresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.NotReadyAddresses)
 	}
 	klog.V(4).Infof("Topology endpoints %s: subnets from %+#v to %+#v", eps.Name, eps.Subsets, newEps.Subsets)
 
 	return newEps
 }
 
-func filterConcernedAddress(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
-	address []v1.EndpointAddress) []v1.EndpointAddress {
+// filterConcernedAddresses aims to filter out endpoints addresses within the same node unit
+func filterConcernedAddresses(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
+	addresses []v1.EndpointAddress) []v1.EndpointAddress {
 	hostNode, found := nodes[types.NamespacedName{Name: hostName}]
 	if !found {
 		return nil
 	}
 
-	filtered := make([]v1.EndpointAddress, 0)
-	for i := range address {
-		addr := address[i]
-		if addr.NodeName != nil {
-			nodeName := *addr.NodeName
-			epsNode, found := nodes[types.NamespacedName{Name: nodeName}]
+	filteredEndpointAddresses := make([]v1.EndpointAddress, 0)
+	for i := range addresses {
+		addr := addresses[i]
+		if nodeName := addr.NodeName; nodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: *nodeName}]
 			if !found {
 				continue
 			}
 			if hasIntersectionLabel(topologyKeys, hostNode.labels, epsNode.labels) {
-				filtered = append(filtered, addr)
+				filteredEndpointAddresses = append(filteredEndpointAddresses, addr)
 			}
 		}
 	}
 
-	return filtered
+	return filteredEndpointAddresses
 }
 
 func hasIntersectionLabel(keys []string, n1, n2 map[string]string) bool {

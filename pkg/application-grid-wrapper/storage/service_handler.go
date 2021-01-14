@@ -41,9 +41,11 @@ func (sh *serviceHandler) add(service *v1.Service) {
 		Object: service,
 	}
 	sc.servicesMap[serviceKey] = &serviceContainer{
-		c:    service,
+		svc:  service,
 		keys: getTopologyKeys(&service.ObjectMeta),
 	}
+
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 
 	sc.mu.Unlock()
@@ -60,7 +62,7 @@ func (sh *serviceHandler) update(service *v1.Service) {
 	serviceKey := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
 	klog.Infof("Updating service %v", serviceKey)
 	newTopologyKeys := getTopologyKeys(&service.ObjectMeta)
-	oldServiceContainer, found := sc.servicesMap[serviceKey]
+	serviceContainer, found := sc.servicesMap[serviceKey]
 	if !found {
 		sc.mu.Unlock()
 		klog.Errorf("update non-existed service, %v", serviceKey)
@@ -72,13 +74,16 @@ func (sh *serviceHandler) update(service *v1.Service) {
 		Object: service,
 	}
 
-	oldServiceContainer.c = service
-	if reflect.DeepEqual(oldServiceContainer.keys, newTopologyKeys) && len(newTopologyKeys) != 0 {
+	serviceContainer.svc = service
+	// return directly when topologyKeys of service stay unchanged
+	if reflect.DeepEqual(serviceContainer.keys, newTopologyKeys) {
 		sc.mu.Unlock()
 		return
 	}
 
-	oldServiceContainer.keys = newTopologyKeys
+	serviceContainer.keys = newTopologyKeys
+
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 	sc.mu.Unlock()
 
@@ -99,6 +104,8 @@ func (sh *serviceHandler) delete(service *v1.Service) {
 		Object: service,
 	}
 	delete(sc.servicesMap, serviceKey)
+
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 
 	sc.mu.Unlock()
