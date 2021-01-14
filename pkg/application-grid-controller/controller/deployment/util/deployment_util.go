@@ -65,7 +65,7 @@ func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue 
 	copyObj.Labels[common.GridSelectorName] = dg.Name
 	copyObj.Spec.Replicas = dg.Spec.Template.Replicas
 	copyObj.Spec.Selector = dg.Spec.Template.Selector
-	// TODO: this line will cause DeepEqual fails always since actual generated deployment.Spec.Template is differnent with ones of relevant deploymentGrid
+	// TODO: this line will cause DeepEqual fails always since actual generated deployment.Spec.Template is definitely different with ones of relevant deploymentGrid
 	copyObj.Spec.Template = dg.Spec.Template.Template
 	copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
 		dg.Spec.GridUniqKey: gridValue,

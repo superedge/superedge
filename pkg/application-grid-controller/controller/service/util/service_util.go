@@ -18,6 +18,7 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
@@ -53,6 +54,11 @@ func CreateService(sg *crdv1.ServiceGrid) *corev1.Service {
 	return svc
 }
 
+// constructServicePortIdentify construct the name identify for service port
+func constructServicePortIdentify(port *corev1.ServicePort) string {
+	return fmt.Sprintf("%s-%s-%d-%s-%d", port.Name, port.Protocol, port.Port, port.TargetPort.String(), port.NodePort)
+}
+
 func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service {
 	copyObj := svc.DeepCopy()
 	if copyObj.Labels == nil {
@@ -73,10 +79,10 @@ func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service
 	var newServiceNameNodePort = make(map[string]int32)
 	if sg.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
 		for _, port := range copyObj.Spec.Ports {
-			oldServiceNameNodePort[port.Name] = port.NodePort
+			oldServiceNameNodePort[constructServicePortIdentify(&port)] = port.NodePort
 		}
 		for _, port := range sg.Spec.Template.Ports {
-			newServiceNameNodePort[port.Name] = port.NodePort
+			newServiceNameNodePort[constructServicePortIdentify(&port)] = port.NodePort
 		}
 	}
 
@@ -84,9 +90,9 @@ func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service
 	copyObj.Spec.Ports = sg.Spec.Template.Ports
 	if sg.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
 		for k, port := range copyObj.Spec.Ports {
-			if _, ok := oldServiceNameNodePort[port.Name]; ok {
+			if _, ok := oldServiceNameNodePort[constructServicePortIdentify(&port)]; ok {
 				if newServiceNameNodePort[port.Name] == 0 && oldServiceNameNodePort[port.Name] != 0 {
-					copyObj.Spec.Ports[k].NodePort = oldServiceNameNodePort[port.Name]
+					copyObj.Spec.Ports[k].NodePort = oldServiceNameNodePort[constructServicePortIdentify(&port)]
 				}
 			}
 		}

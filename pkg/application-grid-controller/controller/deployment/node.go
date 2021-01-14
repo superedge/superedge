@@ -19,7 +19,7 @@ package deployment
 import (
 	"fmt"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -28,7 +28,7 @@ import (
 )
 
 func (dgc *DeploymentGridController) addNode(obj interface{}) {
-	node := obj.(*v1.Node)
+	node := obj.(*corev1.Node)
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
@@ -46,8 +46,8 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 }
 
 func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
-	oldNode := oldObj.(*v1.Node)
-	curNode := newObj.(*v1.Node)
+	oldNode := oldObj.(*corev1.Node)
+	curNode := newObj.(*corev1.Node)
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
@@ -63,14 +63,14 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 }
 
 func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
-	node, ok := obj.(*v1.Node)
+	node, ok := obj.(*corev1.Node)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		node, ok = tombstone.Obj.(*v1.Node)
+		node, ok = tombstone.Obj.(*corev1.Node)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Tombstone contained object is not a node %#v", obj))
 			return
@@ -87,7 +87,7 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 }
 
 // getGridForNode get deploymentGrids those gridUniqKey exists in node labels.
-func (dgc *DeploymentGridController) getGridForNode(node *v1.Node) []*crdv1.DeploymentGrid {
+func (dgc *DeploymentGridController) getGridForNode(node *corev1.Node) []*crdv1.DeploymentGrid {
 	if len(node.Labels) == 0 {
 		return nil
 	}
