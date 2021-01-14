@@ -95,9 +95,9 @@ func (h *holder) expired() bool {
 	return !h.isStart && time.Now().After(h.recordTime.Add(h.lifeCycle))
 }
 
-// RequestCacheController caches all 'get request' and 'watch request' info.
+// RequestCacheController caches all 'get request' and 'watch request' info
 type RequestCacheController struct {
-	listRequestMap  map[string][]*holder
+	listRequestMap  map[string]*holder
 	watchRequestMap map[string]*http.Request
 
 	syncTime time.Duration
@@ -111,7 +111,7 @@ type RequestCacheController struct {
 
 func NewRequestCacheController(config *config.LiteServerConfig, certManager *cert.CertManager) *RequestCacheController {
 	c := &RequestCacheController{
-		listRequestMap:  make(map[string][]*holder),
+		listRequestMap:  make(map[string]*holder),
 		watchRequestMap: make(map[string]*http.Request),
 		syncTime:        config.SyncDuration,
 		url:             fmt.Sprintf("https://127.0.0.1:%d", config.Port),
@@ -136,6 +136,7 @@ func (c *RequestCacheController) Run(stopCh <-chan struct{}) {
 	}
 }
 
+// doRequest sends list resource request to lite-apiserver and thus syncs list resource response cache
 func (c *RequestCacheController) doRequest(r *http.Request) {
 	var commonName string
 	var tr *http.Transport
@@ -194,21 +195,11 @@ func (c *RequestCacheController) runGC(stopCh <-chan struct{}) {
 			return
 		case <-listGCTicker.C:
 			c.lock.Lock()
-			for k, l := range c.listRequestMap {
+			for k, h := range c.listRequestMap {
 				if _, e := c.watchRequestMap[k]; !e {
-					var newList = []*holder{}
-					for i := range l {
-						h := l[i]
-						if h.expired() {
-							klog.Infof("request key %s, url %s has expired, delete it", k, h.request.URL.Path)
-						} else {
-							newList = append(newList, h)
-						}
-					}
-					if len(newList) == 0 {
+					if h.expired() {
+						klog.Infof("request key %s, url %s has expired, delete it", k, h.request.URL.Path)
 						delete(c.listRequestMap, k)
-					} else {
-						c.listRequestMap[k] = newList
 					}
 				}
 			}
@@ -220,11 +211,8 @@ func (c *RequestCacheController) runGC(stopCh <-chan struct{}) {
 				select {
 				case <-req.Context().Done():
 					klog.V(4).Infof("Watch %s connection closed.", k)
-					holderList, e := c.listRequestMap[k]
-					if e {
-						for i := range holderList {
-							holderList[i].close()
-						}
+					if h, e := c.listRequestMap[k]; e {
+						h.close()
 					}
 					delete(c.watchRequestMap, k)
 				default:
@@ -268,11 +256,8 @@ func (c *RequestCacheController) DeleteRequest(req *http.Request, userAgent stri
 	key := c.key(userAgent, req.URL.Path)
 	klog.Infof("Receive delete watch request %s. Stop list in background", key)
 
-	holderList, e := c.listRequestMap[key]
-	if e {
-		for i := range holderList {
-			holderList[i].close()
-		}
+	if h, e := c.listRequestMap[key]; e {
+		h.close()
 	}
 	delete(c.listRequestMap, key)
 	delete(c.watchRequestMap, key)
@@ -281,27 +266,25 @@ func (c *RequestCacheController) DeleteRequest(req *http.Request, userAgent stri
 func (c *RequestCacheController) addListRequest(req *http.Request, userAgent string) {
 	key := c.key(userAgent, req.URL.Path)
 
-	_, e := c.listRequestMap[key]
-	if !e {
-		klog.Infof("Add new list request %s", key)
-		h := newHolder(req, key, c.syncTime, c.requestCh)
-		c.listRequestMap[key] = []*holder{h}
-		return
+	if h, e := c.listRequestMap[key]; e {
+		klog.Infof("Delete old list request %s", key)
+		h.close()
 	}
+
+	klog.V(2).Infof("Create or update list request %s", key)
+	c.listRequestMap[key] = newHolder(req, key, c.syncTime, c.requestCh)
 }
 
 func (c *RequestCacheController) addWatchRequest(req *http.Request, userAgent string) {
 	key := c.key(userAgent, req.URL.Path)
 
-	holderList, e := c.listRequestMap[key]
+	h, e := c.listRequestMap[key]
 	if !e {
 		klog.Infof("Only watch request, ignore it %s", key)
 		return
 	}
 
-	for i := range holderList {
-		holderList[i].start()
-	}
+	h.start()
 
 	klog.V(2).Infof("Create or update watch request %s", key)
 	c.watchRequestMap[key] = req
