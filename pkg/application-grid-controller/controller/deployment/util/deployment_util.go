@@ -29,45 +29,46 @@ import (
 
 var ControllerKind = crdv1.SchemeGroupVersion.WithKind("DeploymentGrid")
 
-func GetDeploymentName(g *crdv1.DeploymentGrid, gridValue string) string {
-	return fmt.Sprintf("%s-%s", g.Name, gridValue)
+func GetDeploymentName(dg *crdv1.DeploymentGrid, gridValue string) string {
+	return fmt.Sprintf("%s-%s", dg.Name, gridValue)
 }
 
-func GetGridValueFromName(g *crdv1.DeploymentGrid, name string) string {
-	return strings.TrimPrefix(name, g.Name+"-")
+func GetGridValueFromName(dg *crdv1.DeploymentGrid, name string) string {
+	return strings.TrimPrefix(name, dg.Name+"-")
 }
 
-func CreateDeployment(g *crdv1.DeploymentGrid, gridValue string) *appsv1.Deployment {
+func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deployment {
 	dp := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            GetDeploymentName(g, gridValue),
-			Namespace:       g.Namespace,
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(g, ControllerKind)},
+			Name:            GetDeploymentName(dg, gridValue),
+			Namespace:       dg.Namespace,
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dg, ControllerKind)},
 			Labels: map[string]string{
-				common.GridSelectorName: g.Name,
+				common.GridSelectorName: dg.Name,
 			},
 		},
-		Spec: g.Spec.Template,
+		Spec: dg.Spec.Template,
 	}
 
 	dp.Spec.Template.Spec.NodeSelector = map[string]string{
-		g.Spec.GridUniqKey: gridValue,
+		dg.Spec.GridUniqKey: gridValue,
 	}
 
 	return dp
 }
 
-func KeepConsistence(g *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue string) *appsv1.Deployment {
+func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue string) *appsv1.Deployment {
 	copyObj := dp.DeepCopy()
 	if copyObj.Labels == nil {
 		copyObj.Labels = make(map[string]string)
 	}
-	copyObj.Labels[common.GridSelectorName] = g.Name
-	copyObj.Spec.Replicas = g.Spec.Template.Replicas
-	copyObj.Spec.Selector = g.Spec.Template.Selector
-	copyObj.Spec.Template = g.Spec.Template.Template
+	copyObj.Labels[common.GridSelectorName] = dg.Name
+	copyObj.Spec.Replicas = dg.Spec.Template.Replicas
+	copyObj.Spec.Selector = dg.Spec.Template.Selector
+	// TODO: this line will cause DeepEqual fails always since actual generated deployment.Spec.Template is differnent with ones of relevant deploymentGrid
+	copyObj.Spec.Template = dg.Spec.Template.Template
 	copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
-		g.Spec.GridUniqKey: gridValue,
+		dg.Spec.GridUniqKey: gridValue,
 	}
 
 	return copyObj

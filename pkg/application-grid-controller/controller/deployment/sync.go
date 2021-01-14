@@ -73,10 +73,6 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 
 	for _, v := range gridValues {
 		name := util.GetDeploymentName(dg, v)
-		spec := *dg.Spec.Template.DeepCopy()
-		spec.Template.Spec.NodeSelector = map[string]string{
-			dg.Spec.GridUniqKey: v,
-		}
 
 		dp, found := existedDPsMap[name]
 		if !found {
