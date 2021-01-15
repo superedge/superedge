@@ -52,10 +52,10 @@ func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList
 }
 
 func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
-	existedDPsMap := make(map[string]*appsv1.Deployment)
+	existedDPMap := make(map[string]*appsv1.Deployment)
 
 	for _, dp := range dpList {
-		existedDPsMap[dp.Name] = dp
+		existedDPMap[dp.Name] = dp
 	}
 
 	wanted := sets.NewString()
@@ -66,15 +66,16 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 	}
 
 	var (
-		adds    []*appsv1.Deployment
-		updates []*appsv1.Deployment
-		deletes []*appsv1.Deployment
+		adds          []*appsv1.Deployment
+		updates       []*appsv1.Deployment
+		deletes       []*appsv1.Deployment
+		updatedDPList []*appsv1.Deployment
 	)
 
 	for _, v := range gridValues {
 		name := util.GetDeploymentName(dg, v)
 
-		dp, found := existedDPsMap[name]
+		dp, found := existedDPMap[name]
 		if !found {
 			adds = append(adds, util.CreateDeployment(dg, v))
 			continue
@@ -83,8 +84,9 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		template := util.KeepConsistence(dg, dp, v)
 		if !apiequality.Semantic.DeepEqual(template, dp) {
 			updates = append(updates, template)
+			updatedDPList = append(updatedDPList, template)
 		} else {
-			updates = append(updates, dp)
+			updatedDPList = append(updatedDPList, dp)
 		}
 	}
 
@@ -99,7 +101,7 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		return err
 	}
 
-	return dgc.syncStatus(dg, updates, gridValues)
+	return dgc.syncStatus(dg, updatedDPList, gridValues)
 }
 
 func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*appsv1.Deployment) error {
