@@ -37,8 +37,8 @@ func (eh *endpointsHandler) add(endpoints *v1.Endpoints) {
 	klog.Infof("Adding endpoints %v", endpointsKey)
 	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.wrapperInCluster)
 	sc.endpointsMap[endpointsKey] = &endpointsContainer{
-		c:        endpoints,
-		modified: newEps,
+		endpoints: endpoints,
+		modified:  newEps,
 	}
 
 	sc.mu.Unlock()
@@ -56,17 +56,17 @@ func (eh *endpointsHandler) update(endpoints *v1.Endpoints) {
 	endpointsKey := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
 	klog.Infof("Updating endpoints %v", endpointsKey)
 
-	oldEndpoints, found := sc.endpointsMap[endpointsKey]
+	endpointsContainer, found := sc.endpointsMap[endpointsKey]
 	if !found {
 		sc.mu.Unlock()
 		klog.Errorf("Updating non-existed endpoints %v", endpointsKey)
 		return
 	}
-	oldEndpoints.c = endpoints
+	endpointsContainer.endpoints = endpoints
 	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.wrapperInCluster)
-	changed := !apiequality.Semantic.DeepEqual(oldEndpoints.modified, newEps)
+	changed := !apiequality.Semantic.DeepEqual(endpointsContainer.modified, newEps)
 	if changed {
-		oldEndpoints.modified = newEps
+		endpointsContainer.modified = newEps
 	}
 	sc.mu.Unlock()
 
@@ -85,10 +85,10 @@ func (eh *endpointsHandler) delete(endpoints *v1.Endpoints) {
 
 	endpointsKey := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
 	klog.Infof("Deleting endpoints %v", endpointsKey)
-	oldEndpoints, found := sc.endpointsMap[endpointsKey]
+	endpointsContainer, found := sc.endpointsMap[endpointsKey]
 	if !found {
 		sc.mu.Unlock()
-		klog.Errorf("Updating non-existed endpoints %v", endpointsKey)
+		klog.Errorf("Deleting non-existed endpoints %v", endpointsKey)
 		return
 	}
 	delete(sc.endpointsMap, endpointsKey)
@@ -97,7 +97,7 @@ func (eh *endpointsHandler) delete(endpoints *v1.Endpoints) {
 
 	sc.endpointsChan <- watch.Event{
 		Type:   watch.Deleted,
-		Object: oldEndpoints.modified,
+		Object: endpointsContainer.modified,
 	}
 }
 

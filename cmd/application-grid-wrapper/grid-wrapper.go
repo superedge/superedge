@@ -29,6 +29,7 @@ import (
 	"github.com/superedge/superedge/cmd/application-grid-wrapper/app"
 )
 
+// TODO: this component will be deprecated in future in support of kubernetes native serviceTopology feature.
 func main() {
 	rand.Seed(time.Now().UnixNano())
 

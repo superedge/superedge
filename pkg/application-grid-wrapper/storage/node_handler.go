@@ -36,9 +36,10 @@ func (nh *nodeHandler) add(node *v1.Node) {
 	nodeKey := types.NamespacedName{Namespace: node.Namespace, Name: node.Name}
 	klog.Infof("Adding node %v", nodeKey)
 	sc.nodesMap[nodeKey] = &nodeContainer{
-		c:      node,
+		node:   node,
 		labels: node.Labels,
 	}
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 
 	sc.mu.Unlock()
@@ -55,20 +56,22 @@ func (nh *nodeHandler) update(node *v1.Node) {
 
 	nodeKey := types.NamespacedName{Namespace: node.Namespace, Name: node.Name}
 	klog.Infof("Updating node %v", nodeKey)
-	oldNode, found := sc.nodesMap[nodeKey]
+	nodeContainer, found := sc.nodesMap[nodeKey]
 	if !found {
 		sc.mu.Unlock()
 		klog.Errorf("Updating non-existed node %v", nodeKey)
 		return
 	}
 
-	oldNode.c = node
-	if reflect.DeepEqual(node.Labels, oldNode.labels) && len(node.Labels) != 0 {
+	nodeContainer.node = node
+	// return directly when labels of node stay unchanged
+	if reflect.DeepEqual(node.Labels, nodeContainer.labels) {
 		sc.mu.Unlock()
 		return
 	}
+	nodeContainer.labels = node.Labels
 
-	oldNode.labels = node.Labels
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 
 	sc.mu.Unlock()
@@ -86,6 +89,8 @@ func (nh *nodeHandler) delete(node *v1.Node) {
 	nodeKey := types.NamespacedName{Namespace: node.Namespace, Name: node.Name}
 	klog.Infof("Deleting node %v", nodeKey)
 	delete(sc.nodesMap, nodeKey)
+
+	// update endpoints
 	changedEps := sc.rebuildEndpointsMap()
 
 	sc.mu.Unlock()

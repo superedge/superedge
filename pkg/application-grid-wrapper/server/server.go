@@ -115,7 +115,7 @@ func (s *interceptorServer) Run(debug bool, bindAddress string, insecure bool, c
 }
 
 func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
-	klog.Infof("Start to run service and endpoints infromers")
+	klog.Infof("Start to run service and endpoints informers")
 	noProxyName, err := labels.NewRequirement(apis.LabelServiceProxyName, selection.DoesNotExist, nil)
 	if err != nil {
 		klog.Errorf("can't parse proxy label, %v", err)
