@@ -27,32 +27,38 @@ import (
 )
 
 type storageCache struct {
+	// hostName is the nodeName of node which application-grid-wrapper deploys on
 	hostName         string
 	wrapperInCluster bool
 
-	// mu lock protect the following map data
+	// mu lock protect the following map structure
 	mu           sync.RWMutex
 	servicesMap  map[types.NamespacedName]*serviceContainer
 	endpointsMap map[types.NamespacedName]*endpointsContainer
 	nodesMap     map[types.NamespacedName]*nodeContainer
 
-	serviceChan   chan<- watch.Event
+	// service watch channel
+	serviceChan chan<- watch.Event
+	// endpoints watch channel
 	endpointsChan chan<- watch.Event
 }
 
+// serviceContainer stores kubernetes service and its topologyKeys
 type serviceContainer struct {
-	c    *v1.Service
+	svc  *v1.Service
 	keys []string
 }
 
+// nodeContainer stores kubernetes node and its labels
 type nodeContainer struct {
-	c      *v1.Node
+	node   *v1.Node
 	labels map[string]string
 }
 
+// endpointsContainer stores original kubernetes endpoints and relevant modified serviceTopology endpoints
 type endpointsContainer struct {
-	c        *v1.Endpoints
-	modified *v1.Endpoints
+	endpoints *v1.Endpoints
+	modified  *v1.Endpoints
 }
 
 var _ Cache = &storageCache{}
@@ -87,33 +93,33 @@ func (sc *storageCache) GetServices() []*v1.Service {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	list := make([]*v1.Service, 0, len(sc.servicesMap))
+	svcList := make([]*v1.Service, 0, len(sc.servicesMap))
 	for _, v := range sc.servicesMap {
-		list = append(list, v.c)
+		svcList = append(svcList, v.svc)
 	}
-	return list
+	return svcList
 }
 
 func (sc *storageCache) GetEndpoints() []*v1.Endpoints {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	list := make([]*v1.Endpoints, 0, len(sc.endpointsMap))
+	epList := make([]*v1.Endpoints, 0, len(sc.endpointsMap))
 	for _, v := range sc.endpointsMap {
-		list = append(list, v.modified)
+		epList = append(epList, v.modified)
 	}
-	return list
+	return epList
 }
 
 func (sc *storageCache) GetNodes() []*v1.Node {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	list := make([]*v1.Node, 0, len(sc.nodesMap))
+	nodeList := make([]*v1.Node, 0, len(sc.nodesMap))
 	for _, v := range sc.nodesMap {
-		list = append(list, v.c)
+		nodeList = append(nodeList, v.node)
 	}
-	return list
+	return nodeList
 }
 
 func (sc *storageCache) GetNode(hostName string) *v1.Node {
@@ -121,19 +127,20 @@ func (sc *storageCache) GetNode(hostName string) *v1.Node {
 	defer sc.mu.RUnlock()
 
 	nodeKey := types.NamespacedName{Name: hostName}
-	node, found := sc.nodesMap[nodeKey]
+	nodeContainer, found := sc.nodesMap[nodeKey]
 	if found {
-		return node.c
+		return nodeContainer.node
 	}
 
 	return nil
 }
 
+// rebuildEndpointsMap updates all endpoints stored in storageCache.endpointsMap dynamically and constructs relevant modified events
 func (sc *storageCache) rebuildEndpointsMap() []watch.Event {
 	evts := make([]watch.Event, 0)
-	for name, eps := range sc.endpointsMap {
-		newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, eps.c, sc.wrapperInCluster)
-		if apiequality.Semantic.DeepEqual(newEps, eps.modified) {
+	for name, endpointsContainer := range sc.endpointsMap {
+		newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpointsContainer.endpoints, sc.wrapperInCluster)
+		if apiequality.Semantic.DeepEqual(newEps, endpointsContainer.modified) {
 			continue
 		}
 		sc.endpointsMap[name].modified = newEps
