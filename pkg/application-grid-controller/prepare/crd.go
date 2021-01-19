@@ -24,6 +24,7 @@ import (
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"time"
 
+	"fmt"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -36,10 +37,6 @@ import (
 
 type crdPreparator struct {
 	client clientset.Interface
-}
-
-type object struct {
-	Kind string `yaml:"kind"`
 }
 
 func NewCRDPreparator(client clientset.Interface) *crdPreparator {
@@ -74,19 +71,18 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 		err      error
 	)
 	// create specified GroupVersionKind edge CRD
-	if gvk.Kind == "DeploymentGrid" {
+	switch gvk.Kind {
+	case common.DeploymentGridKind:
 		crdBytes, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
-		if err != nil {
-			return nil, err
-		}
-
-	} else if gvk.Kind == "ServiceGrid" {
+	case common.StatefulSetGridKind:
+		crdBytes, err = kubeclient.ParseString(common.StatefulSetGridCRDYaml, map[string]interface{}{})
+	case common.ServiceGridKind:
 		crdBytes, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// TODO: other edge CRDs in future.
+	default:
+		err = fmt.Errorf("Invalid edge group version kind resource %s", gvk.Kind)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	crd := new(apiext.CustomResourceDefinition)
@@ -141,7 +137,7 @@ func (p *crdPreparator) waitCRD(name string) error {
 				}
 			case apiext.NamesAccepted:
 				if cond.Status == apiext.ConditionFalse {
-					klog.Infof("Name conflict on %s: %v\n", name, cond.Reason)
+					klog.Infof("Name conflict on %s: %v", name, cond.Reason)
 				}
 			}
 		}

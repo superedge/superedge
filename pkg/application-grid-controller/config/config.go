@@ -30,11 +30,13 @@ import (
 )
 
 type ControllerConfig struct {
-	ServiceGridInformer    crdv1.ServiceGridInformer
-	DeploymentGridInformer crdv1.DeploymentGridInformer
-	ServiceInformer        corev1.ServiceInformer
-	DeploymentInformer     appsv1.DeploymentInformer
-	NodeInformer           corev1.NodeInformer
+	ServiceGridInformer     crdv1.ServiceGridInformer
+	DeploymentGridInformer  crdv1.DeploymentGridInformer
+	StatefulSetGridInformer crdv1.StatefulSetGridInformer
+	ServiceInformer         corev1.ServiceInformer
+	DeploymentInformer      appsv1.DeploymentInformer
+	StatefulSetInformer     appsv1.StatefulSetInformer
+	NodeInformer            corev1.NodeInformer
 }
 
 func NewControllerConfig(crdClient *crdClientset.Clientset, k8sClient *kubernetes.Clientset, resyncTime time.Duration) *ControllerConfig {
@@ -46,6 +48,7 @@ func NewControllerConfig(crdClient *crdClientset.Clientset, k8sClient *kubernete
 		DeploymentGridInformer: crdFactory.Superedge().V1().DeploymentGrids(),
 		ServiceInformer:        k8sFactory.Core().V1().Services(),
 		DeploymentInformer:     k8sFactory.Apps().V1().Deployments(),
+		StatefulSetInformer:    k8sFactory.Apps().V1().StatefulSets(),
 		NodeInformer:           k8sFactory.Core().V1().Nodes(),
 	}
 }

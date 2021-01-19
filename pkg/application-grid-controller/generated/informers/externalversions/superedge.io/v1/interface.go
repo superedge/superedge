@@ -12,6 +12,8 @@ type Interface interface {
 	DeploymentGrids() DeploymentGridInformer
 	// ServiceGrids returns a ServiceGridInformer.
 	ServiceGrids() ServiceGridInformer
+	// StatefulSetGrids returns a StatefulSetGridInformer.
+	StatefulSetGrids() StatefulSetGridInformer
 }
 
 type version struct {
@@ -33,4 +35,9 @@ func (v *version) DeploymentGrids() DeploymentGridInformer {
 // ServiceGrids returns a ServiceGridInformer.
 func (v *version) ServiceGrids() ServiceGridInformer {
 	return &serviceGridInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// StatefulSetGrids returns a StatefulSetGridInformer.
+func (v *version) StatefulSetGrids() StatefulSetGridInformer {
+	return &statefulSetGridInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
