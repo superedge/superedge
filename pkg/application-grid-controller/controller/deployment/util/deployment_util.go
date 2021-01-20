@@ -27,7 +27,7 @@ import (
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 )
 
-var ControllerKind = crdv1.SchemeGroupVersion.WithKind("DeploymentGrid")
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind(common.DeploymentGridKind)
 
 func GetDeploymentName(dg *crdv1.DeploymentGrid, gridValue string) string {
 	return fmt.Sprintf("%s-%s", dg.Name, gridValue)

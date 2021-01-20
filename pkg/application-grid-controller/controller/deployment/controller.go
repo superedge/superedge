@@ -53,7 +53,7 @@ import (
 )
 
 type DeploymentGridController struct {
-	dpControl          controller.DPControlInterface
+	dpClient           controller.DeployClientInterface
 	dpGridLister       crdv1listers.DeploymentGridLister
 	dpLister           appslisters.DeploymentLister
 	nodeLister         corelisters.NodeLister
@@ -88,9 +88,7 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(),
 			"deployment-grid-controller"),
 	}
-	dgc.dpControl = controller.RealDPControl{
-		KubeClient: kubeClient,
-	}
+	dgc.dpClient = controller.NewRealDeployClient(kubeClient)
 
 	dpGridInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    dgc.addDeploymentGrid,
@@ -171,26 +169,24 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 		return nil
 	}
 
-	/* get deploy list for this grid
-	 */
+	// get deployment workload list of this grid
 	dpList, err := dgc.getDeploymentForGrid(dg)
 	if err != nil {
 		return err
 	}
 
-	/* gridValues: grid labels in all nodes
-	 */
-	gridValues, err := dgc.getGridValueFromNode(dg)
+	// get all grid labels in all nodes
+	gridValues, err := common.GetGridValuesFromNode(dgc.nodeLister, dg.Spec.GridUniqKey)
 	if err != nil {
 		return err
 	}
 
+	// sync deploymentGrid workload status
 	if dg.DeletionTimestamp != nil {
 		return dgc.syncStatus(dg, dpList, gridValues)
 	}
 
-	/*
-	 */
+	// sync deploymentGrid relevant deployments workload
 	return dgc.reconcile(dg, dpList, gridValues)
 }
 
@@ -251,7 +247,7 @@ func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGr
 		return fresh, nil
 	})
 
-	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, dg, labelSelector, util.ControllerKind, canAdoptFunc)
+	cm := controller.NewDeploymentControllerRefManager(dgc.dpClient, dg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimDeployment(dpList)
 }
 
@@ -286,4 +282,40 @@ func (dgc *DeploymentGridController) enqueue(deploymentGrid *crdv1.DeploymentGri
 	}
 
 	dgc.queue.Add(key)
+}
+
+func (dgc *DeploymentGridController) addDeploymentGrid(obj interface{}) {
+	dg := obj.(*crdv1.DeploymentGrid)
+	klog.V(4).Infof("Adding deployment grid %s", dg.Name)
+	dgc.enqueueDeploymentGrid(dg)
+}
+
+func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interface{}) {
+	oldDg := oldObj.(*crdv1.DeploymentGrid)
+	curDg := newObj.(*crdv1.DeploymentGrid)
+	klog.V(4).Infof("Updating deployment grid %s", oldDg.Name)
+	if curDg.ResourceVersion == oldDg.ResourceVersion {
+		// Periodic resync will send update events for all known DeploymentGrids.
+		// Two different versions of the same DeploymentGrids will always have different RVs.
+		return
+	}
+	dgc.enqueueDeploymentGrid(curDg)
+}
+
+func (dgc *DeploymentGridController) deleteDeploymentGrid(obj interface{}) {
+	dg, ok := obj.(*crdv1.DeploymentGrid)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		dg, ok = tombstone.Obj.(*crdv1.DeploymentGrid)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a deployment grid %#v", obj))
+			return
+		}
+	}
+	klog.V(4).Infof("Deleting deployment grid %s", dg.Name)
+	dgc.enqueueDeploymentGrid(dg)
 }

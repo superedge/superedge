@@ -47,7 +47,7 @@ import (
 )
 
 type ServiceGridController struct {
-	svcControl          controller.SVCControlInterface
+	svcClient           controller.SvcClientInterface
 	svcGridLister       crdv1listers.ServiceGridLister
 	svcLister           corelisters.ServiceLister
 	svcGridListerSynced cache.InformerSynced
@@ -79,9 +79,7 @@ func NewServiceGridController(svcGridInformer crdinformers.ServiceGridInformer, 
 			corev1.EventSource{Component: "service-grid-controller"}),
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-grid-controller"),
 	}
-	sgc.svcControl = controller.RealSVCControl{
-		KubeClient: client,
-	}
+	sgc.svcClient = controller.NewRealSvcClient(client)
 
 	svcGridInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    sgc.addServiceGrid,
@@ -158,8 +156,6 @@ func (sgc *ServiceGridController) handleErr(err error, key interface{}) {
 	sgc.queue.Forget(key)
 }
 
-/*
- */
 func (sgc *ServiceGridController) syncServiceGrid(key string) error {
 	startTime := time.Now()
 	klog.V(4).Infof("Started syncing service-grid %q (%v)", key, startTime)
@@ -230,6 +226,42 @@ func (sgc *ServiceGridController) getServiceForGrid(sg *crdv1.ServiceGrid) ([]*c
 		return fresh, nil
 	})
 
-	cm := controller.NewServiceControllerRefManager(sgc.svcControl, sg, labelSelector, util.ControllerKind, canAdoptFunc)
+	cm := controller.NewServiceControllerRefManager(sgc.svcClient, sg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimService(svcList)
+}
+
+func (sgc *ServiceGridController) addServiceGrid(obj interface{}) {
+	sg := obj.(*crdv1.ServiceGrid)
+	klog.V(4).Infof("Adding service grid %s", sg.Name)
+	sgc.enqueueServiceGrid(sg)
+}
+
+func (sgc *ServiceGridController) updateServiceGrid(oldObj, newObj interface{}) {
+	oldSg := oldObj.(*crdv1.ServiceGrid)
+	curSg := newObj.(*crdv1.ServiceGrid)
+	klog.V(4).Infof("Updating service grid %s", oldSg.Name)
+	if curSg.ResourceVersion == oldSg.ResourceVersion {
+		// Periodic resync will send update events for all known ServiceGrids.
+		// Two different versions of the same ServiceGrids will always have different RVs.
+		return
+	}
+	sgc.enqueueServiceGrid(curSg)
+}
+
+func (sgc *ServiceGridController) deleteServiceGrid(obj interface{}) {
+	sg, ok := obj.(*crdv1.ServiceGrid)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		sg, ok = tombstone.Obj.(*crdv1.ServiceGrid)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a service grid %#v", obj))
+			return
+		}
+	}
+	klog.V(4).Infof("Deleting service grid %s", sg.Name)
+	sgc.enqueueServiceGrid(sg)
 }

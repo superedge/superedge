@@ -1,11 +1,30 @@
+/*
+Copyright 2020 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package statefulset
 
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
+	"context"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,12 +44,15 @@ import (
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
 	crdclientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type StatefulSetGridController struct {
+	setClient           controller.SetClientInterface
 	setGridLister       crdv1listers.StatefulSetGridLister
 	setLister           appslisters.StatefulSetLister
 	nodeLister          corelisters.NodeLister
@@ -57,189 +79,218 @@ func NewStatefulSetGridController(setGridInformer crdinformers.StatefulSetGridIn
 		Interface: kubeClient.CoreV1().Events(""),
 	})
 
-	setGridController := &StatefulSetGridController{
+	ssgc := &StatefulSetGridController{
 		kubeClient: kubeClient,
 		crdClient:  crdClient,
 		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme,
 			corev1.EventSource{Component: "statefulset-grid-controller"}),
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "statefulset-grid-controller"),
 	}
+	ssgc.setClient = controller.NewRealSetClient(kubeClient)
 
-	// TODO
-	/*setGridInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setGridController.addStatefulSetGrid,
-		UpdateFunc: setGridController.updateStatefulSetGrid,
-		DeleteFunc: setGridController.deleteStatefulSetGrid,
+	setGridInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    ssgc.addStatefulSetGrid,
+		UpdateFunc: ssgc.updateStatefulSetGrid,
+		DeleteFunc: ssgc.deleteStatefulSetGrid,
 	})
 
 	setInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setGridController.addStatefulSet,
-		UpdateFunc: setGridController.updateStatefulSet,
-		DeleteFunc: setGridController.deleteStatefulSet,
+		AddFunc:    ssgc.addStatefulSet,
+		UpdateFunc: ssgc.updateStatefulSet,
+		DeleteFunc: ssgc.deleteStatefulSet,
 	})
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setGridController.addNode,
-		UpdateFunc: setGridController.updateNode,
-		DeleteFunc: setGridController.deleteNode,
-	})*/
+		AddFunc:    ssgc.addNode,
+		UpdateFunc: ssgc.updateNode,
+		DeleteFunc: ssgc.deleteNode,
+	})
 
-	setGridController.syncHandler = setGridController.syncStatefulSetGrid
-	setGridController.enqueueStatefulSetGrid = setGridController.enqueue
+	ssgc.syncHandler = ssgc.syncStatefulSetGrid
+	ssgc.enqueueStatefulSetGrid = ssgc.enqueue
 
-	setGridController.setGridLister = setGridInformer.Lister()
-	setGridController.setGridListerSynced = setGridInformer.Informer().HasSynced
+	ssgc.setGridLister = setGridInformer.Lister()
+	ssgc.setGridListerSynced = setGridInformer.Informer().HasSynced
 
-	setGridController.setLister = setInformer.Lister()
-	setGridController.setListerSynced = setInformer.Informer().HasSynced
+	ssgc.setLister = setInformer.Lister()
+	ssgc.setListerSynced = setInformer.Informer().HasSynced
 
-	setGridController.nodeLister = nodeInformer.Lister()
-	setGridController.nodeListerSynced = nodeInformer.Informer().HasSynced
+	ssgc.nodeLister = nodeInformer.Lister()
+	ssgc.nodeListerSynced = nodeInformer.Informer().HasSynced
 
-	return setGridController
+	return ssgc
 }
 
-func (setGridController *StatefulSetGridController) Run(workers int, stopCh <-chan struct{}) {
+func (ssgc *StatefulSetGridController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	defer setGridController.queue.ShutDown()
+	defer ssgc.queue.ShutDown()
 
 	klog.Infof("Starting statefulset grid controller")
 	defer klog.Infof("Shutting down statefulset grid controller")
 
 	if !cache.WaitForNamedCacheSync("statefulset-grid", stopCh,
-		setGridController.setGridListerSynced, setGridController.setListerSynced, setGridController.nodeListerSynced) {
+		ssgc.setGridListerSynced, ssgc.setListerSynced, ssgc.nodeListerSynced) {
 		return
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.Until(setGridController.runWorker, time.Second, stopCh)
+		go wait.Until(ssgc.worker, time.Second, stopCh)
 	}
 	<-stopCh
 }
 
-func (setGridController *StatefulSetGridController) runWorker() {
-	for setGridController.processNextWorkItem() {
+func (ssgc *StatefulSetGridController) worker() {
+	for ssgc.processNextWorkItem() {
 	}
 }
 
-// processNextWorkItem will read a single work item off the queue and
-// attempt to process it, by calling the syncHandler.
-func (setGridController *StatefulSetGridController) processNextWorkItem() bool {
-	obj, shutdown := setGridController.queue.Get()
-
-	if shutdown {
+func (ssgc *StatefulSetGridController) processNextWorkItem() bool {
+	key, quit := ssgc.queue.Get()
+	if quit {
 		return false
 	}
+	defer ssgc.queue.Done(key)
 
-	// We wrap this block in a func so we can defer c.queue.Done.
-	err := func(obj interface{}) error {
-		// We call Done here so the queue knows we have finished
-		// processing this item. We also must remember to call Forget if we
-		// do not want this work item being re-queued. For example, we do
-		// not call Forget if a transient error occurs, instead the item is
-		// put back on the queue and attempted again after a back-off
-		// period.
-		defer setGridController.queue.Done(obj)
-		var key string
-		var ok bool
-		// We expect strings to come off the queue. These are of the
-		// form namespace/name. We do this as the delayed nature of the
-		// queue means the items in the informer cache may actually be
-		// more up to date that when the item was initially put onto the
-		// queue.
-		if key, ok = obj.(string); !ok {
-			// As the item in the queue is actually invalid, we call
-			// Forget here else we'd go into a loop of attempting to
-			// process a work item that is invalid.
-			setGridController.queue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in queue but got %#v", obj))
-			return nil
-		}
-		// Run the syncHandler, passing it the namespace/name string of the
-		// statefulSetGrid resource to be synced.
-		if err := setGridController.syncHandler(key); err != nil {
-			// Put the item back on the queue to handle any transient errors.
-			if setGridController.queue.NumRequeues(key) < common.MaxRetries {
-				setGridController.queue.AddRateLimited(key)
-				return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
-			} else {
-				setGridController.queue.Forget(obj)
-				return fmt.Errorf("stop syncing '%s': %s, dropping", key, err.Error())
-			}
-		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
-		setGridController.queue.Forget(obj)
-		klog.V(2).Infof("Successfully synced '%s'", key)
-		return nil
-	}(obj)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-		return true
-	}
+	err := ssgc.syncHandler(key.(string))
+	ssgc.handleErr(err, key)
 
 	return true
 }
 
-func (setGridController *StatefulSetGridController) syncStatefulSetGrid(key string) error {
+func (ssgc *StatefulSetGridController) handleErr(err error, key interface{}) {
+	if err == nil {
+		ssgc.queue.Forget(key)
+		return
+	}
+
+	if ssgc.queue.NumRequeues(key) < common.MaxRetries {
+		klog.V(2).Infof("Error syncing statefulset grid %v: %v", key, err)
+		ssgc.queue.AddRateLimited(key)
+		return
+	}
+
+	utilruntime.HandleError(err)
+	klog.V(2).Infof("Dropping statefulset grid %q out of the queue: %v", key, err)
+	ssgc.queue.Forget(key)
+}
+
+func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 	startTime := time.Now()
-	klog.V(4).Infof("Started syncing statefulset-grid %s (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing statefulset grid %s (%v)", key, startTime)
 	defer func() {
-		klog.V(4).Infof("Finished syncing statefulset-grid %s (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing statefulset grid %s (%v)", key, time.Since(startTime))
 	}()
 
-	ns, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Invalid resource key: %s", key))
 		return err
 	}
 
-	setGrid, err := setGridController.setGridLister.StatefulSetGrids(ns).Get(name)
+	setGrid, err := ssgc.setGridLister.StatefulSetGrids(namespace).Get(name)
 	if err != nil {
 		// The statefulSetGrid resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("statefulset-grid '%s' in work queue no longer exists", key))
+			utilruntime.HandleError(fmt.Errorf("statefulset grid '%s' in work queue no longer exists", key))
 			return nil
 		}
 		return err
 	}
 
 	if setGrid.Spec.GridUniqKey == "" {
-		setGridController.eventRecorder.Eventf(setGrid, corev1.EventTypeWarning, "Empty", "This statefulset-grid has an empty grid key")
+		ssgc.eventRecorder.Eventf(setGrid, corev1.EventTypeWarning, "Empty", "This statefulset-grid has an empty grid key")
 		return nil
 	}
 
-	// TODO
 	// get statefulset workload list of this grid
-	/*setList, err := setGridController.getStatefulSetForGrid(setGrid)
+	setList, err := ssgc.getStatefulSetForGrid(setGrid)
 	if err != nil {
 		return err
 	}
 
 	// get all grid labels in all nodes
-	gridValues, err := util.GetGridValuesFromNode(setGridController.nodeLister, setGrid.Spec.GridUniqKey)
+	gridValues, err := common.GetGridValuesFromNode(ssgc.nodeLister, setGrid.Spec.GridUniqKey)
 	if err != nil {
 		return err
 	}
 
-	// sync statefulset-grid workload status
+	// sync statefulsetGrid workload status
 	if setGrid.DeletionTimestamp != nil {
-		return setGridController.syncStatus(setGrid, setList, gridValues)
+		return ssgc.syncStatus(setGrid, setList, gridValues)
 	}
 
-	// sync statefulset-grid workload relevant statefusets
-	return setGridController.reconcile(setGrid, setList, gridValues)*/
-	return nil
+	// sync statefulsetGrid status and its relevant statefusets workload
+	return ssgc.reconcile(setGrid, setList, gridValues)
 }
 
-func (setGridController *StatefulSetGridController) enqueue(setGrid *crdv1.StatefulSetGrid) {
+func (ssgc *StatefulSetGridController) getStatefulSetForGrid(ssg *crdv1.StatefulSetGrid) ([]*appsv1.StatefulSet, error) {
+	setList, err := ssgc.setLister.StatefulSets(ssg.Namespace).List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	labelSelector, err := common.GetDefaultSelector(ssg.Name)
+	if err != nil {
+		return nil, err
+	}
+	canAdoptFunc := controller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
+		fresh, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssg.Namespace).Get(context.TODO(), ssg.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if fresh.UID != ssg.UID {
+			return nil, fmt.Errorf("orignal statefulset grid %v/%v is gone: got uid %v, wanted %v", ssg.Namespace,
+				ssg.Name, fresh.UID, ssg.UID)
+		}
+		return fresh, nil
+	})
+
+	cm := controller.NewStatefulSetControllerRefManager(ssgc.setClient, ssg, labelSelector, util.ControllerKind, canAdoptFunc)
+	return cm.ClaimStatefulSet(setList)
+}
+
+func (ssgc *StatefulSetGridController) addStatefulSetGrid(obj interface{}) {
+	ssg := obj.(*crdv1.StatefulSetGrid)
+	klog.V(4).Infof("Adding statefulset grid %s", ssg.Name)
+	ssgc.enqueueStatefulSetGrid(ssg)
+}
+
+func (ssgc *StatefulSetGridController) updateStatefulSetGrid(oldObj, newObj interface{}) {
+	oldSsg := oldObj.(*crdv1.StatefulSetGrid)
+	curSsg := newObj.(*crdv1.StatefulSetGrid)
+	klog.V(4).Infof("Updating statefulset grid %s", oldSsg.Name)
+	if curSsg.ResourceVersion == oldSsg.ResourceVersion {
+		// Periodic resync will send update events for all known StatefulSetGrids.
+		// Two different versions of the same StatefulSetGrids will always have different RVs.
+		return
+	}
+	ssgc.enqueueStatefulSetGrid(curSsg)
+}
+
+func (ssgc *StatefulSetGridController) deleteStatefulSetGrid(obj interface{}) {
+	ssg, ok := obj.(*crdv1.StatefulSetGrid)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		ssg, ok = tombstone.Obj.(*crdv1.StatefulSetGrid)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a statefulset grid %#v", obj))
+			return
+		}
+	}
+	klog.V(4).Infof("Deleting statefulset grid %s", ssg.Name)
+	ssgc.enqueueStatefulSetGrid(ssg)
+}
+
+func (ssgc *StatefulSetGridController) enqueue(setGrid *crdv1.StatefulSetGrid) {
 	key, err := controller.KeyFunc(setGrid)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", setGrid, err))
 		return
 	}
 
-	setGridController.queue.Add(key)
+	ssgc.queue.Add(key)
 }

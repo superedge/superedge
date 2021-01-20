@@ -30,55 +30,56 @@ import (
 	"k8s.io/klog"
 )
 
-type BaseControllerRefManager struct {
-	Controller metav1.Object
-	Selector   labels.Selector
+type baseControllerRefManager struct {
+	controller metav1.Object
+	selector   labels.Selector
 
 	canAdoptErr  error
 	canAdoptOnce sync.Once
-	CanAdoptFunc func() error
+	canAdoptFunc func() error
 }
 
+// DeploymentControllerRefManager is responsible for claiming deployments
 type DeploymentControllerRefManager struct {
-	BaseControllerRefManager
+	baseControllerRefManager
 	controllerKind schema.GroupVersionKind
-	dpControl      DPControlInterface
+	dpClient       DeployClientInterface
 }
 
 func NewDeploymentControllerRefManager(
-	dpControl DPControlInterface,
+	dpClient DeployClientInterface,
 	controller metav1.Object,
 	selector labels.Selector,
 	controllerKind schema.GroupVersionKind,
 	canAdopt func() error,
 ) *DeploymentControllerRefManager {
 	return &DeploymentControllerRefManager{
-		BaseControllerRefManager: BaseControllerRefManager{
-			Controller:   controller,
-			Selector:     selector,
-			CanAdoptFunc: canAdopt,
+		baseControllerRefManager: baseControllerRefManager{
+			controller:   controller,
+			selector:     selector,
+			canAdoptFunc: canAdopt,
 		},
 		controllerKind: controllerKind,
-		dpControl:      dpControl,
+		dpClient:       dpClient,
 	}
 }
 
-func (m *DeploymentControllerRefManager) ClaimDeployment(sets []*appsv1.Deployment) ([]*appsv1.Deployment, error) {
+func (dcrm *DeploymentControllerRefManager) ClaimDeployment(dpList []*appsv1.Deployment) ([]*appsv1.Deployment, error) {
 	var claimed []*appsv1.Deployment
 	var errlist []error
 
 	match := func(obj metav1.Object) bool {
-		return m.Selector.Matches(labels.Set(obj.GetLabels()))
+		return dcrm.selector.Matches(labels.Set(obj.GetLabels()))
 	}
 	adopt := func(obj metav1.Object) error {
-		return m.AdoptDeployment(obj.(*appsv1.Deployment))
+		return dcrm.adoptDeployment(obj.(*appsv1.Deployment))
 	}
 	release := func(obj metav1.Object) error {
-		return m.ReleaseDeployment(obj.(*appsv1.Deployment))
+		return dcrm.releaseDeployment(obj.(*appsv1.Deployment))
 	}
 
-	for _, dp := range sets {
-		ok, err := m.ClaimObject(dp, match, adopt, release)
+	for _, dp := range dpList {
+		ok, err := dcrm.claimObject(dp, match, adopt, release)
 		if err != nil {
 			errlist = append(errlist, err)
 			continue
@@ -90,33 +91,24 @@ func (m *DeploymentControllerRefManager) ClaimDeployment(sets []*appsv1.Deployme
 	return claimed, utilerrors.NewAggregate(errlist)
 }
 
-func (m *DeploymentControllerRefManager) AdoptDeployment(dp *appsv1.Deployment) error {
-	if err := m.CanAdopt(); err != nil {
+func (dcrm *DeploymentControllerRefManager) adoptDeployment(dp *appsv1.Deployment) error {
+	if err := dcrm.canAdopt(); err != nil {
 		return fmt.Errorf("can't adopt Deployment %v/%v (%v): %v", dp.Namespace, dp.Name, dp.UID, err)
 	}
 	addControllerPatch := fmt.Sprintf(
 		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
-		m.controllerKind.GroupVersion(), m.controllerKind.Kind,
-		m.Controller.GetName(), m.Controller.GetUID(), dp.UID)
-	return m.dpControl.PatchDeployment(dp.Namespace, dp.Name, []byte(addControllerPatch))
+		dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind,
+		dcrm.controller.GetName(), dcrm.controller.GetUID(), dp.UID)
+	return dcrm.dpClient.PatchDeployment(dp.Namespace, dp.Name, []byte(addControllerPatch))
 }
 
-func (m *DeploymentControllerRefManager) CanAdopt() error {
-	m.canAdoptOnce.Do(func() {
-		if m.CanAdoptFunc != nil {
-			m.canAdoptErr = m.CanAdoptFunc()
-		}
-	})
-	return m.canAdoptErr
-}
-
-func (m *DeploymentControllerRefManager) ReleaseDeployment(dp *appsv1.Deployment) error {
-	klog.V(2).Infof("Patching Deployment %s_%s to remove its controllerRef to %s/%s:%s",
-		dp.Namespace, dp.Name, m.controllerKind.GroupVersion(), m.controllerKind.Kind, m.Controller.GetName())
+func (dcrm *DeploymentControllerRefManager) releaseDeployment(dp *appsv1.Deployment) error {
+	klog.V(2).Infof("Patching Deployment %s/%s to remove its controllerRef of %s/%s:%s",
+		dp.Namespace, dp.Name, dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind, dcrm.controller.GetName())
 	deleteOwnerRefPatch := fmt.Sprintf(
 		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
-		m.Controller.GetUID(), dp.UID)
-	err := m.dpControl.PatchDeployment(dp.Namespace, dp.Name, []byte(deleteOwnerRefPatch))
+		dcrm.controller.GetUID(), dp.UID)
+	err := dcrm.dpClient.PatchDeployment(dp.Namespace, dp.Name, []byte(deleteOwnerRefPatch))
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -128,10 +120,173 @@ func (m *DeploymentControllerRefManager) ReleaseDeployment(dp *appsv1.Deployment
 	return err
 }
 
-func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(metav1.Object) bool, adopt, release func(metav1.Object) error) (bool, error) {
+// StatefulSetControllerRefManager is responsible for claiming statefulsets
+type StatefulSetControllerRefManager struct {
+	baseControllerRefManager
+	controllerKind schema.GroupVersionKind
+	setClient      SetClientInterface
+}
+
+func NewStatefulSetControllerRefManager(
+	setClient SetClientInterface,
+	controller metav1.Object,
+	selector labels.Selector,
+	controllerKind schema.GroupVersionKind,
+	canAdopt func() error,
+) *StatefulSetControllerRefManager {
+	return &StatefulSetControllerRefManager{
+		baseControllerRefManager: baseControllerRefManager{
+			controller:   controller,
+			selector:     selector,
+			canAdoptFunc: canAdopt,
+		},
+		controllerKind: controllerKind,
+		setClient:      setClient,
+	}
+}
+
+func (sscrm *StatefulSetControllerRefManager) ClaimStatefulSet(setList []*appsv1.StatefulSet) ([]*appsv1.StatefulSet, error) {
+	var claimedSets []*appsv1.StatefulSet
+	var errList []error
+
+	match := func(obj metav1.Object) bool {
+		return sscrm.selector.Matches(labels.Set(obj.GetLabels()))
+	}
+	adopt := func(obj metav1.Object) error {
+		return sscrm.adoptStatefulSet(obj.(*appsv1.StatefulSet))
+	}
+	release := func(obj metav1.Object) error {
+		return sscrm.releaseStatefulSet(obj.(*appsv1.StatefulSet))
+	}
+
+	for _, set := range setList {
+		ok, err := sscrm.claimObject(set, match, adopt, release)
+		if err != nil {
+			errList = append(errList, err)
+			continue
+		}
+		if ok {
+			claimedSets = append(claimedSets, set)
+		}
+	}
+	return claimedSets, utilerrors.NewAggregate(errList)
+}
+
+func (sscrm *StatefulSetControllerRefManager) adoptStatefulSet(set *appsv1.StatefulSet) error {
+	if err := sscrm.canAdopt(); err != nil {
+		return fmt.Errorf("Can't adopt statefulset %v/%v (%v): %v", set.Namespace, set.Name, set.UID, err)
+	}
+	addControllerOwnerRefsPatch := fmt.Sprintf(
+		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
+		sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind,
+		sscrm.controller.GetName(), sscrm.controller.GetUID(), set.UID)
+	return sscrm.setClient.PatchStatefulSet(set.Namespace, set.Name, []byte(addControllerOwnerRefsPatch))
+}
+
+func (sscrm *StatefulSetControllerRefManager) releaseStatefulSet(set *appsv1.StatefulSet) error {
+	klog.V(2).Infof("Patching statefulset %s/%s to remove its controllerRef of %s/%s:%s",
+		set.Namespace, set.Name, sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind, sscrm.controller.GetName())
+	delControllerOwnerRefsPatch := fmt.Sprintf(
+		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
+		sscrm.controller.GetUID(), set.UID)
+	err := sscrm.setClient.PatchStatefulSet(set.Namespace, set.Name, []byte(delControllerOwnerRefsPatch))
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		if errors.IsInvalid(err) {
+			return nil
+		}
+	}
+	return err
+}
+
+// ServiceControllerRefManager is responsible for claiming services
+type ServiceControllerRefManager struct {
+	baseControllerRefManager
+	controllerKind schema.GroupVersionKind
+	svcClient      SvcClientInterface
+}
+
+func NewServiceControllerRefManager(
+	svcClient SvcClientInterface,
+	controller metav1.Object,
+	selector labels.Selector,
+	controllerKind schema.GroupVersionKind,
+	canAdopt func() error,
+) *ServiceControllerRefManager {
+	return &ServiceControllerRefManager{
+		baseControllerRefManager: baseControllerRefManager{
+			controller:   controller,
+			selector:     selector,
+			canAdoptFunc: canAdopt,
+		},
+		controllerKind: controllerKind,
+		svcClient:      svcClient,
+	}
+}
+
+func (scrm *ServiceControllerRefManager) ClaimService(svcList []*corev1.Service) ([]*corev1.Service, error) {
+	var claimed []*corev1.Service
+	var errlist []error
+
+	match := func(obj metav1.Object) bool {
+		return scrm.selector.Matches(labels.Set(obj.GetLabels()))
+	}
+	adopt := func(obj metav1.Object) error {
+		return scrm.adoptService(obj.(*corev1.Service))
+	}
+	release := func(obj metav1.Object) error {
+		return scrm.releaseService(obj.(*corev1.Service))
+	}
+
+	for _, svc := range svcList {
+		ok, err := scrm.claimObject(svc, match, adopt, release)
+		if err != nil {
+			errlist = append(errlist, err)
+			continue
+		}
+		if ok {
+			claimed = append(claimed, svc)
+		}
+	}
+	return claimed, utilerrors.NewAggregate(errlist)
+}
+
+func (scrm *ServiceControllerRefManager) adoptService(svc *corev1.Service) error {
+	if err := scrm.canAdopt(); err != nil {
+		return fmt.Errorf("can't adopt Service %v/%v (%v): %v", svc.Namespace, svc.Name, svc.UID, err)
+	}
+	addControllerOwnerRefsPatch := fmt.Sprintf(
+		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
+		scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind,
+		scrm.controller.GetName(), scrm.controller.GetUID(), svc.UID)
+	return scrm.svcClient.PatchService(svc.Namespace, svc.Name, []byte(addControllerOwnerRefsPatch))
+}
+
+func (scrm *ServiceControllerRefManager) releaseService(svc *corev1.Service) error {
+	klog.V(2).Infof("Patching Service %s/%s to remove its controllerRef of %s/%s:%s",
+		svc.Namespace, svc.Name, scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind, scrm.controller.GetName())
+	deleteOwnerRefPatch := fmt.Sprintf(
+		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
+		scrm.controller.GetUID(), svc.UID)
+	err := scrm.svcClient.PatchService(svc.Namespace, svc.Name, []byte(deleteOwnerRefPatch))
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		if errors.IsInvalid(err) {
+			return nil
+		}
+	}
+	return err
+}
+
+// claimObject claims receiving object according to its labels and controllerRef
+func (bcrm *baseControllerRefManager) claimObject(obj metav1.Object, match func(metav1.Object) bool, adopt, release func(metav1.Object) error) (bool, error) {
 	controllerRef := metav1.GetControllerOf(obj)
 	if controllerRef != nil {
-		if controllerRef.UID != m.Controller.GetUID() {
+		if controllerRef.UID != bcrm.controller.GetUID() {
 			// Owned by someone else. Ignore.
 			return false, nil
 		}
@@ -144,7 +299,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 		}
 		// Owned by us but selector doesn't match.
 		// Try to release, unless we're being deleted.
-		if m.Controller.GetDeletionTimestamp() != nil {
+		if bcrm.controller.GetDeletionTimestamp() != nil {
 			return false, nil
 		}
 		if err := release(obj); err != nil {
@@ -152,7 +307,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 			if errors.IsNotFound(err) {
 				return false, nil
 			}
-			// Either someone else released it, or there was a transient error.
+			// Either someone else released it first, or there was a transient error.
 			// The controller should requeue and try again if it's still stale.
 			return false, err
 		}
@@ -161,7 +316,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 	}
 
 	// It's an orphan.
-	if m.Controller.GetDeletionTimestamp() != nil || !match(obj) {
+	if bcrm.controller.GetDeletionTimestamp() != nil || !match(obj) {
 		// Ignore if we're being deleted or selector doesn't match.
 		return false, nil
 	}
@@ -175,7 +330,7 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
-		// Either someone else claimed it first, or there was a transient error.
+		// Either someone else adopted it first, or there was a transient error.
 		// The controller should requeue and try again if it's still orphaned.
 		return false, err
 	}
@@ -183,91 +338,11 @@ func (m *BaseControllerRefManager) ClaimObject(obj metav1.Object, match func(met
 	return true, nil
 }
 
-type ServiceControllerRefManager struct {
-	BaseControllerRefManager
-	controllerKind schema.GroupVersionKind
-	svcControl     SVCControlInterface
-}
-
-func NewServiceControllerRefManager(
-	svcControl SVCControlInterface,
-	controller metav1.Object,
-	selector labels.Selector,
-	controllerKind schema.GroupVersionKind,
-	canAdopt func() error,
-) *ServiceControllerRefManager {
-	return &ServiceControllerRefManager{
-		BaseControllerRefManager: BaseControllerRefManager{
-			Controller:   controller,
-			Selector:     selector,
-			CanAdoptFunc: canAdopt,
-		},
-		controllerKind: controllerKind,
-		svcControl:     svcControl,
-	}
-}
-
-func (m *ServiceControllerRefManager) ClaimService(sets []*corev1.Service) ([]*corev1.Service, error) {
-	var claimed []*corev1.Service
-	var errlist []error
-
-	match := func(obj metav1.Object) bool {
-		return m.Selector.Matches(labels.Set(obj.GetLabels()))
-	}
-	adopt := func(obj metav1.Object) error {
-		return m.AdoptService(obj.(*corev1.Service))
-	}
-	release := func(obj metav1.Object) error {
-		return m.ReleaseService(obj.(*corev1.Service))
-	}
-
-	for _, service := range sets {
-		ok, err := m.ClaimObject(service, match, adopt, release)
-		if err != nil {
-			errlist = append(errlist, err)
-			continue
-		}
-		if ok {
-			claimed = append(claimed, service)
-		}
-	}
-	return claimed, utilerrors.NewAggregate(errlist)
-}
-
-func (m *ServiceControllerRefManager) AdoptService(svc *corev1.Service) error {
-	if err := m.CanAdopt(); err != nil {
-		return fmt.Errorf("can't adopt Service %v/%v (%v): %v", svc.Namespace, svc.Name, svc.UID, err)
-	}
-	addControllerPatch := fmt.Sprintf(
-		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
-		m.controllerKind.GroupVersion(), m.controllerKind.Kind,
-		m.Controller.GetName(), m.Controller.GetUID(), svc.UID)
-	return m.svcControl.PatchService(svc.Namespace, svc.Name, []byte(addControllerPatch))
-}
-
-func (m *ServiceControllerRefManager) CanAdopt() error {
-	m.canAdoptOnce.Do(func() {
-		if m.CanAdoptFunc != nil {
-			m.canAdoptErr = m.CanAdoptFunc()
+func (bcrm *baseControllerRefManager) canAdopt() error {
+	bcrm.canAdoptOnce.Do(func() {
+		if bcrm.canAdoptFunc != nil {
+			bcrm.canAdoptErr = bcrm.canAdoptFunc()
 		}
 	})
-	return m.canAdoptErr
-}
-
-func (m *ServiceControllerRefManager) ReleaseService(svc *corev1.Service) error {
-	klog.V(2).Infof("Patching Service %s_%s to remove its controllerRef to %s/%s:%s",
-		svc.Namespace, svc.Name, m.controllerKind.GroupVersion(), m.controllerKind.Kind, m.Controller.GetName())
-	deleteOwnerRefPatch := fmt.Sprintf(
-		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
-		m.Controller.GetUID(), svc.UID)
-	err := m.svcControl.PatchService(svc.Namespace, svc.Name, []byte(deleteOwnerRefPatch))
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		if errors.IsInvalid(err) {
-			return nil
-		}
-	}
-	return err
+	return bcrm.canAdoptErr
 }

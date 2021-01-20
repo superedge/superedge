@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var ControllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind(common.ServiceGridKind)
 
 func GetServiceName(sg *crdv1.ServiceGrid) string {
 	return strings.Join([]string{sg.Name, "svc"}, "-")

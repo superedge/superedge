@@ -30,32 +30,64 @@ var (
 	KeyFunc = cache.DeletionHandlingMetaNamespaceKeyFunc
 )
 
-type DPControlInterface interface {
+type DeployClientInterface interface {
 	PatchDeployment(namespace, name string, data []byte) error
 }
 
-type SVCControlInterface interface {
+type SetClientInterface interface {
+	PatchStatefulSet(namespace, name string, data []byte) error
+}
+
+type SvcClientInterface interface {
 	PatchService(namespace, name string, data []byte) error
 }
 
-type RealDPControl struct {
-	KubeClient clientset.Interface
+type RealDeployClient struct {
+	kubeClient clientset.Interface
 }
 
-type RealSVCControl struct {
-	KubeClient clientset.Interface
+type RealSetClient struct {
+	kubeClient clientset.Interface
 }
 
-var _ DPControlInterface = &RealDPControl{}
-var _ SVCControlInterface = &RealSVCControl{}
+type RealSvcClient struct {
+	kubeClient clientset.Interface
+}
 
-func (r RealDPControl) PatchDeployment(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.AppsV1().Deployments(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+var _ DeployClientInterface = &RealDeployClient{}
+var _ SetClientInterface = &RealSetClient{}
+var _ SvcClientInterface = &RealSvcClient{}
+
+func NewRealDeployClient(kubeClient clientset.Interface) *RealDeployClient {
+	return &RealDeployClient{
+		kubeClient: kubeClient,
+	}
+}
+
+func (rdc RealDeployClient) PatchDeployment(namespace, name string, data []byte) error {
+	_, err := rdc.kubeClient.AppsV1().Deployments(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
-func (r RealSVCControl) PatchService(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.CoreV1().Services(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+func NewRealSvcClient(kubeClient clientset.Interface) *RealSvcClient {
+	return &RealSvcClient{
+		kubeClient: kubeClient,
+	}
+}
+
+func (rsc *RealSvcClient) PatchService(namespace, name string, data []byte) error {
+	_, err := rsc.kubeClient.CoreV1().Services(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+	return err
+}
+
+func NewRealSetClient(kubeClient clientset.Interface) *RealSetClient {
+	return &RealSetClient{
+		kubeClient: kubeClient,
+	}
+}
+
+func (rssc *RealSetClient) PatchStatefulSet(namespace, name string, data []byte) error {
+	_, err := rssc.kubeClient.AppsV1().StatefulSets(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
