@@ -136,10 +136,13 @@ func NewGridControllerManagerCommand() *cobra.Command {
 func runController(parent context.Context,
 	apiextensionClient *apiextclientset.Clientset, kubeClient *clientset.Clientset, crdClient *crdClientset.Clientset,
 	workerNum, syncPeriod int) {
-	crdP := prepare.NewCRDPreparator(apiextensionClient)
+
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel()
 
 	// Create and wait for CRDs ready
-	if err := crdP.Prepare(schema.GroupVersionKind{
+	crdP := prepare.NewCRDPreparator(apiextensionClient)
+	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
 		Kind:    common.DeploymentGridKind,
@@ -164,9 +167,6 @@ func runController(parent context.Context,
 		kubeClient, crdClient)
 	serviceGridController := service.NewServiceGridController(controllerConfig.ServiceGridInformer, controllerConfig.ServiceInformer,
 		kubeClient, crdClient)
-
-	ctx, cancel := context.WithCancel(parent)
-	defer cancel()
 
 	controllerConfig.Run(ctx.Done())
 	go deploymentGridController.Run(workerNum, ctx.Done())

@@ -43,11 +43,23 @@ func NewCRDPreparator(client clientset.Interface) *crdPreparator {
 	return &crdPreparator{client: client}
 }
 
-func (p *crdPreparator) Prepare(gvks ...schema.GroupVersionKind) error {
+func (p *crdPreparator) Prepare(stopCh <-chan struct{}, gvks ...schema.GroupVersionKind) error {
 	if len(gvks) == 0 {
 		return nil
 	}
+	// First of all, create or update edge CRDs
+	err := p.prepareCRDs(gvks...)
+	if err != nil {
+		return err
+	}
+	// Loop background
+	go wait.Until(func() {
+		p.prepareCRDs(gvks...)
+	}, time.Minute, stopCh)
+	return nil
+}
 
+func (p *crdPreparator) prepareCRDs(gvks ...schema.GroupVersionKind) error {
 	// create or update specified edge CRDs
 	for _, gvk := range gvks {
 		curCRD, err := p.createOrUpdateCRD(gvk)
@@ -58,7 +70,6 @@ func (p *crdPreparator) Prepare(gvks ...schema.GroupVersionKind) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

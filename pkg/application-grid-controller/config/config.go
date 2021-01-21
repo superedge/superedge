@@ -44,19 +44,22 @@ func NewControllerConfig(crdClient *crdClientset.Clientset, k8sClient *kubernete
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, resyncTime)
 
 	return &ControllerConfig{
-		ServiceGridInformer:    crdFactory.Superedge().V1().ServiceGrids(),
-		DeploymentGridInformer: crdFactory.Superedge().V1().DeploymentGrids(),
-		ServiceInformer:        k8sFactory.Core().V1().Services(),
-		DeploymentInformer:     k8sFactory.Apps().V1().Deployments(),
-		StatefulSetInformer:    k8sFactory.Apps().V1().StatefulSets(),
-		NodeInformer:           k8sFactory.Core().V1().Nodes(),
+		ServiceGridInformer:     crdFactory.Superedge().V1().ServiceGrids(),
+		DeploymentGridInformer:  crdFactory.Superedge().V1().DeploymentGrids(),
+		StatefulSetGridInformer: crdFactory.Superedge().V1().StatefulSetGrids(),
+		ServiceInformer:         k8sFactory.Core().V1().Services(),
+		DeploymentInformer:      k8sFactory.Apps().V1().Deployments(),
+		StatefulSetInformer:     k8sFactory.Apps().V1().StatefulSets(),
+		NodeInformer:            k8sFactory.Core().V1().Nodes(),
 	}
 }
 
 func (c *ControllerConfig) Run(stop <-chan struct{}) {
 	go c.ServiceGridInformer.Informer().Run(stop)
 	go c.DeploymentGridInformer.Informer().Run(stop)
+	go c.StatefulSetGridInformer.Informer().Run(stop)
 	go c.ServiceInformer.Informer().Run(stop)
 	go c.DeploymentInformer.Informer().Run(stop)
+	go c.StatefulSetInformer.Informer().Run(stop)
 	go c.NodeInformer.Informer().Run(stop)
 }
