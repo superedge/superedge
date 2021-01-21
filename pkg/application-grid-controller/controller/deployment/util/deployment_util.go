@@ -87,7 +87,8 @@ func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue 
 		}
 	}
 	copyObj.Spec.Replicas = dg.Spec.Template.Replicas
-	copyObj.Spec.Selector = dg.Spec.Template.Selector
+	// Spec.selector field is immutable
+	// copyObj.Spec.Selector = dg.Spec.Template.Selector
 	// TODO: this line will cause DeepEqual fails always since actual generated deployment.Spec.Template is definitely different with ones of relevant deploymentGrid
 	copyObj.Spec.Template = dg.Spec.Template.Template
 	// Append existed DeploymentGrid NodeSelector to deployment to be checked

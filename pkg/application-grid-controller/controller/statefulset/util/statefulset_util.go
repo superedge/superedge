@@ -86,10 +86,11 @@ func KeepConsistence(ssg *crdv1.StatefulSetGrid, set *appsv1.StatefulSet, gridVa
 			common.GridSelectorName: ssg.Name,
 		}
 	}
-	copyObj.Spec.ServiceName = ssg.Spec.Template.ServiceName
 	copyObj.Spec.Replicas = ssg.Spec.Template.Replicas
-	copyObj.Spec.Selector = ssg.Spec.Template.Selector
-	copyObj.Spec.VolumeClaimTemplates = ssg.Spec.Template.VolumeClaimTemplates
+	// Updates to statefulset spec for fields other than 'replicas', 'template', and 'updateStrategy' are forbidden
+	// copyObj.Spec.Selector = ssg.Spec.Template.Selector
+	// copyObj.Spec.VolumeClaimTemplates = ssg.Spec.Template.VolumeClaimTemplates
+	// copyObj.Spec.ServiceName = ssg.Spec.Template.ServiceName
 	// TODO: this line will cause DeepEqual fails always since actual generated statefulset.Spec.Template is definitely different with ones of relevant statefulsetGrid
 	copyObj.Spec.Template = ssg.Spec.Template.Template
 	// Append existed StatefulSetGrid NodeSelector to statefulset to be checked

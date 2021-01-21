@@ -1,12 +1,9 @@
 package common
 
 const StatefulSetGridCRDYaml = `
----
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: statefulsetgrids.superedge.io
 spec:
@@ -19,6 +16,8 @@ spec:
     shortNames:
     - ssg
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:

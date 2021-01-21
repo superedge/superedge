@@ -75,8 +75,8 @@ func (p *crdPreparator) prepareCRDs(gvks ...schema.GroupVersionKind) error {
 
 // createOrUpdateCRDs create or update specified edge CRDs
 func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.CustomResourceDefinition, error) {
-	klog.Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
-	defer klog.Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
+	klog.V(4).Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
+	defer klog.V(4).Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
 	var (
 		crdBytes []byte
 		err      error
@@ -104,7 +104,7 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 	curCRD, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		// try to create edge CRD
-		klog.Infof("Creating CRD %s", crd.Name)
+		klog.V(4).Infof("Creating CRD %s", crd.Name)
 		if newCrd, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{}); errors.IsAlreadyExists(err) {
 			return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
 		} else if err != nil {
@@ -117,7 +117,7 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 	if !equality.Semantic.DeepEqual(crd.Spec.Validation, curCRD.Spec.Validation) ||
 		!equality.Semantic.DeepEqual(crd.Spec.Versions, curCRD.Spec.Versions) {
 		curCRD.Spec = crd.Spec
-		klog.Infof("Updating CRD %s", crd.Name)
+		klog.V(4).Infof("Updating CRD %s", crd.Name)
 		return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), curCRD, metav1.UpdateOptions{})
 	}
 	return curCRD, nil
@@ -125,13 +125,13 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 
 // waitCRD waits for specified edge CRD to become available
 func (p *crdPreparator) waitCRD(name string) error {
-	klog.Infof("Waiting for CRD %s to become available", name)
-	defer klog.Infof("Done waiting for CRD %s to become available", name)
+	klog.V(4).Infof("Waiting for CRD %s to become available", name)
+	defer klog.V(4).Infof("Done waiting for CRD %s to become available", name)
 
 	first := true
 	return wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
 		if !first {
-			klog.Infof("Waiting for CRD %s to become available", name)
+			klog.V(4).Infof("Waiting for CRD %s to become available", name)
 		}
 		first = false
 
