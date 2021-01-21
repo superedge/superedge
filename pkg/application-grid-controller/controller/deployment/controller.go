@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -142,54 +141,6 @@ func (dgc *DeploymentGridController) Run(workers int, stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
-	startTime := time.Now()
-	klog.V(4).Infof("Started syncing deployment-grid %q (%v)", key, startTime)
-	defer func() {
-		klog.V(4).Infof("Finished syncing deployment-grid %q (%v)", key, time.Since(startTime))
-	}()
-
-	ns, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-
-	grid, err := dgc.dpGridLister.DeploymentGrids(ns).Get(name)
-	if errors.IsNotFound(err) {
-		klog.V(2).Infof("Deployment-grid %v has been deleted", key)
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	dg := grid.DeepCopy()
-	if dg.Spec.GridUniqKey == "" {
-		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
-		return nil
-	}
-
-	// get deployment workload list of this grid
-	dpList, err := dgc.getDeploymentForGrid(dg)
-	if err != nil {
-		return err
-	}
-
-	// get all grid labels in all nodes
-	gridValues, err := common.GetGridValuesFromNode(dgc.nodeLister, dg.Spec.GridUniqKey)
-	if err != nil {
-		return err
-	}
-
-	// sync deploymentGrid workload status
-	if dg.DeletionTimestamp != nil {
-		return dgc.syncStatus(dg, dpList, gridValues)
-	}
-
-	// sync deploymentGrid relevant deployments workload
-	return dgc.reconcile(dg, dpList, gridValues)
-}
-
 func (dgc *DeploymentGridController) worker() {
 	for dgc.processNextWorkItem() {
 	}
@@ -225,6 +176,53 @@ func (dgc *DeploymentGridController) handleErr(err error, key interface{}) {
 	dgc.queue.Forget(key)
 }
 
+func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
+	startTime := time.Now()
+	klog.V(4).Infof("Started syncing deployment grid %q (%v)", key, startTime)
+	defer func() {
+		klog.V(4).Infof("Finished syncing deployment grid %q (%v)", key, time.Since(startTime))
+	}()
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+
+	dg, err := dgc.dpGridLister.DeploymentGrids(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("deployment grid %v has been deleted", key)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if dg.Spec.GridUniqKey == "" {
+		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
+		return nil
+	}
+
+	// get deployment workload list of this grid
+	dpList, err := dgc.getDeploymentForGrid(dg)
+	if err != nil {
+		return err
+	}
+
+	// get all grid labels in all nodes
+	gridValues, err := common.GetGridValuesFromNode(dgc.nodeLister, dg.Spec.GridUniqKey)
+	if err != nil {
+		return err
+	}
+
+	// sync deployment grid workload status
+	if dg.DeletionTimestamp != nil {
+		return dgc.syncStatus(dg, dpList, gridValues)
+	}
+
+	// sync deployment grid status and its relevant deployments workload
+	return dgc.reconcile(dg, dpList, gridValues)
+}
+
 func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGrid) ([]*appsv1.Deployment, error) {
 	dpList, err := dgc.dpLister.Deployments(dg.Namespace).List(labels.Everything())
 	if err != nil {
@@ -249,39 +247,6 @@ func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGr
 
 	cm := controller.NewDeploymentControllerRefManager(dgc.dpClient, dg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimDeployment(dpList)
-}
-
-func (dgc *DeploymentGridController) getGridValueFromNode(dg *crdv1.DeploymentGrid) ([]string, error) {
-	labelSelector := labels.NewSelector()
-	gridRequirement, err := labels.NewRequirement(dg.Spec.GridUniqKey, selection.Exists, nil)
-	if err != nil {
-		return nil, err
-	}
-	labelSelector = labelSelector.Add(*gridRequirement)
-
-	nodes, err := dgc.nodeLister.List(labelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	values := make([]string, 0)
-	for _, n := range nodes {
-		gridVal := n.Labels[dg.Spec.GridUniqKey]
-		if gridVal != "" {
-			values = append(values, gridVal)
-		}
-	}
-	return values, nil
-}
-
-func (dgc *DeploymentGridController) enqueue(deploymentGrid *crdv1.DeploymentGrid) {
-	key, err := controller.KeyFunc(deploymentGrid)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", deploymentGrid, err))
-		return
-	}
-
-	dgc.queue.Add(key)
 }
 
 func (dgc *DeploymentGridController) addDeploymentGrid(obj interface{}) {
@@ -318,4 +283,14 @@ func (dgc *DeploymentGridController) deleteDeploymentGrid(obj interface{}) {
 	}
 	klog.V(4).Infof("Deleting deployment grid %s", dg.Name)
 	dgc.enqueueDeploymentGrid(dg)
+}
+
+func (dgc *DeploymentGridController) enqueue(deploymentGrid *crdv1.DeploymentGrid) {
+	key, err := controller.KeyFunc(deploymentGrid)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", deploymentGrid, err))
+		return
+	}
+
+	dgc.queue.Add(key)
 }

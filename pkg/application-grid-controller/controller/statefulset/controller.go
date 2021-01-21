@@ -68,7 +68,7 @@ type StatefulSetGridController struct {
 	// To allow injection of syncStatefulSetGrid for testing.
 	syncHandler func(dKey string) error
 	// used for unit testing
-	enqueueStatefulSetGrid func(setGrid *crdv1.StatefulSetGrid)
+	enqueueStatefulSetGrid func(sg *crdv1.StatefulSetGrid)
 }
 
 func NewStatefulSetGridController(setGridInformer crdinformers.StatefulSetGridInformer, setInformer appsinformers.StatefulSetInformer,
@@ -186,41 +186,39 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		return err
 	}
 
-	setGrid, err := ssgc.setGridLister.StatefulSetGrids(namespace).Get(name)
+	ssg, err := ssgc.setGridLister.StatefulSetGrids(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("statefulset grid %v has been deleted", key)
+		return nil
+	}
 	if err != nil {
-		// The statefulSetGrid resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("statefulset grid '%s' in work queue no longer exists", key))
-			return nil
-		}
 		return err
 	}
 
-	if setGrid.Spec.GridUniqKey == "" {
-		ssgc.eventRecorder.Eventf(setGrid, corev1.EventTypeWarning, "Empty", "This statefulset-grid has an empty grid key")
+	if ssg.Spec.GridUniqKey == "" {
+		ssgc.eventRecorder.Eventf(ssg, corev1.EventTypeWarning, "Empty", "This statefulset-grid has an empty grid key")
 		return nil
 	}
 
 	// get statefulset workload list of this grid
-	setList, err := ssgc.getStatefulSetForGrid(setGrid)
+	setList, err := ssgc.getStatefulSetForGrid(ssg)
 	if err != nil {
 		return err
 	}
 
 	// get all grid labels in all nodes
-	gridValues, err := common.GetGridValuesFromNode(ssgc.nodeLister, setGrid.Spec.GridUniqKey)
+	gridValues, err := common.GetGridValuesFromNode(ssgc.nodeLister, ssg.Spec.GridUniqKey)
 	if err != nil {
 		return err
 	}
 
-	// sync statefulsetGrid workload status
-	if setGrid.DeletionTimestamp != nil {
-		return ssgc.syncStatus(setGrid, setList, gridValues)
+	// sync statefulset grid workload status
+	if ssg.DeletionTimestamp != nil {
+		return ssgc.syncStatus(ssg, setList, gridValues)
 	}
 
-	// sync statefulsetGrid status and its relevant statefusets workload
-	return ssgc.reconcile(setGrid, setList, gridValues)
+	// sync statefulset grid status and its relevant statefusets workload
+	return ssgc.reconcile(ssg, setList, gridValues)
 }
 
 func (ssgc *StatefulSetGridController) getStatefulSetForGrid(ssg *crdv1.StatefulSetGrid) ([]*appsv1.StatefulSet, error) {
@@ -285,10 +283,10 @@ func (ssgc *StatefulSetGridController) deleteStatefulSetGrid(obj interface{}) {
 	ssgc.enqueueStatefulSetGrid(ssg)
 }
 
-func (ssgc *StatefulSetGridController) enqueue(setGrid *crdv1.StatefulSetGrid) {
-	key, err := controller.KeyFunc(setGrid)
+func (ssgc *StatefulSetGridController) enqueue(ssg *crdv1.StatefulSetGrid) {
+	key, err := controller.KeyFunc(ssg)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", setGrid, err))
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", ssg, err))
 		return
 	}
 

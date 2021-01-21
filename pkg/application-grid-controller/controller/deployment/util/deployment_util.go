@@ -43,32 +43,60 @@ func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deploy
 			Name:            GetDeploymentName(dg, gridValue),
 			Namespace:       dg.Namespace,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dg, ControllerKind)},
-			Labels: map[string]string{
-				common.GridSelectorName: dg.Name,
-			},
+			// Append existed DeploymentGrid labels to deployment to be created
+			Labels: func() map[string]string {
+				if dg.Labels != nil {
+					newLabels := dg.Labels
+					newLabels[common.GridSelectorName] = dg.Name
+					return newLabels
+				} else {
+					return map[string]string{
+						common.GridSelectorName: dg.Name,
+					}
+				}
+			}(),
 		},
 		Spec: dg.Spec.Template,
 	}
 
-	dp.Spec.Template.Spec.NodeSelector = map[string]string{
-		dg.Spec.GridUniqKey: gridValue,
+	// Append existed DeploymentGrid NodeSelector to deployment to be created
+	if dg.Spec.Template.Template.Spec.NodeSelector != nil {
+		dp.Spec.Template.Spec.NodeSelector = dg.Spec.Template.Template.Spec.NodeSelector
+		dp.Spec.Template.Spec.NodeSelector[dg.Spec.GridUniqKey] = gridValue
+	} else {
+		dp.Spec.Template.Spec.NodeSelector = map[string]string{
+			dg.Spec.GridUniqKey: gridValue,
+		}
 	}
 
 	return dp
 }
 
 func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue string) *appsv1.Deployment {
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
 	copyObj := dp.DeepCopy()
-	if copyObj.Labels == nil {
-		copyObj.Labels = make(map[string]string)
+	// Append existed DeploymentGrid labels to deployment to be checked
+	if dg.Labels != nil {
+		copyObj.Labels = dg.Labels
+		copyObj.Labels[common.GridSelectorName] = dg.Name
+	} else {
+		copyObj.Labels = map[string]string{
+			common.GridSelectorName: dg.Name,
+		}
 	}
-	copyObj.Labels[common.GridSelectorName] = dg.Name
 	copyObj.Spec.Replicas = dg.Spec.Template.Replicas
 	copyObj.Spec.Selector = dg.Spec.Template.Selector
 	// TODO: this line will cause DeepEqual fails always since actual generated deployment.Spec.Template is definitely different with ones of relevant deploymentGrid
 	copyObj.Spec.Template = dg.Spec.Template.Template
-	copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
-		dg.Spec.GridUniqKey: gridValue,
+	// Append existed DeploymentGrid NodeSelector to deployment to be checked
+	if dg.Spec.Template.Template.Spec.NodeSelector != nil {
+		copyObj.Spec.Template.Spec.NodeSelector[dg.Spec.GridUniqKey] = gridValue
+	} else {
+		copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
+			dg.Spec.GridUniqKey: gridValue,
+		}
 	}
 
 	return copyObj

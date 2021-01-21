@@ -190,7 +190,7 @@ func (ssgc *StatefulSetGridController) getGridForStatefulSet(set *appsv1.Statefu
 	} else if len(statefulSetGrids) > 1 {
 		// ControllerRef will ensure we don't do anything crazy, but more than one
 		// item in this list nevertheless constitutes user error.
-		klog.V(4).Infof("user error! statefulset %s/%s with labels: %#v selects more than one statefulsetGrid, returning %#v",
+		klog.V(4).Infof("user error! statefulset %s/%s with labels: %#v selects more than one statefulSetGrid, returning %#v",
 			set.Namespace, set.Name, set.Labels, statefulSetGrids)
 	}
 	return statefulSetGrids

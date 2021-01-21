@@ -52,7 +52,7 @@ func (dgc *DeploymentGridController) addDeployment(obj interface{}) {
 		if dg == nil {
 			return
 		}
-		klog.V(4).Infof("DeploymentGrid %s added.", dg.Name)
+		klog.V(4).Infof("Deployment %s(its owner DeploymentGrid %s) added.", d.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 		return
 	}
@@ -63,8 +63,8 @@ func (dgc *DeploymentGridController) addDeployment(obj interface{}) {
 	if len(dgs) == 0 {
 		return
 	}
-	klog.V(4).Infof("Orphan Deployment %s added.", d.Name)
 	for _, dg := range dgs {
+		klog.V(4).Infof("Orphan Deployment %s(its possible owner DeploymentGrid %s) added.", d.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }
@@ -73,16 +73,13 @@ func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}
 	oldD := oldObj.(*appsv1.Deployment)
 	curD := newObj.(*appsv1.Deployment)
 
-	if !common.IsConcernedObject(curD.ObjectMeta) {
-		return
-	}
-
 	curControllerRef := metav1.GetControllerOf(curD)
 	oldControllerRef := metav1.GetControllerOf(oldD)
 	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
 		if dg := dgc.resolveControllerRef(oldD.Namespace, oldControllerRef); dg != nil {
+			klog.V(4).Infof("Deployment %s(its old owner DeploymentGrid %s) updated.", oldD.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
 		}
 	}
@@ -93,8 +90,12 @@ func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}
 		if dg == nil {
 			return
 		}
-		klog.V(4).Infof("DeploymentGrid %s updated.", curD.Name)
+		klog.V(4).Infof("Deployment %s(its owner DeploymentGrid %s) updated.", curD.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
+		return
+	}
+
+	if !common.IsConcernedObject(curD.ObjectMeta) {
 		return
 	}
 
@@ -106,8 +107,8 @@ func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}
 		if len(dgs) == 0 {
 			return
 		}
-		klog.V(4).Infof("Orphan Deployment %s updated.", curD.Name)
 		for _, dg := range dgs {
+			klog.V(4).Infof("Orphan Deployment %s(its possible owner DeploymentGrid %s) updated.", curD.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
 		}
 	}
@@ -139,7 +140,7 @@ func (dgc *DeploymentGridController) deleteDeployment(obj interface{}) {
 	if dg == nil {
 		return
 	}
-	klog.V(4).Infof("Deployment %s deleted.", d.Name)
+	klog.V(4).Infof("Deployment %s(its owner DeploymentGrid %s) deleted.", d.Name, dg.Name)
 	dgc.enqueueDeploymentGrid(dg)
 }
 
@@ -191,8 +192,8 @@ func (dgc *DeploymentGridController) getGridForDeployment(d *appsv1.Deployment) 
 	if len(deploymentGrids) > 1 {
 		// ControllerRef will ensure we don't do anything crazy, but more than one
 		// item in this list nevertheless constitutes user error.
-		klog.V(4).Infof("user error! deployment %s/%s with labels: %#v selects more than one deploymentGrid, returning %s/%s",
-			d.Namespace, d.Name, d.Labels, deploymentGrids[0].Namespace, deploymentGrids[0].Name)
+		klog.V(4).Infof("user error! deployment %s/%s with labels: %#v selects more than one deploymentGrid, returning %#v",
+			d.Namespace, d.Name, d.Labels, deploymentGrids)
 	}
 	return deploymentGrids
 }

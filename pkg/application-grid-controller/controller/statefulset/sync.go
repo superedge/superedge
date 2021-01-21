@@ -43,9 +43,12 @@ func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, se
 			states[util.GetGridValueFromName(ssg, set.Name)] = set.Status
 		}
 	}
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
 	ssgCopy := ssg.DeepCopy()
 	ssgCopy.Status.States = states
-	_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssg.Namespace).UpdateStatus(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+	_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).UpdateStatus(context.TODO(), ssgCopy, metav1.UpdateOptions{})
 	if err != nil && errors.IsConflict(err) {
 		return nil
 	}

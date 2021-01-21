@@ -158,31 +158,31 @@ func (sgc *ServiceGridController) handleErr(err error, key interface{}) {
 
 func (sgc *ServiceGridController) syncServiceGrid(key string) error {
 	startTime := time.Now()
-	klog.V(4).Infof("Started syncing service-grid %q (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing service grid %q (%v)", key, startTime)
 	defer func() {
-		klog.V(4).Infof("Finished syncing service-grid %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing service grid %q (%v)", key, time.Since(startTime))
 	}()
 
-	ns, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
 
-	grid, err := sgc.svcGridLister.ServiceGrids(ns).Get(name)
+	sg, err := sgc.svcGridLister.ServiceGrids(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		klog.V(2).Infof("Service-grid %v has been deleted", key)
+		klog.V(2).Infof("service grid %v has been deleted", key)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	sg := grid.DeepCopy()
 	if sg.Spec.GridUniqKey == "" {
-		sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, "Empty", "This service-grid has an empty grid key")
+		sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, "Empty", "This service grid has an empty grid key")
 		return nil
 	}
 
+	// get service workload list of this grid
 	svcList, err := sgc.getServiceForGrid(sg)
 	if err != nil {
 		return err
@@ -191,17 +191,9 @@ func (sgc *ServiceGridController) syncServiceGrid(key string) error {
 	if sg.DeletionTimestamp != nil {
 		return nil
 	}
+
+	// sync service grid relevant services workload
 	return sgc.reconcile(sg, svcList)
-}
-
-func (sgc *ServiceGridController) enqueue(serviceGrid *crdv1.ServiceGrid) {
-	key, err := controller.KeyFunc(serviceGrid)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", serviceGrid, err))
-		return
-	}
-
-	sgc.queue.Add(key)
 }
 
 func (sgc *ServiceGridController) getServiceForGrid(sg *crdv1.ServiceGrid) ([]*corev1.Service, error) {
@@ -220,7 +212,7 @@ func (sgc *ServiceGridController) getServiceForGrid(sg *crdv1.ServiceGrid) ([]*c
 			return nil, err
 		}
 		if fresh.UID != sg.UID {
-			return nil, fmt.Errorf("orignal Service-grid %v/%v is gone: got uid %v, wanted %v", sg.Namespace,
+			return nil, fmt.Errorf("orignal service grid %v/%v is gone: got uid %v, wanted %v", sg.Namespace,
 				sg.Name, fresh.UID, sg.UID)
 		}
 		return fresh, nil
@@ -264,4 +256,14 @@ func (sgc *ServiceGridController) deleteServiceGrid(obj interface{}) {
 	}
 	klog.V(4).Infof("Deleting service grid %s", sg.Name)
 	sgc.enqueueServiceGrid(sg)
+}
+
+func (sgc *ServiceGridController) enqueue(serviceGrid *crdv1.ServiceGrid) {
+	key, err := controller.KeyFunc(serviceGrid)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", serviceGrid, err))
+		return
+	}
+
+	sgc.queue.Add(key)
 }

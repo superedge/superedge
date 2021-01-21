@@ -66,7 +66,7 @@ func NewDeploymentControllerRefManager(
 
 func (dcrm *DeploymentControllerRefManager) ClaimDeployment(dpList []*appsv1.Deployment) ([]*appsv1.Deployment, error) {
 	var claimed []*appsv1.Deployment
-	var errlist []error
+	var errList []error
 
 	match := func(obj metav1.Object) bool {
 		return dcrm.selector.Matches(labels.Set(obj.GetLabels()))
@@ -81,14 +81,14 @@ func (dcrm *DeploymentControllerRefManager) ClaimDeployment(dpList []*appsv1.Dep
 	for _, dp := range dpList {
 		ok, err := dcrm.claimObject(dp, match, adopt, release)
 		if err != nil {
-			errlist = append(errlist, err)
+			errList = append(errList, err)
 			continue
 		}
 		if ok {
 			claimed = append(claimed, dp)
 		}
 	}
-	return claimed, utilerrors.NewAggregate(errlist)
+	return claimed, utilerrors.NewAggregate(errList)
 }
 
 func (dcrm *DeploymentControllerRefManager) adoptDeployment(dp *appsv1.Deployment) error {
@@ -228,7 +228,7 @@ func NewServiceControllerRefManager(
 
 func (scrm *ServiceControllerRefManager) ClaimService(svcList []*corev1.Service) ([]*corev1.Service, error) {
 	var claimed []*corev1.Service
-	var errlist []error
+	var errList []error
 
 	match := func(obj metav1.Object) bool {
 		return scrm.selector.Matches(labels.Set(obj.GetLabels()))
@@ -243,14 +243,14 @@ func (scrm *ServiceControllerRefManager) ClaimService(svcList []*corev1.Service)
 	for _, svc := range svcList {
 		ok, err := scrm.claimObject(svc, match, adopt, release)
 		if err != nil {
-			errlist = append(errlist, err)
+			errList = append(errList, err)
 			continue
 		}
 		if ok {
 			claimed = append(claimed, svc)
 		}
 	}
-	return claimed, utilerrors.NewAggregate(errlist)
+	return claimed, utilerrors.NewAggregate(errList)
 }
 
 func (scrm *ServiceControllerRefManager) adoptService(svc *corev1.Service) error {

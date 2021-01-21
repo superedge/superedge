@@ -43,32 +43,62 @@ func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string) *appsv1.Sta
 			Name:            GetStatefulSetName(ssg, gridValue),
 			Namespace:       ssg.Namespace,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(ssg, ControllerKind)},
-			Labels: map[string]string{
-				common.GridSelectorName: ssg.Name,
-			},
+			// Append existed StatefulSetGrid labels to statefulset to be created
+			Labels: func() map[string]string {
+				if ssg.Labels != nil {
+					newLabels := ssg.Labels
+					newLabels[common.GridSelectorName] = ssg.Name
+					return newLabels
+				} else {
+					return map[string]string{
+						common.GridSelectorName: ssg.Name,
+					}
+				}
+			}(),
 		},
 		Spec: ssg.Spec.Template,
 	}
 
-	set.Spec.Template.Spec.NodeSelector = map[string]string{
-		ssg.Spec.GridUniqKey: gridValue,
+	// Append existed StatefulSetGrid NodeSelector to statefulset to be created
+	if ssg.Spec.Template.Template.Spec.NodeSelector != nil {
+		set.Spec.Template.Spec.NodeSelector = ssg.Spec.Template.Template.Spec.NodeSelector
+		set.Spec.Template.Spec.NodeSelector[ssg.Spec.GridUniqKey] = gridValue
+	} else {
+		set.Spec.Template.Spec.NodeSelector = map[string]string{
+			ssg.Spec.GridUniqKey: gridValue,
+		}
 	}
 
 	return set
 }
 
 func KeepConsistence(ssg *crdv1.StatefulSetGrid, set *appsv1.StatefulSet, gridValue string) *appsv1.StatefulSet {
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
 	copyObj := set.DeepCopy()
-	if copyObj.Labels == nil {
-		copyObj.Labels = make(map[string]string)
+	// Append existed StatefulSetGrid labels to statefulset to be checked
+	if ssg.Labels != nil {
+		copyObj.Labels = ssg.Labels
+		copyObj.Labels[common.GridSelectorName] = ssg.Name
+	} else {
+		copyObj.Labels = map[string]string{
+			common.GridSelectorName: ssg.Name,
+		}
 	}
-	copyObj.Labels[common.GridSelectorName] = ssg.Name
+	copyObj.Spec.ServiceName = ssg.Spec.Template.ServiceName
 	copyObj.Spec.Replicas = ssg.Spec.Template.Replicas
 	copyObj.Spec.Selector = ssg.Spec.Template.Selector
+	copyObj.Spec.VolumeClaimTemplates = ssg.Spec.Template.VolumeClaimTemplates
 	// TODO: this line will cause DeepEqual fails always since actual generated statefulset.Spec.Template is definitely different with ones of relevant statefulsetGrid
 	copyObj.Spec.Template = ssg.Spec.Template.Template
-	copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
-		ssg.Spec.GridUniqKey: gridValue,
+	// Append existed StatefulSetGrid NodeSelector to statefulset to be checked
+	if ssg.Spec.Template.Template.Spec.NodeSelector != nil {
+		copyObj.Spec.Template.Spec.NodeSelector[ssg.Spec.GridUniqKey] = gridValue
+	} else {
+		copyObj.Spec.Template.Spec.NodeSelector = map[string]string{
+			ssg.Spec.GridUniqKey: gridValue,
+		}
 	}
 
 	return copyObj

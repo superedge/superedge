@@ -50,7 +50,7 @@ func (sgc *ServiceGridController) addService(obj interface{}) {
 		if sg == nil {
 			return
 		}
-		klog.V(4).Infof("ServiceGrid %s added.", sg.Name)
+		klog.V(4).Infof("Service %s(its owner ServiceGrid %s) added.", svc.Name, sg.Name)
 		sgc.enqueueServiceGrid(sg)
 		return
 	}
@@ -61,8 +61,8 @@ func (sgc *ServiceGridController) addService(obj interface{}) {
 	if len(sgs) == 0 {
 		return
 	}
-	klog.V(4).Infof("Orphan Service %s added.", svc.Name)
 	for _, sg := range sgs {
+		klog.V(4).Infof("Orphan Service %s(its possible owner ServiceGrid %s) added.", svc.Name, sg.Name)
 		sgc.enqueueServiceGrid(sg)
 	}
 }
@@ -71,16 +71,13 @@ func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 	oldSvc := oldObj.(*corev1.Service)
 	curSvc := newObj.(*corev1.Service)
 
-	if !common.IsConcernedObject(curSvc.ObjectMeta) {
-		return
-	}
-
 	curControllerRef := metav1.GetControllerOf(curSvc)
 	oldControllerRef := metav1.GetControllerOf(oldSvc)
 	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
 		if sg := sgc.resolveControllerRef(oldSvc.Namespace, oldControllerRef); sg != nil {
+			klog.V(4).Infof("Service %s(its old owner ServiceGrid %s) updated.", oldSvc.Name, sg.Name)
 			sgc.enqueueServiceGrid(sg)
 		}
 	}
@@ -91,8 +88,12 @@ func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 		if sg == nil {
 			return
 		}
-		klog.V(4).Infof("ServiceGrid %s updated.", curSvc.Name)
+		klog.V(4).Infof("Service %s(its owner ServiceGrid %s) updated.", curSvc.Name, sg.Name)
 		sgc.enqueueServiceGrid(sg)
+		return
+	}
+
+	if !common.IsConcernedObject(curSvc.ObjectMeta) {
 		return
 	}
 
@@ -104,8 +105,8 @@ func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 		if len(sgs) == 0 {
 			return
 		}
-		klog.V(4).Infof("Orphan Service %s updated.", curSvc.Name)
 		for _, sg := range sgs {
+			klog.V(4).Infof("Orphan Service %s(its possible owner ServiceGrid %s) updated.", curSvc.Name, sg.Name)
 			sgc.enqueueServiceGrid(sg)
 		}
 	}
@@ -137,7 +138,7 @@ func (sgc *ServiceGridController) deleteService(obj interface{}) {
 	if sg == nil {
 		return
 	}
-	klog.V(4).Infof("Service %s deleted.", svc.Name)
+	klog.V(4).Infof("Service %s(its owner ServiceGrid %s) deleted.", svc.Name, sg.Name)
 	sgc.enqueueServiceGrid(sg)
 }
 
@@ -189,8 +190,8 @@ func (sgc *ServiceGridController) getGridForService(svc *corev1.Service) []*crdv
 	if len(serviceGrids) > 1 {
 		// ControllerRef will ensure we don't do anything crazy, but more than one
 		// item in this list nevertheless constitutes user error.
-		klog.V(4).Infof("user error! service %s/%s with labels: %#v selects more than one serviceGrid, returning %s/%s",
-			svc.Namespace, svc.Name, svc.Labels, serviceGrids[0].Namespace, serviceGrids[0].Name)
+		klog.V(4).Infof("user error! service %s/%s with labels: %#v selects more than one serviceGrid, returning %#v",
+			svc.Namespace, svc.Name, svc.Labels, serviceGrids)
 	}
 	return serviceGrids
 }

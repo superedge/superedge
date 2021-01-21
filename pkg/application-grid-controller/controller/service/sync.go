@@ -36,10 +36,10 @@ func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*cor
 		deletes []*corev1.Service
 	)
 
-	name := util.GetServiceName(g)
+	sgTargetSvcName := util.GetServiceName(g)
 	isExistingSvc := false
 	for _, svc := range svcList {
-		if name == svc.Name {
+		if svc.Name == sgTargetSvcName {
 			isExistingSvc = true
 			template := util.KeepConsistence(g, svc)
 			if !apiequality.Semantic.DeepEqual(template, svc) {

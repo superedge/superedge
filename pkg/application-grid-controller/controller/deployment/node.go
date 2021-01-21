@@ -39,8 +39,8 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 	if len(dgs) == 0 {
 		return
 	}
-	klog.V(4).Infof("Node %s added.", node.Name)
 	for _, dg := range dgs {
+		klog.V(4).Infof("Node %s(its relevant DeploymentGrid %s) added.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }
@@ -51,12 +51,12 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		dgs := dgc.getGridForNode(curNode)
+		dgs := dgc.getGridForNode(oldNode, curNode)
 		if len(dgs) == 0 {
 			return
 		}
-		klog.V(4).Infof("Node %s updated.", curNode.Name)
 		for _, dg := range dgs {
+			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
 		}
 	}
@@ -80,8 +80,8 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 	if len(dgs) == 0 {
 		return
 	}
-	klog.V(4).Infof("Node %s deleted.", node.Name)
 	for _, dg := range dgs {
+		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }

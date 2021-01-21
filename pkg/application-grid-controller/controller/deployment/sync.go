@@ -43,8 +43,12 @@ func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList
 			states[util.GetGridValueFromName(dg, dp.Name)] = dp.Status
 		}
 	}
-	dg.Status.States = states
-	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dg.Namespace).UpdateStatus(context.TODO(), dg, metav1.UpdateOptions{})
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
+	dgCopy := dg.DeepCopy()
+	dgCopy.Status.States = states
+	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).UpdateStatus(context.TODO(), dgCopy, metav1.UpdateOptions{})
 	if err != nil && errors.IsConflict(err) {
 		return nil
 	}
@@ -60,16 +64,13 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 
 	wanted := sets.NewString()
 	for _, v := range gridValues {
-		/* nginx-zone1
-		 */
 		wanted.Insert(util.GetDeploymentName(dg, v))
 	}
 
 	var (
-		adds          []*appsv1.Deployment
-		updates       []*appsv1.Deployment
-		deletes       []*appsv1.Deployment
-		updatedDPList []*appsv1.Deployment
+		adds    []*appsv1.Deployment
+		updates []*appsv1.Deployment
+		deletes []*appsv1.Deployment
 	)
 
 	for _, v := range gridValues {
@@ -84,9 +85,6 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		template := util.KeepConsistence(dg, dp, v)
 		if !apiequality.Semantic.DeepEqual(template, dp) {
 			updates = append(updates, template)
-			updatedDPList = append(updatedDPList, template)
-		} else {
-			updatedDPList = append(updatedDPList, dp)
 		}
 	}
 
@@ -101,7 +99,7 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		return err
 	}
 
-	return dgc.syncStatus(dg, updatedDPList, gridValues)
+	return dgc.syncStatus(dg, dpList, gridValues)
 }
 
 func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*appsv1.Deployment) error {
