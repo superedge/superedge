@@ -18,14 +18,14 @@ package statefulset
 
 import (
 	"context"
-	"sync"
-
 	"github.com/hashicorp/go-multierror"
 	appsv1 "k8s.io/api/apps/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
+	"sync"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
@@ -48,6 +48,7 @@ func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, se
 	// Or create a copy manually for better performance
 	ssgCopy := ssg.DeepCopy()
 	ssgCopy.Status.States = states
+	klog.V(4).Infof("Updating statefulset grid %s/%s status %#v", ssgCopy.Namespace, ssgCopy.Name, states)
 	_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).UpdateStatus(context.TODO(), ssgCopy, metav1.UpdateOptions{})
 	if err != nil && errors.IsConflict(err) {
 		return nil
@@ -111,6 +112,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 	for i := range adds {
 		go func(set *appsv1.StatefulSet) {
 			defer wg.Done()
+			klog.V(4).Infof("Creating statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			_, err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Create(context.TODO(), set, metav1.CreateOptions{})
 			if err != nil {
 				errCh <- err
@@ -121,6 +123,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 	for i := range updates {
 		go func(set *appsv1.StatefulSet) {
 			defer wg.Done()
+			klog.V(4).Infof("Updating statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			_, err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Update(context.TODO(), set, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
@@ -131,6 +134,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 	for i := range deletes {
 		go func(set *appsv1.StatefulSet) {
 			defer wg.Done()
+			klog.V(4).Infof("Deleting statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Delete(context.TODO(), set.Name, metav1.DeleteOptions{})
 			if err != nil {
 				errCh <- err

@@ -18,6 +18,7 @@ package deployment
 
 import (
 	"context"
+	"k8s.io/klog"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -48,6 +49,7 @@ func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList
 	// Or create a copy manually for better performance
 	dgCopy := dg.DeepCopy()
 	dgCopy.Status.States = states
+	klog.V(4).Infof("Updating deployment grid %s/%s status %#v", dgCopy.Namespace, dgCopy.Name, states)
 	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).UpdateStatus(context.TODO(), dgCopy, metav1.UpdateOptions{})
 	if err != nil && errors.IsConflict(err) {
 		return nil
@@ -111,6 +113,7 @@ func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*ap
 	for i := range adds {
 		go func(d *appsv1.Deployment) {
 			defer wg.Done()
+			klog.V(4).Infof("Creating deployment %s/%s by syncDeployment", d.Namespace, d.Name)
 			_, err := dgc.kubeClient.AppsV1().Deployments(d.Namespace).Create(context.TODO(), d, metav1.CreateOptions{})
 			if err != nil {
 				errCh <- err
@@ -121,6 +124,7 @@ func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*ap
 	for i := range updates {
 		go func(d *appsv1.Deployment) {
 			defer wg.Done()
+			klog.V(4).Infof("Updating deployment %s/%s by syncDeployment", d.Namespace, d.Name)
 			_, err := dgc.kubeClient.AppsV1().Deployments(d.Namespace).Update(context.TODO(), d, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
@@ -131,6 +135,7 @@ func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*ap
 	for i := range deletes {
 		go func(d *appsv1.Deployment) {
 			defer wg.Done()
+			klog.V(4).Infof("Deleting deployment %s/%s by syncDeployment", d.Namespace, d.Name)
 			err := dgc.kubeClient.AppsV1().Deployments(d.Namespace).Delete(context.TODO(), d.Name, metav1.DeleteOptions{})
 			if err != nil {
 				errCh <- err

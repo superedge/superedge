@@ -30,16 +30,20 @@ var (
 	KeyFunc = cache.DeletionHandlingMetaNamespaceKeyFunc
 )
 
+// TODO: Deprecated in future since this is redundant?
 type DeployClientInterface interface {
 	PatchDeployment(namespace, name string, data []byte) error
+	DeleteDeployment(namespace, name string) error
 }
 
 type SetClientInterface interface {
 	PatchStatefulSet(namespace, name string, data []byte) error
+	DeleteStatefulSet(namespace, name string) error
 }
 
 type SvcClientInterface interface {
 	PatchService(namespace, name string, data []byte) error
+	DeleteService(namespace, name string) error
 }
 
 type RealDeployClient struct {
@@ -69,6 +73,10 @@ func (rdc RealDeployClient) PatchDeployment(namespace, name string, data []byte)
 	return err
 }
 
+func (rdc RealDeployClient) DeleteDeployment(namespace, name string) error {
+	return rdc.kubeClient.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
 func NewRealSvcClient(kubeClient clientset.Interface) *RealSvcClient {
 	return &RealSvcClient{
 		kubeClient: kubeClient,
@@ -80,6 +88,10 @@ func (rsc *RealSvcClient) PatchService(namespace, name string, data []byte) erro
 	return err
 }
 
+func (rsc *RealSvcClient) DeleteService(namespace, name string) error {
+	return rsc.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
 func NewRealSetClient(kubeClient clientset.Interface) *RealSetClient {
 	return &RealSetClient{
 		kubeClient: kubeClient,
@@ -89,6 +101,10 @@ func NewRealSetClient(kubeClient clientset.Interface) *RealSetClient {
 func (rssc *RealSetClient) PatchStatefulSet(namespace, name string, data []byte) error {
 	_, err := rssc.kubeClient.AppsV1().StatefulSets(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	return err
+}
+
+func (rssc *RealSetClient) DeleteStatefulSet(namespace, name string) error {
+	return rssc.kubeClient.AppsV1().StatefulSets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 func RecheckDeletionTimestamp(getObject func() (metav1.Object, error)) func() error {

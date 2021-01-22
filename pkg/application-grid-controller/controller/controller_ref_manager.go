@@ -93,8 +93,10 @@ func (dcrm *DeploymentControllerRefManager) ClaimDeployment(dpList []*appsv1.Dep
 
 func (dcrm *DeploymentControllerRefManager) adoptDeployment(dp *appsv1.Deployment) error {
 	if err := dcrm.canAdopt(); err != nil {
-		return fmt.Errorf("can't adopt Deployment %v/%v (%v): %v", dp.Namespace, dp.Name, dp.UID, err)
+		return fmt.Errorf("can't adopt Deployment %s/%s (%v): %v", dp.Namespace, dp.Name, dp.UID, err)
 	}
+	klog.V(2).Infof("Adopting deployment %s/%s to controllerRef %s/%s:%s",
+		dp.Namespace, dp.Name, dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind, dcrm.controller.GetName())
 	addControllerPatch := fmt.Sprintf(
 		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
 		dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind,
@@ -103,12 +105,9 @@ func (dcrm *DeploymentControllerRefManager) adoptDeployment(dp *appsv1.Deploymen
 }
 
 func (dcrm *DeploymentControllerRefManager) releaseDeployment(dp *appsv1.Deployment) error {
-	klog.V(2).Infof("Patching Deployment %s/%s to remove its controllerRef of %s/%s:%s",
-		dp.Namespace, dp.Name, dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind, dcrm.controller.GetName())
-	deleteOwnerRefPatch := fmt.Sprintf(
-		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
-		dcrm.controller.GetUID(), dp.UID)
-	err := dcrm.dpClient.PatchDeployment(dp.Namespace, dp.Name, []byte(deleteOwnerRefPatch))
+	klog.V(2).Infof("Deleting deployment %s/%s as it owned by controllerRef %s/%s:%s but selector %#v doesn't match",
+		dp.Namespace, dp.Name, dcrm.controllerKind.GroupVersion(), dcrm.controllerKind.Kind, dcrm.controller.GetName(), dp.Labels)
+	err := dcrm.dpClient.DeleteDeployment(dp.Namespace, dp.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -174,8 +173,10 @@ func (sscrm *StatefulSetControllerRefManager) ClaimStatefulSet(setList []*appsv1
 
 func (sscrm *StatefulSetControllerRefManager) adoptStatefulSet(set *appsv1.StatefulSet) error {
 	if err := sscrm.canAdopt(); err != nil {
-		return fmt.Errorf("Can't adopt statefulset %v/%v (%v): %v", set.Namespace, set.Name, set.UID, err)
+		return fmt.Errorf("Can't adopt statefulset %s/%s (%v): %v", set.Namespace, set.Name, set.UID, err)
 	}
+	klog.V(2).Infof("Adopting statefulset %s/%s to controllerRef %s/%s:%s",
+		set.Namespace, set.Name, sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind, sscrm.controller.GetName())
 	addControllerOwnerRefsPatch := fmt.Sprintf(
 		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
 		sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind,
@@ -184,12 +185,9 @@ func (sscrm *StatefulSetControllerRefManager) adoptStatefulSet(set *appsv1.State
 }
 
 func (sscrm *StatefulSetControllerRefManager) releaseStatefulSet(set *appsv1.StatefulSet) error {
-	klog.V(2).Infof("Patching statefulset %s/%s to remove its controllerRef of %s/%s:%s",
-		set.Namespace, set.Name, sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind, sscrm.controller.GetName())
-	delControllerOwnerRefsPatch := fmt.Sprintf(
-		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
-		sscrm.controller.GetUID(), set.UID)
-	err := sscrm.setClient.PatchStatefulSet(set.Namespace, set.Name, []byte(delControllerOwnerRefsPatch))
+	klog.V(2).Infof("Deleting statefulset %s/%s as it owned by controllerRef %s/%s:%s but selector %#v doesn't match",
+		set.Namespace, set.Name, sscrm.controllerKind.GroupVersion(), sscrm.controllerKind.Kind, sscrm.controller.GetName(), set.Labels)
+	err := sscrm.setClient.DeleteStatefulSet(set.Namespace, set.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -255,8 +253,10 @@ func (scrm *ServiceControllerRefManager) ClaimService(svcList []*corev1.Service)
 
 func (scrm *ServiceControllerRefManager) adoptService(svc *corev1.Service) error {
 	if err := scrm.canAdopt(); err != nil {
-		return fmt.Errorf("can't adopt Service %v/%v (%v): %v", svc.Namespace, svc.Name, svc.UID, err)
+		return fmt.Errorf("can't adopt Service %s/%s (%v): %v", svc.Namespace, svc.Name, svc.UID, err)
 	}
+	klog.V(2).Infof("Adopting service %s/%s to controllerRef %s/%s:%s",
+		svc.Namespace, svc.Name, scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind, scrm.controller.GetName())
 	addControllerOwnerRefsPatch := fmt.Sprintf(
 		`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],"uid":"%s"}}`,
 		scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind,
@@ -265,12 +265,9 @@ func (scrm *ServiceControllerRefManager) adoptService(svc *corev1.Service) error
 }
 
 func (scrm *ServiceControllerRefManager) releaseService(svc *corev1.Service) error {
-	klog.V(2).Infof("Patching Service %s/%s to remove its controllerRef of %s/%s:%s",
-		svc.Namespace, svc.Name, scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind, scrm.controller.GetName())
-	deleteOwnerRefPatch := fmt.Sprintf(
-		`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`,
-		scrm.controller.GetUID(), svc.UID)
-	err := scrm.svcClient.PatchService(svc.Namespace, svc.Name, []byte(deleteOwnerRefPatch))
+	klog.V(2).Infof("Deleting service %s/%s as it owned by controllerRef %s/%s:%s but selector %#v doesn't match",
+		svc.Namespace, svc.Name, scrm.controllerKind.GroupVersion(), scrm.controllerKind.Kind, scrm.controller.GetName(), svc.Labels)
+	err := scrm.svcClient.DeleteService(svc.Namespace, svc.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
