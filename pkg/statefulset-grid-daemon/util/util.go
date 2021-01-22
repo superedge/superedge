@@ -14,20 +14,20 @@ var suffix = []string{
 	".svc",
 }
 
-type Hosts struct{
+type Hosts struct {
 	HostPath string
 	HostsMap map[string][]string
 	sync.Mutex
 }
 
-func NewHosts(HostPath string) Hosts{
+func NewHosts(HostPath string) Hosts {
 	return Hosts{
 		HostPath: HostPath,
 		HostsMap: make(map[string][]string),
 	}
 }
 
-func (h *Hosts)ReadHostsFile(HostsPath string) ([]byte, error) {
+func (h *Hosts) ReadHostsFile(HostsPath string) ([]byte, error) {
 	bs, err := ioutil.ReadFile(HostsPath)
 	if err != nil {
 		return nil, err
@@ -35,8 +35,8 @@ func (h *Hosts)ReadHostsFile(HostsPath string) ([]byte, error) {
 	return bs, nil
 }
 
-func (h *Hosts)ParseHosts(hostsFileContent []byte, err error) (map[string][]string, error) {
-	if err != nil{
+func (h *Hosts) ParseHosts(hostsFileContent []byte, err error) (map[string][]string, error) {
+	if err != nil {
 		return nil, err
 	}
 	h.Lock()
@@ -59,47 +59,47 @@ func (h *Hosts)ParseHosts(hostsFileContent []byte, err error) (map[string][]stri
 	return h.HostsMap, nil
 }
 
-func (h *Hosts)UpdateHosts(PodInfoToHost map[string]string, nameSpace, setName, svcName string) error{
+func (h *Hosts) UpdateHosts(PodInfoToHost map[string]string, nameSpace, setName, svcName string) error {
 	h.Lock()
 	defer h.Unlock()
 
-	for ip, hosts:= range h.HostsMap {
+	for ip, hosts := range h.HostsMap {
 		temp_hosts := []string{}
-		for _, host := range hosts{
+		for _, host := range hosts {
 			match, _ := regexp.MatchString(setName+"-"+`[0-9]+`+`\.`+nameSpace+`\.`+svcName+`.*`, host)
-			if !match{
+			if !match {
 				//klog.Infof("%s not match", host)
 				temp_hosts = append(temp_hosts, host)
 			}
 		}
-		if len(temp_hosts) == 0{
+		if len(temp_hosts) == 0 {
 			delete(h.HostsMap, ip)
-		}else {
+		} else {
 			h.HostsMap[ip] = temp_hosts
 		}
 	}
 
-	for addIp, addHost := range PodInfoToHost{
-		hostWithNsSvc := addHost+ "."+ nameSpace + "." + svcName
+	for addIp, addHost := range PodInfoToHost {
+		hostWithNsSvc := addHost + "." + nameSpace + "." + svcName
 		hostList := []string{hostWithNsSvc}
-		for _, suf := range suffix{
+		for _, suf := range suffix {
 			hostList = append(hostList, hostWithNsSvc+suf)
 		}
 
-		if _,ok := h.HostsMap[addIp];ok {
+		if _, ok := h.HostsMap[addIp]; ok {
 			h.HostsMap[addIp] = append(h.HostsMap[addIp], hostList...)
-		}else {
+		} else {
 			h.HostsMap[addIp] = hostList
 		}
 	}
 
-	if err := h.Save(); err != nil{
+	if err := h.Save(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *Hosts)Save() error {
+func (h *Hosts) Save() error {
 	hostData := []byte(h.ParseHostsFile())
 
 	h.Lock()

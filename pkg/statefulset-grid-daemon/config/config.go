@@ -26,18 +26,18 @@ import (
 )
 
 type ControllerConfig struct {
-	StatefulSetInformer     appsv1.StatefulSetInformer
-	NodeInformer            corev1.NodeInformer
-	PodInformer             corev1.PodInformer
+	StatefulSetInformer appsv1.StatefulSetInformer
+	NodeInformer        corev1.NodeInformer
+	PodInformer         corev1.PodInformer
 }
 
 func NewControllerConfig(k8sClient *kubernetes.Clientset, resyncTime time.Duration) *ControllerConfig {
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, resyncTime)
 
 	return &ControllerConfig{
-		StatefulSetInformer:    k8sFactory.Apps().V1().StatefulSets(),
-		NodeInformer:           k8sFactory.Core().V1().Nodes(),
-		PodInformer:            k8sFactory.Core().V1().Pods(),
+		StatefulSetInformer: k8sFactory.Apps().V1().StatefulSets(),
+		NodeInformer:        k8sFactory.Core().V1().Nodes(),
+		PodInformer:         k8sFactory.Core().V1().Pods(),
 	}
 }
 

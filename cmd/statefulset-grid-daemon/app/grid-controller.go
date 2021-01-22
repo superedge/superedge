@@ -22,8 +22,8 @@ import (
 	"github.com/superedge/superedge/cmd/statefulset-grid-daemon/app/options"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/config"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/controller"
-	"github.com/superedge/superedge/pkg/util"
 	daemonutil "github.com/superedge/superedge/pkg/statefulset-grid-daemon/util"
+	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/api/core/v1"
@@ -71,7 +71,7 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 			kubeClient := clientset.NewForConfigOrDie(kubeconfig)
 
 			hosts := daemonutil.NewHosts(o.HostPath)
-			if _, err := hosts.ParseHosts(hosts.ReadHostsFile(hosts.HostPath)); err != nil{
+			if _, err := hosts.ParseHosts(hosts.ReadHostsFile(hosts.HostPath)); err != nil {
 				klog.Fatalf("init read hosts file err: %v", err)
 			}
 

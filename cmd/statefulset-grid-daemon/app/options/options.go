@@ -41,8 +41,8 @@ type Options struct {
 	SyncPeriod   int
 	Worker       int
 	config.LeaderElectionConfiguration
-	HostName   string
-	HostPath   string
+	HostName string
+	HostPath string
 }
 
 func NewStatefulsetGridDaemonOptions() *Options {
@@ -64,7 +64,7 @@ func NewStatefulsetGridDaemonOptions() *Options {
 			RetryPeriod:       metav1.Duration{Duration: time.Second * time.Duration(2)},
 		},
 		FeatureGates: featureGates,
-		HostPath: "/data/edge/hosts",
+		HostPath:     "/data/edge/hosts",
 	}
 }
 

@@ -13,7 +13,6 @@ import (
 func (setc *StatefulSetController) addStatefulset(obj interface{}) {
 	set := obj.(*appsv1.StatefulSet)
 
-
 	if rel, err := setc.IsConcernedStatefulSet(set); err != nil || !rel {
 		return
 	}
@@ -73,7 +72,7 @@ func HasServiceName(set *appsv1.StatefulSet) bool {
 	return !(set.Spec.ServiceName == "")
 }
 
-func (setc *StatefulSetController)IsConcernedStatefulSet(set *appsv1.StatefulSet) (bool, error) {
+func (setc *StatefulSetController) IsConcernedStatefulSet(set *appsv1.StatefulSet) (bool, error) {
 	if set.ObjectMeta.Labels == nil {
 		return false, nil
 	}
@@ -97,8 +96,8 @@ func (setc *StatefulSetController)IsConcernedStatefulSet(set *appsv1.StatefulSet
 	}
 
 	releated := false
-	for k,v := range node.Labels{
-		if val, ok := set.Spec.Template.Spec.NodeSelector[k]; ok && v == val{
+	for k, v := range node.Labels {
+		if val, ok := set.Spec.Template.Spec.NodeSelector[k]; ok && v == val {
 			releated = true
 			break
 		}
@@ -109,5 +108,3 @@ func (setc *StatefulSetController)IsConcernedStatefulSet(set *appsv1.StatefulSet
 
 	return true, nil
 }
-
-

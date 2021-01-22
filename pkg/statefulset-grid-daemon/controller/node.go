@@ -81,8 +81,8 @@ func (setc *StatefulSetController) getStatefulSetForNode(node *corev1.Node) []*a
 	}
 	var sets []*appv1.StatefulSet
 	for _, set := range setList {
-		for k,v := range node.Labels{
-			if val, ok := set.Spec.Template.Spec.NodeSelector[k]; ok && v == val{
+		for k, v := range node.Labels {
+			if val, ok := set.Spec.Template.Spec.NodeSelector[k]; ok && v == val {
 				sets = append(sets, set)
 				break
 			}

@@ -33,23 +33,23 @@ var (
 )
 
 type StatefulSetController struct {
-	hostName   string
-	hosts   *util.Hosts
+	hostName string
+	hosts    *util.Hosts
 
-	nodeLister         corelisters.NodeLister
-	nodeListerSynced   cache.InformerSynced
+	nodeLister       corelisters.NodeLister
+	nodeListerSynced cache.InformerSynced
 
-	podLister         corelisters.PodLister
-	podListerSynced    cache.InformerSynced
+	podLister       corelisters.PodLister
+	podListerSynced cache.InformerSynced
 
-	setLister           appslisters.StatefulSetLister
-	setListerSynced     cache.InformerSynced
+	setLister       appslisters.StatefulSetLister
+	setListerSynced cache.InformerSynced
 
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
 
-	syncHandler func(dKey string) error
+	syncHandler        func(dKey string) error
 	enqueueStatefulset func(statefulset *appsv1.StatefulSet)
 }
 
@@ -63,8 +63,8 @@ func NewStatefulSetController(nodeInformer coreinformers.NodeInformer, podInform
 	})
 
 	setc := &StatefulSetController{
-		hostName: hostName,
-		hosts: hosts,
+		hostName:   hostName,
+		hosts:      hosts,
 		kubeClient: kubeClient,
 		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme,
 			corev1.EventSource{Component: "statefulset-grid-daemon"}),
@@ -158,7 +158,7 @@ func (setc *StatefulSetController) handleErr(err error, key interface{}) {
 	setc.queue.Forget(key)
 }
 
-func (setc *StatefulSetController)syncStatefulSet(key string) error{
+func (setc *StatefulSetController) syncStatefulSet(key string) error {
 	startTime := time.Now()
 	klog.V(4).Infof("Started syncing statefulset %q (%v)", key, startTime)
 	defer func() {
@@ -187,8 +187,8 @@ func (setc *StatefulSetController)syncStatefulSet(key string) error{
 
 	podToHost := []*corev1.Pod{}
 
-	podlist, err :=  setc.podLister.Pods(setcopy.Namespace).List(labels.Everything())
-	if err !=nil {
+	podlist, err := setc.podLister.Pods(setcopy.Namespace).List(labels.Everything())
+	if err != nil {
 		klog.Errorf("get podlist err %v", err)
 		return err
 	}
@@ -203,16 +203,16 @@ func (setc *StatefulSetController)syncStatefulSet(key string) error{
 	ControllerRef := metav1.GetControllerOf(setcopy)
 	if ControllerRef != nil {
 		gridvalue := setcopy.Name[len(ControllerRef.Name)+1:]
-		for _, p := range podToHost{
+		for _, p := range podToHost {
 			index := strings.Index(p.Name, gridvalue)
 			if index == -1 {
 				return nil
 			}
 			//ip: <ControllerRef>-<num>.<ns>.<svc>
-			podNameTohost := p.Name[0:index]+p.Name[index+len(gridvalue)+1:] + "."+ setcopy.Spec.ServiceName
+			podNameTohost := p.Name[0:index] + p.Name[index+len(gridvalue)+1:] + "." + setcopy.Spec.ServiceName
 			PodInfoToHost[p.Status.PodIP] = podNameTohost
 
-			if err := setc.hosts.UpdateHosts(PodInfoToHost, p.Namespace, ControllerRef.Name, setcopy.Spec.ServiceName); err != nil{
+			if err := setc.hosts.UpdateHosts(PodInfoToHost, p.Namespace, ControllerRef.Name, setcopy.Spec.ServiceName); err != nil {
 				klog.Errorf("update err: %v", err)
 				return err
 			}

@@ -101,15 +101,15 @@ func (setc *StatefulSetController) deletePod(obj interface{}) {
 	setc.enqueueStatefulset(set)
 }
 
-func (setc *StatefulSetController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet{
+func (setc *StatefulSetController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
 	ownerRef := metav1.GetControllerOf(pod)
-	if ownerRef != nil{
-		if ownerRef.Kind != controllerKind.Kind{
+	if ownerRef != nil {
+		if ownerRef.Kind != controllerKind.Kind {
 			return nil
 		}
 
 		set, err := setc.setLister.StatefulSets(pod.Namespace).Get(ownerRef.Name)
-		if err != nil{
+		if err != nil {
 			klog.Errorf("get %s StatefulSets err %v", ownerRef.Name, err)
 			return nil
 		}
