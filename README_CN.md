@@ -47,5 +47,8 @@ SuperEdge具有如下特性:
 - [**邮件列表**](https://groups.google.com/g/superedge)
 - Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
 
+## 参与项目
+欢迎您[参与](./CONTRIBUTING.md)完善项目
+
 ## 许可证
 [**许可证**](./LICENSE)
