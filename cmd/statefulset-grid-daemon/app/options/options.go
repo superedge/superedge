@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	ApplicationGridControllerUserAgent = "application-grid-controller"
+	StatefulSetGridDaemonUserAgent = "statefulset-grid-daemon"
 )
 
 type Options struct {
@@ -42,6 +42,7 @@ type Options struct {
 	Worker       int
 	config.LeaderElectionConfiguration
 	HostName   string
+	HostPath   string
 }
 
 func NewStatefulsetGridDaemonOptions() *Options {
@@ -55,7 +56,7 @@ func NewStatefulsetGridDaemonOptions() *Options {
 		SyncPeriod: 30,
 		Worker:     runtime.NumCPU(),
 		LeaderElectionConfiguration: config.LeaderElectionConfiguration{
-			ResourceName:      ApplicationGridControllerUserAgent,
+			ResourceName:      StatefulSetGridDaemonUserAgent,
 			ResourceNamespace: metav1.NamespaceSystem,
 			ResourceLock:      "endpoints",
 			LeaseDuration:     metav1.Duration{Duration: time.Second * time.Duration(15)},
@@ -63,6 +64,7 @@ func NewStatefulsetGridDaemonOptions() *Options {
 			RetryPeriod:       metav1.Duration{Duration: time.Second * time.Duration(2)},
 		},
 		FeatureGates: featureGates,
+		HostPath: "/data/edge/hosts",
 	}
 }
 
@@ -103,4 +105,5 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"The namespace of resource object that is used for locking during "+
 		"leader election.")
 	fs.StringVar(&o.HostName, "hostname", o.HostName, "hostname for statefulset-grid-daemon")
+	fs.StringVar(&o.HostPath, "hostpath", o.HostPath, "hostpath for statefulset-grid-daemon")
 }

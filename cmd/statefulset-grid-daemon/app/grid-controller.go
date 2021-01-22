@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/config"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/controller"
 	"github.com/superedge/superedge/pkg/util"
+	daemonutil "github.com/superedge/superedge/pkg/statefulset-grid-daemon/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 	o := options.NewStatefulsetGridDaemonOptions()
 
 	cmd := &cobra.Command{
-		Use: "application-grid-controller",
+		Use: "statefulset-grid-daemon",
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
 
@@ -69,9 +70,14 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 			leaderElectionClient := clientset.NewForConfigOrDie(restclient.AddUserAgent(&copyConfig, "leader-election"))
 			kubeClient := clientset.NewForConfigOrDie(kubeconfig)
 
+			hosts := daemonutil.NewHosts(o.HostPath)
+			if _, err := hosts.ParseHosts(hosts.ReadHostsFile(hosts.HostPath)); err != nil{
+				klog.Fatalf("init read hosts file err: %v", err)
+			}
+
 			var electionChecker *leaderelection.HealthzAdaptor
 			if !o.LeaderElect {
-				runController(context.TODO(), kubeClient, o.Worker, o.SyncPeriod, o.HostName)
+				runController(context.TODO(), kubeClient, o.Worker, o.SyncPeriod, o.HostName, &hosts)
 				panic("unreachable")
 			}
 
@@ -82,7 +88,7 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 				klog.Fatalf("failed to get hostname %v", err)
 			}
 			id = id + "_" + string(uuid.NewUUID())
-			eventRecorder := createRecorder(kubeClient, options.ApplicationGridControllerUserAgent)
+			eventRecorder := createRecorder(kubeClient, options.StatefulSetGridDaemonUserAgent)
 			rl, err := resourcelock.New(o.ResourceLock, o.ResourceNamespace, o.ResourceName,
 				leaderElectionClient.CoreV1(),
 				leaderElectionClient.CoordinationV1(),
@@ -101,14 +107,14 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 				RetryPeriod:   o.RetryPeriod.Duration,
 				Callbacks: leaderelection.LeaderCallbacks{
 					OnStartedLeading: func(ctx context.Context) {
-						runController(ctx, kubeClient, o.Worker, o.SyncPeriod, o.HostName)
+						runController(ctx, kubeClient, o.Worker, o.SyncPeriod, o.HostName, o.HostPath)
 					},
 					OnStoppedLeading: func() {
 						klog.Fatalf("leaderelection lost")
 					},
 				},
 				WatchDog: electionChecker,
-				Name:     options.ApplicationGridControllerUserAgent,
+				Name:     options.StatefulSetGridDaemonUserAgent,
 			})
 			panic("unreachable")
 		},
@@ -122,12 +128,13 @@ func NewStatefulsetGridDaemonCommand() *cobra.Command {
 
 func runController(parent context.Context,
 	kubeClient *clientset.Clientset,
-	workerNum, syncPeriod int, hostName string) {
+	workerNum, syncPeriod int, hostName string, hosts *daemonutil.Hosts) {
 
 	controllerConfig := config.NewControllerConfig(kubeClient, time.Second*time.Duration(syncPeriod))
+
 	statefulSetGridController := controller.NewStatefulSetController(
 		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.StatefulSetInformer,
-		kubeClient, hostName)
+		kubeClient, hostName, hosts)
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()

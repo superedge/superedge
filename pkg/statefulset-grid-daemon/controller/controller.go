@@ -2,11 +2,13 @@ package controller
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
-	crdclientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
+	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -20,13 +22,19 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"strings"
 	"time"
 )
 
 var controllerKind = appsv1.SchemeGroupVersion.WithKind("StatefulSet")
 
+var (
+	KeyFunc = cache.DeletionHandlingMetaNamespaceKeyFunc
+)
+
 type StatefulSetController struct {
 	hostName   string
+	hosts   *util.Hosts
 
 	nodeLister         corelisters.NodeLister
 	nodeListerSynced   cache.InformerSynced
@@ -40,7 +48,6 @@ type StatefulSetController struct {
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
-	crdClient     crdclientset.Interface
 
 	syncHandler func(dKey string) error
 	enqueueStatefulset func(statefulset *appsv1.StatefulSet)
@@ -48,7 +55,7 @@ type StatefulSetController struct {
 
 func NewStatefulSetController(nodeInformer coreinformers.NodeInformer, podInformer coreinformers.PodInformer,
 	statefulSetInformer appsinformers.StatefulSetInformer, kubeClient clientset.Interface,
-	hostName string) *StatefulSetController {
+	hostName string, hosts *util.Hosts) *StatefulSetController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{
@@ -57,6 +64,7 @@ func NewStatefulSetController(nodeInformer coreinformers.NodeInformer, podInform
 
 	setc := &StatefulSetController{
 		hostName: hostName,
+		hosts: hosts,
 		kubeClient: kubeClient,
 		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme,
 			corev1.EventSource{Component: "statefulset-grid-daemon"}),
@@ -151,11 +159,70 @@ func (setc *StatefulSetController) handleErr(err error, key interface{}) {
 }
 
 func (setc *StatefulSetController)syncStatefulSet(key string) error{
+	startTime := time.Now()
+	klog.V(4).Infof("Started syncing statefulset %q (%v)", key, startTime)
+	defer func() {
+		klog.V(4).Infof("Finished syncing statefulset %q (%v)", key, time.Since(startTime))
+	}()
 
+	ns, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+
+	set, err := setc.setLister.StatefulSets(ns).Get(name)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("statefulset %v has been deleted", key)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	setcopy := set.DeepCopy()
+
+	if rel, err := setc.IsConcernedStatefulSet(setcopy); err != nil || !rel {
+		return nil
+	}
+
+	podToHost := []*corev1.Pod{}
+
+	podlist, err :=  setc.podLister.Pods(setcopy.Namespace).List(labels.Everything())
+	if err !=nil {
+		klog.Errorf("get podlist err %v", err)
+		return err
+	}
+
+	for _, p := range podlist {
+		if len(p.OwnerReferences) != 0 && p.OwnerReferences[0].Name == setcopy.Name && p.OwnerReferences[0].Kind == controllerKind.Kind {
+			podToHost = append(podToHost, p)
+		}
+	}
+	var PodInfoToHost = make(map[string]string)
+	//  <ControllerRef>-<gridvalue>-<num>.<ns>.<svc>
+	ControllerRef := metav1.GetControllerOf(setcopy)
+	if ControllerRef != nil {
+		gridvalue := setcopy.Name[len(ControllerRef.Name)+1:]
+		for _, p := range podToHost{
+			index := strings.Index(p.Name, gridvalue)
+			if index == -1 {
+				return nil
+			}
+			//ip: <ControllerRef>-<num>.<ns>.<svc>
+			podNameTohost := p.Name[0:index]+p.Name[index+len(gridvalue)+1:] + "."+ setcopy.Spec.ServiceName
+			PodInfoToHost[p.Status.PodIP] = podNameTohost
+
+			if err := setc.hosts.UpdateHosts(PodInfoToHost, p.Namespace, ControllerRef.Name, setcopy.Spec.ServiceName); err != nil{
+				klog.Errorf("update err: %v", err)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (setc *StatefulSetController) enqueue(set *appsv1.StatefulSet) {
-	key, err := controller.KeyFunc(set)
+	key, err := KeyFunc(set)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", set, err))
 		return

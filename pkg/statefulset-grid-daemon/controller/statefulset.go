@@ -103,7 +103,7 @@ func (setc *StatefulSetController)IsConcernedStatefulSet(set *appsv1.StatefulSet
 			break
 		}
 	}
-	if !releated{
+	if !releated {
 		return false, nil
 	}
 
