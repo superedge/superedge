@@ -44,17 +44,20 @@ func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList
 			states[util.GetGridValueFromName(dg, dp.Name)] = dp.Status
 		}
 	}
-	// NEVER modify objects from the store. It's a read-only, local cache.
-	// You can use DeepCopy() to make a deep copy of original object and modify this copy
-	// Or create a copy manually for better performance
-	dgCopy := dg.DeepCopy()
-	dgCopy.Status.States = states
-	klog.V(4).Infof("Updating deployment grid %s/%s status %#v", dgCopy.Namespace, dgCopy.Name, states)
-	_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).UpdateStatus(context.TODO(), dgCopy, metav1.UpdateOptions{})
-	if err != nil && errors.IsConflict(err) {
-		return nil
+	if !apiequality.Semantic.DeepEqual(dg.Status.States, states) {
+		// NEVER modify objects from the store. It's a read-only, local cache.
+		// You can use DeepCopy() to make a deep copy of original object and modify this copy
+		// Or create a copy manually for better performance
+		dgCopy := dg.DeepCopy()
+		dgCopy.Status.States = states
+		klog.V(4).Infof("Updating deployment grid %s/%s status %#v", dgCopy.Namespace, dgCopy.Name, states)
+		_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).UpdateStatus(context.TODO(), dgCopy, metav1.UpdateOptions{})
+		if err != nil && errors.IsConflict(err) {
+			return nil
+		}
+		return err
 	}
-	return err
+	return nil
 }
 
 func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {

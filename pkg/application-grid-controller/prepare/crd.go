@@ -75,8 +75,8 @@ func (p *crdPreparator) prepareCRDs(gvks ...schema.GroupVersionKind) error {
 
 // createOrUpdateCRDs create or update specified edge CRDs
 func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.CustomResourceDefinition, error) {
-	klog.V(4).Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
-	defer klog.V(4).Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
+	klog.V(5).Infof("Trying to create or update GroupVersionKind %s CRD", gvk)
+	defer klog.V(5).Infof("Done creating or updating GroupVersionKind %s CRD", gvk)
 	var (
 		crdBytes []byte
 		err      error
@@ -125,13 +125,13 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 
 // waitCRD waits for specified edge CRD to become available
 func (p *crdPreparator) waitCRD(name string) error {
-	klog.V(4).Infof("Waiting for CRD %s to become available", name)
-	defer klog.V(4).Infof("Done waiting for CRD %s to become available", name)
+	klog.V(5).Infof("Waiting for CRD %s to become available", name)
+	defer klog.V(5).Infof("Done waiting for CRD %s to become available", name)
 
 	first := true
 	return wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
 		if !first {
-			klog.V(4).Infof("Waiting for CRD %s to become available", name)
+			klog.V(5).Infof("Waiting for CRD %s to become available", name)
 		}
 		first = false
 

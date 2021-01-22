@@ -43,17 +43,20 @@ func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, se
 			states[util.GetGridValueFromName(ssg, set.Name)] = set.Status
 		}
 	}
-	// NEVER modify objects from the store. It's a read-only, local cache.
-	// You can use DeepCopy() to make a deep copy of original object and modify this copy
-	// Or create a copy manually for better performance
-	ssgCopy := ssg.DeepCopy()
-	ssgCopy.Status.States = states
-	klog.V(4).Infof("Updating statefulset grid %s/%s status %#v", ssgCopy.Namespace, ssgCopy.Name, states)
-	_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).UpdateStatus(context.TODO(), ssgCopy, metav1.UpdateOptions{})
-	if err != nil && errors.IsConflict(err) {
-		return nil
+	if !apiequality.Semantic.DeepEqual(ssg.Status.States, states) {
+		// NEVER modify objects from the store. It's a read-only, local cache.
+		// You can use DeepCopy() to make a deep copy of original object and modify this copy
+		// Or create a copy manually for better performance
+		ssgCopy := ssg.DeepCopy()
+		ssgCopy.Status.States = states
+		klog.V(4).Infof("Updating statefulset grid %s/%s status %#v", ssgCopy.Namespace, ssgCopy.Name, states)
+		_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).UpdateStatus(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+		if err != nil && errors.IsConflict(err) {
+			return nil
+		}
+		return err
 	}
-	return err
+	return nil
 }
 
 func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, setList []*appsv1.StatefulSet, gridValues []string) error {
