@@ -42,6 +42,9 @@ For any question or support, feel free to contact us via:
 - [mailing list](https://groups.google.com/g/superedge)
 - Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
 
+## Contributing
+Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge
+
 ## License
 
 [**LICENSE**](./LICENSE)
