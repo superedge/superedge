@@ -1,0 +1,15 @@
+name: Semgrep
+on: [pull_request,push]
+jobs:
+  semgrep:
+    name: Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: returntocorp/semgrep-action@v1
+        env: # Optional environment variable for inline PR comments (beta)
+          GITHUB_TOKEN: ${{ secrets.a4fbee03763c95f7dcfac2e34b1da6d5e2660a94 }}
+        with:
+          publishToken: ${{ secrets.fe86636c038ee628e691adc71cb067dbfe6feec70740d821689f3a0e557351c9 }}
+          publishDeployment: 270
+          config: p/r2c
