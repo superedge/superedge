@@ -16,6 +16,7 @@ rules:
       - nodes
       - services
       - pods
+      - statefulsets
     verbs:
       - "*"
   - apiGroups:
@@ -90,7 +91,9 @@ spec:
             privileged: true
           volumeMounts:
             - mountPath: /data/edge
-              name: mydir
-      volumeMounts:
-        - mountPath: /data/edge
-          name: mydir
+              name: hosts
+      volumes:
+        - hostPath:
+            path: /data/edge
+            type: DirectoryOrCreate
+          name: hosts

@@ -17,6 +17,9 @@ limitations under the License.
 package config
 
 import (
+	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	crdFactory "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 	"time"
 
 	"k8s.io/client-go/informers"
@@ -26,22 +29,26 @@ import (
 )
 
 type ControllerConfig struct {
-	StatefulSetInformer appsv1.StatefulSetInformer
-	NodeInformer        corev1.NodeInformer
-	PodInformer         corev1.PodInformer
+	StatefulSetGridInformer crdv1.StatefulSetGridInformer
+	StatefulSetInformer     appsv1.StatefulSetInformer
+	NodeInformer            corev1.NodeInformer
+	PodInformer             corev1.PodInformer
 }
 
-func NewControllerConfig(k8sClient *kubernetes.Clientset, resyncTime time.Duration) *ControllerConfig {
+func NewControllerConfig(k8sClient *kubernetes.Clientset, crdClient *crdClientset.Clientset, resyncTime time.Duration) *ControllerConfig {
+	crdFactory := crdFactory.NewSharedInformerFactory(crdClient, resyncTime)
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, resyncTime)
 
 	return &ControllerConfig{
-		StatefulSetInformer: k8sFactory.Apps().V1().StatefulSets(),
-		NodeInformer:        k8sFactory.Core().V1().Nodes(),
-		PodInformer:         k8sFactory.Core().V1().Pods(),
+		StatefulSetGridInformer: crdFactory.Superedge().V1().StatefulSetGrids(),
+		StatefulSetInformer:     k8sFactory.Apps().V1().StatefulSets(),
+		NodeInformer:            k8sFactory.Core().V1().Nodes(),
+		PodInformer:             k8sFactory.Core().V1().Pods(),
 	}
 }
 
 func (c *ControllerConfig) Run(stop <-chan struct{}) {
+	go c.StatefulSetGridInformer.Informer().Run(stop)
 	go c.NodeInformer.Informer().Run(stop)
 	go c.StatefulSetInformer.Informer().Run(stop)
 	go c.PodInformer.Informer().Run(stop)

@@ -1,8 +1,28 @@
+/*
+Copyright 2020 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
 	"fmt"
+	controllercommon "github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
+	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
+	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,15 +46,17 @@ import (
 	"time"
 )
 
-var controllerKind = appsv1.SchemeGroupVersion.WithKind("StatefulSet")
-
 var (
-	KeyFunc = cache.DeletionHandlingMetaNamespaceKeyFunc
+	KeyFunc        = cache.DeletionHandlingMetaNamespaceKeyFunc
+	controllerKind = appsv1.SchemeGroupVersion.WithKind("StatefulSet")
 )
 
-type StatefulSetController struct {
+type StatefulSetGridDaemonController struct {
 	hostName string
-	hosts    *util.Hosts
+	hosts    *hosts.Hosts
+
+	setGridLister       crdv1listers.StatefulSetGridLister
+	setGridListerSynced cache.InformerSynced
 
 	nodeLister       corelisters.NodeLister
 	nodeListerSynced cache.InformerSynced
@@ -50,19 +72,19 @@ type StatefulSetController struct {
 	kubeClient    clientset.Interface
 
 	syncHandler        func(dKey string) error
-	enqueueStatefulset func(statefulset *appsv1.StatefulSet)
+	enqueueStatefulSet func(set *appsv1.StatefulSet)
 }
 
-func NewStatefulSetController(nodeInformer coreinformers.NodeInformer, podInformer coreinformers.PodInformer,
-	statefulSetInformer appsinformers.StatefulSetInformer, kubeClient clientset.Interface,
-	hostName string, hosts *util.Hosts) *StatefulSetController {
+func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer, podInformer coreinformers.PodInformer,
+	setInformer appsinformers.StatefulSetInformer, setGridInformer crdinformers.StatefulSetGridInformer, kubeClient clientset.Interface,
+	hostName string, hosts *hosts.Hosts) *StatefulSetGridDaemonController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{
 		Interface: kubeClient.CoreV1().Events(""),
 	})
 
-	setc := &StatefulSetController{
+	ssgdc := &StatefulSetGridDaemonController{
 		hostName:   hostName,
 		hosts:      hosts,
 		kubeClient: kubeClient,
@@ -73,104 +95,166 @@ func NewStatefulSetController(nodeInformer coreinformers.NodeInformer, podInform
 	}
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setc.addNode,
-		UpdateFunc: setc.updateNode,
-		DeleteFunc: setc.deleteNode,
+		AddFunc:    ssgdc.addNode,
+		UpdateFunc: ssgdc.updateNode,
+		DeleteFunc: ssgdc.deleteNode,
 	})
 
 	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setc.addPod,
-		UpdateFunc: setc.updatePod,
-		DeleteFunc: setc.deletePod,
+		AddFunc:    ssgdc.addPod,
+		UpdateFunc: ssgdc.updatePod,
+		DeleteFunc: ssgdc.deletePod,
 	})
 
-	statefulSetInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    setc.addStatefulset,
-		UpdateFunc: setc.updateStatefulset,
-		DeleteFunc: setc.deleteStatefulset,
+	setInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    ssgdc.addStatefulSet,
+		UpdateFunc: ssgdc.updateStatefulSet,
+		DeleteFunc: ssgdc.deleteStatefulSet,
 	})
 
-	setc.syncHandler = setc.syncStatefulSet
-	setc.enqueueStatefulset = setc.enqueue
+	ssgdc.syncHandler = ssgdc.syncDnsHosts
+	ssgdc.enqueueStatefulSet = ssgdc.enqueue
 
-	setc.nodeLister = nodeInformer.Lister()
-	setc.nodeListerSynced = nodeInformer.Informer().HasSynced
+	ssgdc.nodeLister = nodeInformer.Lister()
+	ssgdc.nodeListerSynced = nodeInformer.Informer().HasSynced
 
-	setc.podLister = podInformer.Lister()
-	setc.podListerSynced = podInformer.Informer().HasSynced
+	ssgdc.podLister = podInformer.Lister()
+	ssgdc.podListerSynced = podInformer.Informer().HasSynced
 
-	setc.setLister = statefulSetInformer.Lister()
-	setc.setListerSynced = statefulSetInformer.Informer().HasSynced
+	ssgdc.setLister = setInformer.Lister()
+	ssgdc.setListerSynced = setInformer.Informer().HasSynced
 
-	return setc
+	ssgdc.setGridLister = setGridInformer.Lister()
+	ssgdc.setGridListerSynced = setGridInformer.Informer().HasSynced
+
+	return ssgdc
 }
 
-func (setc *StatefulSetController) Run(workers int, stopCh <-chan struct{}) {
+func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	defer setc.queue.ShutDown()
+	defer ssgdc.queue.ShutDown()
 
 	klog.Infof("Starting statefulset grid daemon")
 	defer klog.Infof("Shutting down statefulset grid daemon")
 
-	if !cache.WaitForNamedCacheSync("deployment-grid", stopCh,
-		setc.nodeListerSynced, setc.podListerSynced, setc.setListerSynced) {
+	if !cache.WaitForNamedCacheSync("statefulset-grid-daemon", stopCh,
+		ssgdc.nodeListerSynced, ssgdc.podListerSynced, ssgdc.setListerSynced, ssgdc.setGridListerSynced) {
 		return
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.Until(setc.worker, time.Second, stopCh)
+		go wait.Until(ssgdc.worker, time.Second, stopCh)
 	}
+
+	// sync dns hosts as a whole
+	go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Minute, stopCh)
 	<-stopCh
 }
 
-func (setc *StatefulSetController) worker() {
-	for setc.processNextWorkItem() {
+func (ssgdc *StatefulSetGridDaemonController) worker() {
+	for ssgdc.processNextWorkItem() {
 	}
 }
 
-func (setc *StatefulSetController) processNextWorkItem() bool {
-	key, quit := setc.queue.Get()
+func (ssgdc *StatefulSetGridDaemonController) processNextWorkItem() bool {
+	key, quit := ssgdc.queue.Get()
 	if quit {
 		return false
 	}
-	defer setc.queue.Done(key)
+	defer ssgdc.queue.Done(key)
 
-	err := setc.syncHandler(key.(string))
-	setc.handleErr(err, key)
+	err := ssgdc.syncHandler(key.(string))
+	ssgdc.handleErr(err, key)
 
 	return true
 }
 
-func (setc *StatefulSetController) handleErr(err error, key interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) handleErr(err error, key interface{}) {
 	if err == nil {
-		setc.queue.Forget(key)
+		ssgdc.queue.Forget(key)
 		return
 	}
 
-	if setc.queue.NumRequeues(key) < common.MaxRetries {
+	if ssgdc.queue.NumRequeues(key) < common.MaxRetries {
 		klog.V(2).Infof("Error syncing statefulset %v: %v", key, err)
-		setc.queue.AddRateLimited(key)
+		ssgdc.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
 	klog.V(2).Infof("Dropping statefulset %q out of the queue: %v", key, err)
-	setc.queue.Forget(key)
+	ssgdc.queue.Forget(key)
 }
 
-func (setc *StatefulSetController) syncStatefulSet(key string) error {
+func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 	startTime := time.Now()
-	klog.V(4).Infof("Started syncing statefulset %q (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing dns hosts as a whole (%v)", startTime)
 	defer func() {
-		klog.V(4).Infof("Finished syncing statefulset %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing dns hosts as a whole (%v)", time.Since(startTime))
+	}()
+	// Get node relevant GridSelectorUniqKeyName labels
+	node, err := ssgdc.nodeLister.Get(ssgdc.hostName)
+	if err != nil {
+		klog.Errorf("Get host node %s err %v", ssgdc.hostName, err)
+		return
+	}
+	gridUniqKeyLabels, err := controllercommon.GetNodesSelector(node)
+	// List all statefulsets by node labels
+	setList, err := ssgdc.setLister.List(gridUniqKeyLabels)
+	if err != nil {
+		klog.Errorf("List statefulsets by labels %v err %v", gridUniqKeyLabels, err)
+		return
+	}
+	hostsMap := make(map[string]string)
+	// Filter concerned statefulsets and construct dns hosts
+	for _, set := range setList {
+		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+			continue
+		}
+		// Get pod list of this statefulset
+		podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
+		if err != nil {
+			klog.Errorf("get podList err %v", err)
+			return
+		}
+		ControllerRef := metav1.GetControllerOf(set)
+		gridValue := set.Name[len(ControllerRef.Name)+1:]
+		for _, pod := range podList {
+			if util.IsMemberOf(set, pod) {
+				index := strings.Index(pod.Name, gridValue)
+				if index == -1 {
+					klog.Errorf("Invalid pod name %s(statefulset %s)", pod.Name, set.Name)
+					continue
+				}
+				podDomainsToHosts := pod.Name[0:index] + pod.Name[index+len(gridValue)+1:] + "." + set.Spec.ServiceName
+				if pod.Status.PodIP == "" {
+					klog.V(2).Infof("There is currently no ip for pod %s(statefulset %s)", pod.Name, set.Name)
+					continue
+				}
+				hostsMap[hosts.AppendDomainSuffix(podDomainsToHosts, pod.Namespace)] = pod.Status.PodIP
+			}
+		}
+	}
+	// Set dns hosts as a whole
+	if err := ssgdc.hosts.SetHostsByMap(hostsMap); err != nil {
+		klog.Errorf("SetHostsByMap err %v", err)
+	}
+	return
+}
+
+func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {
+	startTime := time.Now()
+	klog.V(4).Infof("Started syncing dns hosts of statefulset %q (%v)", key, startTime)
+	defer func() {
+		klog.V(4).Infof("Finished syncing dns hosts of statefulset %q (%v)", key, time.Since(startTime))
 	}()
 
-	ns, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
 
-	set, err := setc.setLister.StatefulSets(ns).Get(name)
+	set, err := ssgdc.setLister.StatefulSets(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		klog.V(2).Infof("statefulset %v has been deleted", key)
 		return nil
@@ -179,54 +263,57 @@ func (setc *StatefulSetController) syncStatefulSet(key string) error {
 		return err
 	}
 
-	setcopy := set.DeepCopy()
-
-	if rel, err := setc.IsConcernedStatefulSet(setcopy); err != nil || !rel {
-		return nil
-	}
-
-	podToHost := []*corev1.Pod{}
-
-	podlist, err := setc.podLister.Pods(setcopy.Namespace).List(labels.Everything())
+	// Get pod list of this statefulset
+	podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
 	if err != nil {
-		klog.Errorf("get podlist err %v", err)
+		klog.Errorf("get podList err %v", err)
 		return err
 	}
 
-	for _, p := range podlist {
-		if len(p.OwnerReferences) != 0 && p.OwnerReferences[0].Name == setcopy.Name && p.OwnerReferences[0].Kind == controllerKind.Kind {
-			podToHost = append(podToHost, p)
+	podToHosts := []*corev1.Pod{}
+	for _, pod := range podList {
+		if util.IsMemberOf(set, pod) {
+			podToHosts = append(podToHosts, pod)
 		}
 	}
-	var PodInfoToHost = make(map[string]string)
-	//  <ControllerRef>-<gridvalue>-<num>.<ns>.<svc>
-	ControllerRef := metav1.GetControllerOf(setcopy)
+	// Sync dns hosts partly
+	// Attention: this sync can not guarantee the absolute correctness of statefulset grid dns hosts records,
+	// and should be used combined with syncDnsHostsAsWhole to ensure the eventual consistency
+	var PodDomainInfoToHosts = make(map[string]string)
+	// Actual statefulset pod FQDN: <controllerRef>-<gridValue>-<ordinal>.<svc>.<ns>.svc.cluster.local
+	// (eg: statefulsetgrid-demo-nodeunit1-0.servicegrid-demo-svc.default.svc.cluster.local)
+	// Converted statefulset pod FQDN: <controllerRef>-<ordinal>.<svc>.<ns>.svc.cluster.local
+	// (eg: statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local)
+	ControllerRef := metav1.GetControllerOf(set)
 	if ControllerRef != nil {
-		gridvalue := setcopy.Name[len(ControllerRef.Name)+1:]
-		for _, p := range podToHost {
-			index := strings.Index(p.Name, gridvalue)
+		gridValue := set.Name[len(ControllerRef.Name)+1:]
+		for _, pod := range podToHosts {
+			index := strings.Index(pod.Name, gridValue)
 			if index == -1 {
+				klog.Errorf("Invalid pod name %s(statefulset %s)", pod.Name, set.Name)
 				return nil
 			}
-			//ip: <ControllerRef>-<num>.<ns>.<svc>
-			podNameTohost := p.Name[0:index] + p.Name[index+len(gridvalue)+1:] + "." + setcopy.Spec.ServiceName
-			PodInfoToHost[p.Status.PodIP] = podNameTohost
-
-			if err := setc.hosts.UpdateHosts(PodInfoToHost, p.Namespace, ControllerRef.Name, setcopy.Spec.ServiceName); err != nil {
-				klog.Errorf("update err: %v", err)
-				return err
+			podDomainsToHosts := pod.Name[0:index] + pod.Name[index+len(gridValue)+1:] + "." + set.Spec.ServiceName
+			if pod.Status.PodIP == "" {
+				klog.V(2).Infof("There is currently no ip for pod %s(statefulset %s)", pod.Name, set.Name)
+				continue
 			}
+			PodDomainInfoToHosts[hosts.AppendDomainSuffix(podDomainsToHosts, pod.Namespace)] = pod.Status.PodIP
+		}
+		if err := ssgdc.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
+			klog.Errorf("update dns hosts err %v", err)
+			return err
 		}
 	}
 	return nil
 }
 
-func (setc *StatefulSetController) enqueue(set *appsv1.StatefulSet) {
+func (ssgdc *StatefulSetGridDaemonController) enqueue(set *appsv1.StatefulSet) {
 	key, err := KeyFunc(set)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", set, err))
 		return
 	}
 
-	setc.queue.Add(key)
+	ssgdc.queue.Add(key)
 }

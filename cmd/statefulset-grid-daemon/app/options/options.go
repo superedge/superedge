@@ -105,5 +105,5 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"The namespace of resource object that is used for locking during "+
 		"leader election.")
 	fs.StringVar(&o.HostName, "hostname", o.HostName, "hostname for statefulset-grid-daemon")
-	fs.StringVar(&o.HostPath, "hostpath", o.HostPath, "hostpath for statefulset-grid-daemon")
+	fs.StringVar(&o.HostPath, "hostpath", o.HostPath, "dns hostpath for statefulset-grid-daemon")
 }

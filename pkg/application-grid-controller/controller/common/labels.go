@@ -17,6 +17,8 @@ limitations under the License.
 package common
 
 import (
+	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -25,6 +27,8 @@ import (
 const (
 	// GridSelectorName is the selector key name for controller to retrieve deployments
 	GridSelectorName = "superedge.io/grid-selector"
+	// GridSelectorKey corresponds to gridUniqKey of the custom-defined workload
+	GridSelectorUniqKeyName = "superedge.io/grid-uniq-key"
 )
 
 func GetDefaultSelector(val string) (labels.Selector, error) {
@@ -43,4 +47,27 @@ func IsConcernedObject(objMeta metav1.ObjectMeta) bool {
 
 	_, found := objMeta.Labels[GridSelectorName]
 	return found
+}
+
+func GetNodesSelector(nodes ...*corev1.Node) (labels.Selector, error) {
+	valueList := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, node := range nodes {
+		for key := range node.Labels {
+			if _, exist := seen[key]; !exist {
+				seen[key] = struct{}{}
+				valueList = append(valueList, key)
+			}
+		}
+	}
+	if len(valueList) == 0 {
+		return nil, fmt.Errorf("empty labels for nodes %#v", nodes)
+	}
+	requirement, err := labels.NewRequirement(GridSelectorUniqKeyName, selection.In, valueList)
+	if err != nil {
+		return nil, err
+	}
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*requirement)
+	return labelSelector, nil
 }

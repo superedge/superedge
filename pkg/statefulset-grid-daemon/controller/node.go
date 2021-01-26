@@ -1,53 +1,69 @@
+/*
+Copyright 2020 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 	"reflect"
 )
 
-func (setc *StatefulSetController) addNode(obj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) addNode(obj interface{}) {
 	node := obj.(*corev1.Node)
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
-		setc.deleteNode(node)
+		ssgdc.deleteNode(node)
 		return
 	}
 
-	sets := setc.getStatefulSetForNode(node)
+	sets := ssgdc.getStatefulSetForNode(node)
 	if len(sets) == 0 {
 		return
 	}
-	klog.V(4).Infof("Node %s added.", node.Name)
 	for _, set := range sets {
-		setc.enqueueStatefulset(set)
+		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) added.", node.Name, set.Name)
+		ssgdc.enqueueStatefulSet(set)
 	}
 }
 
-func (setc *StatefulSetController) updateNode(oldObj, newObj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		sets := setc.getStatefulSetForNode(curNode)
+		sets := ssgdc.getStatefulSetForNode(curNode)
 		if len(sets) == 0 {
 			return
 		}
-		klog.V(4).Infof("Node %s updated.", curNode.Name)
 		for _, set := range sets {
-			setc.enqueueStatefulset(set)
+			klog.V(4).Infof("Node %s(its relevant StatefulSet %s) updated.", curNode.Name, set.Name)
+			ssgdc.enqueueStatefulSet(set)
 		}
 	}
 }
 
-func (setc *StatefulSetController) deleteNode(obj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) deleteNode(obj interface{}) {
 	node, ok := obj.(*corev1.Node)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -61,32 +77,31 @@ func (setc *StatefulSetController) deleteNode(obj interface{}) {
 			return
 		}
 	}
-	sets := setc.getStatefulSetForNode(node)
+	sets := ssgdc.getStatefulSetForNode(node)
 	if len(sets) == 0 {
 		return
 	}
-	klog.V(4).Infof("Node %s deleted.", node.Name)
 	for _, set := range sets {
-		setc.enqueueStatefulset(set)
+		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) deleted.", node.Name, set.Name)
+		ssgdc.enqueueStatefulSet(set)
 	}
 }
 
-func (setc *StatefulSetController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
-	if len(node.Labels) == 0 {
+func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
+	selector, err := common.GetNodesSelector(node)
+	if err != nil {
 		return nil
 	}
-	setList, err := setc.setLister.StatefulSets("").List(labels.Everything())
+	setList, err := ssgdc.setLister.StatefulSets("").List(selector)
 	if err != nil {
 		return nil
 	}
 	var sets []*appv1.StatefulSet
 	for _, set := range setList {
-		for k, v := range node.Labels {
-			if val, ok := set.Spec.Template.Spec.NodeSelector[k]; ok && v == val {
-				sets = append(sets, set)
-				break
-			}
+		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+			continue
 		}
+		sets = append(sets, set)
 	}
 	if len(sets) == 0 {
 		return nil

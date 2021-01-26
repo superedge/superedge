@@ -1,3 +1,19 @@
+/*
+Copyright 2020 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
@@ -11,37 +27,33 @@ import (
 	"reflect"
 )
 
-func (setc *StatefulSetController) addPod(obj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) addPod(obj interface{}) {
 	pod := obj.(*corev1.Pod)
 	if pod.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
-		setc.deletePod(pod)
+		ssgdc.deletePod(pod)
 		return
 	}
 
-	set := setc.getStatefulSetForPod(pod)
+	set := ssgdc.getStatefulSetForPod(pod)
 	if set == nil {
 		return
 	}
 
-	if rel, err := setc.IsConcernedStatefulSet(set); err != nil || !rel {
+	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 		return
 	}
-
-	setc.enqueueStatefulset(set)
+	klog.V(4).Infof("Pod %s(its owner statefulset %s) added.", pod.Name, set.Name)
+	ssgdc.enqueueStatefulSet(set)
 }
 
-func (setc *StatefulSetController) updatePod(oldObj, newObj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) updatePod(oldObj, newObj interface{}) {
 	oldPod := oldObj.(*corev1.Pod)
 	curPod := newObj.(*corev1.Pod)
-
-	set := setc.getStatefulSetForPod(curPod)
-	if set == nil {
-		return
-	}
-
-	if rel, err := setc.IsConcernedStatefulSet(set); err != nil || !rel {
+	if curPod.ResourceVersion == oldPod.ResourceVersion {
+		// Periodic resync will send update events for all known Pod.
+		// Two different versions of the same Pod will always have different RVs.
 		return
 	}
 
@@ -50,24 +62,27 @@ func (setc *StatefulSetController) updatePod(oldObj, newObj interface{}) {
 	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
-		if ss := setc.getStatefulSetForPod(oldPod); ss != nil {
-			setc.enqueueStatefulset(ss)
+		if set := ssgdc.getStatefulSetForPod(oldPod); set != nil {
+			if rel, err := ssgdc.IsConcernedStatefulSet(set); err == nil && rel {
+				klog.V(4).Infof("Pod %s(its old owner statefulset %s) updated.", oldPod.Name, set.Name)
+				ssgdc.enqueueStatefulSet(set)
+			}
 		}
 	}
 
 	// If it has a ControllerRef, that's all that matters.
 	if curControllerRef != nil {
-		ss := setc.getStatefulSetForPod(curPod)
-		if ss == nil {
-			return
+		if set := ssgdc.getStatefulSetForPod(curPod); set != nil {
+			if rel, err := ssgdc.IsConcernedStatefulSet(set); err == nil && rel {
+				klog.V(4).Infof("Pod %s(its owner statefulset %s) updated.", curPod.Name, set.Name)
+				ssgdc.enqueueStatefulSet(set)
+			}
 		}
-		klog.V(4).Infof("statefulset %s updated.", curPod.Name)
-		setc.enqueueStatefulset(ss)
-		return
 	}
+	return
 }
 
-func (setc *StatefulSetController) deletePod(obj interface{}) {
+func (ssgdc *StatefulSetGridDaemonController) deletePod(obj interface{}) {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -82,33 +97,27 @@ func (setc *StatefulSetController) deletePod(obj interface{}) {
 		}
 	}
 
-	set := setc.getStatefulSetForPod(pod)
+	set := ssgdc.getStatefulSetForPod(pod)
 	if set == nil {
 		return
 	}
 
-	if rel, err := setc.IsConcernedStatefulSet(set); err != nil || !rel {
+	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 		return
 	}
 
-	controllerRef := metav1.GetControllerOf(pod)
-	if controllerRef == nil {
-		// No controller should care about orphans being deleted.
-		return
-	}
-
-	klog.V(4).Infof("pod %s deleted.", pod.Name)
-	setc.enqueueStatefulset(set)
+	klog.V(4).Infof("Pod %s(its owner statefulset %s) deleted.", pod.Name, set.Name)
+	ssgdc.enqueueStatefulSet(set)
 }
 
-func (setc *StatefulSetController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
+func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
 	ownerRef := metav1.GetControllerOf(pod)
 	if ownerRef != nil {
 		if ownerRef.Kind != controllerKind.Kind {
 			return nil
 		}
 
-		set, err := setc.setLister.StatefulSets(pod.Namespace).Get(ownerRef.Name)
+		set, err := ssgdc.setLister.StatefulSets(pod.Namespace).Get(ownerRef.Name)
 		if err != nil {
 			klog.Errorf("get %s StatefulSets err %v", ownerRef.Name, err)
 			return nil
