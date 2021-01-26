@@ -41,6 +41,12 @@ For installation, deployment, and administration, see our [**Tutorial**](docs/in
 For any question or support, feel free to contact us via:
 - [mailing list](https://groups.google.com/g/superedge)
 - Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- WeChat Group
+
+<div align="center">
+  <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
+</div>
+
 
 ## Contributing
 Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge

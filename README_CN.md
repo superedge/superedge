@@ -46,9 +46,17 @@ SuperEdge具有如下特性:
 如果您有任何疑问或需要支持，请随时与我们联系：
 - [**邮件列表**](https://groups.google.com/g/superedge)
 - Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- 微信群
+
+<div align="center">
+  <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
+</div>
+
 
 ## 参与项目
 欢迎您[参与](./CONTRIBUTING.md)完善项目
 
 ## 许可证
+
 [**许可证**](./LICENSE)
+
