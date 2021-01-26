@@ -33,6 +33,7 @@ type ControllerConfig struct {
 	StatefulSetInformer     appsv1.StatefulSetInformer
 	NodeInformer            corev1.NodeInformer
 	PodInformer             corev1.PodInformer
+	ServiceInformer         corev1.ServiceInformer
 }
 
 func NewControllerConfig(k8sClient *kubernetes.Clientset, crdClient *crdClientset.Clientset, resyncTime time.Duration) *ControllerConfig {
@@ -44,6 +45,7 @@ func NewControllerConfig(k8sClient *kubernetes.Clientset, crdClient *crdClientse
 		StatefulSetInformer:     k8sFactory.Apps().V1().StatefulSets(),
 		NodeInformer:            k8sFactory.Core().V1().Nodes(),
 		PodInformer:             k8sFactory.Core().V1().Pods(),
+		ServiceInformer:         k8sFactory.Core().V1().Services(),
 	}
 }
 
@@ -52,4 +54,5 @@ func (c *ControllerConfig) Run(stop <-chan struct{}) {
 	go c.NodeInformer.Informer().Run(stop)
 	go c.StatefulSetInformer.Informer().Run(stop)
 	go c.PodInformer.Informer().Run(stop)
+	go c.ServiceInformer.Informer().Run(stop)
 }

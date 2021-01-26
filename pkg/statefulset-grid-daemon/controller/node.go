@@ -49,6 +49,11 @@ func (ssgdc *StatefulSetGridDaemonController) addNode(obj interface{}) {
 func (ssgdc *StatefulSetGridDaemonController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
+	if curNode.ResourceVersion == oldNode.ResourceVersion {
+		// Periodic resync will send update events for all known Nodes.
+		// Two different versions of the same Node will always have different RVs.
+		return
+	}
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {

@@ -52,7 +52,7 @@ func (ssgdc *StatefulSetGridDaemonController) updatePod(oldObj, newObj interface
 	oldPod := oldObj.(*corev1.Pod)
 	curPod := newObj.(*corev1.Pod)
 	if curPod.ResourceVersion == oldPod.ResourceVersion {
-		// Periodic resync will send update events for all known Pod.
+		// Periodic resync will send update events for all known Pods.
 		// Two different versions of the same Pod will always have different RVs.
 		return
 	}
@@ -111,18 +111,18 @@ func (ssgdc *StatefulSetGridDaemonController) deletePod(obj interface{}) {
 }
 
 func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
-	ownerRef := metav1.GetControllerOf(pod)
-	if ownerRef != nil {
-		if ownerRef.Kind != controllerKind.Kind {
+	controllerRef := metav1.GetControllerOf(pod)
+	if controllerRef != nil {
+		if controllerRef.Kind != controllerKind.Kind {
 			return nil
 		}
 
-		set, err := ssgdc.setLister.StatefulSets(pod.Namespace).Get(ownerRef.Name)
+		set, err := ssgdc.setLister.StatefulSets(pod.Namespace).Get(controllerRef.Name)
 		if err != nil {
-			klog.Errorf("get %s StatefulSets err %v", ownerRef.Name, err)
+			klog.Errorf("get %s StatefulSets err %v", controllerRef.Name, err)
 			return nil
 		}
-		if set.UID != ownerRef.UID {
+		if set.UID != controllerRef.UID {
 			// The controller we found with this Name is not the same one that the
 			// ControllerRef points to.
 			return nil

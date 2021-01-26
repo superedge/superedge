@@ -136,7 +136,7 @@ func runController(parent context.Context,
 
 	statefulSetGridDaemonController := controller.NewStatefulSetGridDaemonController(
 		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.StatefulSetInformer,
-		controllerConfig.StatefulSetGridInformer, kubeClient, hostName, hosts)
+		controllerConfig.StatefulSetGridInformer, controllerConfig.ServiceInformer, kubeClient, hostName, hosts)
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()

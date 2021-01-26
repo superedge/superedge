@@ -67,6 +67,9 @@ type StatefulSetGridDaemonController struct {
 	setLister       appslisters.StatefulSetLister
 	setListerSynced cache.InformerSynced
 
+	svcLister       corelisters.ServiceLister
+	svcListerSynced cache.InformerSynced
+
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
@@ -76,7 +79,8 @@ type StatefulSetGridDaemonController struct {
 }
 
 func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer, podInformer coreinformers.PodInformer,
-	setInformer appsinformers.StatefulSetInformer, setGridInformer crdinformers.StatefulSetGridInformer, kubeClient clientset.Interface,
+	setInformer appsinformers.StatefulSetInformer, setGridInformer crdinformers.StatefulSetGridInformer,
+	svcInformer coreinformers.ServiceInformer, kubeClient clientset.Interface,
 	hostName string, hosts *hosts.Hosts) *StatefulSetGridDaemonController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
@@ -112,6 +116,12 @@ func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer,
 		DeleteFunc: ssgdc.deleteStatefulSet,
 	})
 
+	svcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    ssgdc.addService,
+		UpdateFunc: ssgdc.updateService,
+		DeleteFunc: ssgdc.deleteService,
+	})
+
 	ssgdc.syncHandler = ssgdc.syncDnsHosts
 	ssgdc.enqueueStatefulSet = ssgdc.enqueue
 
@@ -126,6 +136,9 @@ func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer,
 
 	ssgdc.setGridLister = setGridInformer.Lister()
 	ssgdc.setGridListerSynced = setGridInformer.Informer().HasSynced
+
+	ssgdc.svcLister = svcInformer.Lister()
+	ssgdc.svcListerSynced = svcInformer.Informer().HasSynced
 
 	return ssgdc
 }
@@ -211,10 +224,13 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 			continue
 		}
+		if needClear, err := ssgdc.needClearStatefulSetDomains(set); err != nil || needClear {
+			continue
+		}
 		// Get pod list of this statefulset
 		podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
 		if err != nil {
-			klog.Errorf("get podList err %v", err)
+			klog.Errorf("Get podList err %v", err)
 			return
 		}
 		ControllerRef := metav1.GetControllerOf(set)
@@ -242,6 +258,27 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 	return
 }
 
+func (ssgdc *StatefulSetGridDaemonController) needClearStatefulSetDomains(set *appsv1.StatefulSet) (bool, error) {
+	// Check existence of statefulset relevant service
+	svc, err := ssgdc.svcLister.Services(set.Namespace).Get(set.Spec.ServiceName)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("StatefulSet %v relevant service %s has been deleted", set.Name, set.Spec.ServiceName)
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	// Check GridSelectorUniqKeyName label value equation between service and statefulset
+	gridUniqKey, _ := set.Labels[controllercommon.GridSelectorUniqKeyName]
+	svcGridUniqKey, found := svc.Labels[controllercommon.GridSelectorUniqKeyName]
+	if !found {
+		return true, nil
+	} else if gridUniqKey != svcGridUniqKey {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {
 	startTime := time.Now()
 	klog.V(4).Infof("Started syncing dns hosts of statefulset %q (%v)", key, startTime)
@@ -256,17 +293,30 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {
 
 	set, err := ssgdc.setLister.StatefulSets(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		klog.V(2).Infof("statefulset %v has been deleted", key)
+		klog.V(2).Infof("StatefulSet %v has been deleted", key)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
+	var PodDomainInfoToHosts = make(map[string]string)
+	ControllerRef := metav1.GetControllerOf(set)
+	// Check existence of statefulset relevant service and execute delete operations if necessary
+	if needClear, err := ssgdc.needClearStatefulSetDomains(set); err != nil {
+		return err
+	} else if needClear {
+		if err := ssgdc.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
+			klog.Errorf("Clear statefulset %v dns hosts err %v", key, err)
+			return err
+		}
+		klog.V(4).Infof("Clear statefulset %v dns hosts successfully", key)
+	}
+
 	// Get pod list of this statefulset
 	podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
 	if err != nil {
-		klog.Errorf("get podList err %v", err)
+		klog.Errorf("Get podList err %v", err)
 		return err
 	}
 
@@ -279,19 +329,17 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {
 	// Sync dns hosts partly
 	// Attention: this sync can not guarantee the absolute correctness of statefulset grid dns hosts records,
 	// and should be used combined with syncDnsHostsAsWhole to ensure the eventual consistency
-	var PodDomainInfoToHosts = make(map[string]string)
 	// Actual statefulset pod FQDN: <controllerRef>-<gridValue>-<ordinal>.<svc>.<ns>.svc.cluster.local
 	// (eg: statefulsetgrid-demo-nodeunit1-0.servicegrid-demo-svc.default.svc.cluster.local)
 	// Converted statefulset pod FQDN: <controllerRef>-<ordinal>.<svc>.<ns>.svc.cluster.local
 	// (eg: statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local)
-	ControllerRef := metav1.GetControllerOf(set)
 	if ControllerRef != nil {
 		gridValue := set.Name[len(ControllerRef.Name)+1:]
 		for _, pod := range podToHosts {
 			index := strings.Index(pod.Name, gridValue)
 			if index == -1 {
 				klog.Errorf("Invalid pod name %s(statefulset %s)", pod.Name, set.Name)
-				return nil
+				continue
 			}
 			podDomainsToHosts := pod.Name[0:index] + pod.Name[index+len(gridValue)+1:] + "." + set.Spec.ServiceName
 			if pod.Status.PodIP == "" {

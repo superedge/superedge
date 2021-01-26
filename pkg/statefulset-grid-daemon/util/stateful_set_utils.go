@@ -19,6 +19,7 @@ package util
 import (
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strconv"
 )
@@ -28,7 +29,8 @@ var statefulPodRegex = regexp.MustCompile("(.*)-([0-9]+)$")
 
 // IsMemberOf tests if pod is a member of set.
 func IsMemberOf(set *apps.StatefulSet, pod *v1.Pod) bool {
-	if len(pod.OwnerReferences) == 0 || pod.OwnerReferences[0].Name != set.Name || pod.OwnerReferences[0].UID != set.UID {
+	controllerRef := metav1.GetControllerOf(pod)
+	if controllerRef == nil || controllerRef.Name != set.Name || controllerRef.UID != set.UID {
 		return false
 	}
 	return getParentName(pod) == set.Name
