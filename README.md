@@ -39,8 +39,8 @@ For installation, deployment, and administration, see our [**Tutorial**](docs/in
 
 ## Contact
 For any question or support, feel free to contact us via:
-- [mailing list](https://groups.google.com/g/superedge)
-- Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
+- [Discussion Forum](https://groups.google.com/g/superedge)
 - WeChat Group
 
 <div align="center">

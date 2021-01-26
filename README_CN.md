@@ -44,8 +44,8 @@ SuperEdge具有如下特性:
 
 ## 联系
 如果您有任何疑问或需要支持，请随时与我们联系：
-- [**邮件列表**](https://groups.google.com/g/superedge)
-- Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
+- [网上论坛](https://groups.google.com/g/superedge)
 - 微信群
 
 <div align="center">
