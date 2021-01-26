@@ -349,6 +349,20 @@ func CreateOrUpdateIngress(client clientset.Interface, ing *extensionsv1beta1.In
 	return nil
 }
 
+// CreateOrUpdateIngress creates a podSecurityPolicy if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
+func CreateOrUpdatePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *extensionsv1beta1.PodSecurityPolicy) error {
+	if _, err := client.ExtensionsV1beta1().PodSecurityPolicies().Create(context.TODO(), podSecurityPolicy, metav1.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrap(err, "unable to create podSecurityPolicy")
+		}
+
+		if _, err := client.ExtensionsV1beta1().PodSecurityPolicies().Update(context.TODO(), podSecurityPolicy, metav1.UpdateOptions{}); err != nil {
+			return errors.Wrap(err, "unable to update podSecurityPolicy")
+		}
+	}
+	return nil
+}
+
 // CreateOrUpdateJob creates a Job if the target resource doesn't exist. If the resource exists already, this function will update
 func CreateOrUpdateJob(client clientset.Interface, job *batchv1.Job) error {
 	if _, err := client.BatchV1().Jobs(job.ObjectMeta.Namespace).Create(context.TODO(), job, metav1.CreateOptions{}); err != nil {

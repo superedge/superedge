@@ -20,22 +20,59 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/klog/v2"
 	"os"
 	"time"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 
-	helper_constant "github.com/superedge/superedge/pkg/helper-job/constant"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
+
+func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string) error {
+	// Deploy tunnel
+	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile); err != nil {
+		return err
+	}
+	klog.Infof("Deploy %s success!", manifests.APP_TUNNEL_EDGE)
+
+	// Deploy edge-health
+	if err := DeployEdgeHealth(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy edge health, error: %s", err)
+		return err
+	}
+	klog.Infof("Deploy edge-health success!")
+
+	// Deploy service-group
+	if err := DeployServiceGroup(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy serivce group, error: %s", err)
+		return err
+	}
+	klog.Infof("Deploy service-group success!")
+
+	// Update Kube-* Config
+	if err := UpdateKubeConfig(client); err != nil {
+		klog.Errorf("Deploy serivce group, error: %s", err)
+		return err
+	}
+	klog.Infof("Update Kubernetes cluster config support marginal autonomy success")
+
+	//Create lite-api-server Cert
+	if err := CreateLiteApiServerCert(client, manifestsDir, caCertFile, caKeyFile); err != nil {
+		klog.Errorf("Config lite-apiserver, error: %s", err)
+		return err
+	}
+	klog.Infof("Config lite-apiserver configMap success")
+
+	return nil
+}
 
 func ReadYaml(intputPath, defaults string) string {
 	var yaml string = defaults
@@ -49,7 +86,7 @@ func ReadYaml(intputPath, defaults string) string {
 	return yaml
 }
 
-func CreateByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
+func CreateByYamlFile(clientSet kubernetes.Interface, yamlFile string) error {
 	err := kubeclient.CreateResourceWithFile(clientSet, yamlFile, nil)
 	if err != nil {
 		klog.Errorf("Apply yaml: %s, error: %v", yamlFile, err)
@@ -58,7 +95,7 @@ func CreateByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
 	return nil
 }
 
-func DeleteByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
+func DeleteByYamlFile(clientSet kubernetes.Interface, yamlFile string) error {
 	err := kubeclient.DeleteResourceWithFile(clientSet, yamlFile, nil)
 	if err != nil {
 		klog.Errorf("Delete yaml: %s, error: %v", yamlFile, err)
@@ -68,26 +105,47 @@ func DeleteByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
 }
 
 func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role string) error {
-	var nodes *v1.NodeList
 	var err error
-	if role == constant.NODE_ROLE_NODE {
+	var nodes *v1.NodeList
+	var labelsNode = labels.NewSelector()
+
+	if role == constant.NodeRoleNode {
 		label := labels.SelectorFromSet(labels.Set(map[string]string{"app": "helper"}))
 		if err := ClearJob(clientSet, label.String()); err != nil {
 			return err
 		}
 
-		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.EDGE_CHANGE_NODE_KEY + "=enable"})
-		if err != nil {
-			return err
+		masterLabel, _ := labels.NewRequirement(constant.KubernetesDefaultRoleLabel, selection.NotIn, []string{""})
+		changeLabel, _ := labels.NewRequirement(constant.EdgeChangeLabelKey, selection.Equals, []string{constant.EdgeChangeLabelValueEnable})
+		nodeLabel, _ := labels.NewRequirement(constant.EdgeNodeLabelKey, selection.Equals, []string{constant.EdgeNodeLabelValueEnable})
+		if action == constant.ActionChange {
+			nodeLabel, _ = labels.NewRequirement(constant.EdgeNodeLabelKey, selection.NotIn, []string{constant.EdgeNodeLabelValueEnable})
 		}
-	} else {
-		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.KUBERNETES_DEFAULT_ROLE_LABEL + "="})
+
+		labelsNode = labelsNode.Add(*masterLabel, *changeLabel, *nodeLabel)
+		labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
+		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
 		if err != nil {
 			return err
 		}
 	}
 
-	if action == constant.ACTION_CHANGE {
+	if role == constant.NodeRoleMaster {
+		masterLabel, _ := labels.NewRequirement(constant.KubernetesDefaultRoleLabel, selection.Equals, []string{""})
+		masterNodeLabel, _ := labels.NewRequirement(constant.EdgeMasterLabelKey, selection.Equals, []string{constant.EdgeMasterLabelValueEnable})
+		if action == constant.ActionChange {
+			masterNodeLabel, _ = labels.NewRequirement(constant.EdgeMasterLabelKey, selection.NotIn, []string{constant.EdgeMasterLabelValueEnable})
+		}
+
+		labelsNode = labelsNode.Add(*masterLabel, *masterNodeLabel)
+		labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
+		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
+		if err != nil {
+			return err
+		}
+	}
+
+	if action == constant.ActionChange {
 		kubeclient.DeleteResourceWithFile(clientSet, manifests.HelperJobRbacYaml, "")
 		time.Sleep(time.Second)
 
@@ -96,7 +154,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 		}
 	}
 
-	kubeConf, err := util.ReadFile(os.Getenv("KUBECONF"))
+	kubeConf, err := util.ReadFile(os.Getenv("KUBECONFIG"))
 	if err != nil {
 		return err
 	}
@@ -108,14 +166,15 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 
 	for _, node := range nodes.Items {
 		option := map[string]interface{}{
-			"NodeRole": role,
-			"Action":   action,
-			"NodeName": node.Name,
-			"MasterIP": masterIps[0],
-			"KubeConf": base64.StdEncoding.EncodeToString(kubeConf),
+			"NodeRole":   role,
+			"Action":     action,
+			"NodeName":   node.Name,
+			"MasterIP":   masterIps[0],
+			"KubeConfig": base64.StdEncoding.EncodeToString(kubeConf),
 		}
 
-		if _, ok := node.Labels[constant.KubernetesDefaultRoleLabel]; !ok && role == constant.NODE_ROLE_NODE {
+		klog.V(4).Infof("Ready change node: %s", node.Name)
+		if role == constant.NodeRoleNode {
 			kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
 
 			time.Sleep(time.Duration(3) * time.Second)
@@ -125,7 +184,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 			continue
 		}
 
-		if _, ok := node.Labels[constant.KubernetesDefaultRoleLabel]; ok && role == constant.NODE_ROLE_MASTER {
+		if role == constant.NodeRoleMaster {
 			kubeclient.DeleteResourceWithFile(clientSet, helperYaml, option)
 
 			time.Sleep(time.Duration(3) * time.Second)
@@ -140,7 +199,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 	return nil
 }
 
-func GetMasterIps(clientSet *kubernetes.Clientset) ([]string, error) {
+func GetMasterIps(clientSet kubernetes.Interface) ([]string, error) {
 	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err

@@ -17,12 +17,17 @@ limitations under the License.
 package change
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -104,6 +109,21 @@ func (c *changeAction) complete() error {
 }
 
 func (c *changeAction) validate() error {
+	masterLabel, _ := labels.NewRequirement(constant.KubernetesDefaultRoleLabel, selection.NotIn, []string{""})
+	nodeLabel, _ := labels.NewRequirement(constant.EdgeNodeLabelKey, selection.NotIn, []string{constant.EdgeNodeLabelValueEnable})
+	changeLabel, _ := labels.NewRequirement(constant.EdgeChangeLabelKey, selection.Equals, []string{constant.EdgeChangeLabelValueEnable})
+
+	var labelsNode = labels.NewSelector()
+	labelsNode = labelsNode.Add(*masterLabel, *changeLabel, *nodeLabel)
+	labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
+	nodes, err := c.clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
+	if err != nil {
+		return err
+	}
+
+	if 0 == len(nodes.Items) {
+		return errors.New("Please execute 'edgeadm change label' to label the nodes that need to be changed\n")
+	}
 	return nil
 }
 

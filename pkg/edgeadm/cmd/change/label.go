@@ -20,13 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/superedge/superedge/pkg/helper-job/constant"
+	//"github.com/superedge/superedge/pkg/helper-job/constant"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,7 +139,7 @@ func (l *labelAction) labelToEdgeNode(node *v1.Node) error {
 	patchData := map[string]interface{}{
 		"metadata": map[string]map[string]string{
 			"labels": {
-				constant.EDGE_CHANGE_NODE_KEY: "enable",
+				constant.EdgeChangeLabelKey: constant.EdgeChangeLabelValueEnable,
 			},
 		},
 	}
