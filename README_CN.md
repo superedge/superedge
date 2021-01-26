@@ -56,7 +56,7 @@ SuperEdge具有如下特性:
 ## 参与项目
 欢迎您[参与](./CONTRIBUTING.md)完善项目
 
-## 许可证
+## 开源许可
 
-[**许可证**](./LICENSE)
+[**Apache License 2.0**](./LICENSE)
 

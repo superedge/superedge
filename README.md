@@ -53,5 +53,5 @@ Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge
 
 ## License
 
-[**LICENSE**](./LICENSE)
+[**Apache License 2.0**](./LICENSE)
 
