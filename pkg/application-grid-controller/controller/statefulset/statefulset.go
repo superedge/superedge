@@ -72,6 +72,11 @@ func (ssgc *StatefulSetGridController) addStatefulSet(obj interface{}) {
 func (ssgc *StatefulSetGridController) updateStatefulSet(oldObj, newObj interface{}) {
 	oldSet := oldObj.(*appsv1.StatefulSet)
 	curSet := newObj.(*appsv1.StatefulSet)
+	if curSet.ResourceVersion == oldSet.ResourceVersion {
+		// Periodic resync will send update events for all known StatefulSets.
+		// Two different versions of the same StatefulSets will always have different RVs.
+		return
+	}
 
 	oldControllerRef := metav1.GetControllerOf(oldSet)
 	curControllerRef := metav1.GetControllerOf(curSet)

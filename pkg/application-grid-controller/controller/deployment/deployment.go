@@ -72,6 +72,11 @@ func (dgc *DeploymentGridController) addDeployment(obj interface{}) {
 func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}) {
 	oldD := oldObj.(*appsv1.Deployment)
 	curD := newObj.(*appsv1.Deployment)
+	if curD.ResourceVersion == oldD.ResourceVersion {
+		// Periodic resync will send update events for all known Deployments.
+		// Two different versions of the same Deployments will always have different RVs.
+		return
+	}
 
 	curControllerRef := metav1.GetControllerOf(curD)
 	oldControllerRef := metav1.GetControllerOf(oldD)

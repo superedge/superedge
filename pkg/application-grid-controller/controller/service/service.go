@@ -70,6 +70,11 @@ func (sgc *ServiceGridController) addService(obj interface{}) {
 func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 	oldSvc := oldObj.(*corev1.Service)
 	curSvc := newObj.(*corev1.Service)
+	if curSvc.ResourceVersion == oldSvc.ResourceVersion {
+		// Periodic resync will send update events for all known Services.
+		// Two different versions of the same Services will always have different RVs.
+		return
+	}
 
 	curControllerRef := metav1.GetControllerOf(curSvc)
 	oldControllerRef := metav1.GetControllerOf(oldSvc)
