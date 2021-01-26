@@ -50,7 +50,7 @@ func (ssgc *StatefulSetGridController) updateNode(oldObj, newObj interface{}) {
 	curNode := newObj.(*corev1.Node)
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
 		// Periodic resync will send update events for all known Nodes.
-		// Two different versions of the same Nodes will always have different RVs.
+		// Two different versions of the same Node will always have different RVs.
 		return
 	}
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
@@ -97,7 +97,7 @@ func (ssgc *StatefulSetGridController) getGridForNode(nodes ...*corev1.Node) []*
 	if err != nil {
 		return nil
 	}
-	ssgs, err := ssgc.setGridLister.StatefulSetGrids("").List(selector)
+	ssgs, err := ssgc.setGridLister.List(selector)
 	if err != nil {
 		return nil
 	}

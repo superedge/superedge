@@ -261,7 +261,7 @@ func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interfa
 	klog.V(4).Infof("Updating deployment grid %s", oldDg.Name)
 	if curDg.ResourceVersion == oldDg.ResourceVersion {
 		// Periodic resync will send update events for all known DeploymentGrids.
-		// Two different versions of the same DeploymentGrids will always have different RVs.
+		// Two different versions of the same DeploymentGrid will always have different RVs.
 		return
 	}
 	dgc.enqueueDeploymentGrid(curDg)

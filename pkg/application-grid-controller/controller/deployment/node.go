@@ -50,7 +50,7 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	curNode := newObj.(*corev1.Node)
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
 		// Periodic resync will send update events for all known Nodes.
-		// Two different versions of the same Nodes will always have different RVs.
+		// Two different versions of the same Node will always have different RVs.
 		return
 	}
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
@@ -97,7 +97,7 @@ func (dgc *DeploymentGridController) getGridForNode(nodes ...*corev1.Node) []*cr
 	if err != nil {
 		return nil
 	}
-	dgs, err := dgc.dpGridLister.DeploymentGrids("").List(selector)
+	dgs, err := dgc.dpGridLister.List(selector)
 	if err != nil {
 		return nil
 	}

@@ -74,7 +74,7 @@ func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}
 	curD := newObj.(*appsv1.Deployment)
 	if curD.ResourceVersion == oldD.ResourceVersion {
 		// Periodic resync will send update events for all known Deployments.
-		// Two different versions of the same Deployments will always have different RVs.
+		// Two different versions of the same Deployment will always have different RVs.
 		return
 	}
 

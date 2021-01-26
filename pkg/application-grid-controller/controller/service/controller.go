@@ -234,7 +234,7 @@ func (sgc *ServiceGridController) updateServiceGrid(oldObj, newObj interface{}) 
 	klog.V(4).Infof("Updating service grid %s", oldSg.Name)
 	if curSg.ResourceVersion == oldSg.ResourceVersion {
 		// Periodic resync will send update events for all known ServiceGrids.
-		// Two different versions of the same ServiceGrids will always have different RVs.
+		// Two different versions of the same ServiceGrid will always have different RVs.
 		return
 	}
 	sgc.enqueueServiceGrid(curSg)

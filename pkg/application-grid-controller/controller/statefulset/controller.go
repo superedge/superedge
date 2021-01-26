@@ -259,7 +259,7 @@ func (ssgc *StatefulSetGridController) updateStatefulSetGrid(oldObj, newObj inte
 	klog.V(4).Infof("Updating statefulset grid %s", oldSsg.Name)
 	if curSsg.ResourceVersion == oldSsg.ResourceVersion {
 		// Periodic resync will send update events for all known StatefulSetGrids.
-		// Two different versions of the same StatefulSetGrids will always have different RVs.
+		// Two different versions of the same StatefulSetGrid will always have different RVs.
 		return
 	}
 	ssgc.enqueueStatefulSetGrid(curSsg)

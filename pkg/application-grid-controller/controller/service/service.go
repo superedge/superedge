@@ -72,7 +72,7 @@ func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 	curSvc := newObj.(*corev1.Service)
 	if curSvc.ResourceVersion == oldSvc.ResourceVersion {
 		// Periodic resync will send update events for all known Services.
-		// Two different versions of the same Services will always have different RVs.
+		// Two different versions of the same Service will always have different RVs.
 		return
 	}
 

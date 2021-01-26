@@ -22,10 +22,13 @@ import (
 	"github.com/superedge/superedge/cmd/application-grid-controller/app/options"
 	superedge "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io"
 	"github.com/superedge/superedge/pkg/application-grid-controller/config"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment"
+	deploymentutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service"
+	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
+	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
@@ -145,15 +148,15 @@ func runController(parent context.Context,
 	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.DeploymentGridKind,
+		Kind:    deploymentutil.ControllerKind.Kind,
 	}, schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.StatefulSetGridKind,
+		Kind:    statefulsetutil.ControllerKind.Kind,
 	}, schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.ServiceGridKind,
+		Kind:    serviceutil.ControllerKind.Kind,
 	}); err != nil {
 		klog.Fatalf("Create and wait for CRDs ready failed: %v", err)
 	}

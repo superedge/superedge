@@ -74,7 +74,7 @@ func (ssgc *StatefulSetGridController) updateStatefulSet(oldObj, newObj interfac
 	curSet := newObj.(*appsv1.StatefulSet)
 	if curSet.ResourceVersion == oldSet.ResourceVersion {
 		// Periodic resync will send update events for all known StatefulSets.
-		// Two different versions of the same StatefulSets will always have different RVs.
+		// Two different versions of the same StatefulSet will always have different RVs.
 		return
 	}
 
