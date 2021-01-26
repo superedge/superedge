@@ -17,7 +17,7 @@ limitations under the License.
 package kubeclient
 
 import (
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
 
@@ -212,7 +212,7 @@ func DeleteResourceWithFile(client kubernetes.Interface, yamlStr string, option 
 		return err
 	}
 
-	klog.V(8).Infof("Delete yaml: %s", string(data))
+	klog.V(6).Infof("Delete Kubernetes resource yaml: %s", string(data))
 
 	reg := regexp.MustCompile(`(?m)^-{3,}$`)
 	items := reg.Split(string(data), -1)

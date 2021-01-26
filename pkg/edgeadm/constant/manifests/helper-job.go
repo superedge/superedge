@@ -69,7 +69,7 @@ spec:
       hostPID: true
       containers:
         - name: helper
-          image: superedge/helper-job:v0.2.0
+          image: ccr.ccs.tencentyun.com/superedge/helper-job:v0.2.1
           command:
             - /bin/sh
             - -c
@@ -80,8 +80,8 @@ spec:
               value: {{.Action}}
             - name: MASTER_IP
               value: {{.MasterIP}}
-            - name: KUBECONF
-              value: {{.KubeConf}}
+            - name: KUBECONFIG
+              value: {{.KubeConfig}}
             - name: NODE_ROLE
               value: {{.NodeRole}}
             - name: NODE_NAME
