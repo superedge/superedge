@@ -28,6 +28,8 @@ import (
 const (
 	// GridSelectorName is the selector key name for controller to retrieve deployments
 	GridSelectorName = "superedge.io/grid-selector"
+	// GridSelectorKey corresponds to gridUniqKey of the custom-defined workload
+	GridSelectorUniqKeyName = "superedge.io/grid-uniq-key"
 )
 
 func GetDefaultSelector(val string) (labels.Selector, error) {
@@ -62,7 +64,7 @@ func GetNodesSelector(nodes ...*corev1.Node) (labels.Selector, error) {
 	if len(valueList) == 0 {
 		return nil, fmt.Errorf("empty labels for nodes %#v", nodes)
 	}
-	requirement, err := labels.NewRequirement(GridUniqKeyName, selection.In, valueList)
+	requirement, err := labels.NewRequirement(GridSelectorUniqKeyName, selection.In, valueList)
 	if err != nil {
 		return nil, err
 	}

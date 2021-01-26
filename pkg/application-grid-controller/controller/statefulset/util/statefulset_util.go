@@ -48,10 +48,12 @@ func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string) *appsv1.Sta
 				if ssg.Labels != nil {
 					newLabels := ssg.Labels
 					newLabels[common.GridSelectorName] = ssg.Name
+					newLabels[common.GridSelectorUniqKeyName] = ssg.Spec.GridUniqKey
 					return newLabels
 				} else {
 					return map[string]string{
-						common.GridSelectorName: ssg.Name,
+						common.GridSelectorName:        ssg.Name,
+						common.GridSelectorUniqKeyName: ssg.Spec.GridUniqKey,
 					}
 				}
 			}(),
@@ -81,9 +83,11 @@ func KeepConsistence(ssg *crdv1.StatefulSetGrid, set *appsv1.StatefulSet, gridVa
 	if ssg.Labels != nil {
 		copyObj.Labels = ssg.Labels
 		copyObj.Labels[common.GridSelectorName] = ssg.Name
+		copyObj.Labels[common.GridSelectorUniqKeyName] = ssg.Spec.GridUniqKey
 	} else {
 		copyObj.Labels = map[string]string{
-			common.GridSelectorName: ssg.Name,
+			common.GridSelectorName:        ssg.Name,
+			common.GridSelectorUniqKeyName: ssg.Spec.GridUniqKey,
 		}
 	}
 	copyObj.Spec.Replicas = ssg.Spec.Template.Replicas

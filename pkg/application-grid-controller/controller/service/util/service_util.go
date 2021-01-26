@@ -43,10 +43,12 @@ func CreateService(sg *crdv1.ServiceGrid) *corev1.Service {
 				if sg.Labels != nil {
 					newLabels := sg.Labels
 					newLabels[common.GridSelectorName] = sg.Name
+					newLabels[common.GridSelectorUniqKeyName] = sg.Spec.GridUniqKey
 					return newLabels
 				} else {
 					return map[string]string{
-						common.GridSelectorName: sg.Name,
+						common.GridSelectorName:        sg.Name,
+						common.GridSelectorUniqKeyName: sg.Spec.GridUniqKey,
 					}
 				}
 			}(),
@@ -77,9 +79,11 @@ func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service
 	if sg.Labels != nil {
 		copyObj.Labels = sg.Labels
 		copyObj.Labels[common.GridSelectorName] = sg.Name
+		copyObj.Labels[common.GridSelectorUniqKeyName] = sg.Spec.GridUniqKey
 	} else {
 		copyObj.Labels = map[string]string{
-			common.GridSelectorName: sg.Name,
+			common.GridSelectorName:        sg.Name,
+			common.GridSelectorUniqKeyName: sg.Spec.GridUniqKey,
 		}
 	}
 

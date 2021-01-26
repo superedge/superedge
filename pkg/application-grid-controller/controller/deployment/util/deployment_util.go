@@ -48,10 +48,12 @@ func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deploy
 				if dg.Labels != nil {
 					newLabels := dg.Labels
 					newLabels[common.GridSelectorName] = dg.Name
+					newLabels[common.GridSelectorUniqKeyName] = dg.Spec.GridUniqKey
 					return newLabels
 				} else {
 					return map[string]string{
-						common.GridSelectorName: dg.Name,
+						common.GridSelectorName:        dg.Name,
+						common.GridSelectorUniqKeyName: dg.Spec.GridUniqKey,
 					}
 				}
 			}(),
@@ -81,9 +83,11 @@ func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue 
 	if dg.Labels != nil {
 		copyObj.Labels = dg.Labels
 		copyObj.Labels[common.GridSelectorName] = dg.Name
+		copyObj.Labels[common.GridSelectorUniqKeyName] = dg.Spec.GridUniqKey
 	} else {
 		copyObj.Labels = map[string]string{
-			common.GridSelectorName: dg.Name,
+			common.GridSelectorName:        dg.Name,
+			common.GridSelectorUniqKeyName: dg.Spec.GridUniqKey,
 		}
 	}
 	copyObj.Spec.Replicas = dg.Spec.Template.Replicas
