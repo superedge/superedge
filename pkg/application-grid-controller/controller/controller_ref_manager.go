@@ -299,6 +299,10 @@ func (bcrm *baseControllerRefManager) claimObject(obj metav1.Object, match func(
 		if bcrm.controller.GetDeletionTimestamp() != nil {
 			return false, nil
 		}
+		if obj.GetDeletionTimestamp() != nil {
+			// Ignore if the object is being deleted
+			return false, nil
+		}
 		if err := release(obj); err != nil {
 			// If the object no longer exists, ignore the error.
 			if errors.IsNotFound(err) {
