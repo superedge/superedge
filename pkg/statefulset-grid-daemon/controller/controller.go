@@ -311,6 +311,7 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {
 			return err
 		}
 		klog.V(4).Infof("Clear statefulset %v dns hosts successfully", key)
+		return nil
 	}
 
 	// Get pod list of this statefulset
