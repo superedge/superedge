@@ -32,7 +32,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	command := app.NewStatefulsetGridDaemonCommand()
+	command := app.NewStatefulSetGridDaemonCommand()
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	logs.InitLogs()

@@ -42,7 +42,7 @@ import (
 	"time"
 )
 
-func NewStatefulsetGridDaemonCommand() *cobra.Command {
+func NewStatefulSetGridDaemonCommand() *cobra.Command {
 	o := options.NewStatefulsetGridDaemonOptions()
 
 	cmd := &cobra.Command{
