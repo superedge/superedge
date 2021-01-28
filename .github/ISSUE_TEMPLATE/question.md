@@ -6,21 +6,7 @@ labels: kind/question
 
 ---
 
-<!-- Please use this template while provide as much info as possible. Thanks!-->
-
-**What happened**:
-
-**What you expected to happen**:
-
-**How to reproduce it (as minimally and precisely as possible)**:
-
-**Anything else we need to know?**:
-
-**Environment**:
-- SuperEdge version:
-- Kubernetes version (use `kubectl version`):
-- OS (e.g: `cat /etc/os-release`):
-- Kernel (e.g. `uname -a`):
-- Hardware configuration (e.g. `lscpu`)
-- Go Version (e.g: `go version`)
-- Others:
+<!--
+If you have a trouble about SuperEdge, feel free to ask.
+Make sure you're not asking duplicate question by searching on the issues lists.
+-->
