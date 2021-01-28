@@ -58,9 +58,6 @@ func (sgc *ServiceGridController) addService(obj interface{}) {
 	// Otherwise, it's an orphan. Get a list of all matching ServiceGrids and sync
 	// them to see if anyone wants to adopt it.
 	sgs := sgc.getGridForService(svc)
-	if len(sgs) == 0 {
-		return
-	}
 	for _, sg := range sgs {
 		klog.V(4).Infof("Orphan Service %s(its possible owner ServiceGrid %s) added.", svc.Name, sg.Name)
 		sgc.enqueueServiceGrid(sg)
@@ -107,9 +104,6 @@ func (sgc *ServiceGridController) updateService(oldObj, newObj interface{}) {
 	labelChanged := !reflect.DeepEqual(curSvc.Labels, oldSvc.Labels)
 	if labelChanged || controllerRefChanged {
 		sgs := sgc.getGridForService(curSvc)
-		if len(sgs) == 0 {
-			return
-		}
 		for _, sg := range sgs {
 			klog.V(4).Infof("Orphan Service %s(its possible owner ServiceGrid %s) updated.", curSvc.Name, sg.Name)
 			sgc.enqueueServiceGrid(sg)
@@ -186,10 +180,6 @@ func (sgc *ServiceGridController) getGridForService(svc *corev1.Service) []*crdv
 			continue
 		}
 		serviceGrids = append(serviceGrids, sg)
-	}
-
-	if len(serviceGrids) == 0 {
-		return nil
 	}
 
 	if len(serviceGrids) > 1 {

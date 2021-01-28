@@ -19,8 +19,8 @@ package deployment
 import (
 	"fmt"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
@@ -36,9 +36,6 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 		return
 	}
 	dgs := dgc.getGridForNode(node)
-	if len(dgs) == 0 {
-		return
-	}
 	for _, dg := range dgs {
 		klog.V(4).Infof("Node %s(its relevant DeploymentGrid %s) added.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
@@ -57,9 +54,6 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	// Only handles nodes whose label has changed.
 	if labelChanged {
 		dgs := dgc.getGridForNode(oldNode, curNode)
-		if len(dgs) == 0 {
-			return
-		}
 		for _, dg := range dgs {
 			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
@@ -82,24 +76,39 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 		}
 	}
 	dgs := dgc.getGridForNode(node)
-	if len(dgs) == 0 {
-		return
-	}
 	for _, dg := range dgs {
 		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }
 
-// getGridForNode get deploymentGrids those gridUniqKey exists in node labels.
+// getGridForNode filters deploymentGrids those gridUniqKey exists in node labels.
 func (dgc *DeploymentGridController) getGridForNode(nodes ...*corev1.Node) []*crdv1.DeploymentGrid {
-	selector, err := common.GetNodesSelector(nodes...)
+	// Return directly when there is no labels at all
+	needCheck := false
+	for _, node := range nodes {
+		if len(node.Labels) == 0 {
+			continue
+		} else {
+			needCheck = true
+			break
+		}
+	}
+	if !needCheck {
+		return nil
+	}
+	// Filter relevant grids of nodes by labels
+	dgs, err := dgc.dpGridLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-	dgs, err := dgc.dpGridLister.List(selector)
-	if err != nil {
-		return nil
+	var targetDgs []*crdv1.DeploymentGrid
+	for _, dg := range dgs {
+		for _, node := range nodes {
+			if _, exist := node.Labels[dg.Spec.GridUniqKey]; exist {
+				targetDgs = append(targetDgs, dg)
+			}
+		}
 	}
-	return dgs
+	return targetDgs
 }

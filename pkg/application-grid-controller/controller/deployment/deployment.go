@@ -60,9 +60,6 @@ func (dgc *DeploymentGridController) addDeployment(obj interface{}) {
 	// Otherwise, it's an orphan. Get a list of all matching DeploymentGrids and sync
 	// them to see if anyone wants to adopt it.
 	dgs := dgc.getGridForDeployment(d)
-	if len(dgs) == 0 {
-		return
-	}
 	for _, dg := range dgs {
 		klog.V(4).Infof("Orphan Deployment %s(its possible owner DeploymentGrid %s) added.", d.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
@@ -109,9 +106,6 @@ func (dgc *DeploymentGridController) updateDeployment(oldObj, newObj interface{}
 	labelChanged := !reflect.DeepEqual(curD.Labels, oldD.Labels)
 	if labelChanged || controllerRefChanged {
 		dgs := dgc.getGridForDeployment(curD)
-		if len(dgs) == 0 {
-			return
-		}
 		for _, dg := range dgs {
 			klog.V(4).Infof("Orphan Deployment %s(its possible owner DeploymentGrid %s) updated.", curD.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
@@ -188,10 +182,6 @@ func (dgc *DeploymentGridController) getGridForDeployment(d *appsv1.Deployment) 
 			continue
 		}
 		deploymentGrids = append(deploymentGrids, dg)
-	}
-
-	if len(deploymentGrids) == 0 {
-		return nil
 	}
 
 	if len(deploymentGrids) > 1 {

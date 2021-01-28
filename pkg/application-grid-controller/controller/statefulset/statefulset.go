@@ -60,9 +60,6 @@ func (ssgc *StatefulSetGridController) addStatefulSet(obj interface{}) {
 	// Otherwise, it's an orphan. Get a list of all matching StatefulSetGrids and sync
 	// them to see if anyone wants to adopt it.
 	ssgs := ssgc.getGridForStatefulSet(set)
-	if len(ssgs) == 0 {
-		return
-	}
 	for _, ssg := range ssgs {
 		klog.V(4).Infof("Orphan StatefulSet %s(its possible owner StatefulSetGrid %s) added.", set.Name, ssg.Name)
 		ssgc.enqueueStatefulSetGrid(ssg)
@@ -109,9 +106,6 @@ func (ssgc *StatefulSetGridController) updateStatefulSet(oldObj, newObj interfac
 	labelChanged := !reflect.DeepEqual(curSet.Labels, oldSet.Labels)
 	if labelChanged || controllerRefChanged {
 		ssgs := ssgc.getGridForStatefulSet(curSet)
-		if len(ssgs) == 0 {
-			return
-		}
 		for _, ssg := range ssgs {
 			klog.V(4).Infof("Orphan StatefulSet %s(its possible owner StatefulSetGrid %s) updated.", curSet.Name, ssg.Name)
 			ssgc.enqueueStatefulSetGrid(ssg)
@@ -190,9 +184,7 @@ func (ssgc *StatefulSetGridController) getGridForStatefulSet(set *appsv1.Statefu
 		statefulSetGrids = append(statefulSetGrids, ssg)
 	}
 
-	if len(statefulSetGrids) == 0 {
-		return nil
-	} else if len(statefulSetGrids) > 1 {
+	if len(statefulSetGrids) > 1 {
 		// ControllerRef will ensure we don't do anything crazy, but more than one
 		// item in this list nevertheless constitutes user error.
 		klog.V(4).Infof("user error! statefulset %s/%s with labels: %#v selects more than one statefulSetGrid, returning %#v",

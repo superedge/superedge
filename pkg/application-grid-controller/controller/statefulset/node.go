@@ -19,8 +19,8 @@ package statefulset
 import (
 	"fmt"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
@@ -36,9 +36,6 @@ func (ssgc *StatefulSetGridController) addNode(obj interface{}) {
 		return
 	}
 	ssgs := ssgc.getGridForNode(node)
-	if len(ssgs) == 0 {
-		return
-	}
 	for _, ssg := range ssgs {
 		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) added.", node.Name, ssg.Name)
 		ssgc.enqueueStatefulSetGrid(ssg)
@@ -57,9 +54,6 @@ func (ssgc *StatefulSetGridController) updateNode(oldObj, newObj interface{}) {
 	// Only handles nodes whose label has changed.
 	if labelChanged {
 		ssgs := ssgc.getGridForNode(oldNode, curNode)
-		if len(ssgs) == 0 {
-			return
-		}
 		for _, ssg := range ssgs {
 			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, ssg.Name)
 			ssgc.enqueueStatefulSetGrid(ssg)
@@ -82,24 +76,39 @@ func (ssgc *StatefulSetGridController) deleteNode(obj interface{}) {
 		}
 	}
 	ssgs := ssgc.getGridForNode(node)
-	if len(ssgs) == 0 {
-		return
-	}
 	for _, ssg := range ssgs {
 		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, ssg.Name)
 		ssgc.enqueueStatefulSetGrid(ssg)
 	}
 }
 
-// getGridForNode get statefulsetGrids those gridUniqKey exists in node labels.
+// getGridForNode filters statefulsetGrids those gridUniqKey exists in node labels.
 func (ssgc *StatefulSetGridController) getGridForNode(nodes ...*corev1.Node) []*crdv1.StatefulSetGrid {
-	selector, err := common.GetNodesSelector(nodes...)
+	// Return directly when there is no labels at all
+	needCheck := false
+	for _, node := range nodes {
+		if len(node.Labels) == 0 {
+			continue
+		} else {
+			needCheck = true
+			break
+		}
+	}
+	if !needCheck {
+		return nil
+	}
+	// Filter relevant grids of nodes by labels
+	ssgs, err := ssgc.setGridLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-	ssgs, err := ssgc.setGridLister.List(selector)
-	if err != nil {
-		return nil
+	var targetSsgs []*crdv1.StatefulSetGrid
+	for _, ssg := range ssgs {
+		for _, node := range nodes {
+			if _, exist := node.Labels[ssg.Spec.GridUniqKey]; exist {
+				targetSsgs = append(targetSsgs, ssg)
+			}
+		}
 	}
-	return ssgs
+	return targetSsgs
 }
