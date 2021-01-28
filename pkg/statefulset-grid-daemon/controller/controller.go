@@ -199,6 +199,27 @@ func (ssgdc *StatefulSetGridDaemonController) handleErr(err error, key interface
 	ssgdc.queue.Forget(key)
 }
 
+func (ssgdc *StatefulSetGridDaemonController) needClearStatefulSetDomains(set *appsv1.StatefulSet) (bool, error) {
+	// Check existence of statefulset relevant service
+	svc, err := ssgdc.svcLister.Services(set.Namespace).Get(set.Spec.ServiceName)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("StatefulSet %v relevant service %s has been deleted", set.Name, set.Spec.ServiceName)
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	// Check GridSelectorUniqKeyName label value equation between service and statefulset
+	gridUniqKey, _ := set.Labels[controllercommon.GridSelectorUniqKeyName]
+	svcGridUniqKey, found := svc.Labels[controllercommon.GridSelectorUniqKeyName]
+	if !found {
+		return true, nil
+	} else if gridUniqKey != svcGridUniqKey {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 	startTime := time.Now()
 	klog.V(4).Infof("Started syncing dns hosts as a whole (%v)", startTime)
@@ -256,27 +277,6 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 		klog.Errorf("SetHostsByMap err %v", err)
 	}
 	return
-}
-
-func (ssgdc *StatefulSetGridDaemonController) needClearStatefulSetDomains(set *appsv1.StatefulSet) (bool, error) {
-	// Check existence of statefulset relevant service
-	svc, err := ssgdc.svcLister.Services(set.Namespace).Get(set.Spec.ServiceName)
-	if errors.IsNotFound(err) {
-		klog.V(2).Infof("StatefulSet %v relevant service %s has been deleted", set.Name, set.Spec.ServiceName)
-		return true, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	// Check GridSelectorUniqKeyName label value equation between service and statefulset
-	gridUniqKey, _ := set.Labels[controllercommon.GridSelectorUniqKeyName]
-	svcGridUniqKey, found := svc.Labels[controllercommon.GridSelectorUniqKeyName]
-	if !found {
-		return true, nil
-	} else if gridUniqKey != svcGridUniqKey {
-		return true, nil
-	}
-	return false, nil
 }
 
 func (ssgdc *StatefulSetGridDaemonController) syncDnsHosts(key string) error {

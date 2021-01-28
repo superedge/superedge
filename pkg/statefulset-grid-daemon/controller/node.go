@@ -37,9 +37,6 @@ func (ssgdc *StatefulSetGridDaemonController) addNode(obj interface{}) {
 	}
 
 	sets := ssgdc.getStatefulSetForNode(node)
-	if len(sets) == 0 {
-		return
-	}
 	for _, set := range sets {
 		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) added.", node.Name, set.Name)
 		ssgdc.enqueueStatefulSet(set)
@@ -58,9 +55,6 @@ func (ssgdc *StatefulSetGridDaemonController) updateNode(oldObj, newObj interfac
 	// Only handles nodes whose label has changed.
 	if labelChanged {
 		sets := ssgdc.getStatefulSetForNode(curNode)
-		if len(sets) == 0 {
-			return
-		}
 		for _, set := range sets {
 			klog.V(4).Infof("Node %s(its relevant StatefulSet %s) updated.", curNode.Name, set.Name)
 			ssgdc.enqueueStatefulSet(set)
@@ -83,9 +77,6 @@ func (ssgdc *StatefulSetGridDaemonController) deleteNode(obj interface{}) {
 		}
 	}
 	sets := ssgdc.getStatefulSetForNode(node)
-	if len(sets) == 0 {
-		return
-	}
 	for _, set := range sets {
 		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) deleted.", node.Name, set.Name)
 		ssgdc.enqueueStatefulSet(set)
@@ -107,9 +98,6 @@ func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForNode(node *corev1
 			continue
 		}
 		sets = append(sets, set)
-	}
-	if len(sets) == 0 {
-		return nil
 	}
 	return sets
 }

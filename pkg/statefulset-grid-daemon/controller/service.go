@@ -41,9 +41,6 @@ func (ssgdc *StatefulSetGridDaemonController) addService(obj interface{}) {
 	}
 
 	setList := ssgdc.getStatefulSetForService(svc)
-	if setList == nil {
-		return
-	}
 	for _, set := range setList {
 		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 			continue
@@ -102,9 +99,6 @@ func (ssgdc *StatefulSetGridDaemonController) deleteService(obj interface{}) {
 		}
 	}
 	setList := ssgdc.getStatefulSetForService(svc)
-	if setList == nil {
-		return
-	}
 	for _, set := range setList {
 		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 			continue
@@ -141,5 +135,11 @@ func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForService(svc *core
 		klog.V(4).Infof("List service err %v", err)
 		return nil
 	}
-	return setList
+	var targetSetList []*appv1.StatefulSet
+	for _, set := range setList {
+		if set.Spec.ServiceName == svc.Name {
+			targetSetList = append(targetSetList, set)
+		}
+	}
+	return targetSetList
 }
