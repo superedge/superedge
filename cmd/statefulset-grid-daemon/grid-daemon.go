@@ -14,17 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+package main
 
-const (
-	// maxRetries is the number of times a kind of workload will be retried before it is dropped out of the queue.
-	// With the current rate-limiter in use (5ms*2^(maxRetries-1)) the following numbers represent the times
-	// a resource is going to be requeued:
-	//
-	// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
-	MaxRetries = 15
+import (
+	goflag "flag"
+	"math/rand"
+	"os"
+	"time"
 
-	DeploymentGridKind  = "DeploymentGrid"
-	StatefulSetGridKind = "StatefulSetGrid"
-	ServiceGridKind     = "ServiceGrid"
+	"github.com/spf13/pflag"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+
+	"github.com/superedge/superedge/cmd/statefulset-grid-daemon/app"
 )
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	command := app.NewStatefulSetGridDaemonCommand()
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	logs.InitLogs()
+	defer logs.FlushLogs()
+
+	if err := command.Execute(); err != nil {
+		os.Exit(1)
+	}
+}

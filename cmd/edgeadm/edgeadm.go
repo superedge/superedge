@@ -32,7 +32,7 @@ const (
 )
 
 func main() {
-	cmd := app.NewEdgeadmCommand()
+	cmd := app.NewEdgeAdmCommand()
 
 	pflag.CommandLine.SetNormalizeFunc(flag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
