@@ -151,7 +151,7 @@ func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan str
 	defer klog.Infof("Shutting down statefulset grid daemon")
 
 	if !cache.WaitForNamedCacheSync("statefulset-grid-daemon", stopCh,
-		ssgdc.nodeListerSynced, ssgdc.podListerSynced, ssgdc.setListerSynced, ssgdc.setGridListerSynced) {
+		ssgdc.nodeListerSynced, ssgdc.podListerSynced, ssgdc.setListerSynced, ssgdc.setGridListerSynced, ssgdc.svcListerSynced) {
 		return
 	}
 
@@ -233,6 +233,10 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 		return
 	}
 	gridUniqKeyLabels, err := controllercommon.GetNodesSelector(node)
+	if err != nil {
+		klog.Errorf("Get node %s GridSelectorUniqKeyName selector err %v", node.Name, err)
+		return
+	}
 	// List all statefulsets by node labels
 	setList, err := ssgdc.setLister.List(gridUniqKeyLabels)
 	if err != nil {
