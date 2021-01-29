@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package deployment
+package statefulset
 
 import (
 	"fmt"
@@ -27,22 +27,22 @@ import (
 	"reflect"
 )
 
-func (dgc *DeploymentGridController) addNode(obj interface{}) {
+func (ssgc *StatefulSetGridController) addNode(obj interface{}) {
 	node := obj.(*corev1.Node)
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
-		dgc.deleteNode(node)
+		ssgc.deleteNode(node)
 		return
 	}
-	dgs := dgc.getGridForNode(node)
-	for _, dg := range dgs {
-		klog.V(4).Infof("Node %s(its relevant DeploymentGrid %s) added.", node.Name, dg.Name)
-		dgc.enqueueDeploymentGrid(dg)
+	ssgs := ssgc.getGridForNode(node)
+	for _, ssg := range ssgs {
+		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) added.", node.Name, ssg.Name)
+		ssgc.enqueueStatefulSetGrid(ssg)
 	}
 }
 
-func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
+func (ssgc *StatefulSetGridController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
@@ -53,15 +53,15 @@ func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		dgs := dgc.getGridForNode(oldNode, curNode)
-		for _, dg := range dgs {
-			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, dg.Name)
-			dgc.enqueueDeploymentGrid(dg)
+		ssgs := ssgc.getGridForNode(oldNode, curNode)
+		for _, ssg := range ssgs {
+			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, ssg.Name)
+			ssgc.enqueueStatefulSetGrid(ssg)
 		}
 	}
 }
 
-func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
+func (ssgc *StatefulSetGridController) deleteNode(obj interface{}) {
 	node, ok := obj.(*corev1.Node)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -75,15 +75,15 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 			return
 		}
 	}
-	dgs := dgc.getGridForNode(node)
-	for _, dg := range dgs {
-		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, dg.Name)
-		dgc.enqueueDeploymentGrid(dg)
+	ssgs := ssgc.getGridForNode(node)
+	for _, ssg := range ssgs {
+		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, ssg.Name)
+		ssgc.enqueueStatefulSetGrid(ssg)
 	}
 }
 
-// getGridForNode filters deploymentGrids those gridUniqKey exists in node labels.
-func (dgc *DeploymentGridController) getGridForNode(nodes ...*corev1.Node) []*crdv1.DeploymentGrid {
+// getGridForNode filters statefulsetGrids those gridUniqKey exists in node labels.
+func (ssgc *StatefulSetGridController) getGridForNode(nodes ...*corev1.Node) []*crdv1.StatefulSetGrid {
 	// Return directly when there is no labels at all
 	needCheck := false
 	for _, node := range nodes {
@@ -98,17 +98,17 @@ func (dgc *DeploymentGridController) getGridForNode(nodes ...*corev1.Node) []*cr
 		return nil
 	}
 	// Filter relevant grids of nodes by labels
-	dgs, err := dgc.dpGridLister.List(labels.Everything())
+	ssgs, err := ssgc.setGridLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-	var targetDgs []*crdv1.DeploymentGrid
-	for _, dg := range dgs {
+	var targetSsgs []*crdv1.StatefulSetGrid
+	for _, ssg := range ssgs {
 		for _, node := range nodes {
-			if _, exist := node.Labels[dg.Spec.GridUniqKey]; exist {
-				targetDgs = append(targetDgs, dg)
+			if _, exist := node.Labels[ssg.Spec.GridUniqKey]; exist {
+				targetSsgs = append(targetSsgs, ssg)
 			}
 		}
 	}
-	return targetDgs
+	return targetSsgs
 }

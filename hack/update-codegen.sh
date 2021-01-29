@@ -12,8 +12,8 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 bash ${SCRIPT_ROOT}/vendor/k8s.io/code-generator/generate-groups.sh all \
-  superedge/pkg/application-grid-controller/generated \
-  superedge/pkg/application-grid-controller/apis \
+  github.com/superedge/superedge/pkg/application-grid-controller/generated \
+  github.com/superedge/superedge/pkg/application-grid-controller/apis \
   superedge.io:v1 \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt"
 

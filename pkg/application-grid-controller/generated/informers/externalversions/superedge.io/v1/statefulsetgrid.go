@@ -16,59 +16,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// DeploymentGridInformer provides access to a shared informer and lister for
-// DeploymentGrids.
-type DeploymentGridInformer interface {
+// StatefulSetGridInformer provides access to a shared informer and lister for
+// StatefulSetGrids.
+type StatefulSetGridInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.DeploymentGridLister
+	Lister() v1.StatefulSetGridLister
 }
 
-type deploymentGridInformer struct {
+type statefulSetGridInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewDeploymentGridInformer constructs a new informer for DeploymentGrid type.
+// NewStatefulSetGridInformer constructs a new informer for StatefulSetGrid type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewDeploymentGridInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredDeploymentGridInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewStatefulSetGridInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredStatefulSetGridInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredDeploymentGridInformer constructs a new informer for DeploymentGrid type.
+// NewFilteredStatefulSetGridInformer constructs a new informer for StatefulSetGrid type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredDeploymentGridInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredStatefulSetGridInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SuperedgeV1().DeploymentGrids(namespace).List(context.TODO(), options)
+				return client.SuperedgeV1().StatefulSetGrids(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SuperedgeV1().DeploymentGrids(namespace).Watch(context.TODO(), options)
+				return client.SuperedgeV1().StatefulSetGrids(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&superedgeiov1.DeploymentGrid{},
+		&superedgeiov1.StatefulSetGrid{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *deploymentGridInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredDeploymentGridInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *statefulSetGridInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredStatefulSetGridInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *deploymentGridInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&superedgeiov1.DeploymentGrid{}, f.defaultInformer)
+func (f *statefulSetGridInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&superedgeiov1.StatefulSetGrid{}, f.defaultInformer)
 }
 
-func (f *deploymentGridInformer) Lister() v1.DeploymentGridLister {
-	return v1.NewDeploymentGridLister(f.Informer().GetIndexer())
+func (f *statefulSetGridInformer) Lister() v1.StatefulSetGridLister {
+	return v1.NewStatefulSetGridLister(f.Informer().GetIndexer())
 }

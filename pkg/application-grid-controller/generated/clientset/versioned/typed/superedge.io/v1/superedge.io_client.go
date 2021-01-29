@@ -3,9 +3,8 @@
 package v1
 
 import (
-	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
-
 	v1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -13,6 +12,7 @@ type SuperedgeV1Interface interface {
 	RESTClient() rest.Interface
 	DeploymentGridsGetter
 	ServiceGridsGetter
+	StatefulSetGridsGetter
 }
 
 // SuperedgeV1Client is used to interact with features provided by the superedge.io group.
@@ -26,6 +26,10 @@ func (c *SuperedgeV1Client) DeploymentGrids(namespace string) DeploymentGridInte
 
 func (c *SuperedgeV1Client) ServiceGrids(namespace string) ServiceGridInterface {
 	return newServiceGrids(c, namespace)
+}
+
+func (c *SuperedgeV1Client) StatefulSetGrids(namespace string) StatefulSetGridInterface {
+	return newStatefulSetGrids(c, namespace)
 }
 
 // NewForConfig creates a new SuperedgeV1Client for the given config.

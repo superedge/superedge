@@ -1,26 +1,25 @@
 package common
 
-const DeploymentGridCRDYaml = `
+const StatefulSetGridCRDYaml = `
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: deploymentgrids.superedge.io
+  name: statefulsetgrids.superedge.io
 spec:
   group: superedge.io
   names:
-    kind: DeploymentGrid
-    listKind: DeploymentGridList
-    plural: deploymentgrids
-    singular: deploymentgrid
+    kind: StatefulSetGrid
+    listKind: StatefulSetGridList
+    plural: statefulsetgrids
+    singular: statefulsetgrid
     shortNames:
-    - dg
+    - ssg
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: DeploymentGrid is the Schema for the deploymentgrids API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -35,48 +34,43 @@ spec:
         metadata:
           type: object
         spec:
-          description: DeploymentGridSpec defines the desired state of DeploymentGrid
           properties:
             gridUniqKey:
               type: string
             template:
-              description: DeploymentSpec is the specification of the desired behavior
-                of the Deployment.
+              description: A StatefulSetSpec is the specification of a StatefulSet.
               properties:
-                minReadySeconds:
-                  description: Minimum number of seconds for which a newly created
-                    pod should be ready without any of its container crashing, for
-                    it to be considered available. Defaults to 0 (pod will be considered
-                    available as soon as it is ready)
-                  format: int32
-                  type: integer
-                paused:
-                  description: Indicates that the deployment is paused.
-                  type: boolean
-                progressDeadlineSeconds:
-                  description: The maximum time in seconds for a deployment to make
-                    progress before it is considered to be failed. The deployment
-                    controller will continue to process failed deployments and a condition
-                    with a ProgressDeadlineExceeded reason will be surfaced in the
-                    deployment status. Note that progress will not be estimated during
-                    the time a deployment is paused. Defaults to 600s.
-                  format: int32
-                  type: integer
+                podManagementPolicy:
+                  description: podManagementPolicy controls how pods are created during
+                    initial scale up, when replacing pods on nodes, or when scaling
+                    down. The default policy is OrderedReady, where pods are created
+                    in increasing order (pod-0, then pod-1, etc) and the controller
+                    will wait until each pod is ready before continuing. When scaling
+                    down, the pods are removed in the opposite order. The alternative
+                    policy is Parallel which will create pods in parallel to match
+                    the desired scale without waiting, and on scale down will delete
+                    all pods at once.
+                  type: string
                 replicas:
-                  description: Number of desired pods. This is a pointer to distinguish
-                    between explicit zero and not specified. Defaults to 1.
+                  description: 'replicas is the desired number of replicas of the
+                    given Template. These are replicas in the sense that they are
+                    instantiations of the same Template, but individual replicas also
+                    have a consistent identity. If unspecified, defaults to 1. TODO:
+                    Consider a rename of this field.'
                   format: int32
                   type: integer
                 revisionHistoryLimit:
-                  description: The number of old ReplicaSets to retain to allow rollback.
-                    This is a pointer to distinguish between explicit zero and not
-                    specified. Defaults to 10.
+                  description: revisionHistoryLimit is the maximum number of revisions
+                    that will be maintained in the StatefulSet's revision history.
+                    The revision history consists of all revisions not represented
+                    by a currently applied StatefulSetSpec version. The default value
+                    is 10.
                   format: int32
                   type: integer
                 selector:
-                  description: Label selector for pods. Existing ReplicaSets whose
-                    pods are selected by this will be the ones affected by this deployment.
-                    It must match the pod template's labels.
+                  description: 'selector is a label query over pods that should match
+                    the replica count. It must match the pod template''s labels. More
+                    info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
                   properties:
                     matchExpressions:
                       description: matchExpressions is a list of label selector requirements.
@@ -119,58 +113,18 @@ spec:
                         are ANDed.
                       type: object
                   type: object
-                strategy:
-                  description: The deployment strategy to use to replace existing
-                    pods with new ones.
-                  properties:
-                    rollingUpdate:
-                      description: 'Rolling update config params. Present only if
-                        DeploymentStrategyType = RollingUpdate. --- TODO: Update this
-                        to follow our convention for oneOf, whatever we decide it
-                        to be.'
-                      properties:
-                        maxSurge:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          description: 'The maximum number of pods that can be scheduled
-                            above the desired number of pods. Value can be an absolute
-                            number (ex: 5) or a percentage of desired pods (ex: 10%).
-                            This can not be 0 if MaxUnavailable is 0. Absolute number
-                            is calculated from percentage by rounding up. Defaults
-                            to 25%. Example: when this is set to 30%, the new ReplicaSet
-                            can be scaled up immediately when the rolling update starts,
-                            such that the total number of old and new pods do not
-                            exceed 130% of desired pods. Once old pods have been killed,
-                            new ReplicaSet can be scaled up further, ensuring that
-                            total number of pods running at any time during the update
-                            is at most 130% of desired pods.'
-                          x-kubernetes-int-or-string: true
-                        maxUnavailable:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          description: 'The maximum number of pods that can be unavailable
-                            during the update. Value can be an absolute number (ex:
-                            5) or a percentage of desired pods (ex: 10%). Absolute
-                            number is calculated from percentage by rounding down.
-                            This can not be 0 if MaxSurge is 0. Defaults to 25%. Example:
-                            when this is set to 30%, the old ReplicaSet can be scaled
-                            down to 70% of desired pods immediately when the rolling
-                            update starts. Once new pods are ready, old ReplicaSet
-                            can be scaled down further, followed by scaling up the
-                            new ReplicaSet, ensuring that the total number of pods
-                            available at all times during the update is at least 70%
-                            of desired pods.'
-                          x-kubernetes-int-or-string: true
-                      type: object
-                    type:
-                      description: Type of deployment. Can be "Recreate" or "RollingUpdate".
-                        Default is RollingUpdate.
-                      type: string
-                  type: object
+                serviceName:
+                  description: 'serviceName is the name of the service that governs
+                    this StatefulSet. This service must exist before the StatefulSet,
+                    and is responsible for the network identity of the set. Pods get
+                    DNS/hostnames that follow the pattern: pod-specific-string.serviceName.default.svc.cluster.local
+                    where "pod-specific-string" is managed by the StatefulSet controller.'
+                  type: string
                 template:
-                  description: Template describes the pods that will be created.
+                  description: template is the object that describes the pod that
+                    will be created if insufficient replicas are detected. Each pod
+                    stamped out by the StatefulSet will fulfill this Template, but
+                    have a unique identity from the rest of the StatefulSet.
                   properties:
                     metadata:
                       description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -1444,7 +1398,6 @@ spec:
                                       type: string
                                   required:
                                   - containerPort
-                                  - protocol
                                   type: object
                                 type: array
                                 x-kubernetes-list-map-keys:
@@ -1727,16 +1680,11 @@ spec:
                                           GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
                                           inlines the contents of the GMSA credential
                                           spec named by the GMSACredentialSpecName
-                                          field. This field is alpha-level and is
-                                          only honored by servers that enable the
-                                          WindowsGMSA feature flag.
+                                          field.
                                         type: string
                                       gmsaCredentialSpecName:
                                         description: GMSACredentialSpecName is the
                                           name of the GMSA credential spec to use.
-                                          This field is alpha-level and is only honored
-                                          by servers that enable the WindowsGMSA feature
-                                          flag.
                                         type: string
                                       runAsUserName:
                                         description: The UserName in Windows to run
@@ -1745,9 +1693,7 @@ spec:
                                           metadata if unspecified. May also be set
                                           in PodSecurityContext. If set in both SecurityContext
                                           and PodSecurityContext, the value specified
-                                          in SecurityContext takes precedence. This
-                                          field is beta-level and may be disabled
-                                          with the WindowsRunAsUserName feature flag.
+                                          in SecurityContext takes precedence.
                                         type: string
                                     type: object
                                 type: object
@@ -1761,7 +1707,7 @@ spec:
                                   beginning of a Pod''s lifecycle, when it might take
                                   a long time to load data or warm a cache, than during
                                   steady-state operation. This cannot be updated.
-                                  This is an alpha feature enabled by the StartupProbe
+                                  This is a beta feature enabled by the StartupProbe
                                   feature flag. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
                                 properties:
                                   exec:
@@ -1932,7 +1878,7 @@ spec:
                                 type: boolean
                               volumeDevices:
                                 description: volumeDevices is the list of block devices
-                                  to be used by the container. This is a beta feature.
+                                  to be used by the container.
                                 items:
                                   description: volumeDevice describes a mapping of
                                     a raw block device within a container.
@@ -2935,16 +2881,11 @@ spec:
                                           GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
                                           inlines the contents of the GMSA credential
                                           spec named by the GMSACredentialSpecName
-                                          field. This field is alpha-level and is
-                                          only honored by servers that enable the
-                                          WindowsGMSA feature flag.
+                                          field.
                                         type: string
                                       gmsaCredentialSpecName:
                                         description: GMSACredentialSpecName is the
                                           name of the GMSA credential spec to use.
-                                          This field is alpha-level and is only honored
-                                          by servers that enable the WindowsGMSA feature
-                                          flag.
                                         type: string
                                       runAsUserName:
                                         description: The UserName in Windows to run
@@ -2953,9 +2894,7 @@ spec:
                                           metadata if unspecified. May also be set
                                           in PodSecurityContext. If set in both SecurityContext
                                           and PodSecurityContext, the value specified
-                                          in SecurityContext takes precedence. This
-                                          field is beta-level and may be disabled
-                                          with the WindowsRunAsUserName feature flag.
+                                          in SecurityContext takes precedence.
                                         type: string
                                     type: object
                                 type: object
@@ -3140,7 +3079,7 @@ spec:
                                 type: boolean
                               volumeDevices:
                                 description: volumeDevices is the list of block devices
-                                  to be used by the container. This is a beta feature.
+                                  to be used by the container.
                                 items:
                                   description: volumeDevice describes a mapping of
                                     a raw block device within a container.
@@ -3878,7 +3817,6 @@ spec:
                                       type: string
                                   required:
                                   - containerPort
-                                  - protocol
                                   type: object
                                 type: array
                                 x-kubernetes-list-map-keys:
@@ -4161,16 +4099,11 @@ spec:
                                           GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
                                           inlines the contents of the GMSA credential
                                           spec named by the GMSACredentialSpecName
-                                          field. This field is alpha-level and is
-                                          only honored by servers that enable the
-                                          WindowsGMSA feature flag.
+                                          field.
                                         type: string
                                       gmsaCredentialSpecName:
                                         description: GMSACredentialSpecName is the
                                           name of the GMSA credential spec to use.
-                                          This field is alpha-level and is only honored
-                                          by servers that enable the WindowsGMSA feature
-                                          flag.
                                         type: string
                                       runAsUserName:
                                         description: The UserName in Windows to run
@@ -4179,9 +4112,7 @@ spec:
                                           metadata if unspecified. May also be set
                                           in PodSecurityContext. If set in both SecurityContext
                                           and PodSecurityContext, the value specified
-                                          in SecurityContext takes precedence. This
-                                          field is beta-level and may be disabled
-                                          with the WindowsRunAsUserName feature flag.
+                                          in SecurityContext takes precedence.
                                         type: string
                                     type: object
                                 type: object
@@ -4195,7 +4126,7 @@ spec:
                                   beginning of a Pod''s lifecycle, when it might take
                                   a long time to load data or warm a cache, than during
                                   steady-state operation. This cannot be updated.
-                                  This is an alpha feature enabled by the StartupProbe
+                                  This is a beta feature enabled by the StartupProbe
                                   feature flag. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
                                 properties:
                                   exec:
@@ -4366,7 +4297,7 @@ spec:
                                 type: boolean
                               volumeDevices:
                                 description: volumeDevices is the list of block devices
-                                  to be used by the container. This is a beta feature.
+                                  to be used by the container.
                                 items:
                                   description: volumeDevice describes a mapping of
                                     a raw block device within a container.
@@ -4556,6 +4487,16 @@ spec:
                                 permissions of any volume."
                               format: int64
                               type: integer
+                            fsGroupChangePolicy:
+                              description: 'fsGroupChangePolicy defines behavior of
+                                changing ownership and permission of the volume before
+                                being exposed inside Pod. This field will only apply
+                                to volume types which support fsGroup based ownership(and
+                                permissions). It will have no effect on ephemeral
+                                volume types such as: secret, configmaps and emptydir.
+                                Valid values are "OnRootMismatch" and "Always". If
+                                not specified defaults to "Always".'
+                              type: string
                             runAsGroup:
                               description: The GID to run the entrypoint of the container
                                 process. Uses runtime default if unset. May also be
@@ -4647,15 +4588,11 @@ spec:
                                   description: GMSACredentialSpec is where the GMSA
                                     admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
                                     inlines the contents of the GMSA credential spec
-                                    named by the GMSACredentialSpecName field. This
-                                    field is alpha-level and is only honored by servers
-                                    that enable the WindowsGMSA feature flag.
+                                    named by the GMSACredentialSpecName field.
                                   type: string
                                 gmsaCredentialSpecName:
                                   description: GMSACredentialSpecName is the name
-                                    of the GMSA credential spec to use. This field
-                                    is alpha-level and is only honored by servers
-                                    that enable the WindowsGMSA feature flag.
+                                    of the GMSA credential spec to use.
                                   type: string
                                 runAsUserName:
                                   description: The UserName in Windows to run the
@@ -4664,8 +4601,6 @@ spec:
                                     May also be set in PodSecurityContext. If set
                                     in both SecurityContext and PodSecurityContext,
                                     the value specified in SecurityContext takes precedence.
-                                    This field is beta-level and may be disabled with
-                                    the WindowsRunAsUserName feature flag.
                                   type: string
                               type: object
                           type: object
@@ -4752,8 +4687,8 @@ spec:
                           description: TopologySpreadConstraints describes how a group
                             of pods ought to spread across topology domains. Scheduler
                             will schedule pods in a way which abides by the constraints.
-                            This field is alpha-level and is only honored by clusters
-                            that enables the EvenPodsSpread feature. All topologySpreadConstraints
+                            This field is only honored by clusters that enable the
+                            EvenPodsSpread feature. All topologySpreadConstraints
                             are ANDed.
                           items:
                             description: TopologySpreadConstraint specifies how to
@@ -6200,44 +6135,279 @@ spec:
                       - containers
                       type: object
                   type: object
+                updateStrategy:
+                  description: updateStrategy indicates the StatefulSetUpdateStrategy
+                    that will be employed to update Pods in the StatefulSet when a
+                    revision is made to Template.
+                  properties:
+                    rollingUpdate:
+                      description: RollingUpdate is used to communicate parameters
+                        when Type is RollingUpdateStatefulSetStrategyType.
+                      properties:
+                        partition:
+                          description: Partition indicates the ordinal at which the
+                            StatefulSet should be partitioned. Default value is 0.
+                          format: int32
+                          type: integer
+                      type: object
+                    type:
+                      description: Type indicates the type of the StatefulSetUpdateStrategy.
+                        Default is RollingUpdate.
+                      type: string
+                  type: object
+                volumeClaimTemplates:
+                  description: 'volumeClaimTemplates is a list of claims that pods
+                    are allowed to reference. The StatefulSet controller is responsible
+                    for mapping network identities to claims in a way that maintains
+                    the identity of a pod. Every claim in this list must have at least
+                    one matching (by name) volumeMount in one container in the template.
+                    A claim in this list takes precedence over any volumes in the
+                    template, with the same name. TODO: Define the behavior if a claim
+                    already exists with the same name.'
+                  items:
+                    description: PersistentVolumeClaim is a user's request for and
+                      claim to a persistent volume
+                    properties:
+                      apiVersion:
+                        description: 'APIVersion defines the versioned schema of this
+                          representation of an object. Servers should convert recognized
+                          schemas to the latest internal value, and may reject unrecognized
+                          values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                        type: string
+                      kind:
+                        description: 'Kind is a string value representing the REST
+                          resource this object represents. Servers may infer this
+                          from the endpoint the client submits requests to. Cannot
+                          be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      metadata:
+                        description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                        type: object
+                      spec:
+                        description: 'Spec defines the desired characteristics of
+                          a volume requested by a pod author. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                        properties:
+                          accessModes:
+                            description: 'AccessModes contains the desired access
+                              modes the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1'
+                            items:
+                              type: string
+                            type: array
+                          dataSource:
+                            description: 'This field can be used to specify either:
+                              * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot
+                              - Beta) * An existing PVC (PersistentVolumeClaim) *
+                              An existing custom resource/object that implements data
+                              population (Alpha) In order to use VolumeSnapshot object
+                              types, the appropriate feature gate must be enabled
+                              (VolumeSnapshotDataSource or AnyVolumeDataSource) If
+                              the provisioner or an external controller can support
+                              the specified data source, it will create a new volume
+                              based on the contents of the specified data source.
+                              If the specified data source is not supported, the volume
+                              will not be created and the failure will be reported
+                              as an event. In the future, we plan to support more
+                              data source types and the behavior of the provisioner
+                              may change.'
+                            properties:
+                              apiGroup:
+                                description: APIGroup is the group for the resource
+                                  being referenced. If APIGroup is not specified,
+                                  the specified Kind must be in the core API group.
+                                  For any other third-party types, APIGroup is required.
+                                type: string
+                              kind:
+                                description: Kind is the type of resource being referenced
+                                type: string
+                              name:
+                                description: Name is the name of resource being referenced
+                                type: string
+                            required:
+                            - kind
+                            - name
+                            type: object
+                          resources:
+                            description: 'Resources represents the minimum resources
+                              the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources'
+                            properties:
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: 'Limits describes the maximum amount
+                                  of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: 'Requests describes the minimum amount
+                                  of compute resources required. If Requests is omitted
+                                  for a container, it defaults to Limits if that is
+                                  explicitly specified, otherwise to an implementation-defined
+                                  value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                                type: object
+                            type: object
+                          selector:
+                            description: A label query over volumes to consider for
+                              binding.
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector
+                                  requirements. The requirements are ANDed.
+                                items:
+                                  description: A label selector requirement is a selector
+                                    that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector
+                                        applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship
+                                        to a set of values. Valid operators are In,
+                                        NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values.
+                                        If the operator is In or NotIn, the values
+                                        array must be non-empty. If the operator is
+                                        Exists or DoesNotExist, the values array must
+                                        be empty. This array is replaced during a
+                                        strategic merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - key
+                                  - operator
+                                  type: object
+                                type: array
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: matchLabels is a map of {key,value} pairs.
+                                  A single {key,value} in the matchLabels map is equivalent
+                                  to an element of matchExpressions, whose key field
+                                  is "key", the operator is "In", and the values array
+                                  contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                          storageClassName:
+                            description: 'Name of the StorageClass required by the
+                              claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1'
+                            type: string
+                          volumeMode:
+                            description: volumeMode defines what type of volume is
+                              required by the claim. Value of Filesystem is implied
+                              when not included in claim spec.
+                            type: string
+                          volumeName:
+                            description: VolumeName is the binding reference to the
+                              PersistentVolume backing this claim.
+                            type: string
+                        type: object
+                      status:
+                        description: 'Status represents the current information/status
+                          of a persistent volume claim. Read-only. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                        properties:
+                          accessModes:
+                            description: 'AccessModes contains the actual access modes
+                              the volume backing the PVC has. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1'
+                            items:
+                              type: string
+                            type: array
+                          capacity:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: Represents the actual resources of the underlying
+                              volume.
+                            type: object
+                          conditions:
+                            description: Current Condition of persistent volume claim.
+                              If underlying persistent volume is being resized then
+                              the Condition will be set to 'ResizeStarted'.
+                            items:
+                              description: PersistentVolumeClaimCondition contails
+                                details about state of pvc
+                              properties:
+                                lastProbeTime:
+                                  description: Last time we probed the condition.
+                                  format: date-time
+                                  type: string
+                                lastTransitionTime:
+                                  description: Last time the condition transitioned
+                                    from one status to another.
+                                  format: date-time
+                                  type: string
+                                message:
+                                  description: Human-readable message indicating details
+                                    about last transition.
+                                  type: string
+                                reason:
+                                  description: Unique, this should be a short, machine
+                                    understandable string that gives the reason for
+                                    condition's last transition. If it reports "ResizeStarted"
+                                    that means the underlying persistent volume is
+                                    being resized.
+                                  type: string
+                                status:
+                                  type: string
+                                type:
+                                  description: PersistentVolumeClaimConditionType
+                                    is a valid value of PersistentVolumeClaimCondition.Type
+                                  type: string
+                              required:
+                              - status
+                              - type
+                              type: object
+                            type: array
+                          phase:
+                            description: Phase represents the current phase of PersistentVolumeClaim.
+                            type: string
+                        type: object
+                    type: object
+                  type: array
               required:
               - selector
+              - serviceName
               - template
               type: object
           type: object
         status:
-          description: DeploymentGridStatus defines the observed state of DeploymentGrid
           properties:
             states:
               additionalProperties:
-                description: DeploymentStatus is the most recently observed status
-                  of the Deployment.
+                description: StatefulSetStatus represents the current state of a StatefulSet.
                 properties:
-                  availableReplicas:
-                    description: Total number of available pods (ready for at least
-                      minReadySeconds) targeted by this deployment.
-                    format: int32
-                    type: integer
                   collisionCount:
-                    description: Count of hash collisions for the Deployment. The
-                      Deployment controller uses this field as a collision avoidance
-                      mechanism when it needs to create the name for the newest ReplicaSet.
+                    description: collisionCount is the count of hash collisions for
+                      the StatefulSet. The StatefulSet controller uses this field
+                      as a collision avoidance mechanism when it needs to create the
+                      name for the newest ControllerRevision.
                     format: int32
                     type: integer
                   conditions:
                     description: Represents the latest available observations of a
-                      deployment's current state.
+                      statefulset's current state.
                     items:
-                      description: DeploymentCondition describes the state of a deployment
+                      description: StatefulSetCondition describes the state of a statefulset
                         at a certain point.
                       properties:
                         lastTransitionTime:
                           description: Last time the condition transitioned from one
                             status to another.
-                          format: date-time
-                          type: string
-                        lastUpdateTime:
-                          description: The last time this condition was updated.
                           format: date-time
                           type: string
                         message:
@@ -6252,47 +6422,54 @@ spec:
                             Unknown.
                           type: string
                         type:
-                          description: Type of deployment condition.
+                          description: Type of statefulset condition.
                           type: string
                       required:
                       - status
                       - type
                       type: object
                     type: array
+                  currentReplicas:
+                    description: currentReplicas is the number of Pods created by
+                      the StatefulSet controller from the StatefulSet version indicated
+                      by currentRevision.
+                    format: int32
+                    type: integer
+                  currentRevision:
+                    description: currentRevision, if not empty, indicates the version
+                      of the StatefulSet used to generate Pods in the sequence [0,currentReplicas).
+                    type: string
                   observedGeneration:
-                    description: The generation observed by the deployment controller.
+                    description: observedGeneration is the most recent generation
+                      observed for this StatefulSet. It corresponds to the StatefulSet's
+                      generation, which is updated on mutation by the API Server.
                     format: int64
                     type: integer
                   readyReplicas:
-                    description: Total number of ready pods targeted by this deployment.
+                    description: readyReplicas is the number of Pods created by the
+                      StatefulSet controller that have a Ready Condition.
                     format: int32
                     type: integer
                   replicas:
-                    description: Total number of non-terminated pods targeted by this
-                      deployment (their labels match the selector).
+                    description: replicas is the number of Pods created by the StatefulSet
+                      controller.
                     format: int32
                     type: integer
-                  unavailableReplicas:
-                    description: Total number of unavailable pods targeted by this
-                      deployment. This is the total number of pods that are still
-                      required for the deployment to have 100% available capacity.
-                      They may either be pods that are running but not yet available
-                      or pods that still have not been created.
-                    format: int32
-                    type: integer
+                  updateRevision:
+                    description: updateRevision, if not empty, indicates the version
+                      of the StatefulSet used to generate Pods in the sequence [replicas-updatedReplicas,replicas)
+                    type: string
                   updatedReplicas:
-                    description: Total number of non-terminated pods targeted by this
-                      deployment that have the desired template spec.
+                    description: updatedReplicas is the number of Pods created by
+                      the StatefulSet controller from the StatefulSet version indicated
+                      by updateRevision.
                     format: int32
                     type: integer
+                required:
+                - replicas
                 type: object
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "make" to regenerate code after modifying
-                this file'
               type: object
           type: object
-      required:
-      - spec
       type: object
   version: v1
   versions:

@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var ControllerKind = crdv1.SchemeGroupVersion.WithKind("ServiceGrid")
+var ControllerKind = crdv1.SchemeGroupVersion.WithKind(common.ServiceGridKind)
 
 func GetServiceName(sg *crdv1.ServiceGrid) string {
 	return strings.Join([]string{sg.Name, "svc"}, "-")
@@ -38,9 +38,20 @@ func CreateService(sg *crdv1.ServiceGrid) *corev1.Service {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetServiceName(sg),
 			Namespace: sg.Namespace,
-			Labels: map[string]string{
-				common.GridSelectorName: sg.Name,
-			},
+			// Append existed ServiceGrid labels to service to be created
+			Labels: func() map[string]string {
+				if sg.Labels != nil {
+					newLabels := sg.Labels
+					newLabels[common.GridSelectorName] = sg.Name
+					newLabels[common.GridSelectorUniqKeyName] = sg.Spec.GridUniqKey
+					return newLabels
+				} else {
+					return map[string]string{
+						common.GridSelectorName:        sg.Name,
+						common.GridSelectorUniqKeyName: sg.Spec.GridUniqKey,
+					}
+				}
+			}(),
 			Annotations: make(map[string]string),
 		},
 		Spec: sg.Spec.Template,
@@ -60,16 +71,27 @@ func constructServicePortIdentify(port *corev1.ServicePort) string {
 }
 
 func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service {
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
 	copyObj := svc.DeepCopy()
-	if copyObj.Labels == nil {
-		copyObj.Labels = make(map[string]string)
+	// Append existed ServiceGrid labels to service to be checked
+	if sg.Labels != nil {
+		copyObj.Labels = sg.Labels
+		copyObj.Labels[common.GridSelectorName] = sg.Name
+		copyObj.Labels[common.GridSelectorUniqKeyName] = sg.Spec.GridUniqKey
+	} else {
+		copyObj.Labels = map[string]string{
+			common.GridSelectorName:        sg.Name,
+			common.GridSelectorUniqKeyName: sg.Spec.GridUniqKey,
+		}
 	}
-	copyObj.Labels[common.GridSelectorName] = sg.Name
 
 	if copyObj.Annotations == nil {
 		copyObj.Annotations = make(map[string]string)
 	}
 
+	// Perform weak check for service annotations since it may update during execution
 	keys := make([]string, 1)
 	keys[0] = sg.Spec.GridUniqKey
 	keyData, _ := json.Marshal(keys)
@@ -86,6 +108,7 @@ func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service
 		}
 	}
 
+	// TODO: serviceGrid keepConsistence for more fields
 	copyObj.Spec.Selector = sg.Spec.Template.Selector
 	copyObj.Spec.Ports = sg.Spec.Template.Ports
 	if sg.Spec.Template.Type == corev1.ServiceTypeNodePort && copyObj.Spec.Type == corev1.ServiceTypeNodePort {
