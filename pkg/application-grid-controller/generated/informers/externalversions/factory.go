@@ -3,12 +3,12 @@
 package externalversions
 
 import (
-	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	reflect "reflect"
 	sync "sync"
 	time "time"
 
+	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	superedgeio "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"

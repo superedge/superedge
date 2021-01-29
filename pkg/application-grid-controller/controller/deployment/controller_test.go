@@ -42,11 +42,11 @@ import (
 )
 
 func init() {
-	flagsets := flag.NewFlagSet("test", flag.ExitOnError)
-	klog.InitFlags(flagsets)
-	_ = flagsets.Set("v", "4")
-	_ = flagsets.Set("logtostderr", "true")
-	_ = flagsets.Parse(nil)
+	flagSets := flag.NewFlagSet("test", flag.ExitOnError)
+	klog.InitFlags(flagSets)
+	_ = flagSets.Set("v", "4")
+	_ = flagSets.Set("logtostderr", "true")
+	_ = flagSets.Parse(nil)
 }
 
 type fixture struct {
@@ -57,7 +57,7 @@ type fixture struct {
 
 	// Objects to put in the store.
 	dpLister   []*appsv1.Deployment
-	dpgLister  []*crdv1.DeploymentGrid
+	dgLister   []*crdv1.DeploymentGrid
 	nodeLister []*corev1.Node
 
 	// Actions expected to happen on the client. Objects from here are also
@@ -99,13 +99,13 @@ func (f *fixture) newController() (*DeploymentGridController, informers.SharedIn
 	for _, d := range f.dpLister {
 		err := dpInformer.Informer().GetIndexer().Add(d)
 		if err != nil {
-			f.t.Errorf("Add dp err: %v", err)
+			f.t.Errorf("Add deployment err: %v", err)
 		}
 	}
-	for _, dpg := range f.dpgLister {
-		err := dpGridInformer.Informer().GetIndexer().Add(dpg)
+	for _, dg := range f.dgLister {
+		err := dpGridInformer.Informer().GetIndexer().Add(dg)
 		if err != nil {
-			f.t.Errorf("Add dpGrid err: %v", err)
+			f.t.Errorf("Add deployment grid err: %v", err)
 		}
 	}
 	for _, n := range f.nodeLister {
@@ -158,7 +158,7 @@ func (f *fixture) run_(deploymentGridName string, startInformers bool, expectErr
 	}
 
 	if len(f.actions) > len(actions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
+		f.t.Errorf("%d additional expected actions: %+v", len(f.actions)-len(actions), f.actions[len(actions):])
 	}
 }
 
@@ -181,7 +181,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 }
 
 func newDeploymentGrid(name string, replicas int, gridUniqKey string, selector map[string]string) *crdv1.DeploymentGrid {
-	dpg := &crdv1.DeploymentGrid{
+	dg := &crdv1.DeploymentGrid{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "superedge.io/v1",
 			Kind:       "DeploymentGrid",
@@ -212,7 +212,7 @@ func newDeploymentGrid(name string, replicas int, gridUniqKey string, selector m
 			},
 		},
 	}
-	return dpg
+	return dg
 }
 
 func newNode(name string, labels map[string]string) *corev1.Node {
@@ -225,7 +225,7 @@ func newNode(name string, labels map[string]string) *corev1.Node {
 	}
 }
 
-func newDeployment(dpg *crdv1.DeploymentGrid, name string) *appsv1.Deployment {
+func newDeployment(dg *crdv1.DeploymentGrid, name string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{Kind: "Deployment"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -233,11 +233,12 @@ func newDeployment(dpg *crdv1.DeploymentGrid, name string) *appsv1.Deployment {
 			UID:       uuid.NewUUID(),
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				common.GridSelectorName: dpg.Name,
+				common.GridSelectorName: dg.Name,
 			},
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dpg, util.ControllerKind)},
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(dg, util.ControllerKind)},
 		},
-		Spec: dpg.Spec.Template,
+		Spec:   dg.Spec.Template,
+		Status: appsv1.DeploymentStatus{Replicas: *dg.Spec.Template.Replicas},
 	}
 }
 
@@ -256,19 +257,58 @@ func (f *fixture) expectCreateDPAction(dp *appsv1.Deployment) {
 	f.actions = append(f.actions, core.NewCreateAction(schema.GroupVersionResource{Resource: "deployments"}, dp.Namespace, dp))
 }
 
+func (f *fixture) expectUpdateDPAction(dp *appsv1.Deployment) {
+	f.actions = append(f.actions, core.NewUpdateAction(schema.GroupVersionResource{Resource: "deployments"}, dp.Namespace, dp))
+}
+
 func TestSyncDeploymentGridCreateNoDeployment(t *testing.T) {
 	f := newFixture(t)
 
-	n := newNode("nolabel", nil)
+	n := newNode("noLabel", nil)
 	f.nodeLister = append(f.nodeLister, n)
 	f.objects = append(f.objects, n)
 
-	dpg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
-	f.dpgLister = append(f.dpgLister, dpg)
-	f.crdObjects = append(f.crdObjects, dpg)
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
 
-	f.expectUpdateDeploymentGridStatusAction(dpg)
-	f.run(testutil.GetKey(dpg, t))
+	// f.expectUpdateDeploymentGridStatusAction(dg)
+	f.run(testutil.GetKey(dg, t))
+}
+
+func TestSyncDeploymentGridStatus(t *testing.T) {
+	f := newFixture(t)
+
+	nodes := []*corev1.Node{
+		newNode("zone-1", map[string]string{"zone": "1"}),
+		newNode("zone-2", map[string]string{"zone": "2"}),
+		newNode("zone-3", map[string]string{"zone": "3"}),
+	}
+
+	for _, n := range nodes {
+		f.nodeLister = append(f.nodeLister, n)
+		f.objects = append(f.objects, n)
+	}
+
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
+
+	existedDps := []*appsv1.Deployment{
+		newDeployment(dg, "foo-1"),
+		newDeployment(dg, "foo-2"),
+		newDeployment(dg, "foo-3"),
+	}
+	for _, dp := range existedDps {
+		f.dpLister = append(f.dpLister, dp)
+		f.objects = append(f.objects, dp)
+	}
+
+	f.expectUpdateDPAction(newDeployment(dg, "foo-1"))
+	f.expectUpdateDPAction(newDeployment(dg, "foo-2"))
+	f.expectUpdateDPAction(newDeployment(dg, "foo-3"))
+	f.expectUpdateDeploymentGridStatusAction(dg)
+	f.run(testutil.GetKey(dg, t))
 }
 
 func TestSyncDeploymentGridCreateDeployment(t *testing.T) {
@@ -285,55 +325,56 @@ func TestSyncDeploymentGridCreateDeployment(t *testing.T) {
 		f.objects = append(f.objects, n)
 	}
 
-	dpg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
-	f.dpgLister = append(f.dpgLister, dpg)
-	f.crdObjects = append(f.crdObjects, dpg)
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
 
-	f.expectCreateDPAction(newDeployment(dpg, "foo-1"))
-	f.expectCreateDPAction(newDeployment(dpg, "foo-2"))
-	f.expectCreateDPAction(newDeployment(dpg, "foo-3"))
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
 
-	f.expectUpdateDeploymentGridStatusAction(dpg)
+	f.expectCreateDPAction(newDeployment(dg, "foo-1"))
+	f.expectCreateDPAction(newDeployment(dg, "foo-2"))
+	f.expectCreateDPAction(newDeployment(dg, "foo-3"))
 
-	f.run(testutil.GetKey(dpg, t))
+	// f.expectUpdateDeploymentGridStatusAction(dg)
+
+	f.run(testutil.GetKey(dg, t))
 }
 
 func TestSyncDeploymentGridDeletionRace(t *testing.T) {
 	f := newFixture(t)
 
-	dpg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
-	dpg2 := *dpg
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
+	dg2 := *dg
 	// Lister (cache) says NOT deleted.
-	f.dpgLister = append(f.dpgLister, dpg)
+	f.dgLister = append(f.dgLister, dg)
 
-	// Bare client says it IS deleted. This should be presumed more up-to-date.
+	// Bare client says it is deleted. This should be presumed more up-to-date.
 	now := metav1.Now()
-	dpg2.DeletionTimestamp = &now
-	f.crdObjects = append(f.crdObjects, &dpg2)
+	dg2.DeletionTimestamp = &now
+	f.crdObjects = append(f.crdObjects, &dg2)
 
 	// The recheck is only triggered if a matching orphan exists.
-	dp := newDeployment(dpg, "zone-1")
+	dp := newDeployment(dg, "zone-1")
 	dp.OwnerReferences = nil
 	f.objects = append(f.objects, dp)
 	f.dpLister = append(f.dpLister, dp)
 
 	// Expect to only recheck DeletionTimestamp.
-	f.expectGetDeploymentGridAction(dpg)
+	f.expectGetDeploymentGridAction(dg)
 	// Sync should fail and requeue to let cache catch up.
 	// Don't start informers, since we don't want cache to catch up for this test.
-	f.runExpectError(testutil.GetKey(dpg, t), false)
+	f.runExpectError(testutil.GetKey(dg, t), false)
 }
 
 func TestDontSyncDeploymentGridWithEmptyGridUniqKey(t *testing.T) {
 	f := newFixture(t)
 
-	dpg := newDeploymentGrid("foo", 1, "", map[string]string{"foo": "bar"})
-	f.dpgLister = append(f.dpgLister, dpg)
-	f.crdObjects = append(f.crdObjects, dpg)
+	dg := newDeploymentGrid("foo", 1, "", map[string]string{"foo": "bar"})
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
 
 	// Normally there should be a status update but the fake deployment grid
 	// has gridUniqKey set so there is no action happening here.
-	f.run(testutil.GetKey(dpg, t))
+	f.run(testutil.GetKey(dg, t))
 }
 
 func TestDeploymentDeletionEnqueuesRecreateDeployment(t *testing.T) {
@@ -350,14 +391,14 @@ func TestDeploymentDeletionEnqueuesRecreateDeployment(t *testing.T) {
 		f.objects = append(f.objects, n)
 	}
 
-	dpg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
-	f.dpgLister = append(f.dpgLister, dpg)
-	f.crdObjects = append(f.crdObjects, dpg)
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
 
 	existedDps := []*appsv1.Deployment{
-		newDeployment(dpg, "foo-1"),
-		newDeployment(dpg, "foo-2"),
-		newDeployment(dpg, "foo-3"),
+		newDeployment(dg, "foo-1"),
+		newDeployment(dg, "foo-2"),
+		newDeployment(dg, "foo-3"),
 	}
 	f.dpLister = append(f.dpLister, existedDps...)
 
@@ -372,7 +413,7 @@ func TestDeploymentDeletionEnqueuesRecreateDeployment(t *testing.T) {
 	c.deleteDeployment(existedDps[0])
 
 	if !enqueued {
-		t.Errorf("expected deployment grid %q to be queued after deployment deletion", dpg.Name)
+		t.Errorf("expected deployment grid %q to be queued after deployment deletion", dg.Name)
 		return
 	}
 }
@@ -391,14 +432,14 @@ func TestGetDeploymentsForDeploymentGrid(t *testing.T) {
 		f.objects = append(f.objects, n)
 	}
 
-	dpg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
-	f.dpgLister = append(f.dpgLister, dpg)
-	f.crdObjects = append(f.crdObjects, dpg)
+	dg := newDeploymentGrid("foo", 1, "zone", map[string]string{"foo": "bar"})
+	f.dgLister = append(f.dgLister, dg)
+	f.crdObjects = append(f.crdObjects, dg)
 
 	existedDps := []*appsv1.Deployment{
-		newDeployment(dpg, "foo-1"),
-		newDeployment(dpg, "foo-2"),
-		newDeployment(dpg, "foo-3"),
+		newDeployment(dg, "foo-1"),
+		newDeployment(dg, "foo-2"),
+		newDeployment(dg, "foo-3"),
 	}
 	f.dpLister = append(f.dpLister, existedDps...)
 
@@ -407,9 +448,9 @@ func TestGetDeploymentsForDeploymentGrid(t *testing.T) {
 	defer close(stopCh)
 	coreInformer.Start(stopCh)
 
-	dpList, err := c.getDeploymentForGrid(dpg)
+	dpList, err := c.getDeploymentForGrid(dg)
 	if err != nil {
-		t.Errorf("getDeploymentForGrid() %v", err)
+		t.Errorf("getDeploymentForGrid error %v", err)
 		return
 	}
 
@@ -420,7 +461,7 @@ func TestGetDeploymentsForDeploymentGrid(t *testing.T) {
 
 	for _, dp := range existedDps {
 		if !nameSets.Has(dp.Name) {
-			t.Errorf("can't find %s", dp.Name)
+			t.Errorf("can't find deployment %s", dp.Name)
 			return
 		}
 	}
@@ -440,24 +481,24 @@ func TestUpdateDeploymentChangeControllerRef(t *testing.T) {
 		f.objects = append(f.objects, n)
 	}
 
-	dpg1 := newDeploymentGrid("foo", 1, "zone", nil)
-	dpg2 := newDeploymentGrid("bar", 1, "zone", nil)
+	dg1 := newDeploymentGrid("foo", 1, "zone", nil)
+	dg2 := newDeploymentGrid("bar", 1, "zone", nil)
 
-	dp := newDeployment(dpg1, "foo-1")
+	dp := newDeployment(dg1, "foo-1")
 
-	f.dpgLister = append(f.dpgLister, dpg1, dpg2)
+	f.dgLister = append(f.dgLister, dg1, dg2)
 	f.dpLister = append(f.dpLister, dp)
 	f.objects = append(f.objects, dp)
-	f.crdObjects = append(f.crdObjects, dpg1, dpg2)
+	f.crdObjects = append(f.crdObjects, dg1, dg2)
 
 	// Create the fixture but don't start it,
 	// so nothing happens in the background.
 	c, _, _ := f.newController()
 	// Change ControllerRef and expect both old and new to queue.
-	prev := *dp
-	prev.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(dpg2, util.ControllerKind)}
-	next := *dp
-	c.updateDeployment(&prev, &next)
+	old := *dp
+	old.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(dg2, util.ControllerKind)}
+	new := *dp
+	c.updateDeployment(&old, &new)
 	if got, want := c.queue.Len(), 2; got != want {
 		t.Fatalf("queue.Len() = %v, want %v", got, want)
 	}
@@ -477,26 +518,28 @@ func TestUpdateDeploymentOrphanWithNewLabels(t *testing.T) {
 		f.objects = append(f.objects, n)
 	}
 
-	dpg1 := newDeploymentGrid("foo", 1, "zone", nil)
-	dpg2 := newDeploymentGrid("bar", 1, "zone", nil)
+	dg1 := newDeploymentGrid("foo", 1, "zone", nil)
+	dg2 := newDeploymentGrid("bar", 1, "zone", nil)
 
-	dp := newDeployment(dpg1, "foo-1")
+	dp := newDeployment(dg1, "foo-1")
 	dp.OwnerReferences = nil
 
-	f.dpgLister = append(f.dpgLister, dpg1, dpg2)
+	f.dgLister = append(f.dgLister, dg1, dg2)
 	f.dpLister = append(f.dpLister, dp)
 	f.objects = append(f.objects, dp)
-	f.crdObjects = append(f.crdObjects, dpg1, dpg2)
+	f.crdObjects = append(f.crdObjects, dg1, dg2)
 
 	// Create the fixture but don't start it,
 	// so nothing happens in the background.
 	c, _, _ := f.newController()
 	// Change ControllerRef and expect both old and new to queue.
-	prev := *dp
-	prev.Labels = map[string]string{common.GridSelectorName: "nobar"}
-	next := *dp
-	c.updateDeployment(&prev, &next)
+	old := *dp
+	old.Labels = map[string]string{common.GridSelectorName: "nobar"}
+	new := *dp
+	c.updateDeployment(&old, &new)
 	if got, want := c.queue.Len(), 1; got != want {
 		t.Fatalf("queue.Len() = %v, want %v", got, want)
 	}
 }
+
+// TODO: add more test scenarios

@@ -20,9 +20,15 @@ import (
 	"context"
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/application-grid-controller/app/options"
+	superedge "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io"
 	"github.com/superedge/superedge/pkg/application-grid-controller/config"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment"
+	deploymentutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service"
+	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
+	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
@@ -133,34 +139,41 @@ func NewGridControllerManagerCommand() *cobra.Command {
 func runController(parent context.Context,
 	apiextensionClient *apiextclientset.Clientset, kubeClient *clientset.Clientset, crdClient *crdClientset.Clientset,
 	workerNum, syncPeriod int) {
-	crdP := prepare.NewCRDPreparator(apiextensionClient)
 
-	/* create crd, wait for crd ready
-	 */
-	if err := crdP.Prepare(schema.GroupVersionKind{
-		Group:   "superedge.io",
-		Version: "v1",
-		Kind:    "DeploymentGrid",
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel()
+
+	// Create and wait for CRDs ready
+	crdP := prepare.NewCRDPreparator(apiextensionClient)
+	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    deploymentutil.ControllerKind.Kind,
 	}, schema.GroupVersionKind{
-		Group:   "superedge.io",
-		Version: "v1",
-		Kind:    "ServiceGrid",
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    statefulsetutil.ControllerKind.Kind,
+	}, schema.GroupVersionKind{
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    serviceutil.ControllerKind.Kind,
 	}); err != nil {
-		klog.Fatalf("can't create crds: %v", err)
+		klog.Fatalf("Create and wait for CRDs ready failed: %v", err)
 	}
 
 	controllerConfig := config.NewControllerConfig(crdClient, kubeClient, time.Second*time.Duration(syncPeriod))
 	deploymentGridController := deployment.NewDeploymentGridController(
 		controllerConfig.DeploymentGridInformer, controllerConfig.DeploymentInformer, controllerConfig.NodeInformer,
 		kubeClient, crdClient)
+	statefulSetGridController := statefulset.NewStatefulSetGridController(
+		controllerConfig.StatefulSetGridInformer, controllerConfig.StatefulSetInformer, controllerConfig.NodeInformer,
+		kubeClient, crdClient)
 	serviceGridController := service.NewServiceGridController(controllerConfig.ServiceGridInformer, controllerConfig.ServiceInformer,
 		kubeClient, crdClient)
 
-	ctx, cancel := context.WithCancel(parent)
-	defer cancel()
-
 	controllerConfig.Run(ctx.Done())
 	go deploymentGridController.Run(workerNum, ctx.Done())
+	go statefulSetGridController.Run(workerNum, ctx.Done())
 	go serviceGridController.Run(workerNum, ctx.Done())
 	<-ctx.Done()
 }
