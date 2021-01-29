@@ -19,6 +19,7 @@ package controller
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,7 +87,7 @@ func (ssgdc *StatefulSetGridDaemonController) deleteStatefulSet(obj interface{})
 func (ssgdc *StatefulSetGridDaemonController) IsConcernedStatefulSet(set *appsv1.StatefulSet) (bool, error) {
 	// Check statefulset controllerRef
 	controllerRef := metav1.GetControllerOf(set)
-	if controllerRef == nil || controllerRef.Kind != common.StatefulSetGridKind {
+	if controllerRef == nil || controllerRef.Kind != util.ControllerKind.Kind {
 		// Never care about statefulset orphans
 		return false, nil
 	}

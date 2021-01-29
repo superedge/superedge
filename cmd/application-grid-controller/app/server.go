@@ -1,12 +1,9 @@
 /*
 Copyright 2020 The SuperEdge Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,10 +19,13 @@ import (
 	"github.com/superedge/superedge/cmd/application-grid-controller/app/options"
 	superedge "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io"
 	"github.com/superedge/superedge/pkg/application-grid-controller/config"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment"
+	deploymentutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service"
+	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
+	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
@@ -136,21 +136,24 @@ func NewGridControllerManagerCommand() *cobra.Command {
 func runController(parent context.Context,
 	apiextensionClient *apiextclientset.Clientset, kubeClient *clientset.Clientset, crdClient *crdClientset.Clientset,
 	workerNum, syncPeriod int) {
-	crdP := prepare.NewCRDPreparator(apiextensionClient)
+
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel()
 
 	// Create and wait for CRDs ready
-	if err := crdP.Prepare(schema.GroupVersionKind{
+	crdP := prepare.NewCRDPreparator(apiextensionClient)
+	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.DeploymentGridKind,
+		Kind:    deploymentutil.ControllerKind.Kind,
 	}, schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.StatefulSetGridKind,
+		Kind:    statefulsetutil.ControllerKind.Kind,
 	}, schema.GroupVersionKind{
 		Group:   superedge.GroupName,
 		Version: superedge.Version,
-		Kind:    common.ServiceGridKind,
+		Kind:    serviceutil.ControllerKind.Kind,
 	}); err != nil {
 		klog.Fatalf("Create and wait for CRDs ready failed: %v", err)
 	}
@@ -164,9 +167,6 @@ func runController(parent context.Context,
 		kubeClient, crdClient)
 	serviceGridController := service.NewServiceGridController(controllerConfig.ServiceGridInformer, controllerConfig.ServiceInformer,
 		kubeClient, crdClient)
-
-	ctx, cancel := context.WithCancel(parent)
-	defer cancel()
 
 	controllerConfig.Run(ctx.Done())
 	go deploymentGridController.Run(workerNum, ctx.Done())

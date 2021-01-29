@@ -39,10 +39,19 @@ For installation, deployment, and administration, see our [**Tutorial**](docs/in
 
 ## Contact
 For any question or support, feel free to contact us via:
-- [mailing list](https://groups.google.com/g/superedge)
-- Slack：[superedge-community](https://join.slack.com/t/superedge-workspace/shared_invite/zt-k1kekpdz-jih6w8RByoylnfTmCTZpkA)
+- [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
+- [Discussion Forum](https://groups.google.com/g/superedge)
+- WeChat Group
+
+<div align="center">
+  <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
+</div>
+
+
+## Contributing
+Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge
 
 ## License
 
-[**LICENSE**](./LICENSE)
+[**Apache License 2.0**](./LICENSE)
 

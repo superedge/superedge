@@ -13,6 +13,8 @@ spec:
     listKind: DeploymentGridList
     plural: deploymentgrids
     singular: deploymentgrid
+    shortNames:
+    - dg
   scope: Namespaced
   subresources:
     status: {}
