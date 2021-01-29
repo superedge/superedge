@@ -13,6 +13,8 @@ spec:
     listKind: ServiceGridList
     plural: servicegrids
     singular: servicegrid
+    shortNames:
+    - sg
   scope: Namespaced
   subresources:
     status: {}
