@@ -17,7 +17,9 @@ limitations under the License.
 package proxy
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"net"
 	"net/http"
@@ -160,13 +162,23 @@ func (p *EdgeReverseProxy) newTransport() *EdgeTransport {
 	return &EdgeTransport{tr}
 }
 
-func (p *EdgeReverseProxy) modifyResponse(res *http.Response) error {
+func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 	if !p.needCache {
 		return nil
 	}
 
 	// cache response data
-	p.writeCache(NewEdgeResponseDataHolder(res))
+	dupReader, pipeReader := NewDupReadCloser(resp.Body)
+
+	go func(header http.Header, statusCode int, pipeReader io.ReadCloser) {
+		err := p.writeCache(header, statusCode, pipeReader)
+		if err != nil && err != io.EOF {
+			klog.Errorf("Write cache %s error: %v", p.key(), err)
+		}
+	}(resp.Header, resp.StatusCode, pipeReader)
+
+	resp.Body = dupReader
+
 	return nil
 }
 
@@ -273,15 +285,37 @@ func (p *EdgeReverseProxy) readCache() (*EdgeResponseDataHolder, error) {
 	return res, nil
 }
 
-func (p *EdgeReverseProxy) writeCache(r *EdgeResponseDataHolder) {
-	bodyBytes, err := r.Output()
+func (p *EdgeReverseProxy) writeCache(header http.Header, statusCode int, pipeReader io.ReadCloser) error {
+	var buf bytes.Buffer
+	n, err := buf.ReadFrom(pipeReader)
+	if err != nil {
+		klog.Errorf("Failed to get cache response, %v", err)
+		return err
+	}
+
+	klog.V(4).Infof("Cache %d bytes from response for %s", n, p.key())
+
+	if n == 0 {
+		return nil
+	}
+
+	holder := &EdgeResponseDataHolder{
+		Code:   statusCode,
+		Body:   buf.Bytes(),
+		Header: header,
+	}
+	bodyBytes, err := holder.Output()
 	if err != nil {
 		klog.Errorf("Write cache marshal %s error: %v", p.key(), err)
+		return err
 	}
 	err = p.storage.Store(p.key(), bodyBytes)
 	if err != nil {
 		klog.Errorf("Write cache %s error: %v", p.key(), err)
+		return err
 	}
+
+	return nil
 }
 
 func getRequestProperties(r *http.Request) (isList bool, isWatch bool, needCache bool) {
