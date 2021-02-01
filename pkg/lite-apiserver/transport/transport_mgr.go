@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"io/ioutil"
+	"k8s.io/client-go/util/connrotation"
 	"k8s.io/klog"
 	"net"
 	"net/http"
@@ -37,18 +38,27 @@ type TransportManager struct {
 	caFile       string
 	rootCertPool *x509.CertPool
 
-	defaultTransport *http.Transport
+	timeout int
+
+	certChannel      <-chan string
+	transportChannel chan<- string
+
+	defaultTransport *EdgeTransport
 
 	transportMapLock sync.RWMutex
-	transportMap     map[string]*http.Transport
+	transportMap     map[string]*EdgeTransport
 }
 
-func NewTransportManager(config *config.LiteServerConfig, certManager *cert.CertManager) *TransportManager {
+func NewTransportManager(config *config.LiteServerConfig, certManager *cert.CertManager,
+	certChannel <-chan string, transportChannel chan<- string) *TransportManager {
 	return &TransportManager{
-		config:       config,
-		certManager:  certManager,
-		caFile:       config.ApiserverCAFile,
-		transportMap: make(map[string]*http.Transport),
+		config:           config,
+		certManager:      certManager,
+		caFile:           config.ApiserverCAFile,
+		timeout:          config.BackendTimeout,
+		certChannel:      certChannel,
+		transportChannel: transportChannel,
+		transportMap:     make(map[string]*EdgeTransport),
 	}
 }
 
@@ -61,7 +71,7 @@ func (tm *TransportManager) Init() error {
 	tm.rootCertPool = rootCertPool
 
 	// init default transport
-	tm.defaultTransport = makeTransport(&tls.Config{RootCAs: tm.rootCertPool})
+	tm.defaultTransport = makeTransport(&tls.Config{RootCAs: tm.rootCertPool}, tm.timeout)
 
 	// init transportMap
 	for commonName, _ := range tm.certManager.GetCertMap() {
@@ -70,40 +80,68 @@ func (tm *TransportManager) Init() error {
 			klog.Errorf("make tls config error, commonName=%s: %v", commonName, err)
 			continue
 		}
-		tm.updateTransport(commonName, makeTransport(tlsConfig))
+		tm.updateTransport(commonName, makeTransport(tlsConfig, tm.timeout))
 	}
 
 	return nil
 }
 
 func (tm *TransportManager) Start() {
-	// add new cert to create transport
+	go func() {
+		for {
+			select {
+			case commonName := <-tm.certChannel:
+				// add new cert to create transport
+				klog.Infof("receive cert update %s", commonName)
 
-	// inform handler to create new EdgeReverseProxy
+				tm.transportMapLock.RLock()
+				old, ok := tm.transportMap[commonName]
+				tm.transportMapLock.RUnlock()
+
+				if !ok {
+					// new cert
+					klog.Infof("receive cert %s update", commonName)
+					tlsConfig, err := tm.makeTlsConfig(commonName)
+					if err != nil {
+						klog.Errorf("make tls config error, commonName=%s: %v", commonName, err)
+						break
+					}
+					tm.updateTransport(commonName, makeTransport(tlsConfig, tm.timeout))
+
+					// inform handler to create new EdgeReverseProxy
+					tm.transportChannel <- commonName
+				} else {
+					// cert rotation
+					klog.Infof("cert %s rotated, close old connections", commonName)
+					old.d.CloseAll()
+				}
+			}
+		}
+	}()
 }
 
-func (tm *TransportManager) GetTransport(name string) *http.Transport {
-	if len(name) == 0 {
+func (tm *TransportManager) GetTransport(commonName string) *EdgeTransport {
+	if len(commonName) == 0 {
 		return tm.defaultTransport
 	}
 
 	tm.transportMapLock.RLock()
 	defer tm.transportMapLock.RUnlock()
-	t, e := tm.transportMap[name]
-	if !e {
+	t, ok := tm.transportMap[commonName]
+	if !ok {
 		return tm.defaultTransport
 	}
 
 	return t
 }
 
-func (tm *TransportManager) GetTransportMap() map[string]*http.Transport {
+func (tm *TransportManager) GetTransportMap() map[string]*EdgeTransport {
 	tm.transportMapLock.RLock()
 	defer tm.transportMapLock.RUnlock()
 	return tm.transportMap
 }
 
-func (tm *TransportManager) updateTransport(commonName string, transport *http.Transport) {
+func (tm *TransportManager) updateTransport(commonName string, transport *EdgeTransport) {
 	tm.transportMapLock.Lock()
 	defer tm.transportMapLock.Unlock()
 	tm.transportMap[commonName] = transport
@@ -116,10 +154,13 @@ func (tm *TransportManager) makeTlsConfig(commonName string) (*tls.Config, error
 	}
 
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		klog.V(6).Infof("get cert for %s", commonName)
 		currentCert := tm.certManager.GetCert(commonName)
 		if currentCert == nil {
+			klog.Warningf("cert for %s is nil, use default", commonName)
 			return &tls.Certificate{Certificate: nil}, nil
 		}
+		klog.V(6).Infof("cert for %s is %+v", commonName, currentCert.Leaf)
 		return currentCert, nil
 	}
 
@@ -143,18 +184,26 @@ func getRootCertPool(caFile string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func makeTransport(tlsClientConfig *tls.Config) *http.Transport {
-	// TODO enable http2 if using go1.15
-	return &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       tlsClientConfig,
+func makeTransport(tlsClientConfig *tls.Config, timeout int) *EdgeTransport {
+	if timeout == 0 {
+		timeout = 30
+	}
+
+	d := connrotation.NewDialer((&net.Dialer{
+		Timeout:   time.Duration(timeout) * time.Second,
+		KeepAlive: 30 * time.Second}).DialContext)
+
+	return &EdgeTransport{
+		d: d,
+		// TODO enable http2 if using go1.15
+		Transport: &http.Transport{
+			DialContext:           d.DialContext,
+			Proxy:                 http.ProxyFromEnvironment,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig:       tlsClientConfig,
+		},
 	}
 }

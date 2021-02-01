@@ -37,7 +37,9 @@ type holder struct {
 	request    *http.Request
 	syncTime   time.Duration
 	recordTime time.Time
-	lifeCycle  time.Duration
+
+	peerDuration   time.Duration
+	expireDuration time.Duration
 
 	ticker *time.Ticker
 
@@ -53,15 +55,19 @@ func newHolder(r *http.Request, key string, syncTime time.Duration, ch chan<- *h
 		recordTime: time.Now(),
 		requestCh:  ch,
 		stopCh:     make(chan struct{}),
-		lifeCycle:  30 * time.Second,
+
+		peerDuration:   30 * time.Second,
+		expireDuration: 10 * time.Minute,
 	}
 	return h
 }
 
 func (h *holder) start() {
 	if h.isStart {
+		h.recordTime = time.Now()
 		return
 	}
+
 	klog.V(2).Infof("Start holder %s", h.key)
 	h.isStart = true
 	h.ticker = time.NewTicker(h.syncTime)
@@ -73,6 +79,7 @@ func (h *holder) close() {
 	if !h.isStart {
 		return
 	}
+
 	h.isStart = false
 	h.recordTime = time.Now()
 	h.stopCh <- struct{}{}
@@ -92,7 +99,11 @@ func (h *holder) run() {
 }
 
 func (h *holder) expired() bool {
-	return !h.isStart && time.Now().After(h.recordTime.Add(h.lifeCycle))
+	if h.isStart {
+		return time.Now().After(h.recordTime.Add(h.expireDuration))
+	} else {
+		return time.Now().After(h.recordTime.Add(h.peerDuration))
+	}
 }
 
 // RequestCacheController caches all 'get request' and 'watch request' info
@@ -139,7 +150,6 @@ func (c *RequestCacheController) Run(stopCh <-chan struct{}) {
 // doRequest sends list resource request to lite-apiserver and thus syncs list resource response cache
 func (c *RequestCacheController) doRequest(r *http.Request) {
 	var commonName string
-	var tr *http.Transport
 	if r.TLS != nil {
 		for _, cert := range r.TLS.PeerCertificates {
 			if !cert.IsCA {
@@ -149,9 +159,9 @@ func (c *RequestCacheController) doRequest(r *http.Request) {
 		}
 	}
 
-	tr = c.transportManager.GetTransport(commonName)
+	tr := c.transportManager.GetTransport(commonName)
 	client := http.Client{
-		Transport: tr,
+		Transport: tr.Transport,
 	}
 
 	newReq, err := http.NewRequest(r.Method, fmt.Sprintf("%s%s", c.url, r.URL.String()), bytes.NewReader([]byte{}))
@@ -166,6 +176,7 @@ func (c *RequestCacheController) doRequest(r *http.Request) {
 	resp, err := client.Do(newReq)
 	if err != nil {
 		klog.Errorf("auto update request do err %v", err)
+		return
 	}
 	defer func() {
 		if resp != nil {
@@ -192,6 +203,7 @@ func (c *RequestCacheController) runGC(stopCh <-chan struct{}) {
 				if _, e := c.watchRequestMap[k]; !e {
 					if h.expired() {
 						klog.Infof("request key %s, url %s has expired, delete it", k, h.request.URL.Path)
+						h.close()
 						delete(c.listRequestMap, k)
 					}
 				}

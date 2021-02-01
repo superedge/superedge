@@ -20,7 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/server"
+	"k8s.io/klog"
 	"net/http"
+	"sync"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
@@ -29,19 +31,22 @@ import (
 
 // EdgeServerHandler is the real handler for each request
 type EdgeServerHandler struct {
-	timeout int
-
-	// transportManager is to transportManager all cert declared in config, and gen correct transport
-	transportManager *transport.TransportManager
-
-	// the default proxy
-	defaultProxy *EdgeReverseProxy
-	// proxy with client tls cert
-	reverseProxyMap map[string]*EdgeReverseProxy
 
 	// apiserverInfo is used to proxy to.
 	apiserverUrl  string
 	apiserverPort int
+
+	// transportManager is to transportManager all cert declared in config, and gen correct transport
+	transportManager *transport.TransportManager
+
+	transportChannel <-chan string
+
+	// the default proxy
+	defaultProxy *EdgeReverseProxy
+
+	proxyMapLock sync.RWMutex
+	// proxy with client tls cert
+	reverseProxyMap map[string]*EdgeReverseProxy
 
 	// storage is to store/load history data
 	storage storage.Storage
@@ -51,30 +56,55 @@ type EdgeServerHandler struct {
 	cacher *RequestCacheController
 }
 
-func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *transport.TransportManager, cacher *RequestCacheController) (http.Handler, error) {
+func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *transport.TransportManager,
+	cacher *RequestCacheController, transportChannel <-chan string) (http.Handler, error) {
 	h := &EdgeServerHandler{
 		apiserverUrl:     config.KubeApiserverUrl,
 		apiserverPort:    config.KubeApiserverPort,
 		transportManager: transportManager,
+		transportChannel: transportChannel,
 		reverseProxyMap:  make(map[string]*EdgeReverseProxy),
 		storage:          storage.NewFileStorage(config),
 		cacher:           cacher,
-		timeout:          config.BackendTimeout,
 	}
 
+	// init proxy
 	h.initProxies()
+
+	// start to handle new proxy
+	h.start()
 
 	return h.buildHandlerChain(h), nil
 }
 
 func (h *EdgeServerHandler) initProxies() {
-	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
+	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
 
-	for commonName, transport := range h.transportManager.GetTransportMap() {
-		proxy := NewEdgeReverseProxy(transport, h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
+	h.proxyMapLock.Lock()
+	defer h.proxyMapLock.Unlock()
+	for commonName, t := range h.transportManager.GetTransportMap() {
+		proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
 		h.reverseProxyMap[commonName] = proxy
 	}
 
+}
+
+func (h *EdgeServerHandler) start() {
+	go func() {
+		for {
+			select {
+			case commonName := <-h.transportChannel:
+				// receive new transport to create EdgeReverseProxy
+				klog.Infof("receive new transport %s", commonName)
+				t := h.transportManager.GetTransport(commonName)
+				proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
+
+				h.proxyMapLock.Lock()
+				h.reverseProxyMap[commonName] = proxy
+				h.proxyMapLock.Unlock()
+			}
+		}
+	}()
 }
 
 func (h *EdgeServerHandler) buildHandlerChain(handler http.Handler) http.Handler {
@@ -106,6 +136,8 @@ func (h *EdgeServerHandler) getEdgeReverseProxy(commonName string) *EdgeReverseP
 		return h.defaultProxy
 	}
 
+	h.proxyMapLock.RLock()
+	defer h.proxyMapLock.RUnlock()
 	proxy, e := h.reverseProxyMap[commonName]
 	if !e {
 		return h.defaultProxy

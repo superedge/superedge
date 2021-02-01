@@ -36,14 +36,17 @@ type CertManager struct {
 
 	fastReload bool
 
+	certChannel chan<- string
+
 	certMapLock sync.RWMutex
 	certMap     map[string]*tls.Certificate
 }
 
-func NewCertManager(config *config.LiteServerConfig) *CertManager {
+func NewCertManager(config *config.LiteServerConfig, certChannel chan<- string) *CertManager {
 	return &CertManager{
-		tlsConfig: config.TLSConfig,
-		certMap:   make(map[string]*tls.Certificate),
+		tlsConfig:   config.TLSConfig,
+		certChannel: certChannel,
+		certMap:     make(map[string]*tls.Certificate),
 	}
 }
 
@@ -96,25 +99,26 @@ func (cm *CertManager) Start() {
 						// new cert
 						klog.Infof("add new cert CN=%s cert=%s, key=%s", commonName, cert, key)
 						cm.updateCert(commonName, tlsCert)
+
 						// inform to create new transport
-						// TODO
+						cm.certChannel <- commonName
 					} else {
 						// check cert changed
 						if !oldCert.Leaf.NotAfter.Equal(tlsCert.Leaf.NotAfter) {
 							// update cert
 							klog.Infof("update cert CN=%s cert=%s, key=%s", commonName, cert, key)
 							cm.updateCert(commonName, tlsCert)
+
+							// inform to update transport
+							cm.certChannel <- commonName
 						}
 					}
 				}
 			}
-			klog.Infof("timer 3")
 
 			// reset timer
 			cm.fastReload = fastReload
-			klog.Infof("timer 4")
 			t.Reset(cm.getReloadDuration())
-			klog.Infof("timer 5")
 		}
 	}()
 }

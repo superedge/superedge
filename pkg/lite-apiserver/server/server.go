@@ -52,8 +52,11 @@ func CreateServer(serverOptions *options.ServerRunOptions, stopCh <-chan struct{
 
 func (s *LiteServer) Run() error {
 
+	certChannel := make(chan string, 10)
+	transportChannel := make(chan string, 10)
+
 	// init cert manager
-	certManager := cert.NewCertManager(s.ServerConfig)
+	certManager := cert.NewCertManager(s.ServerConfig, certChannel)
 	err := certManager.Init()
 	if err != nil {
 		klog.Errorf("Init certManager error: %v", err)
@@ -62,17 +65,18 @@ func (s *LiteServer) Run() error {
 	certManager.Start()
 
 	// init transport manager
-	transportManager := transport.NewTransportManager(s.ServerConfig, certManager)
+	transportManager := transport.NewTransportManager(s.ServerConfig, certManager, certChannel, transportChannel)
 	err = transportManager.Init()
 	if err != nil {
 		klog.Errorf("Init transportManager error: %v", err)
 		return err
 	}
+	transportManager.Start()
 
 	cacher := proxy.NewRequestCacheController(s.ServerConfig, transportManager)
 	go cacher.Run(s.stopCh)
 
-	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, transportManager, cacher)
+	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, transportManager, cacher, transportChannel)
 	if err != nil {
 		klog.Errorf("Create edgeServerHandler error: %v", err)
 		return err
