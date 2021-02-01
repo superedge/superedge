@@ -22,17 +22,17 @@ import (
 	"k8s.io/apiserver/pkg/server"
 	"net/http"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
+	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 )
 
 // EdgeServerHandler is the real handler for each request
 type EdgeServerHandler struct {
 	timeout int
 
-	// certManager is to certManager all cert declared in config, and gen correct transport
-	certManager *cert.CertManager
+	// transportManager is to transportManager all cert declared in config, and gen correct transport
+	transportManager *transport.TransportManager
 
 	// the default proxy
 	defaultProxy *EdgeReverseProxy
@@ -51,15 +51,15 @@ type EdgeServerHandler struct {
 	cacher *RequestCacheController
 }
 
-func NewEdgeServerHandler(config *config.LiteServerConfig, certManager *cert.CertManager, cacher *RequestCacheController) (http.Handler, error) {
+func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *transport.TransportManager, cacher *RequestCacheController) (http.Handler, error) {
 	h := &EdgeServerHandler{
-		apiserverUrl:    config.KubeApiserverUrl,
-		apiserverPort:   config.KubeApiserverPort,
-		certManager:     certManager,
-		reverseProxyMap: make(map[string]*EdgeReverseProxy),
-		storage:         storage.NewFileStorage(config),
-		cacher:          cacher,
-		timeout:         config.BackendTimeout,
+		apiserverUrl:     config.KubeApiserverUrl,
+		apiserverPort:    config.KubeApiserverPort,
+		transportManager: transportManager,
+		reverseProxyMap:  make(map[string]*EdgeReverseProxy),
+		storage:          storage.NewFileStorage(config),
+		cacher:           cacher,
+		timeout:          config.BackendTimeout,
 	}
 
 	h.initProxies()
@@ -68,9 +68,9 @@ func NewEdgeServerHandler(config *config.LiteServerConfig, certManager *cert.Cer
 }
 
 func (h *EdgeServerHandler) initProxies() {
-	h.defaultProxy = NewEdgeReverseProxy(h.certManager.DefaultTransport(), h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
+	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
 
-	for commonName, transport := range h.certManager.GetTransportMap() {
+	for commonName, transport := range h.transportManager.GetTransportMap() {
 		proxy := NewEdgeReverseProxy(transport, h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
 		h.reverseProxyMap[commonName] = proxy
 	}

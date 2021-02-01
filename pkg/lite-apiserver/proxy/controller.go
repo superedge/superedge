@@ -27,8 +27,8 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 )
 
 type holder struct {
@@ -105,17 +105,17 @@ type RequestCacheController struct {
 
 	lock sync.Mutex
 
-	requestCh   chan *http.Request
-	certManager *cert.CertManager
+	requestCh        chan *http.Request
+	transportManager *transport.TransportManager
 }
 
-func NewRequestCacheController(config *config.LiteServerConfig, certManager *cert.CertManager) *RequestCacheController {
+func NewRequestCacheController(config *config.LiteServerConfig, transportManager *transport.TransportManager) *RequestCacheController {
 	c := &RequestCacheController{
-		listRequestMap:  make(map[string]*holder),
-		watchRequestMap: make(map[string]*http.Request),
-		syncTime:        config.SyncDuration,
-		url:             fmt.Sprintf("https://127.0.0.1:%d", config.Port),
-		certManager:     certManager,
+		listRequestMap:   make(map[string]*holder),
+		watchRequestMap:  make(map[string]*http.Request),
+		syncTime:         config.SyncDuration,
+		url:              fmt.Sprintf("https://127.0.0.1:%d", config.Port),
+		transportManager: transportManager,
 	}
 	c.requestCh = make(chan *http.Request, 100)
 	return c
@@ -149,7 +149,7 @@ func (c *RequestCacheController) doRequest(r *http.Request) {
 		}
 	}
 
-	tr = c.certManager.GetTransport(commonName)
+	tr = c.transportManager.GetTransport(commonName)
 	client := http.Client{
 		Transport: tr,
 	}

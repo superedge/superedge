@@ -29,12 +29,12 @@ type RunServerOptions struct {
 	KubeApiserverUrl  string
 	KubeApiserverPort int
 	Port              int
-	InsecurePort      int
 	SyncDuration      int
 	BackendTimeout    int
 	CAFile            string
 	CertFile          string
 	KeyFile           string
+	ApiserverCAFile   string
 	FileCachePath     string
 }
 
@@ -50,10 +50,15 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.KubeApiserverUrl = s.KubeApiserverUrl
 	c.KubeApiserverPort = s.KubeApiserverPort
 	c.Port = s.Port
-	c.InsecurePort = s.InsecurePort
 	c.SyncDuration = time.Duration(s.SyncDuration) * time.Second
 	c.FileCachePath = s.FileCachePath
 	c.BackendTimeout = s.BackendTimeout
+
+	if len(s.ApiserverCAFile) > 0 {
+		c.ApiserverCAFile = s.ApiserverCAFile
+	} else {
+		c.ApiserverCAFile = s.CAFile
+	}
 
 	return nil
 }
@@ -96,12 +101,12 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.CAFile, "ca-file", "", "")
 	fs.StringVar(&s.CertFile, "tls-cert-file", "", "")
 	fs.StringVar(&s.KeyFile, "tls-private-key-file", "", "")
+	fs.StringVar(&s.ApiserverCAFile, "apiserver-ca-file", "", "")
 
 	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "")
 	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "")
 
 	fs.IntVar(&s.Port, "port", 51003, "")
-	fs.IntVar(&s.InsecurePort, "insecure-port", 0, "")
 	fs.IntVar(&s.SyncDuration, "sync-duration", 60, "self sync data time(second)")
 	fs.IntVar(&s.BackendTimeout, "timeout", 30, "timeout for proxy to backend")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for storage")

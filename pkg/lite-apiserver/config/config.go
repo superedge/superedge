@@ -20,19 +20,27 @@ import "time"
 
 type LiteServerConfig struct {
 	// lite-server default ca path for kubernetes apiserver
-	CAFile   string
+	// CAFile defines the certificate authority
+	// that servers use if required to verify a client certificate(e.g. kubelet, kube-proxy).
+	// the same with client-ca-file of kube-apiserver
+	CAFile string
+	// CertFile the tls cert file for lite-apiserver's https server
 	CertFile string
-	KeyFile  string
+	// KeyFile  the tls key file for lite-apiserver's https server
+	KeyFile string
+
+	// ApiserverCAFile used to verify kube-apiserver server tls.
+	// use CAFile if ApiserverCAFile is not assigned.
+	ApiserverCAFile string
 
 	KubeApiserverUrl  string
 	KubeApiserverPort int
 
+	// Port the https port of lite-apiserver
 	Port int
-	// if insecure port not 0, will open http debug server
-	// if 0, close
-	InsecurePort int
 
-	// timeout for proxy to backend. if <=0, use default timeout
+	// BackendTimeout timeout for the request from lite-apiserver to kube-apiserver.
+	// if <=0, use default timeout
 	BackendTimeout int
 
 	TLSConfig []TLSKeyPair

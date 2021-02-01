@@ -25,9 +25,10 @@ import (
 	"net/http"
 
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
-	edgetls "github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/proxy"
+	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 
 	"k8s.io/klog"
 )
@@ -51,18 +52,27 @@ func CreateServer(serverOptions *options.ServerRunOptions, stopCh <-chan struct{
 
 func (s *LiteServer) Run() error {
 
-	// prepare tls manager
-	certManager := edgetls.NewCertManager(s.ServerConfig)
+	// init cert manager
+	certManager := cert.NewCertManager(s.ServerConfig)
 	err := certManager.Init()
 	if err != nil {
 		klog.Errorf("Init certManager error: %v", err)
 		return err
 	}
+	certManager.Start()
 
-	cacher := proxy.NewRequestCacheController(s.ServerConfig, certManager)
+	// init transport manager
+	transportManager := transport.NewTransportManager(s.ServerConfig, certManager)
+	err = transportManager.Init()
+	if err != nil {
+		klog.Errorf("Init transportManager error: %v", err)
+		return err
+	}
+
+	cacher := proxy.NewRequestCacheController(s.ServerConfig, transportManager)
 	go cacher.Run(s.stopCh)
 
-	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, certManager, cacher)
+	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, transportManager, cacher)
 	if err != nil {
 		klog.Errorf("Create edgeServerHandler error: %v", err)
 		return err
@@ -93,11 +103,6 @@ func (s *LiteServer) Run() error {
 		klog.Fatal(ser.ListenAndServeTLS(s.ServerConfig.CertFile, s.ServerConfig.KeyFile))
 	}()
 
-	//select {
-	//case <-s.stopCh:
-	//	klog.Info("Received a program exit signal")
-	//	return nil
-	//}
 	<-s.stopCh
 	klog.Info("Received a program exit signal")
 	return nil
