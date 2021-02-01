@@ -203,7 +203,7 @@ func (ssgdc *StatefulSetGridDaemonController) needClearStatefulSetDomains(set *a
 	// Check existence of statefulset relevant service
 	svc, err := ssgdc.svcLister.Services(set.Namespace).Get(set.Spec.ServiceName)
 	if errors.IsNotFound(err) {
-		klog.V(2).Infof("StatefulSet %v relevant service %s has been deleted", set.Name, set.Spec.ServiceName)
+		klog.V(2).Infof("StatefulSet %v relevant service %s not found", set.Name, set.Spec.ServiceName)
 		return true, nil
 	}
 	if err != nil {
