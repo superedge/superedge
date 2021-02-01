@@ -143,7 +143,7 @@ func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer,
 	return ssgdc
 }
 
-func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan struct{}) {
+func (ssgdc *StatefulSetGridDaemonController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer ssgdc.queue.ShutDown()
 
@@ -160,7 +160,7 @@ func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan str
 	}
 
 	// sync dns hosts as a whole
-	go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Minute, stopCh)
+	go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Duration(syncPeriodAsWhole)*time.Second, stopCh)
 	<-stopCh
 }
 

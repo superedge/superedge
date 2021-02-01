@@ -33,13 +33,14 @@ const (
 )
 
 type Options struct {
-	Master       string
-	Kubeconfig   string
-	QPS          float32
-	Burst        int
-	FeatureGates map[string]bool
-	SyncPeriod   int
-	Worker       int
+	Master            string
+	Kubeconfig        string
+	QPS               float32
+	Burst             int
+	FeatureGates      map[string]bool
+	SyncPeriod        int
+	SyncPeriodAsWhole int
+	Worker            int
 	config.LeaderElectionConfiguration
 	HostName string
 	HostPath string
@@ -51,10 +52,11 @@ func NewStatefulsetGridDaemonOptions() *Options {
 	featureGates["EndpointSlice"] = true
 
 	return &Options{
-		QPS:        float32(1000),
-		Burst:      1000,
-		SyncPeriod: 30,
-		Worker:     runtime.NumCPU(),
+		QPS:               float32(1000),
+		Burst:             1000,
+		SyncPeriod:        30,
+		SyncPeriodAsWhole: 30,
+		Worker:            runtime.NumCPU(),
 		LeaderElectionConfiguration: config.LeaderElectionConfiguration{
 			ResourceName:      StatefulSetGridDaemonUserAgent,
 			ResourceNamespace: metav1.NamespaceSystem,
@@ -76,6 +78,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.Var(cliflag.NewMapStringBool(&o.FeatureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultMutableFeatureGate.KnownFeatures(), "\n"))
 	fs.IntVar(&o.SyncPeriod, "sync-period", o.SyncPeriod, "Period for syncing the objects")
+	fs.IntVar(&o.SyncPeriodAsWhole, "sync-period-as-whole", o.SyncPeriodAsWhole, "Period for syncing the dns hosts as whole")
 	fs.IntVar(&o.Worker, "worker", o.Worker, "worker number of controller")
 
 	fs.BoolVar(&o.LeaderElect, "leader-elect", o.LeaderElect, ""+
