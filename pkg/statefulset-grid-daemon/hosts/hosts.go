@@ -21,17 +21,14 @@ import (
 	"io/ioutil"
 	"k8s.io/klog"
 	"net"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 )
 
-var suffix = []string{
-	".svc",
-	".svc.cluster",
-	".svc.cluster.local",
-}
+var suffix = ".svc.cluster.local"
 
 type Hosts struct {
 	hostPath string
@@ -49,42 +46,39 @@ func NewHosts(HostPath string) *Hosts {
 func (h *Hosts) LoadHosts() (map[string]string, error) {
 	h.Lock()
 	defer h.Unlock()
-	hostsFileContent, err := ioutil.ReadFile(h.hostPath)
-	if err != nil {
+	if hostsFileContent, err := ioutil.ReadFile(h.hostPath); err == nil {
+		for _, line := range strings.Split(strings.Trim(string(hostsFileContent), " \t\r\n"), "\n") {
+			line = strings.Replace(strings.Trim(line, " \t"), "\t", " ", -1)
+			if len(line) == 0 || line[0] == ';' || line[0] == '#' {
+				continue
+			}
+			pieces := strings.SplitN(line, " ", 2)
+			if len(pieces) != 2 || net.ParseIP(pieces[0]) == nil {
+				continue
+			}
+			if domains := strings.Fields(pieces[1]); len(domains) == 1 {
+				h.hostsMap[pieces[1]] = pieces[0]
+			}
+		}
+	} else if os.IsNotExist(err) {
+		f, err := os.Create(h.hostPath)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		h.hostsMap = map[string]string{}
+	} else {
 		return nil, err
-	}
-	for _, line := range strings.Split(strings.Trim(string(hostsFileContent), " \t\r\n"), "\n") {
-		line = strings.Replace(strings.Trim(line, " \t"), "\t", " ", -1)
-		if len(line) == 0 || line[0] == ';' || line[0] == '#' {
-			continue
-		}
-		pieces := strings.SplitN(line, " ", 2)
-		if len(pieces) != 2 || net.ParseIP(pieces[0]) == nil {
-			continue
-		}
-		if domains := strings.Fields(pieces[1]); len(domains) > 1 {
-			h.hostsMap[pieces[1]] = pieces[0]
-		}
 	}
 	return h.hostsMap, nil
 }
 
 func AppendDomainSuffix(domain, ns string) string {
-	originalDomain := domain + "." + ns
-	domainsStr := domain + " " + originalDomain
-	for _, suf := range suffix {
-		domainsStr = domainsStr + " " + originalDomain + suf
-	}
-	return domainsStr
+	return domain + "." + ns + suffix
 }
 
 func (h *Hosts) isMatchDomain(domain, ns, ssgName, svcName string) bool {
-	domains := strings.Fields(domain)
-	if len(domains) < 2 {
-		klog.V(4).Infof("Invalid dns hosts domains %v", domains)
-		return false
-	}
-	match, _ := regexp.MatchString(ssgName+"-"+`[0-9]+`+`\.`+svcName+`\.`+ns, domains[1])
+	match, _ := regexp.MatchString(ssgName+"-"+`[0-9]+`+`\.`+svcName+`\.`+ns+suffix, domain)
 	return match
 }
 
