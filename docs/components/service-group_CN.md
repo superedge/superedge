@@ -109,7 +109,7 @@ spec:
 
 如果同一个集群中有多个ServiceGroup请为每一个ServiceGroup分配不同的UniqKey
 
-## 无状态服务ServiceGroup
+## 无状态ServiceGroup
 
 ### 部署DeploymentGrid
 
@@ -212,7 +212,7 @@ servicegrid-demo-svc   ClusterIP   172.19.0.177   <none>        80/TCP    80s
 
 另外，对于部署了DeploymentGrid和ServiceGrid后才添加进集群的节点组，该功能会在新的节点组内自动创建指定的deployment
 
-## 有状态服务ServiceGroup
+## 有状态ServiceGroup
 
 ### 部署StatefulSetGrid
 
@@ -262,7 +262,7 @@ spec:
           resources: {}
 ```
 
-注意：template中的serviceName设置成即将创建的service名称
+**注意：template中的serviceName设置成即将创建的service名称**
 
 ### 部署ServiceGrid
 
@@ -314,6 +314,8 @@ servicegrid-demo-svc   ClusterIP   192.168.21.99   <none>        80/TCP    21h
         node name:      node2
 ...
 ```
+
+**注意：在各NodeUnit内通过service访问本组服务时，对应clusterIP不能设置成None，暂不支持此种情况下的闭环访问**
 
 除了采用service访问statefulset负载，StatefulSetGrid还支持使用headless service的方式进行访问，如下所示：
 

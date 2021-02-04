@@ -276,7 +276,7 @@ spec:
           resources: {}
 ```
 
-Note that the serviceName field of statefulset template should be set to service to be created.
+**Note that the serviceName field of statefulset template should be set to service to be created.**
 
 ### Deploy ServiceGrid
 
@@ -330,6 +330,8 @@ servicegrid-demo-svc   ClusterIP   192.168.21.99   <none>        80/TCP    21h
         node name:      node2
 ...
 ```
+
+**Node that the clusterIP field of service must not be 'None' when accessing statefulset by service since it is not currently supported by StatefulSetGrid.**
 
 In addition to the normal service, StatefulSetGrid also provides headless service access as below:
 
