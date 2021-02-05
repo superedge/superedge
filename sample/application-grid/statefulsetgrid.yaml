@@ -1,22 +1,22 @@
 apiVersion: superedge.io/v1
-kind: DeploymentGrid
+kind: StatefulSetGrid
 metadata:
-  name: deploymentgrid-demo
+  name: statefulsetgrid-demo
   namespace: default
 spec:
   gridUniqKey: zone
   template:
-    replicas: 2
     selector:
       matchLabels:
         appGrid: echo
-    strategy: {}
+    serviceName: "servicegrid-demo-svc"
+    replicas: 3
     template:
       metadata:
-        creationTimestamp: null
         labels:
           appGrid: echo
       spec:
+        terminationGracePeriodSeconds: 10
         containers:
           - image: superedge/echoserver:2.2
             name: echo

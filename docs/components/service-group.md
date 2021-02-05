@@ -331,7 +331,7 @@ servicegrid-demo-svc   ClusterIP   192.168.21.99   <none>        80/TCP    21h
 ...
 ```
 
-**Node that the clusterIP field of service must not be 'None' when accessing statefulset by service since it is not currently supported by StatefulSetGrid.**
+**Note that the clusterIP field of service must not be 'None' when accessing statefulset by service since it is not currently supported by StatefulSetGrid.**
 
 In addition to the normal service, StatefulSetGrid also provides headless service access as below:
 
