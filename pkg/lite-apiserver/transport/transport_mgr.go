@@ -135,6 +135,7 @@ func (tm *TransportManager) GetTransport(commonName string) *EdgeTransport {
 	defer tm.transportMapLock.RUnlock()
 	t, ok := tm.transportMap[commonName]
 	if !ok {
+		klog.V(4).Infof("couldn't get transport for %s, use default transport", commonName)
 		return tm.defaultTransport
 	}
 

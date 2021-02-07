@@ -78,11 +78,13 @@ func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *tra
 }
 
 func (h *EdgeServerHandler) initProxies() {
+	klog.Infof("init default proxy")
 	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
 
 	h.proxyMapLock.Lock()
 	defer h.proxyMapLock.Unlock()
 	for commonName, t := range h.transportManager.GetTransportMap() {
+		klog.Infof("init proxy for %s", commonName)
 		proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
 		h.reverseProxyMap[commonName] = proxy
 	}
@@ -97,6 +99,8 @@ func (h *EdgeServerHandler) start() {
 				// receive new transport to create EdgeReverseProxy
 				klog.Infof("receive new transport %s", commonName)
 				t := h.transportManager.GetTransport(commonName)
+
+				klog.Infof("add new proxy for %s", commonName)
 				proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
 
 				h.proxyMapLock.Lock()
@@ -140,6 +144,7 @@ func (h *EdgeServerHandler) getEdgeReverseProxy(commonName string) *EdgeReverseP
 	defer h.proxyMapLock.RUnlock()
 	proxy, e := h.reverseProxyMap[commonName]
 	if !e {
+		klog.V(4).Infof("couldn't get proxy for %s, use default proxy", commonName)
 		return h.defaultProxy
 	}
 	return proxy
