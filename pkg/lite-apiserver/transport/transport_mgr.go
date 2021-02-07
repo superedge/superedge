@@ -20,15 +20,21 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"io/ioutil"
-	"k8s.io/client-go/util/connrotation"
-	"k8s.io/klog"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"k8s.io/client-go/util/connrotation"
+	"k8s.io/klog"
+)
+
+const (
+	DefaultTimeout   = 10
+	DefaultKeepAlive = 30
 )
 
 type TransportManager struct {
@@ -129,6 +135,7 @@ func (tm *TransportManager) GetTransport(commonName string) *EdgeTransport {
 	defer tm.transportMapLock.RUnlock()
 	t, ok := tm.transportMap[commonName]
 	if !ok {
+		klog.V(4).Infof("couldn't get transport for %s, use default transport", commonName)
 		return tm.defaultTransport
 	}
 
@@ -186,16 +193,17 @@ func getRootCertPool(caFile string) (*x509.CertPool, error) {
 
 func makeTransport(tlsClientConfig *tls.Config, timeout int) *EdgeTransport {
 	if timeout == 0 {
-		timeout = 30
+		timeout = DefaultTimeout
 	}
 
 	d := connrotation.NewDialer((&net.Dialer{
 		Timeout:   time.Duration(timeout) * time.Second,
-		KeepAlive: 30 * time.Second}).DialContext)
+		KeepAlive: DefaultKeepAlive * time.Second}).DialContext)
 
 	return &EdgeTransport{
 		d: d,
 		// TODO enable http2 if using go1.15
+		// the params are same with http.DefaultTransport
 		Transport: &http.Transport{
 			DialContext:           d.DialContext,
 			Proxy:                 http.ProxyFromEnvironment,

@@ -98,15 +98,15 @@ func (s *RunServerOptions) Validate() []error {
 func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	// Note: the weird ""+ in below lines seems to be the only way to get gofmt to
 	// arrange these text blocks sensibly.
-	fs.StringVar(&s.CAFile, "ca-file", "", "")
-	fs.StringVar(&s.CertFile, "tls-cert-file", "", "")
-	fs.StringVar(&s.KeyFile, "tls-private-key-file", "", "")
-	fs.StringVar(&s.ApiserverCAFile, "apiserver-ca-file", "", "")
+	fs.StringVar(&s.CAFile, "ca-file", "", "the CA that lite-apiserver used to verify a client certificate")
+	fs.StringVar(&s.CertFile, "tls-cert-file", "", "the tls cert of lite-apiserver")
+	fs.StringVar(&s.KeyFile, "tls-private-key-file", "", "the tls key of lite-apiserver")
+	fs.StringVar(&s.ApiserverCAFile, "apiserver-ca-file", "", "the CA used to verify kube-apiserver server tls")
 
-	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "")
-	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "")
+	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "the host of kube-apiserver")
+	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
-	fs.IntVar(&s.Port, "port", 51003, "")
+	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
 	fs.IntVar(&s.SyncDuration, "sync-duration", 60, "self sync data time(second)")
 	fs.IntVar(&s.BackendTimeout, "timeout", 30, "timeout for proxy to backend")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for storage")

@@ -19,9 +19,11 @@ package proxy
 import (
 	"fmt"
 	"io"
+
+	"net/http"
+
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
-	"net/http"
 )
 
 func CopyHeader(dst, src http.Header) {

@@ -20,10 +20,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
-	"k8s.io/klog"
 	"sync"
 	"time"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"k8s.io/klog"
 )
 
 const (
@@ -92,27 +93,7 @@ func (cm *CertManager) Start() {
 						continue
 					}
 
-					cm.certMapLock.RLock()
-					oldCert, ok := cm.certMap[commonName]
-					cm.certMapLock.RUnlock()
-					if !ok {
-						// new cert
-						klog.Infof("add new cert CN=%s cert=%s, key=%s", commonName, cert, key)
-						cm.updateCert(commonName, tlsCert)
-
-						// inform to create new transport
-						cm.certChannel <- commonName
-					} else {
-						// check cert changed
-						if !oldCert.Leaf.NotAfter.Equal(tlsCert.Leaf.NotAfter) {
-							// update cert
-							klog.Infof("update cert CN=%s cert=%s, key=%s", commonName, cert, key)
-							cm.updateCert(commonName, tlsCert)
-
-							// inform to update transport
-							cm.certChannel <- commonName
-						}
-					}
+					cm.handleCertUpdate(tlsCert, commonName, cert, key)
 				}
 			}
 
@@ -121,6 +102,30 @@ func (cm *CertManager) Start() {
 			t.Reset(cm.getReloadDuration())
 		}
 	}()
+}
+
+func (cm *CertManager) handleCertUpdate(tlsCert *tls.Certificate, commonName string, cert, key string) {
+	cm.certMapLock.RLock()
+	oldCert, ok := cm.certMap[commonName]
+	cm.certMapLock.RUnlock()
+	if !ok {
+		// new cert
+		klog.Infof("add new cert CN=%s cert=%s, key=%s", commonName, cert, key)
+		cm.updateCert(commonName, tlsCert)
+
+		// inform to create new transport
+		cm.certChannel <- commonName
+	} else {
+		// check cert changed
+		if !oldCert.Leaf.NotAfter.Equal(tlsCert.Leaf.NotAfter) {
+			// update cert
+			klog.Infof("update cert CN=%s cert=%s, key=%s", commonName, cert, key)
+			cm.updateCert(commonName, tlsCert)
+
+			// inform to update transport
+			cm.certChannel <- commonName
+		}
+	}
 }
 
 func (cm *CertManager) GetCert(commonName string) *tls.Certificate {

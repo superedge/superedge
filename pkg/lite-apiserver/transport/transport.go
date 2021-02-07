@@ -17,8 +17,9 @@ limitations under the License.
 package transport
 
 import (
-	"k8s.io/client-go/util/connrotation"
 	"net/http"
+
+	"k8s.io/client-go/util/connrotation"
 )
 
 type EdgeTransport struct {
