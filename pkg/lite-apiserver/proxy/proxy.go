@@ -83,21 +83,14 @@ func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, 
 }
 
 func (p *EdgeReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	isList, isWatch := getRequestVerb(r)
+	dump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	klog.V(4).Infof("Dump request: %q", dump)
 
 	userAgent := getUserAgent(r)
-
-	selfUpdate := false
-	val := r.Header.Get(EdgeUpdateHeader)
-	if len(val) != 0 {
-		selfUpdate = true
-		klog.V(4).Infof("Receive self update request, url->%s, time %s", r.URL.String(), val)
-		r.Header.Del(EdgeUpdateHeader)
-	}
-
-	if (isList || isWatch) && !selfUpdate {
-		p.cacher.AddRequest(r, userAgent, isList, isWatch)
-	}
 
 	klog.V(2).Infof("New request: userAgent->%s, method->%s, url->%s", userAgent, r.Method, r.URL.String())
 
@@ -116,13 +109,19 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 		return nil
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
+	dump, err := httputil.DumpResponse(resp, false)
+	if err != nil {
 		return nil
 	}
+	klog.V(4).Infof("Dump response: %q", dump)
 
 	isNeedCache := needCache(resp.Request)
 	if !isNeedCache {
+		return nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
 		return nil
 	}
 
@@ -267,9 +266,12 @@ func (p *EdgeReverseProxy) writeCache(req *http.Request, header http.Header, sta
 		return nil
 	}
 
+	b := buf.Bytes()
+	klog.V(9).Infof("Dump response body: %s", string(b))
+
 	holder := &EdgeResponseDataHolder{
 		Code:   statusCode,
-		Body:   buf.Bytes(),
+		Body:   b,
 		Header: header,
 	}
 	bodyBytes, err := holder.Output()
@@ -308,7 +310,7 @@ func needCache(r *http.Request) (needCache bool) {
 		// only cache resource request
 		if info.IsResourceRequest {
 			needCache = true
-			if info.Verb == VerbWatch || r.Method != http.MethodGet {
+			if r.Method != http.MethodGet {
 				needCache = false
 			} else if info.Subresource == "log" {
 				// do not cache logs

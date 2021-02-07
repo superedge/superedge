@@ -108,6 +108,8 @@ func (h *EdgeServerHandler) start() {
 }
 
 func (h *EdgeServerHandler) buildHandlerChain(handler http.Handler) http.Handler {
+	handler = WithRequestAccept(handler)
+
 	cfg := &server.Config{
 		LegacyAPIGroupPrefixes: sets.NewString(server.DefaultLegacyAPIPrefix),
 	}

@@ -19,6 +19,7 @@ package proxy
 import (
 	"fmt"
 	"io"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 	"net/http"
 )
@@ -30,6 +31,22 @@ func CopyHeader(dst, src http.Header) {
 			dst.Add(k, v)
 		}
 	}
+}
+
+// WithRequestAccept delete Accept header is set, application/json will be used
+func WithRequestAccept(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodGet {
+			if info, ok := apirequest.RequestInfoFrom(req.Context()); ok {
+				if info.IsResourceRequest {
+					req.Header.Del("Accept")
+				}
+			} else {
+				klog.Errorf("!!!not ok!!!")
+			}
+		}
+		handler.ServeHTTP(w, req)
+	})
 }
 
 // NewDupReadCloser create an dupReadCloser object
