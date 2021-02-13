@@ -5,7 +5,7 @@ labels: kind/bug
 
 ---
 
-<!-- Please use this template while reporting a bug and provide as much info as possible. Thanks!-->
+<!-- Please use this template while reporting a bug and provide as much info as possible. Thanks! -->
 
 **What happened**:
 
@@ -18,8 +18,8 @@ labels: kind/bug
 **Environment**:
 - SuperEdge version:
 - Kubernetes version (use `kubectl version`):
-- OS (e.g: `cat /etc/os-release`):
+- OS (e.g. `cat /etc/os-release`):
 - Kernel (e.g. `uname -a`):
 - Hardware configuration (e.g. `lscpu`)
-- Go Version (e.g: `go version`)
+- Go Version (e.g. `go version`)
 - Others:

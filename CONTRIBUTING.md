@@ -1,4 +1,5 @@
 # How to contribute
+
 Welcome to SuperEdge!
 
 ## Code of Conduct
@@ -33,6 +34,7 @@ This is a rough outline of what a contributor's workflow looks like:
 Thanks for contributing!
 
 ### Preparation
+
 - ***FORK*** [SuperEdge](https://github.com/superedge/superedge) repository. The `Fork` button is in the top right corner of [superedge](https://github.com/superedge/superedge) home page.
 - ***CLONE*** repository. `git clone https://github.com/<yourname>/superedge.git`
 - ***SET REMOTE***.
