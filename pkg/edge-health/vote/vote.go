@@ -57,11 +57,14 @@ func (v *VoteEdge) Vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubeclient clientset.Interface, localIp string, stopCh <-chan struct{}) {
 	var (
 		prosVoteIpList, consVoteIpList []string
-		vp                             votePair
+		// Init votePair since cannot assign to struct field voteCountMap[checkedIp].pros in map
+		vp votePair
 	)
 	voteCountMap := make(map[string]votePair) // {"127.0.0.1":{"pros":1,"cons":2}}
 	copyCheckInfo := edgeHealthMetadata.CopyAll()
-	voteThreshold := (len(copyCheckInfo) + 1) / 2
+	// Note that voteThreshold should be calculated by checked instead of checker
+	// since checked represents the total valid edge health nodes while checker may contain partly ones.
+	voteThreshold := (edgeHealthMetadata.GetCheckedIpLen() + 1) / 2
 	for _, checkedDetails := range copyCheckInfo {
 		for checkedIp, checkedDetail := range checkedDetails {
 			if !time.Now().After(checkedDetail.Time.Add(time.Duration(v.VoteTimeout) * time.Second)) {

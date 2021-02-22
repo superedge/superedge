@@ -87,6 +87,12 @@ func (cm *CheckMetadata) DeleteCheckPluginScore(checkedIp string) {
 	delete(cm.CheckPluginScoreInfo, checkedIp)
 }
 
+func (cm *CheckMetadata) GetCheckedIpLen() int {
+	cm.RLock()
+	defer cm.RUnlock()
+	return len(cm.CheckPluginScoreInfo)
+}
+
 // CheckInfo relevant functions
 func (cm *CheckMetadata) SetByCommunInfo(c CommunInfo) {
 	cm.Lock()
