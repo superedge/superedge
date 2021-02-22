@@ -88,7 +88,7 @@ func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForNode(node *corev1
 	if err != nil {
 		return nil
 	}
-	setList, err := ssgdc.setLister.StatefulSets("").List(selector)
+	setList, err := ssgdc.setLister.List(selector)
 	if err != nil {
 		return nil
 	}
