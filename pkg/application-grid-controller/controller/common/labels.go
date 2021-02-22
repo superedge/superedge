@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/validation"
 	corelisters "k8s.io/client-go/listers/core/v1"
 )
 
@@ -34,9 +35,13 @@ const (
 
 func GetDefaultSelector(val string) (labels.Selector, error) {
 	labelSelector := labels.NewSelector()
+	if errList := validation.IsValidLabelValue(val); errList != nil {
+		return labelSelector, fmt.Errorf("Invalid label value %s err %v", val, errList)
+	}
+
 	dpRequirement, err := labels.NewRequirement(GridSelectorName, selection.Equals, []string{val})
 	if err != nil {
-		return nil, err
+		return labelSelector, err
 	}
 	return labelSelector.Add(*dpRequirement), nil
 }
@@ -51,24 +56,27 @@ func IsConcernedObject(objMeta metav1.ObjectMeta) bool {
 }
 
 func GetNodesSelector(nodes ...*corev1.Node) (labels.Selector, error) {
+	labelSelector := labels.NewSelector()
 	valueList := make([]string, 0)
 	seen := make(map[string]struct{})
 	for _, node := range nodes {
 		for key := range node.Labels {
 			if _, exist := seen[key]; !exist {
 				seen[key] = struct{}{}
+				if errList := validation.IsValidLabelValue(key); errList != nil {
+					continue
+				}
 				valueList = append(valueList, key)
 			}
 		}
 	}
 	if len(valueList) == 0 {
-		return nil, fmt.Errorf("empty labels for nodes %#v", nodes)
+		return labelSelector, nil
 	}
 	requirement, err := labels.NewRequirement(GridSelectorUniqKeyName, selection.In, valueList)
 	if err != nil {
-		return nil, err
+		return labelSelector, err
 	}
-	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*requirement)
 	return labelSelector, nil
 }
@@ -86,7 +94,7 @@ func GetGridValuesFromNode(nodeLister corelisters.NodeLister, gridUniqKey string
 		return nil, err
 	}
 
-	values := make([]string, 0)
+	var values []string
 	for _, n := range nodes {
 		if gridVal := n.Labels[gridUniqKey]; gridVal != "" {
 			values = append(values, gridVal)

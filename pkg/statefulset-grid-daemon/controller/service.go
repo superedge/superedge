@@ -39,7 +39,6 @@ func (ssgdc *StatefulSetGridDaemonController) addService(obj interface{}) {
 		ssgdc.deleteService(svc)
 		return
 	}
-
 	setList := ssgdc.getStatefulSetForService(svc)
 	for _, set := range setList {
 		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
@@ -58,6 +57,7 @@ func (ssgdc *StatefulSetGridDaemonController) updateService(oldObj, newObj inter
 		// Two different versions of the same Service will always have different RVs.
 		return
 	}
+
 	labelChanged := !reflect.DeepEqual(curSvc.Labels, oldSvc.Labels)
 	if labelChanged {
 		if _, exist := oldSvc.Labels[common.GridSelectorUniqKeyName]; exist {
@@ -66,19 +66,21 @@ func (ssgdc *StatefulSetGridDaemonController) updateService(oldObj, newObj inter
 				if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
 					continue
 				}
-				klog.V(4).Infof("Service %s(its relevant statefulset %s) updated.", oldSvc.Name, set.Name)
+				klog.V(4).Infof("Service %s(its old relevant statefulset %s) updated.", oldSvc.Name, set.Name)
 				ssgdc.enqueueStatefulSet(set)
 			}
 		}
-		if _, exist := curSvc.Labels[common.GridSelectorUniqKeyName]; exist {
-			setList := ssgdc.getStatefulSetForService(curSvc)
-			for _, set := range setList {
-				if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
-					continue
-				}
-				klog.V(4).Infof("Service %s(its relevant statefulset %s) updated.", curSvc.Name, set.Name)
-				ssgdc.enqueueStatefulSet(set)
+	}
+
+	// If it has a ControllerRef, that's all that matters.
+	if _, exist := curSvc.Labels[common.GridSelectorUniqKeyName]; exist {
+		setList := ssgdc.getStatefulSetForService(curSvc)
+		for _, set := range setList {
+			if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+				continue
 			}
+			klog.V(4).Infof("Service %s(its new relevant statefulset %s) updated.", curSvc.Name, set.Name)
+			ssgdc.enqueueStatefulSet(set)
 		}
 	}
 	return
@@ -110,29 +112,35 @@ func (ssgdc *StatefulSetGridDaemonController) deleteService(obj interface{}) {
 
 func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForService(svc *corev1.Service) []*appv1.StatefulSet {
 	if svc.Labels == nil {
+		klog.V(4).Infof("Service %s no labels.", svc.Name)
 		return nil
 	}
 	controllerName, found := svc.Labels[common.GridSelectorName]
 	if !found {
+		klog.V(4).Infof("Service %s no GridSelectorName label.", svc.Name)
 		return nil
 	}
 	controllerRef := metav1.GetControllerOf(svc)
 	if controllerRef == nil || controllerRef.Name != controllerName || controllerRef.Kind != util.ControllerKind.Kind {
+		klog.V(4).Infof("Service %s no correct controller ownerReferences %v.", svc.Name, controllerRef)
 		return nil
 	}
 	gridSelectorUniqKey, found := svc.Labels[common.GridSelectorUniqKeyName]
 	if !found {
+		klog.V(4).Infof("Service %s no GridSelectorUniqKeyName label.", svc.Name)
 		return nil
 	}
 	requirement, err := labels.NewRequirement(common.GridSelectorUniqKeyName, selection.Equals, []string{gridSelectorUniqKey})
 	if err != nil {
+		klog.V(4).Infof("Service %s new labels requirement err %v.", svc.Name, err)
 		return nil
 	}
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*requirement)
+
 	setList, err := ssgdc.setLister.StatefulSets(svc.Namespace).List(labelSelector)
 	if err != nil {
-		klog.V(4).Infof("List service err %v", err)
+		klog.V(4).Infof("List statefulset err %v", err)
 		return nil
 	}
 	var targetSetList []*appv1.StatefulSet

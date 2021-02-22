@@ -19,17 +19,16 @@ package hosts
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/klog"
 	"net"
+	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 )
 
-var suffix = []string{
-	".svc",
-	".svc.cluster",
-	".svc.cluster.local",
-}
+var suffix = ".svc.cluster.local"
 
 type Hosts struct {
 	hostPath string
@@ -47,70 +46,77 @@ func NewHosts(HostPath string) *Hosts {
 func (h *Hosts) LoadHosts() (map[string]string, error) {
 	h.Lock()
 	defer h.Unlock()
-	hostsFileContent, err := ioutil.ReadFile(h.hostPath)
-	if err != nil {
+	if hostsFileContent, err := ioutil.ReadFile(h.hostPath); err == nil {
+		for _, line := range strings.Split(strings.Trim(string(hostsFileContent), " \t\r\n"), "\n") {
+			line = strings.Replace(strings.Trim(line, " \t"), "\t", " ", -1)
+			if len(line) == 0 || line[0] == ';' || line[0] == '#' {
+				continue
+			}
+			pieces := strings.SplitN(line, " ", 2)
+			if len(pieces) != 2 || net.ParseIP(pieces[0]) == nil {
+				continue
+			}
+			if domains := strings.Fields(pieces[1]); len(domains) == 1 {
+				h.hostsMap[pieces[1]] = pieces[0]
+			}
+		}
+	} else if os.IsNotExist(err) {
+		f, err := os.Create(h.hostPath)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		h.hostsMap = map[string]string{}
+	} else {
 		return nil, err
-	}
-	for _, line := range strings.Split(strings.Trim(string(hostsFileContent), " \t\r\n"), "\n") {
-		line = strings.Replace(strings.Trim(line, " \t"), "\t", " ", -1)
-		if len(line) == 0 || line[0] == ';' || line[0] == '#' {
-			continue
-		}
-		pieces := strings.SplitN(line, " ", 2)
-		if len(pieces) != 2 || net.ParseIP(pieces[0]) == nil {
-			continue
-		}
-		if domains := strings.Fields(pieces[1]); len(domains) > 1 {
-			h.hostsMap[pieces[1]] = pieces[0]
-		}
 	}
 	return h.hostsMap, nil
 }
 
 func AppendDomainSuffix(domain, ns string) string {
-	domainsStr := domain + " " + domain + "." + ns
-	for _, suf := range suffix {
-		domainsStr = domainsStr + " " + suf
-	}
-	return domainsStr
+	return domain + "." + ns + suffix
 }
 
-func (h *Hosts) isMatchDomain(domain, ns, setName, svcName string) bool {
-	domains := strings.Fields(domain)
-	match, _ := regexp.MatchString(setName+"-"+`[0-9]+`+`\.`+svcName, domains[1])
+func (h *Hosts) isMatchDomain(domain, ns, ssgName, svcName string) bool {
+	match, _ := regexp.MatchString(ssgName+"-"+`[0-9]+`+`\.`+svcName+`\.`+ns+suffix, domain)
 	return match
 }
 
-func (h *Hosts) CheckOrUpdateHosts(PodDomainInfoToHosts map[string]string, ns, setName, svcName string) error {
+func (h *Hosts) CheckOrUpdateHosts(PodDomainInfoToHosts map[string]string, ns, ssgName, svcName string) error {
 	h.Lock()
 	defer h.Unlock()
 
 	isChanged := false
 	for domain, ip := range h.hostsMap {
 		// Only cares about those domains that matches statefulset grid headless service pod FQDN records
-		if h.isMatchDomain(domain, ns, setName, svcName) {
+		if h.isMatchDomain(domain, ns, ssgName, svcName) {
 			if curIp, exist := PodDomainInfoToHosts[domain]; !exist {
 				// Delete pod relevant domains since it has been deleted
 				delete(h.hostsMap, domain)
+				klog.V(4).Infof("Deleting dns hosts domain %s and ip %s", domain, ip)
 				isChanged = true
 			} else if exist && curIp != ip {
 				// Update pod relevant domains ip since it has been updated
 				h.hostsMap[domain] = curIp
 				delete(PodDomainInfoToHosts, domain)
+				klog.V(4).Infof("Updating dns hosts domain %s: old ip %s -> ip %s", domain, ip, curIp)
 				isChanged = true
 			} else if exist && curIp == ip {
 				// Stay unchanged
 				delete(PodDomainInfoToHosts, domain)
+				klog.V(5).Infof("Dns hosts domain %s and ip %s stays unchanged", domain, ip)
 			}
 		}
 	}
 	if !isChanged && len(PodDomainInfoToHosts) == 0 {
 		// Stay unchanged as a whole
+		klog.V(4).Infof("Dns hosts domain stays unchanged as a whole")
 		return nil
 	}
 	// Create new domains records
 	if len(PodDomainInfoToHosts) > 0 {
 		for domain, ip := range PodDomainInfoToHosts {
+			klog.V(4).Infof("Adding dns hosts domain %s and ip %s", domain, ip)
 			h.hostsMap[domain] = ip
 		}
 	}
@@ -124,8 +130,17 @@ func (h *Hosts) CheckOrUpdateHosts(PodDomainInfoToHosts map[string]string, ns, s
 func (h *Hosts) SetHostsByMap(hostsMap map[string]string) error {
 	h.Lock()
 	defer h.Unlock()
-	h.hostsMap = hostsMap
-	return h.saveHosts()
+	if !reflect.DeepEqual(h.hostsMap, hostsMap) {
+		originalHostsMap := h.hostsMap
+		h.hostsMap = hostsMap
+		if err := h.saveHosts(); err != nil {
+			h.hostsMap = originalHostsMap
+			klog.V(4).Infof("Reset dns hosts domain and ip as a whole err %v", err)
+			return err
+		}
+		klog.V(4).Infof("Reset dns hosts domain and ip as a whole successfully")
+	}
+	return nil
 }
 
 func (h *Hosts) saveHosts() error {

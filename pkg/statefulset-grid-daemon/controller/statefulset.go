@@ -115,9 +115,9 @@ func (ssgdc *StatefulSetGridDaemonController) IsConcernedStatefulSet(set *appsv1
 			return false, nil
 		}
 	} else if errors.IsNotFound(err) {
-		klog.V(4).Infof("StatefulSet %s relevant owner statefulset grid %s not found.", set.Name, ssg.Name)
+		klog.V(4).Infof("StatefulSet %s relevant owner statefulset grid %s not found.", set.Name, controllerRef.Name)
 	} else {
-		klog.Errorf("Get statefulset grid %s err %v", ssg.Name, err)
+		klog.Errorf("Get statefulset grid %s err %v", controllerRef.Name, err)
 		return false, err
 	}
 
