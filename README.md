@@ -18,26 +18,30 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 
 
 ## Architecture
+
 <div align="center">
   <img src="docs/img/superedge_arch.png" width=80% title="SuperEdge Architecture">
 </div>
 
 ### Cloud components:
+
 * [**tunnel-cloud**](docs/components/tunnel.md): Maintains a persistent network connection to `tunnel-edge` services. Supports TCP/HTTP/HTTPS network proxies.
-* [**application-grid controller**](docs/components/service-group.md): A Kubernetes CRD controller as part of ServiceGroup. It manages DeploymentGrids and ServiceGrids CRDs and control applications and network traffic on edge worker nodes.
-* [**edge-
-admission**](docs/components/edge-health.md): Assists Kubernetes controllers by providing real-time health check status from `edge-health` services distributed on all edge worker nodes.
+* [**application-grid controller**](docs/components/service-group.md): A Kubernetes CRD controller as part of ServiceGroup. It manages DeploymentGrids, StatefulSetGrids and ServiceGrids CRDs and control applications and network traffic on edge worker nodes.
+* [**edge-health admission**](docs/components/edge-health.md): Assists Kubernetes controllers by providing real-time health check status from `edge-health` services distributed on all edge worker nodes.
 
 ### Edge components:
+
 * [**lite-apiserver**](docs/components/lite-apiserver.md): Lightweight kube-apiserver for edge autonomy. It caches and proxies edge components' requests and critical events to cloud kube-apiserver.
 * [**edge-health**](docs/components/edge-health.md): Monitors the health status of edge nodes in the same edge region.
 * [**tunnel-edge**](docs/components/tunnel.md): Maintains persistent connection to `tunnel-cloud` to retrieve API requests to the controllers on the edge.
-* application-grid wrapper: Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
+* [**application-grid wrapper**](docs/components/service-group.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
+
 For installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
 
 ## Contact
+
 For any question or support, feel free to contact us via:
 - [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
 - [Discussion Forum](https://groups.google.com/g/superedge)
@@ -47,8 +51,8 @@ For any question or support, feel free to contact us via:
   <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
 </div>
 
-
 ## Contributing
+
 Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge
 
 ## License
