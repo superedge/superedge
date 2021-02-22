@@ -19,7 +19,6 @@ package proxy
 import (
 	"fmt"
 	"io"
-
 	"net/http"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -29,7 +28,7 @@ import (
 func CopyHeader(dst, src http.Header) {
 	for k, vv := range src {
 		for _, v := range vv {
-			klog.V(6).Infof("Copy header for auto update: key=%s, value=%s", k, v)
+			klog.V(6).Infof("Copy header for key=%s, value=%s", k, v)
 			dst.Add(k, v)
 		}
 	}
@@ -43,8 +42,6 @@ func WithRequestAccept(handler http.Handler) http.Handler {
 				if info.IsResourceRequest {
 					req.Header.Del("Accept")
 				}
-			} else {
-				klog.Errorf("!!!not ok!!!")
 			}
 		}
 		handler.ServeHTTP(w, req)

@@ -23,8 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"k8s.io/klog"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 const (

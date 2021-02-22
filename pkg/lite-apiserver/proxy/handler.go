@@ -17,15 +17,16 @@ limitations under the License.
 package proxy
 
 import (
+	"net/http"
+	"sync"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/klog"
-	"net/http"
-	"sync"
 
+	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
-	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
 	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 )
 
@@ -48,24 +49,19 @@ type EdgeServerHandler struct {
 	// proxy with client tls cert
 	reverseProxyMap map[string]*EdgeReverseProxy
 
-	// storage is to store/load history data
-	storage storage.Storage
-
-	// cacher hold request pair (list and watch for same path)
-	// and update list data periodically
-	cacher *RequestCacheController
+	// cacheManager
+	cacheManager *cache.CacheManager
 }
 
 func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *transport.TransportManager,
-	cacher *RequestCacheController, transportChannel <-chan string) (http.Handler, error) {
+	cacheManager *cache.CacheManager, transportChannel <-chan string) (http.Handler, error) {
 	h := &EdgeServerHandler{
 		apiserverUrl:     config.KubeApiserverUrl,
 		apiserverPort:    config.KubeApiserverPort,
 		transportManager: transportManager,
 		transportChannel: transportChannel,
 		reverseProxyMap:  make(map[string]*EdgeReverseProxy),
-		storage:          storage.NewFileStorage(config),
-		cacher:           cacher,
+		cacheManager:     cacheManager,
 	}
 
 	// init proxy
@@ -79,13 +75,13 @@ func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *tra
 
 func (h *EdgeServerHandler) initProxies() {
 	klog.Infof("init default proxy")
-	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
+	h.defaultProxy = NewEdgeReverseProxy(h.transportManager.GetTransport(""), h.apiserverUrl, h.apiserverPort, h.cacheManager)
 
 	h.proxyMapLock.Lock()
 	defer h.proxyMapLock.Unlock()
 	for commonName, t := range h.transportManager.GetTransportMap() {
 		klog.Infof("init proxy for %s", commonName)
-		proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
+		proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.cacheManager)
 		h.reverseProxyMap[commonName] = proxy
 	}
 
@@ -101,7 +97,7 @@ func (h *EdgeServerHandler) start() {
 				t := h.transportManager.GetTransport(commonName)
 
 				klog.Infof("add new proxy for %s", commonName)
-				proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.storage, h.cacher)
+				proxy := NewEdgeReverseProxy(t, h.apiserverUrl, h.apiserverPort, h.cacheManager)
 
 				h.proxyMapLock.Lock()
 				h.reverseProxyMap[commonName] = proxy

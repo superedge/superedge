@@ -18,8 +18,6 @@ package options
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/spf13/pflag"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
@@ -29,13 +27,14 @@ type RunServerOptions struct {
 	KubeApiserverUrl  string
 	KubeApiserverPort int
 	Port              int
-	SyncDuration      int
 	BackendTimeout    int
 	CAFile            string
 	CertFile          string
 	KeyFile           string
 	ApiserverCAFile   string
+	CacheType         string
 	FileCachePath     string
+	BadgerCachePath   string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -50,9 +49,11 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.KubeApiserverUrl = s.KubeApiserverUrl
 	c.KubeApiserverPort = s.KubeApiserverPort
 	c.Port = s.Port
-	c.SyncDuration = time.Duration(s.SyncDuration) * time.Second
-	c.FileCachePath = s.FileCachePath
 	c.BackendTimeout = s.BackendTimeout
+
+	c.CacheType = s.CacheType
+	c.FileCachePath = s.FileCachePath
+	c.BadgerCachePath = s.BadgerCachePath
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -87,10 +88,6 @@ func (s *RunServerOptions) Validate() []error {
 		errors = append(errors, fmt.Errorf("port cannot be 0"))
 	}
 
-	if s.SyncDuration <= 0 {
-		s.SyncDuration = 60
-	}
-
 	return errors
 }
 
@@ -107,7 +104,9 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
 	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
-	fs.IntVar(&s.SyncDuration, "sync-duration", 60, "self sync data time(second)")
 	fs.IntVar(&s.BackendTimeout, "timeout", 30, "timeout for proxy to backend")
-	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for storage")
+
+	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger")
+	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
+	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
 }

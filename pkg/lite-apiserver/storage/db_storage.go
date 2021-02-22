@@ -15,9 +15,3 @@ limitations under the License.
 */
 
 package storage
-
-type Storage interface {
-	Store(key string, data []byte) error
-
-	Load(key string) ([]byte, error)
-}

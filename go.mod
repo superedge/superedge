@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/golang/protobuf v1.3.3
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
@@ -16,9 +17,8 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
-	golang.org/x/tools v0.0.0-20200701221012-f01a4bec33ec // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible

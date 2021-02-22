@@ -14,31 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package proxy
+package constant
 
-import (
-	"encoding/json"
+const (
+	FileStorage   = "file"
+	MemoryStorage = "memory"
+	BadgerStorage = "badger"
 )
 
-// EdgeResponseDataHolder hold all data of a response
-type EdgeResponseDataHolder struct {
-	Code   int                 `json:"code"`
-	Body   []byte              `json:"body"`
-	Header map[string][]string `json:"header"`
-}
+const (
+	UserAgent     = "User-Agent"
+	ContentType   = "Content-Type"
+	ContentLength = "Content-Length"
 
-func (holder *EdgeResponseDataHolder) Output() ([]byte, error) {
-	res, err := json.Marshal(holder)
-	if err != nil {
-		return []byte{}, err
-	}
-	return res, nil
-}
+	DefaultUserAgent = "default"
+)
 
-func (holder *EdgeResponseDataHolder) Input(in []byte) error {
-	err := json.Unmarshal(in, holder)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+const (
+	VerbGet   = "get"
+	VerbList  = "list"
+	VerbWatch = "watch"
+)
