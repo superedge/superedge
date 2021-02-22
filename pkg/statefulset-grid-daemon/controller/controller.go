@@ -143,7 +143,7 @@ func NewStatefulSetGridDaemonController(nodeInformer coreinformers.NodeInformer,
 	return ssgdc
 }
 
-func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan struct{}) {
+func (ssgdc *StatefulSetGridDaemonController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer ssgdc.queue.ShutDown()
 
@@ -151,7 +151,7 @@ func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan str
 	defer klog.Infof("Shutting down statefulset grid daemon")
 
 	if !cache.WaitForNamedCacheSync("statefulset-grid-daemon", stopCh,
-		ssgdc.nodeListerSynced, ssgdc.podListerSynced, ssgdc.setListerSynced, ssgdc.setGridListerSynced) {
+		ssgdc.nodeListerSynced, ssgdc.podListerSynced, ssgdc.setListerSynced, ssgdc.setGridListerSynced, ssgdc.svcListerSynced) {
 		return
 	}
 
@@ -160,7 +160,7 @@ func (ssgdc *StatefulSetGridDaemonController) Run(workers int, stopCh <-chan str
 	}
 
 	// sync dns hosts as a whole
-	go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Minute, stopCh)
+	go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Duration(syncPeriodAsWhole)*time.Second, stopCh)
 	<-stopCh
 }
 
@@ -203,7 +203,7 @@ func (ssgdc *StatefulSetGridDaemonController) needClearStatefulSetDomains(set *a
 	// Check existence of statefulset relevant service
 	svc, err := ssgdc.svcLister.Services(set.Namespace).Get(set.Spec.ServiceName)
 	if errors.IsNotFound(err) {
-		klog.V(2).Infof("StatefulSet %v relevant service %s has been deleted", set.Name, set.Spec.ServiceName)
+		klog.V(2).Infof("StatefulSet %v relevant service %s not found", set.Name, set.Spec.ServiceName)
 		return true, nil
 	}
 	if err != nil {
@@ -233,6 +233,10 @@ func (ssgdc *StatefulSetGridDaemonController) syncDnsHostsAsWhole() {
 		return
 	}
 	gridUniqKeyLabels, err := controllercommon.GetNodesSelector(node)
+	if err != nil {
+		klog.Errorf("Get node %s GridSelectorUniqKeyName selector err %v", node.Name, err)
+		return
+	}
 	// List all statefulsets by node labels
 	setList, err := ssgdc.setLister.List(gridUniqKeyLabels)
 	if err != nil {

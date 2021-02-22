@@ -79,7 +79,7 @@ func NewStatefulSetGridDaemonCommand() *cobra.Command {
 
 			var electionChecker *leaderelection.HealthzAdaptor
 			if !o.LeaderElect {
-				runController(context.TODO(), kubeClient, crdClient, o.Worker, o.SyncPeriod, o.HostName, hosts)
+				runController(context.TODO(), kubeClient, crdClient, o.Worker, o.SyncPeriod, o.SyncPeriodAsWhole, o.HostName, hosts)
 				panic("unreachable")
 			}
 
@@ -109,7 +109,7 @@ func NewStatefulSetGridDaemonCommand() *cobra.Command {
 				RetryPeriod:   o.RetryPeriod.Duration,
 				Callbacks: leaderelection.LeaderCallbacks{
 					OnStartedLeading: func(ctx context.Context) {
-						runController(ctx, kubeClient, crdClient, o.Worker, o.SyncPeriod, o.HostName, hosts)
+						runController(ctx, kubeClient, crdClient, o.Worker, o.SyncPeriod, o.SyncPeriodAsWhole, o.HostName, hosts)
 					},
 					OnStoppedLeading: func() {
 						klog.Fatalf("leaderelection lost")
@@ -130,7 +130,7 @@ func NewStatefulSetGridDaemonCommand() *cobra.Command {
 
 func runController(parent context.Context,
 	kubeClient *clientset.Clientset, crdClient *crdClientset.Clientset,
-	workerNum, syncPeriod int, hostName string, hosts *hosts.Hosts) {
+	workerNum, syncPeriod, syncPeriodAsWhole int, hostName string, hosts *hosts.Hosts) {
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
 
@@ -142,7 +142,7 @@ func runController(parent context.Context,
 	defer cancel()
 
 	controllerConfig.Run(ctx.Done())
-	go statefulSetGridDaemonController.Run(workerNum, ctx.Done())
+	go statefulSetGridDaemonController.Run(workerNum, syncPeriodAsWhole, ctx.Done())
 	<-ctx.Done()
 }
 

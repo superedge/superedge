@@ -41,11 +41,11 @@ func TestUtil(t *testing.T) {
 	}
 	podDomainInfoToHosts := make(map[string]string)
 	// Test unchanged
-	podDomainInfoToHosts["statefulsetgrid-demo-0.servicegrid-demo-svc statefulsetgrid-demo-0.servicegrid-demo-svc.default statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.4"
+	podDomainInfoToHosts["statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.4"
 	// Test Update
-	podDomainInfoToHosts["statefulsetgrid-demo-1.servicegrid-demo-svc statefulsetgrid-demo-1.servicegrid-demo-svc.default statefulsetgrid-demo-1.servicegrid-demo-svc.default.svc statefulsetgrid-demo-1.servicegrid-demo-svc.default.svc.cluster statefulsetgrid-demo-1.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.7"
+	podDomainInfoToHosts["statefulsetgrid-demo-1.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.7"
 	// Test Add and Delete
-	podDomainInfoToHosts["statefulsetgrid-demo-3.servicegrid-demo-svc statefulsetgrid-demo-3.servicegrid-demo-svc.default statefulsetgrid-demo-3.servicegrid-demo-svc.default.svc statefulsetgrid-demo-3.servicegrid-demo-svc.default.svc.cluster statefulsetgrid-demo-3.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.7"
+	podDomainInfoToHosts["statefulsetgrid-demo-12.servicegrid-demo-svc.default.svc.cluster.local"] = "1.2.3.7"
 	h.CheckOrUpdateHosts(podDomainInfoToHosts, "default", "statefulsetgrid-demo", "servicegrid-demo-svc")
 	t.Log("\n")
 	for k, v := range h.hostsMap {
