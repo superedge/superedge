@@ -17,77 +17,38 @@ limitations under the License.
 package daemon
 
 import (
-	"context"
-	"github.com/superedge/superedge/cmd/edge-health/app/options"
-	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
-	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/communicate"
+	"github.com/superedge/superedge/pkg/edge-health/commun"
+	"github.com/superedge/superedge/pkg/edge-health/config"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"github.com/superedge/superedge/pkg/edge-health/vote"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"sync"
-	"time"
 )
 
-type Daemon interface {
-	Run(ctx context.Context)
+type EdgeHealthDaemon struct {
+	cfg         *config.EdgeHealthConfig
+	metadata    *metadata.EdgeHealthMetadata
+	checkPlugin checkplugin.Plugin
 }
 
-type EdgeDaemon struct {
-	HealthCheckPeriod     int
-	HealthCheckScoreLine  float64
-	CommunicatePeriod     int
-	CommunicateTimeout    int
-	CommunicateRetryTime  int
-	CommunicateServerPort int
-	VotePeriod            int
-	VoteTimeOut           int
-	MasterUrl             string
-	KubeconfigPath        string
-	HostName              string
-}
-
-func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
-	return EdgeDaemon{
-		HealthCheckPeriod:     o.CheckOptions.HealthCheckPeriod,
-		HealthCheckScoreLine:  o.CheckOptions.HealthCheckScoreLine,
-		CommunicatePeriod:     o.CommunOptions.CommunicatePeriod,
-		CommunicateTimeout:    o.CommunOptions.CommunicateTimeout,
-		CommunicateRetryTime:  o.CommunOptions.CommunicateRetryTime,
-		CommunicateServerPort: o.CommunOptions.CommunicateServerPort,
-		VotePeriod:            o.VoteOptions.VotePeriod,
-		VoteTimeOut:           o.VoteOptions.VoteTimeOut,
-		MasterUrl:             o.NodeOptions.MasterUrl,
-		KubeconfigPath:        o.NodeOptions.KubeconfigPath,
-		HostName:              o.NodeOptions.HostName,
+func NewEdgeHealthDaemon(c *config.EdgeHealthConfig) *EdgeHealthDaemon {
+	return &EdgeHealthDaemon{
+		cfg:         c,
+		metadata:    metadata.NewEdgeHealthMetadata(),
+		checkPlugin: checkplugin.NewPlugin(),
 	}
 }
 
-func (d EdgeDaemon) Run(ctx context.Context) {
+func (ehd *EdgeHealthDaemon) Run(stopCh <-chan struct{}) {
+	// Execute edge health prepare and check
+	go ehd.PrepareAndCheck(stopCh)
 
-	wg := sync.WaitGroup{}
+	// Execute communication
+	communEdge := commun.NewCommunEdge(&ehd.cfg.Commun)
+	go communEdge.Commun(ehd.metadata.CheckMetadata, ehd.cfg.ConfigMapInformer, ehd.cfg.Node.LocalIp, stopCh)
 
-	initialize(d.MasterUrl, d.KubeconfigPath, d.HostName)
+	// Execute vote
+	vote := vote.NewVoteEdge(&ehd.cfg.Vote)
+	go vote.Vote(ehd.metadata, ehd.cfg.Kubeclient, ehd.cfg.Node.LocalIp, stopCh)
 
-	check := checkpkg.NewCheckEdge(checkplugin.PluginInfo.Plugins, d.HealthCheckPeriod, d.HealthCheckScoreLine)
-
-	//TODO: Template pattern
-	go checkpkg.NewNodeController(common.ClientSet).Run(ctx)
-	go checkpkg.NewConfigMapController(common.ClientSet).Run(ctx)
-	go wait.Until(check.GetNodeList, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())
-	go wait.Until(check.Check, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())
-
-	commun := communicate.NewCommunicateEdge(d.CommunicatePeriod, d.CommunicateTimeout, d.CommunicateRetryTime, d.CommunicateServerPort)
-	//TODO: Template pattern
-	wg.Add(1)
-	go commun.Server(ctx, &wg)
-	go wait.Until(commun.Client, time.Duration(commun.GetPeriod())*time.Second, ctx.Done())
-
-	vote := vote.NewVoteEdge(d.VoteTimeOut, d.VotePeriod)
-	go wait.Until(vote.Vote, time.Duration(vote.GetVotePeriod())*time.Second, ctx.Done())
-
-	for range ctx.Done() {
-		wg.Wait()
-		return
-	}
+	<-stopCh
 }

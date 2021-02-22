@@ -22,24 +22,29 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"golang.org/x/sys/unix"
 	"io"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/client-go/informers/core/v1"
 	"os"
 	"os/signal"
 )
 
-func GenerateHmac(communicatedata data.CommunicateData) (string, error) {
-	part1byte, _ := json.Marshal(communicatedata.SourceIP)
-	part2byte, _ := json.Marshal(communicatedata.ResultDetail)
-	hmacBefore := string(part1byte) + string(part2byte)
-	if hmacconf, err := check.ConfigMapManager.ConfigMapLister.ConfigMaps("kube-system").Get(common.HmacConfig); err != nil {
+func GenerateHmac(communInfo metadata.CommunInfo, cmInformer corev1.ConfigMapInformer) (string, error) {
+	addrBytes, err := json.Marshal(communInfo.SourceIP)
+	if err != nil {
+		return "", err
+	}
+	detailBytes, _ := json.Marshal(communInfo.CheckDetail)
+	if err != nil {
+		return "", err
+	}
+	hmacBefore := string(addrBytes) + string(detailBytes)
+	if hmacConf, err := cmInformer.Lister().ConfigMaps("kube-system").Get(common.HmacConfig); err != nil {
 		return "", err
 	} else {
-		return GetHmacCode(hmacBefore, hmacconf.Data[common.HmacKey])
+		return GetHmacCode(hmacBefore, hmacConf.Data[common.HmacKey])
 	}
 }
 
@@ -49,19 +54,6 @@ func GetHmacCode(s, key string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
-}
-
-func GetNodeNameByIp(nodes []v1.Node, Ip string) string {
-	for _, v := range nodes {
-		for _, i := range v.Status.Addresses {
-			if i.Type == v1.NodeInternalIP {
-				if i.Address == Ip {
-					return v.Name
-				}
-			}
-		}
-	}
-	return ""
 }
 
 func SignalWatch() (context.Context, context.CancelFunc) {

@@ -17,14 +17,15 @@ limitations under the License.
 package checkplugin
 
 import (
+	"context"
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
+	"github.com/superedge/superedge/pkg/edge-health/util"
 	"k8s.io/klog"
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -32,73 +33,63 @@ type PingCheckPlugin struct {
 	BasePlugin
 }
 
-func (p PingCheckPlugin) Name() string {
+func (pcp *PingCheckPlugin) Name() string {
 	return "PingCheck"
 }
 
-func (p *PingCheckPlugin) Set(s string) error {
-	var (
-		err error
-	)
-
+// TODO: handle flag parse errors
+func (pcp *PingCheckPlugin) Set(s string) error {
+	var err error
 	for _, para := range strings.Split(s, ",") {
 		if len(para) == 0 {
 			continue
 		}
 		arr := strings.Split(para, "=")
-		trimkey := strings.TrimSpace(arr[0])
-		switch trimkey {
+		trimKey := strings.TrimSpace(arr[0])
+		switch trimKey {
 		case "timeout":
 			timeout, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			(*p).HealthCheckoutTimeOut = timeout
-		case "retrytime":
-			retrytime, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			(*p).HealthCheckRetryTime = retrytime
+			pcp.HealthCheckoutTimeOut = timeout
+		case "retries":
+			retries, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
+			pcp.HealthCheckRetries = retries
 		case "weight":
 			weight, _ := strconv.ParseFloat(strings.TrimSpace(arr[1]), 64)
-			(*p).Weight = weight
+			pcp.Weight = weight
 		case "port":
 			port, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			(*p).Port = port
+			pcp.Port = port
 		}
-		(*p).PluginName = p.Name()
 	}
-	PluginInfo = NewPluginInfo()
-	PluginInfo.AddPlugin(p)
-	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	PluginInfo = NewPlugin()
+	PluginInfo.Register(pcp)
 	return err
 }
 
-func (p *PingCheckPlugin) String() string {
-	return fmt.Sprintf("%v", *p)
+func (pcp *PingCheckPlugin) String() string {
+	return fmt.Sprintf("%v", pcp)
 }
 
-func (i *PingCheckPlugin) Type() string {
+func (pcp *PingCheckPlugin) Type() string {
 	return "PingCheckPlugin"
 }
 
-func (plugin PingCheckPlugin) CheckExecute(wg *sync.WaitGroup) {
-	var err error
-	execwg := sync.WaitGroup{}
-	execwg.Add(len(data.CheckInfoResult.CheckInfo))
-	for k := range data.CheckInfoResult.CopyCheckInfo() {
-		temp := k
-		go func(execwg *sync.WaitGroup) {
-			for i := 0; i < plugin.HealthCheckRetryTime; i++ {
-				if _, err = net.DialTimeout("tcp", temp+":"+strconv.Itoa(plugin.Port), time.Duration(plugin.HealthCheckoutTimeOut)*time.Second); err == nil {
-					break
-				}
+func (pcp *PingCheckPlugin) CheckExecute(checkMetadata *metadata.CheckMetadata) {
+	copyCheckedIp := checkMetadata.CopyCheckedIp()
+	util.ParallelizeUntil(context.TODO(), 16, len(copyCheckedIp), func(index int) {
+		checkedIp := copyCheckedIp[index]
+		var err error
+		for i := 0; i < pcp.HealthCheckRetries; i++ {
+			if _, err := net.DialTimeout("tcp", checkedIp+":"+strconv.Itoa(pcp.Port), time.Duration(pcp.HealthCheckoutTimeOut)*time.Second); err == nil {
+				break
 			}
-			if err == nil {
-				klog.V(4).Infof("%s use %s plugin check %s successd", common.LocalIp, plugin.Name(), temp)
-				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 100)
-			} else {
-				klog.V(2).Infof("%s use %s plugin check %s failed, reason: %s", common.LocalIp, plugin.Name(), temp, err.Error())
-				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 0)
-			}
-			execwg.Done()
-		}(&execwg)
-	}
-	execwg.Wait()
-	wg.Done()
+		}
+		if err == nil {
+			klog.V(4).Infof("Edge ping health check plugin %s for ip %s succeed", pcp.Name(), checkedIp)
+			checkMetadata.SetByPluginScore(checkedIp, pcp.Name(), pcp.GetWeight(), common.CheckScoreMax)
+		} else {
+			klog.Warning("Edge ping health check plugin %s for ip %s failed, possible reason %s", pcp.Name(), checkedIp, err.Error())
+			checkMetadata.SetByPluginScore(checkedIp, pcp.Name(), pcp.GetWeight(), common.CheckScoreMin)
+		}
+	})
 }

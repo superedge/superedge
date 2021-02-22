@@ -17,122 +17,125 @@ limitations under the License.
 package checkplugin
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
+	"github.com/superedge/superedge/pkg/edge-health/util"
 	"io/ioutil"
 	"k8s.io/klog"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
 type KubeletAuthCheckPlugin struct {
 	BasePlugin
+	client *http.Client
 }
 
-func (p KubeletAuthCheckPlugin) Name() string {
+func (kacp *KubeletAuthCheckPlugin) Name() string {
 	return "KubeletAuthCheck"
 }
 
-func (p *KubeletAuthCheckPlugin) Set(s string) error {
-	var (
-		err error
-	)
-
+func (kacp *KubeletAuthCheckPlugin) Set(s string) error {
+	var err error
 	for _, para := range strings.Split(s, ",") {
 		if len(para) == 0 {
 			continue
 		}
 		arr := strings.Split(para, "=")
-		trimkey := strings.TrimSpace(arr[0])
-		switch trimkey {
+		trimKey := strings.TrimSpace(arr[0])
+		switch trimKey {
 		case "timeout":
 			timeout, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			(*p).HealthCheckoutTimeOut = timeout
-		case "retrytime":
-			retrytime, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			(*p).HealthCheckRetryTime = retrytime
+			kacp.HealthCheckoutTimeOut = timeout
+		case "retries":
+			retries, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
+			kacp.HealthCheckRetries = retries
 		case "weight":
 			weight, _ := strconv.ParseFloat(strings.TrimSpace(arr[1]), 64)
-			(*p).Weight = weight
+			kacp.Weight = weight
 		case "port":
 			port, _ := strconv.Atoi(strings.TrimSpace(arr[1]))
-			klog.V(4).Infof("set port is %d", p.Port)
-			(*p).Port = port
+			kacp.Port = port
 		}
-		(*p).PluginName = p.Name()
 	}
-	PluginInfo = NewPluginInfo()
-	PluginInfo.AddPlugin(p)
-	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	// Init http client for later usage
+	kacp.client = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+		Timeout: time.Duration(kacp.HealthCheckoutTimeOut) * time.Second,
+	}
+	PluginInfo = NewPlugin()
+	PluginInfo.Register(kacp)
 	return err
 }
 
-func (p *KubeletAuthCheckPlugin) String() string {
-	return fmt.Sprintf("%v", *p)
+func (kacp *KubeletAuthCheckPlugin) String() string {
+	return fmt.Sprintf("%v", kacp)
 }
 
-func (i *KubeletAuthCheckPlugin) Type() string {
+func (kacp *KubeletAuthCheckPlugin) Type() string {
 	return "KubeletAuthCheckPlugin"
 }
 
-func (plugin KubeletAuthCheckPlugin) CheckExecute(wg *sync.WaitGroup) {
-	execwg := sync.WaitGroup{}
-	execwg.Add(len(data.CheckInfoResult.CheckInfo))
-	for k := range data.CheckInfoResult.CopyCheckInfo() {
-		temp := k
-		go func(execwg *sync.WaitGroup) {
-			checkOk, err := authping(plugin.HealthCheckoutTimeOut, plugin.HealthCheckRetryTime, temp, plugin.Port)
-			if checkOk {
-				klog.V(4).Infof("%s use %s plugin check %s successd", common.LocalIp, plugin.Name(), temp)
-				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 100)
-			} else {
-				klog.V(2).Infof("%s use %s plugin check %s failed, reason: %s", common.LocalIp, plugin.Name(), temp, err.Error())
-				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 0)
-			}
-			execwg.Done()
-		}(&execwg)
-	}
-	execwg.Wait()
-	wg.Done()
+func (kacp *KubeletAuthCheckPlugin) CheckExecute(checkMetadata *metadata.CheckMetadata) {
+	copyCheckedIp := checkMetadata.CopyCheckedIp()
+	util.ParallelizeUntil(context.TODO(), 16, len(copyCheckedIp), func(index int) {
+		checkedIp := copyCheckedIp[index]
+		if err := kubeletAuthPing(kacp.client, checkedIp, kacp.Port, kacp.HealthCheckRetries); err != nil {
+			klog.V(4).Infof("Edge health check plugin %s for ip %s succeed", kacp.Name(), checkedIp)
+			checkMetadata.SetByPluginScore(checkedIp, kacp.Name(), kacp.GetWeight(), common.CheckScoreMax)
+		} else {
+			klog.Warning("Edge health check plugin %s for ip %s failed, possible reason %s", kacp.Name(), checkedIp, err.Error())
+			checkMetadata.SetByPluginScore(checkedIp, kacp.Name(), kacp.GetWeight(), common.CheckScoreMin)
+		}
+	})
 }
 
-func authping(timeout, retryTime int, checkedIp string, port int) (bool, error) {
+func kubeletAuthPing(client *http.Client, checkedIp string, port, retries int) error {
 	var (
-		tr     *http.Transport
-		err    error
-		client http.Client
-		ok     bool
+		err   error
+		req   *http.Request
+		token []byte
 	)
-
-	token, err := ioutil.ReadFile(common.TokenFile)
-	if err != nil {
-		return false, err
-	}
-
-	tr = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-	client = http.Client{Timeout: time.Duration(timeout) * time.Second, Transport: tr}
-	url := "https://" + checkedIp + ":" + strconv.Itoa(port) + "/healthz"
-	klog.V(4).Infof("url is %s", url)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return false, fmt.Errorf("error new ping request: %w", err)
-	}
-	req.Header.Add("Authorization", "Bearer "+string(token))
-	for i := 0; i < retryTime; i++ {
-		if ok, err = PingDo(client, req); ok {
-			return true, nil
+	for i := 0; i < retries; i++ {
+		// Read kubelet token file
+		token, err = ioutil.ReadFile(common.TokenFile)
+		if err != nil {
+			klog.Errorf("ReadTokenFile failed %v", err)
+			continue
+		}
+		// Construct kubelet healthz http request with token
+		url := "https://" + checkedIp + ":" + strconv.Itoa(port) + "/healthz"
+		klog.V(4).Infof("Url is %s", url)
+		req, err = http.NewRequest("GET", url, nil)
+		if err != nil {
+			klog.Errorf("New kubelet auth ping request failed %v", err)
+			continue
+		}
+		req.Header.Add("Authorization", "Bearer "+string(token))
+		if err = util.DoRequestAndDiscard(client, req); err != nil {
+			klog.Errorf("DoRequestAndDiscard kubelet auth ping request failed %v", err)
+		} else {
+			break
 		}
 	}
-	klog.Error("kubelet token ping failed")
-	//klog.Errorf("err is nil %v ", err==nil )
-	return false, err
+	return err
 }

@@ -17,25 +17,22 @@ limitations under the License.
 package checkplugin
 
 import (
-	"fmt"
-	"io/ioutil"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"k8s.io/klog"
-	"net/http"
 	"sync"
 )
 
 type CheckPlugin interface {
-	CheckExecute(wg *sync.WaitGroup)
+	CheckExecute(*metadata.CheckMetadata)
 	Name() string
 	SetWeight(float64)
 	GetWeight() float64
 }
 
 type BasePlugin struct {
-	PluginName            string
 	HealthCheckoutTimeOut int
-	HealthCheckRetryTime  int
-	Weight                float64 //ex:0.3
+	HealthCheckRetries    int
+	Weight                float64 // eg:0.3
 	Port                  int
 }
 
@@ -47,19 +44,8 @@ func (p BasePlugin) GetWeight() float64 {
 	return p.Weight
 }
 
-func NewBasePlugin(healthCheckoutTimeOut, retrytime, port int, weight float64, pluginname string) BasePlugin {
-	return BasePlugin{
-		PluginName:            pluginname,
-		HealthCheckoutTimeOut: healthCheckoutTimeOut,
-		HealthCheckRetryTime:  retrytime,
-		Weight:                weight,
-		Port:                  port,
-	}
-}
-
 var (
 	PluginOnce sync.Once
-	PluginMu   sync.Mutex
 	PluginInfo Plugin
 )
 
@@ -67,7 +53,7 @@ type Plugin struct {
 	Plugins []CheckPlugin
 }
 
-func NewPluginInfo() Plugin {
+func NewPlugin() Plugin {
 	PluginOnce.Do(func() {
 		PluginInfo = Plugin{
 			Plugins: []CheckPlugin{},
@@ -76,33 +62,7 @@ func NewPluginInfo() Plugin {
 	return PluginInfo
 }
 
-func (p *Plugin) AddPlugin(plugin CheckPlugin) {
-	PluginMu.Lock()
-	defer PluginMu.Unlock()
+func (p *Plugin) Register(plugin CheckPlugin) {
 	p.Plugins = append(p.Plugins, plugin)
-	klog.V(4).Info("add ok")
-}
-
-func PingDo(client http.Client, req *http.Request) (bool, error) {
-	var (
-		response []byte
-		err      error
-	)
-	resp, err := client.Do(req)
-	defer func() {
-		if resp != nil {
-			resp.Body.Close()
-		}
-	}()
-	if err != nil {
-		return false, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		if response, err = ioutil.ReadAll(resp.Body); err == nil {
-			err = fmt.Errorf("ping failed, StatusCode is %d, resp body is %s", resp.StatusCode, string(response))
-		}
-		return false, err
-	}
-	klog.V(4).Info("ping succeed")
-	return true, nil
+	klog.V(4).Info("Register check plugin: %v", plugin)
 }

@@ -17,56 +17,66 @@ limitations under the License.
 package options
 
 import (
-	"github.com/superedge/superedge/pkg/edge-health/options"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
+	"os"
+	"strings"
 )
 
 type Options struct {
-	CheckOptions  *options.CheckOptions
-	CommunOptions *options.CommunOptions
-	NodeOptions   *options.NodeOptions
-	VoteOptions   *options.VoteOptions
+	Check  *CheckOptions
+	Commun *CommunOptions
+	Node   *NodeOptions
+	Vote   *VoteOptions
 }
 
 func NewEdgeHealthOptions() *Options {
-	return &Options{
-		options.NewCheckOptions(),
-		options.NewCommunOptions(),
-		options.NewNodeOptions(),
-		options.NewVoteOptions(),
+	options := &Options{
+		NewCheckOptions(),
+		NewCommunOptions(),
+		NewNodeOptions(),
+		NewVoteOptions(),
 	}
-}
-
-func (s *Options) Complete() error {
-	return nil
+	options.Check.Default()
+	options.Commun.Default()
+	options.Node.Default()
+	options.Vote.Default()
+	return options
 }
 
 func (o *Options) AddFlags() (fsSet cliflag.NamedFlagSets) {
-	o.NodeOptions.AddFlags(fsSet.FlagSet("node"))
-	o.CheckOptions.AddFlags(fsSet.FlagSet("check"))
-	o.CommunOptions.AddFlags(fsSet.FlagSet("communicate"))
-	o.VoteOptions.AddFlags(fsSet.FlagSet("vote"))
+	o.Check.AddFlags(fsSet.FlagSet("check"))
+	o.Commun.AddFlags(fsSet.FlagSet("commun"))
+	o.Node.AddFlags(fsSet.FlagSet("node"))
+	o.Vote.AddFlags(fsSet.FlagSet("vote"))
 	return
 }
 
 func (o *Options) Validate() []error {
 	var errs []error
-	errs = append(errs, o.VoteOptions.Validate()...)
-	errs = append(errs, o.CommunOptions.Validate()...)
-	errs = append(errs, o.CheckOptions.Validate()...)
-	errs = append(errs, o.NodeOptions.Validate()...)
+
+	errs = append(errs, o.Check.Validate()...)
+	errs = append(errs, o.Commun.Validate()...)
+	errs = append(errs, o.Node.Validate()...)
+	errs = append(errs, o.Vote.Validate()...)
+
 	return errs
 }
 
+// CompletedOptions is a wrapper that enforces a call of Complete() before Run can be invoked.
 type CompletedOptions struct {
 	*Options
 }
 
-func Complete(o *Options) CompletedOptions {
-	var completeoptions CompletedOptions
-	o.CheckOptions.Default()
-	o.CommunOptions.Default()
-	o.VoteOptions.Default()
-	completeoptions.Options = o
-	return completeoptions
+func Complete(o *Options) (CompletedOptions, error) {
+	var options CompletedOptions
+	options.Options = o
+	if o.Node.HostName == "" {
+		o.Node.HostName = os.Getenv("NODE_NAME")
+		o.Node.HostName = strings.Replace(o.Node.HostName, "\n", "", -1)
+		o.Node.HostName = strings.Replace(o.Node.HostName, " ", "", -1)
+		klog.V(2).Infof("Host name is %s", o.Node.HostName)
+	}
+
+	return options, nil
 }

@@ -14,32 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package options
+package metadata
 
-import "github.com/spf13/pflag"
+import (
+	"k8s.io/api/core/v1"
+	"sync"
+)
 
-type VoteOptions struct {
-	VotePeriod  int
-	VoteTimeOut int // vote will be timeout after VoteTimeOut
+// TODO: more efficient data structures
+type EdgeHealthMetadata struct {
+	*NodeMetadata
+	*CheckMetadata
 }
 
-func NewVoteOptions() *VoteOptions {
-	return &VoteOptions{}
-}
-
-func (o *VoteOptions) Default() {
-	o.VotePeriod = 10
-	o.VoteTimeOut = 60
-}
-
-func (o *VoteOptions) Validate() []error {
-	return nil
-}
-
-func (o *VoteOptions) AddFlags(fs *pflag.FlagSet) {
-	if o == nil {
-		return
+func NewEdgeHealthMetadata() *EdgeHealthMetadata {
+	return &EdgeHealthMetadata{
+		NodeMetadata: &NodeMetadata{
+			NodeList: []v1.Node{},
+			RWMutex:  sync.RWMutex{},
+		},
+		CheckMetadata: &CheckMetadata{
+			CheckInfo: make(map[string]map[string]CheckDetail),
+			RWMutex:   sync.RWMutex{},
+		},
 	}
-	fs.IntVar(&o.VotePeriod, "voteperiod", o.VotePeriod, "vote period")
-	fs.IntVar(&o.VoteTimeOut, "votetimeout", o.VoteTimeOut, "vote timeout")
 }
