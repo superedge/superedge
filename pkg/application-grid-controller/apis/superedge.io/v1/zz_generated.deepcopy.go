@@ -74,6 +74,20 @@ func (in *DeploymentGridList) DeepCopyObject() runtime.Object {
 func (in *DeploymentGridSpec) DeepCopyInto(out *DeploymentGridSpec) {
 	*out = *in
 	in.Template.DeepCopyInto(&out.Template)
+	if in.TemplatePool != nil {
+		in, out := &in.TemplatePool, &out.TemplatePool
+		*out = make(map[string]appsv1.DeploymentSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
+	if in.Templates != nil {
+		in, out := &in.Templates, &out.Templates
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

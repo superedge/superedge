@@ -18,6 +18,7 @@ package deployment
 
 import (
 	"context"
+	"encoding/json"
 	"k8s.io/klog"
 	"sync"
 
@@ -27,9 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
+	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 )
 
 func (dgc *DeploymentGridController) syncStatus(dg *crdv1.DeploymentGrid, dpList []*appsv1.Deployment, gridValues []string) error {
@@ -83,13 +86,39 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 
 		dp, found := existedDPMap[name]
 		if !found {
-			adds = append(adds, util.CreateDeployment(dg, v))
+			DeploymentToAdd, err := util.CreateDeployment(dg, v, dgc.templateHasher)
+			if err != nil {
+				return err
+			}
+			adds = append(adds, DeploymentToAdd)
 			continue
 		}
 
-		template := util.KeepConsistence(dg, dp, v)
-		if !apiequality.Semantic.DeepEqual(template, dp) {
-			updates = append(updates, template)
+		DeploymentToUpdate, err := util.CreateDeployment(dg, v, dgc.templateHasher)
+		if err != nil {
+			return err
+		}
+		if dgc.templateHasher.IsTemplateHashChanged(dg, v, dp) {
+			klog.Info("template hash changed")
+			updates = append(updates, DeploymentToUpdate)
+			continue
+		} else {
+			scheme := scheme.Scheme
+			scheme.Default(DeploymentToUpdate)
+			DeploymentToUpdate.Spec.Replicas = dp.Spec.Replicas
+			//if !apiequality.Semantic.DeepEqual(DeploymentToUpdate.Spec, dp.Spec){
+			if !commonutil.DeepContains(dp.Spec, DeploymentToUpdate.Spec){
+				out, _ := json.Marshal(DeploymentToUpdate.Spec)
+				klog.Info("deploymentToUpdate is %s", string(out))
+				out, _ = json.Marshal(dp.Spec)
+				klog.Info("deployment is %s", string(out))
+				updates = append(updates, DeploymentToUpdate)
+			}
+
+			//template := util.KeepConsistence(dg, dp, v)
+			//if !apiequality.Semantic.DeepEqual(template, dp) {
+			//	updates = append(updates, template)
+			//}
 		}
 	}
 

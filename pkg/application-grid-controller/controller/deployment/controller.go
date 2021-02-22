@@ -22,6 +22,7 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"time"
 
 	"k8s.io/klog"
@@ -69,6 +70,8 @@ type DeploymentGridController struct {
 	syncHandler func(dKey string) error
 	// used for unit testing
 	enqueueDeploymentGrid func(deploymentGrid *crdv1.DeploymentGrid)
+
+	templateHasher util.DeploymentTemplateHash
 }
 
 func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInformer, dpInformer appsinformers.DeploymentInformer,
@@ -119,6 +122,8 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 
 	dgc.nodeLister = nodeInformer.Lister()
 	dgc.nodeListerSynced = nodeInformer.Informer().HasSynced
+
+	dgc.templateHasher = util.NewDeploymentTemplateHash()
 
 	return dgc
 }
@@ -200,6 +205,29 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 	if dg.Spec.GridUniqKey == "" {
 		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
 		return nil
+	}
+
+	dgCopy := dg.DeepCopy()
+
+	if dgCopy.Spec.DefaultTemplateName == "" {
+		dgCopy.Spec.DefaultTemplateName = common.DefaultTemplateName
+	}
+
+	if err := dgc.templateHasher.RemoveUnusedTemplate(dgCopy); err != nil{
+		klog.Errorf("Failed to remove unused template for deploymentGrid %s: %v", dg.Name, err)
+		return err
+	}
+
+	dgc.templateHasher.UpdateTemplateHash(dgCopy)
+
+	if !apiequality.Semantic.DeepEqual(dg.Spec.Template, dgCopy.Spec.Template) ||
+		!apiequality.Semantic.DeepEqual(dg.Spec.DefaultTemplateName, dgCopy.Spec.DefaultTemplateName) ||
+		!apiequality.Semantic.DeepEqual(dg.Spec.TemplatePool, dgCopy.Spec.TemplatePool) {
+		klog.Infof("Updating deployment grid %s/%s template", dgCopy.Namespace, dgCopy.Name)
+		_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
+		if err != nil && errors.IsConflict(err) {
+			return nil
+		}
 	}
 
 	// get deployment workload list of this grid

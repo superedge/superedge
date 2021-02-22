@@ -19,6 +19,7 @@ package util
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"k8s.io/klog"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,7 +38,13 @@ func GetGridValueFromName(dg *crdv1.DeploymentGrid, name string) string {
 	return strings.TrimPrefix(name, dg.Name+"-")
 }
 
-func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deployment {
+func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string, dth DeploymentTemplateHash) (*appsv1.Deployment, error) {
+	template, err := dth.getDeployTemplate(&dg.Spec, gridValue)
+	if err != nil {
+		klog.Errorf("Failed to get template deploymentgrid %s of grid value %s, err: %v", dg.Name, gridValue, err)
+		return nil, err
+	}
+
 	dp := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            GetDeploymentName(dg, gridValue),
@@ -58,12 +65,12 @@ func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deploy
 				}
 			}(),
 		},
-		Spec: dg.Spec.Template,
+		Spec: *template,
 	}
 
 	// Append existed DeploymentGrid NodeSelector to deployment to be created
-	if dg.Spec.Template.Template.Spec.NodeSelector != nil {
-		dp.Spec.Template.Spec.NodeSelector = dg.Spec.Template.Template.Spec.NodeSelector
+	if template.Template.Spec.NodeSelector != nil {
+		dp.Spec.Template.Spec.NodeSelector = template.Template.Spec.NodeSelector
 		dp.Spec.Template.Spec.NodeSelector[dg.Spec.GridUniqKey] = gridValue
 	} else {
 		dp.Spec.Template.Spec.NodeSelector = map[string]string{
@@ -71,7 +78,7 @@ func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string) *appsv1.Deploy
 		}
 	}
 
-	return dp
+	return dp, nil
 }
 
 func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue string) *appsv1.Deployment {
