@@ -17,6 +17,7 @@ limitations under the License.
 package cert
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -118,7 +119,7 @@ func (cm *CertManager) handleCertUpdate(tlsCert *tls.Certificate, commonName str
 		cm.certChannel <- commonName
 	} else {
 		// check cert changed
-		if !oldCert.Leaf.NotAfter.Equal(tlsCert.Leaf.NotAfter) {
+		if !bytes.Equal(oldCert.Leaf.Signature, tlsCert.Leaf.Signature) {
 			// update cert
 			klog.Infof("update cert CN=%s cert=%s, key=%s", commonName, cert, key)
 			cm.updateCert(commonName, tlsCert)
