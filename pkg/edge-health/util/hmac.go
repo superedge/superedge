@@ -26,6 +26,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"golang.org/x/sys/unix"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/informers/core/v1"
 	"os"
 	"os/signal"
@@ -41,7 +42,7 @@ func GenerateHmac(communInfo metadata.CommunInfo, cmInformer corev1.ConfigMapInf
 		return "", err
 	}
 	hmacBefore := string(addrBytes) + string(detailBytes)
-	if hmacConf, err := cmInformer.Lister().ConfigMaps("kube-system").Get(common.HmacConfig); err != nil {
+	if hmacConf, err := cmInformer.Lister().ConfigMaps(metav1.NamespaceSystem).Get(common.HmacConfig); err != nil {
 		return "", err
 	} else {
 		return GetHmacCode(hmacBefore, hmacConf.Data[common.HmacKey])

@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/util"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog"
@@ -45,7 +46,7 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 	masterSelector := labels.NewSelector()
 	masterSelector = masterSelector.Add(*masterRequirement)
 
-	if mrc, err := ehd.cfg.ConfigMapInformer.Lister().ConfigMaps("kube-system").Get(common.TaintZoneConfigMap); err != nil {
+	if mrc, err := ehd.cfg.ConfigMapInformer.Lister().ConfigMaps(metav1.NamespaceSystem).Get(common.TaintZoneConfigMap); err != nil {
 		if apierrors.IsNotFound(err) { // multi-region configmap not found
 			if NodeList, err := ehd.cfg.NodeInformer.Lister().List(masterSelector); err != nil {
 				klog.Errorf("Multi-region configmap not found and get nodes err %v", err)

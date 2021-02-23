@@ -73,7 +73,7 @@ spec:
           command:
             - edge-health
           args:
-            - --kubeletauthplugin=timeout=5,retrytime=3,weight=1,port=10250
+            - --kubeletauthplugin=timeout=5,retries=3,weight=1,port=10250
             - --v=2
           env:
             - name: NODE_NAME
