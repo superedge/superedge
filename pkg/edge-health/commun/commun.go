@@ -27,7 +27,7 @@ import (
 	pkgutil "github.com/superedge/superedge/pkg/util"
 	"io"
 	"k8s.io/apimachinery/pkg/util/wait"
-	corev1 "k8s.io/client-go/informers/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	log "k8s.io/klog"
 	"net"
 	"net/http"
@@ -36,7 +36,7 @@ import (
 )
 
 type Commun interface {
-	Commun(*metadata.CheckMetadata, corev1.ConfigMapInformer, string, <-chan struct{})
+	Commun(*metadata.CheckMetadata, corelisters.ConfigMapLister, string, <-chan struct{})
 }
 
 type CommunEdge struct {
@@ -64,15 +64,15 @@ func NewCommunEdge(cfg *config.EdgeHealthCommun) *CommunEdge {
 	}
 }
 
-func (c *CommunEdge) Commun(checkMetadata *metadata.CheckMetadata, cmInformer corev1.ConfigMapInformer, localIp string, stopCh <-chan struct{}) {
-	go c.communReceive(checkMetadata, cmInformer, stopCh)
-	go wait.Until(func() {
-		c.communSend(checkMetadata, cmInformer, localIp)
+func (c *CommunEdge) Commun(checkMetadata *metadata.CheckMetadata, cmLister corelisters.ConfigMapLister, localIp string, stopCh <-chan struct{}) {
+	go c.communReceive(checkMetadata, cmLister, stopCh)
+	wait.Until(func() {
+		c.communSend(checkMetadata, cmLister, localIp)
 	}, time.Duration(c.CommunPeriod)*time.Second, stopCh)
 }
 
 // TODO: support changeable server listen port
-func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmInformer corev1.ConfigMapInformer, stopCh <-chan struct{}) {
+func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmLister corelisters.ConfigMapLister, stopCh <-chan struct{}) {
 	svr := &http.Server{Addr: ":" + strconv.Itoa(c.CommunServerPort)}
 	svr.ReadTimeout = time.Duration(c.CommunTimeout) * time.Second
 	svr.WriteTimeout = time.Duration(c.CommunTimeout) * time.Second
@@ -96,7 +96,7 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmInfo
 			http.Error(w, fmt.Sprintf("Send response err %v", err), http.StatusInternalServerError)
 			return
 		}
-		if hmac, err := util.GenerateHmac(communInfo, cmInformer); err != nil {
+		if hmac, err := util.GenerateHmac(communInfo, cmLister); err != nil {
 			log.Errorf("communReceive: server GenerateHmac err %v", err)
 			http.Error(w, fmt.Sprintf("GenerateHmac err %v", err), http.StatusInternalServerError)
 			return
@@ -123,7 +123,7 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmInfo
 		select {
 		case <-stopCh:
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			cancel()
+			defer cancel()
 			if err := svr.Shutdown(ctx); err != nil {
 				log.Errorf("Server: program exit, server exit error %v", err)
 			}
@@ -133,7 +133,7 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmInfo
 	}
 }
 
-func (c *CommunEdge) communSend(checkMetadata *metadata.CheckMetadata, cmInformer corev1.ConfigMapInformer, localIp string) {
+func (c *CommunEdge) communSend(checkMetadata *metadata.CheckMetadata, cmLister corelisters.ConfigMapLister, localIp string) {
 	copyLocalCheckDetail := checkMetadata.CopyLocal(localIp)
 	var checkedIps []string
 	for checkedIp := range copyLocalCheckDetail {
@@ -147,7 +147,7 @@ func (c *CommunEdge) communSend(checkMetadata *metadata.CheckMetadata, cmInforme
 		}
 		// Send commun information
 		communInfo := metadata.CommunInfo{SourceIP: localIp, CheckDetail: copyLocalCheckDetail}
-		if hmac, err := util.GenerateHmac(communInfo, cmInformer); err != nil {
+		if hmac, err := util.GenerateHmac(communInfo, cmLister); err != nil {
 			log.Errorf("communSend: generateHmac err %v", err)
 			return
 		} else {

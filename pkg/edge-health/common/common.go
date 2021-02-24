@@ -18,25 +18,29 @@ package common
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"time"
 )
 
 const (
-	CheckScoreMax          = 100
-	CheckScoreMin          = 0
-	TopologyZone           = "superedgehealth/topology-zone"
-	TaintZoneConfigMap     = "edge-health-zone-config"
-	TaintZoneConfigMapKey  = "TaintZoneAdmission"
-	HmacConfig             = "hmac-config"
-	HmacKey                = "hmackey"
-	MasterLabel            = "node-role.kubernetes.io/master"
-	TokenFile              = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	ReListTime             = 2 * time.Minute
-	NodeUnhealthAnnotation = "nodeunhealth"
+	CheckScoreMax = 100
+	CheckScoreMin = 0
+
+	TopologyZone          = "superedgehealth/topology-zone"
+	TaintZoneConfigMap    = "edge-health-zone-config"
+	TaintZoneConfigMapKey = "TaintZoneAdmission"
+
+	HmacConfig = "hmac-config"
+	HmacKey    = "hmackey"
+
+	MasterLabel = "node-role.kubernetes.io/master"
+	TokenFile   = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	NodeHealthAnnotation     = "superedgehealth/node-health"
+	NodeHealthAnnotationPros = "true"
+	NodeHealthAnnotationCons = "false"
 )
 
 var (
-	UnreachableNoExecuteTaint = &corev1.Taint{
+	UnreachableNoExecuteTaint = corev1.Taint{
 		Key:    corev1.TaintNodeUnreachable,
 		Effect: corev1.TaintEffectNoExecute,
 	}

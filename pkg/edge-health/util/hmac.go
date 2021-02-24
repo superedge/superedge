@@ -27,12 +27,12 @@ import (
 	"golang.org/x/sys/unix"
 	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/informers/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"os"
 	"os/signal"
 )
 
-func GenerateHmac(communInfo metadata.CommunInfo, cmInformer corev1.ConfigMapInformer) (string, error) {
+func GenerateHmac(communInfo metadata.CommunInfo, cmLister corelisters.ConfigMapLister) (string, error) {
 	addrBytes, err := json.Marshal(communInfo.SourceIP)
 	if err != nil {
 		return "", err
@@ -42,7 +42,7 @@ func GenerateHmac(communInfo metadata.CommunInfo, cmInformer corev1.ConfigMapInf
 		return "", err
 	}
 	hmacBefore := string(addrBytes) + string(detailBytes)
-	if hmacConf, err := cmInformer.Lister().ConfigMaps(metav1.NamespaceSystem).Get(common.HmacConfig); err != nil {
+	if hmacConf, err := cmLister.ConfigMaps(metav1.NamespaceSystem).Get(common.HmacConfig); err != nil {
 		return "", err
 	} else {
 		return GetHmacCode(hmacBefore, hmacConf.Data[common.HmacKey])

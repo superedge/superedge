@@ -95,11 +95,23 @@ func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 			log.V(4).Infof("Vote: vote pros to edge node %s begin ...", node.Name)
 			nodeCopy := node.DeepCopy()
 			needUpdated := false
-			if _, existed := nodeCopy.Annotations[common.NodeUnhealthAnnotation]; existed {
-				delete(nodeCopy.Annotations, common.NodeUnhealthAnnotation)
+			if nodeCopy.Annotations == nil {
+				nodeCopy.Annotations = map[string]string{
+					common.NodeHealthAnnotation: common.NodeHealthAnnotationPros,
+				}
 				needUpdated = true
+			} else {
+				if healthy, existed := nodeCopy.Annotations[common.NodeHealthAnnotation]; existed {
+					if healthy != common.NodeHealthAnnotationPros {
+						nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationPros
+						needUpdated = true
+					}
+				} else {
+					nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationPros
+					needUpdated = true
+				}
 			}
-			if index, existed := admissionutil.TaintExistsPosition(node.Spec.Taints, common.UnreachableNoExecuteTaint); existed {
+			if index, existed := admissionutil.TaintExistsPosition(nodeCopy.Spec.Taints, common.UnreachableNoExecuteTaint); existed {
 				nodeCopy.Spec.Taints = append(nodeCopy.Spec.Taints[:index], nodeCopy.Spec.Taints[index+1:]...)
 				needUpdated = true
 			}
@@ -119,9 +131,25 @@ func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 	util.ParallelizeUntil(context.TODO(), 16, len(consVoteIpList), func(index int) {
 		if node := edgeHealthMetadata.GetNodeByAddr(consVoteIpList[index]); node != nil {
 			log.V(4).Infof("Vote: vote cons to edge node %s begin ...", node.Name)
-			if _, existed := node.Annotations[common.NodeUnhealthAnnotation]; !existed {
-				nodeCopy := node.DeepCopy()
-				nodeCopy.Annotations[common.NodeUnhealthAnnotation] = "yes"
+			nodeCopy := node.DeepCopy()
+			needUpdated := false
+			if nodeCopy.Annotations == nil {
+				nodeCopy.Annotations = map[string]string{
+					common.NodeHealthAnnotation: common.NodeHealthAnnotationCons,
+				}
+				needUpdated = true
+			} else {
+				if healthy, existed := nodeCopy.Annotations[common.NodeHealthAnnotation]; existed {
+					if healthy != common.NodeHealthAnnotationCons {
+						nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationCons
+						needUpdated = true
+					}
+				} else {
+					nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationCons
+					needUpdated = true
+				}
+			}
+			if needUpdated {
 				if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
 					log.Errorf("Vote: update cons vote to edge node %s error %v ", nodeCopy.Name, err)
 				} else {

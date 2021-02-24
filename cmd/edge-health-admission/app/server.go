@@ -19,9 +19,9 @@ package app
 import (
 	"context"
 	"github.com/spf13/cobra"
-	"github.com/superedge/superedge/cmd/edge-health/app/options"
-	"github.com/superedge/superedge/pkg/edge-health/config"
-	"github.com/superedge/superedge/pkg/edge-health/daemon"
+	"github.com/superedge/superedge/cmd/edge-health-admission/app/options"
+	"github.com/superedge/superedge/pkg/edge-health-admission/admission"
+	"github.com/superedge/superedge/pkg/edge-health-admission/config"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
@@ -29,10 +29,10 @@ import (
 	"os"
 )
 
-func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
-	o := options.NewEdgeHealthOptions()
+func NewEdgeHealthAdmissionCommand(ctx context.Context) *cobra.Command {
+	o := options.NewAdmissionOptions()
 	cmd := &cobra.Command{
-		Use: "edge-health",
+		Use: "edge-health-admission",
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
 
@@ -52,26 +52,23 @@ func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			runEdgeHealth(ctx, completedOptions)
+			runCommand(ctx, completedOptions)
 		},
 	}
+
 	fs := cmd.Flags()
-	namedFlagSets := o.AddFlags()
-	for _, f := range namedFlagSets.FlagSets {
-		fs.AddFlagSet(f)
-	}
+	o.AddFlags(fs)
 
 	return cmd
 }
 
-func runEdgeHealth(ctx context.Context, o options.CompletedOptions) {
-	edgeHealthConfig, err := config.NewEdgeHealthConfig(o)
+func runCommand(ctx context.Context, o options.CompletedOptions) {
+	edgeHealthAdmissionConfig, err := config.NewEdgeHealthAdmissionConfig(o)
 	if err != nil {
-		klog.Fatalf("NewEdgeHealthConfig err: %v", err)
+		klog.Fatalf("NewEdgeHealthAdmissionConfig err: %v", err)
 		return
 	}
-
-	go edgeHealthConfig.Run(ctx.Done())
-	go daemon.NewEdgeHealthDaemon(edgeHealthConfig).Run(ctx.Done())
+	go edgeHealthAdmissionConfig.Run(ctx.Done())
+	go admission.NewEdgeHealthAdmission(edgeHealthAdmissionConfig).Run(ctx.Done())
 	<-ctx.Done()
 }

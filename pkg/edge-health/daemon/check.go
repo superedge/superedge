@@ -46,9 +46,9 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 	masterSelector := labels.NewSelector()
 	masterSelector = masterSelector.Add(*masterRequirement)
 
-	if mrc, err := ehd.cfg.ConfigMapInformer.Lister().ConfigMaps(metav1.NamespaceSystem).Get(common.TaintZoneConfigMap); err != nil {
+	if mrc, err := ehd.cmLister.ConfigMaps(metav1.NamespaceSystem).Get(common.TaintZoneConfigMap); err != nil {
 		if apierrors.IsNotFound(err) { // multi-region configmap not found
-			if NodeList, err := ehd.cfg.NodeInformer.Lister().List(masterSelector); err != nil {
+			if NodeList, err := ehd.nodeLister.List(masterSelector); err != nil {
 				klog.Errorf("Multi-region configmap not found and get nodes err %v", err)
 				return
 			} else {
@@ -62,7 +62,7 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 		mrcv := mrc.Data[common.TaintZoneConfigMapKey]
 		klog.V(4).Infof("Multi-region value is %s", mrcv)
 		if mrcv == "false" { // close multi-region check
-			if NodeList, err := ehd.cfg.NodeInformer.Lister().List(masterSelector); err != nil {
+			if NodeList, err := ehd.nodeLister.List(masterSelector); err != nil {
 				klog.Errorf("Multi-region configmap exist but disabled and get nodes err %v", err)
 				return
 			} else {
@@ -78,7 +78,7 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 				}
 				masterZoneSelector := labels.NewSelector()
 				masterZoneSelector = masterZoneSelector.Add(*masterRequirement, *zoneRequirement)
-				if nodeList, err := ehd.cfg.NodeInformer.Lister().List(masterZoneSelector); err != nil {
+				if nodeList, err := ehd.nodeLister.List(masterZoneSelector); err != nil {
 					klog.Errorf("TopologyZone label for hostname %s but get nodes err: %v", host.Name, err)
 					return
 				} else {

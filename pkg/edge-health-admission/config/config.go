@@ -17,39 +17,46 @@ limitations under the License.
 package config
 
 import (
-	"crypto/tls"
-	"flag"
+	"github.com/superedge/superedge/cmd/edge-health-admission/app/options"
+	"k8s.io/client-go/informers"
+	corev1 "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"time"
 )
 
-// Config contains the server (the webhook) cert and key.
-type Config struct {
-	CertFile       string
-	KeyFile        string
-	KubeconfigPath string
-	MasterUrl      string
+// EdgeHealthAdmissionConfig contains both cert and key of admission webhook
+type EdgeHealthAdmissionConfig struct {
+	CertFile     string
+	KeyFile      string
+	Addr         string
+	NodeInformer corev1.NodeInformer
 }
 
-var Kubeclient clientset.Interface
-
-func (c *Config) AddFlags() {
-	flag.StringVar(&c.CertFile, "admission-control-server-cert", c.CertFile, ""+
-		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated "+
-		"after server cert).")
-	flag.StringVar(&c.KeyFile, "admission-control-server-key", c.KeyFile, ""+
-		"File containing the default x509 private key matching --tls-cert-file.")
-	flag.StringVar(&c.KubeconfigPath, "kubeconfigpath", c.KubeconfigPath, "")
-	flag.StringVar(&c.MasterUrl, "masterurl", c.MasterUrl, "")
-}
-
-func ConfigTLS(config Config) *tls.Config {
-	sCert, err := tls.LoadX509KeyPair(config.CertFile, config.KeyFile)
+func NewEdgeHealthAdmissionConfig(o options.CompletedOptions) (*EdgeHealthAdmissionConfig, error) {
+	kubeconfig, err := clientcmd.BuildConfigFromFlags(o.Master, o.Kubeconfig)
 	if err != nil {
-		klog.Fatal(err)
+		klog.Errorf("Building kubeconfig error %s", err.Error())
+		return nil, err
 	}
+	kubeconfig.QPS = o.QPS
+	kubeconfig.Burst = o.Burst
+	kubeclient, err := clientset.NewForConfig(kubeconfig)
+	if err != nil {
+		klog.Errorf("Building kubeclient error %s", err.Error())
+		return nil, err
+	}
+	k8sFactory := informers.NewSharedInformerFactory(kubeclient, time.Second*time.Duration(o.SyncPeriod))
 
-	return &tls.Config{
-		Certificates: []tls.Certificate{sCert},
-	}
+	return &EdgeHealthAdmissionConfig{
+		CertFile:     o.CertFile,
+		KeyFile:      o.KeyFile,
+		Addr:         o.Addr,
+		NodeInformer: k8sFactory.Core().V1().Nodes(),
+	}, nil
+}
+
+func (c *EdgeHealthAdmissionConfig) Run(stop <-chan struct{}) {
+	go c.NodeInformer.Informer().Run(stop)
 }
