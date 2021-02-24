@@ -99,26 +99,21 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 			return err
 		}
 		if dgc.templateHasher.IsTemplateHashChanged(dg, v, dp) {
-			klog.Info("template hash changed")
+			klog.Infof("deployment %s template hash changed", dp.Name)
 			updates = append(updates, DeploymentToUpdate)
 			continue
 		} else {
 			scheme := scheme.Scheme
 			scheme.Default(DeploymentToUpdate)
 			DeploymentToUpdate.Spec.Replicas = dp.Spec.Replicas
-			//if !apiequality.Semantic.DeepEqual(DeploymentToUpdate.Spec, dp.Spec){
 			if !commonutil.DeepContains(dp.Spec, DeploymentToUpdate.Spec){
+				klog.Infof("deployment %s template changed", dp.Name)
 				out, _ := json.Marshal(DeploymentToUpdate.Spec)
-				klog.Info("deploymentToUpdate is %s", string(out))
+				klog.V(5).Infof("deploymentToUpdate is %s", string(out))
 				out, _ = json.Marshal(dp.Spec)
-				klog.Info("deployment is %s", string(out))
+				klog.V(5).Info("deployment is %s", string(out))
 				updates = append(updates, DeploymentToUpdate)
 			}
-
-			//template := util.KeepConsistence(dg, dp, v)
-			//if !apiequality.Semantic.DeepEqual(template, dp) {
-			//	updates = append(updates, template)
-			//}
 		}
 	}
 

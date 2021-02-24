@@ -266,6 +266,20 @@ func (in *StatefulSetGridList) DeepCopyObject() runtime.Object {
 func (in *StatefulSetGridSpec) DeepCopyInto(out *StatefulSetGridSpec) {
 	*out = *in
 	in.Template.DeepCopyInto(&out.Template)
+	if in.TemplatePool != nil {
+		in, out := &in.TemplatePool, &out.TemplatePool
+		*out = make(map[string]appsv1.StatefulSetSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
+	if in.Templates != nil {
+		in, out := &in.Templates, &out.Templates
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

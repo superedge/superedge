@@ -21,6 +21,7 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	appsv1 "k8s.io/api/apps/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
@@ -69,6 +70,8 @@ type StatefulSetGridController struct {
 	syncHandler func(dKey string) error
 	// used for unit testing
 	enqueueStatefulSetGrid func(sg *crdv1.StatefulSetGrid)
+
+	templateHasher util.StatefulsetTemplateHash
 }
 
 func NewStatefulSetGridController(setGridInformer crdinformers.StatefulSetGridInformer, setInformer appsinformers.StatefulSetInformer,
@@ -117,6 +120,8 @@ func NewStatefulSetGridController(setGridInformer crdinformers.StatefulSetGridIn
 
 	ssgc.nodeLister = nodeInformer.Lister()
 	ssgc.nodeListerSynced = nodeInformer.Informer().HasSynced
+
+	ssgc.templateHasher = util.NewStatefulsetTemplateHash()
 
 	return ssgc
 }
@@ -198,6 +203,29 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 	if ssg.Spec.GridUniqKey == "" {
 		ssgc.eventRecorder.Eventf(ssg, corev1.EventTypeWarning, "Empty", "This statefulset-grid has an empty grid key")
 		return nil
+	}
+
+	ssgCopy := ssg.DeepCopy()
+
+	if ssgCopy.Spec.DefaultTemplateName == "" {
+		ssgCopy.Spec.DefaultTemplateName = common.DefaultTemplateName
+	}
+
+	if err := ssgc.templateHasher.RemoveUnusedTemplate(ssgCopy); err != nil{
+		klog.Errorf("Failed to remove unused template for statefulsetGrid %s: %v", ssg.Name, err)
+		return err
+	}
+
+	ssgc.templateHasher.UpdateTemplateHash(ssgCopy)
+
+	if !apiequality.Semantic.DeepEqual(ssg.Spec.Template, ssgCopy.Spec.Template) ||
+		!apiequality.Semantic.DeepEqual(ssg.Spec.DefaultTemplateName, ssgCopy.Spec.DefaultTemplateName) ||
+		!apiequality.Semantic.DeepEqual(ssg.Spec.TemplatePool, ssgCopy.Spec.TemplatePool) {
+		klog.Infof("Updating statefulsetGrid %s/%s template info", ssgCopy.Namespace, ssgCopy.Name)
+		_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+		if err != nil && !errors.IsConflict(err) {
+			return err
+		}
 	}
 
 	// get statefulset workload list of this grid

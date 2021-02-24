@@ -18,17 +18,19 @@ package statefulset
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/hashicorp/go-multierror"
+	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	appsv1 "k8s.io/api/apps/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"sync"
-
-	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
 )
 
 func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, setList []*appsv1.StatefulSet, gridValues []string) error {
@@ -82,13 +84,34 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 
 		set, found := existedSetMap[name]
 		if !found {
-			adds = append(adds, util.CreateStatefulSet(ssg, v))
+			StatefulSetToAdd, err := util.CreateStatefulSet(ssg, v, ssgc.templateHasher)
+			if err != nil {
+				return err
+			}
+			adds = append(adds, StatefulSetToAdd)
 			continue
 		}
 
-		template := util.KeepConsistence(ssg, set, v)
-		if !apiequality.Semantic.DeepEqual(template, set) {
-			updates = append(updates, template)
+		StatefulSetToUpdate, err := util.CreateStatefulSet(ssg, v, ssgc.templateHasher)
+		if err != nil {
+			return err
+		}
+		if ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set) {
+			klog.Infof("statefulset %s template hash changed", set.Name)
+			updates = append(updates, StatefulSetToUpdate)
+			continue
+		} else {
+			scheme := scheme.Scheme
+			scheme.Default(StatefulSetToUpdate)
+			StatefulSetToUpdate.Spec.Replicas = set.Spec.Replicas
+			if !commonutil.DeepContains(set.Spec, StatefulSetToUpdate.Spec){
+				klog.Infof("statefulset %s template changed", set.Name)
+				out, _ := json.Marshal(StatefulSetToUpdate.Spec)
+				klog.V(5).Infof("StatefulSetToUpdate is %s", string(out))
+				out, _ = json.Marshal(set.Spec)
+				klog.Infof("StatefulSet is %s", string(out))
+				updates = append(updates, StatefulSetToUpdate)
+			}
 		}
 	}
 

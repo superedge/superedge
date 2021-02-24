@@ -72,7 +72,7 @@ func (dth *DeploymentTemplateHash)IsTemplateHashChanged(dg *crdv1.DeploymentGrid
 
 	template, err := dth.getDeployTemplate(&dg.Spec, gridValues)
 	if err != nil {
-		klog.Errorf("Failed to get deployment template for %s from tapp %s", dp.Name, dg.Name)
+		klog.Errorf("Failed to get deployment template for %s from deploymentGrid %s", dp.Name, dg.Name)
 		return true
 	}
 	expected := util.GetTemplateHash(template.Template.Labels)

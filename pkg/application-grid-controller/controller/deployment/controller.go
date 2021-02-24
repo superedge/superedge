@@ -223,10 +223,10 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 	if !apiequality.Semantic.DeepEqual(dg.Spec.Template, dgCopy.Spec.Template) ||
 		!apiequality.Semantic.DeepEqual(dg.Spec.DefaultTemplateName, dgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(dg.Spec.TemplatePool, dgCopy.Spec.TemplatePool) {
-		klog.Infof("Updating deployment grid %s/%s template", dgCopy.Namespace, dgCopy.Name)
+		klog.Infof("Updating deploymentGrid %s/%s template", dgCopy.Namespace, dgCopy.Name)
 		_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
-		if err != nil && errors.IsConflict(err) {
-			return nil
+		if err != nil && !errors.IsConflict(err) {
+			return err
 		}
 	}
 
