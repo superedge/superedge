@@ -26,13 +26,13 @@ import (
 	"k8s.io/klog"
 )
 
-type StatefulsetTemplateHash struct {}
+type StatefulsetTemplateHash struct{}
 
 func NewStatefulsetTemplateHash() StatefulsetTemplateHash {
 	return StatefulsetTemplateHash{}
 }
 
-func (sth *StatefulsetTemplateHash)RemoveUnusedTemplate(ssg *crdv1.StatefulSetGrid) error {
+func (sth *StatefulsetTemplateHash) RemoveUnusedTemplate(ssg *crdv1.StatefulSetGrid) error {
 	if !ssg.Spec.AutoDeleteUnusedTemplate {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (sth *StatefulsetTemplateHash)RemoveUnusedTemplate(ssg *crdv1.StatefulSetGr
 	return nil
 }
 
-func (sth *StatefulsetTemplateHash)UpdateTemplateHash(ssg *crdv1.StatefulSetGrid) {
+func (sth *StatefulsetTemplateHash) UpdateTemplateHash(ssg *crdv1.StatefulSetGrid) {
 	updateHash := func(template *appsv1.StatefulSetSpec) {
 		sth.setTemplateHash(template)
 	}
@@ -64,7 +64,7 @@ func (sth *StatefulsetTemplateHash)UpdateTemplateHash(ssg *crdv1.StatefulSetGrid
 	}
 }
 
-func (sth *StatefulsetTemplateHash)setTemplateHash(template *appsv1.StatefulSetSpec) {
+func (sth *StatefulsetTemplateHash) setTemplateHash(template *appsv1.StatefulSetSpec) {
 	expected := sth.generateTemplateHash(template)
 	hash := util.GetTemplateHash(template.Template.Labels)
 	if hash != expected {
@@ -75,7 +75,7 @@ func (sth *StatefulsetTemplateHash)setTemplateHash(template *appsv1.StatefulSetS
 	}
 }
 
-func (sth *StatefulsetTemplateHash)generateTemplateHash(template *appsv1.StatefulSetSpec) string {
+func (sth *StatefulsetTemplateHash) generateTemplateHash(template *appsv1.StatefulSetSpec) string {
 	meta := template.Template.ObjectMeta.DeepCopy()
 	copyTemplate := template.DeepCopy()
 	delete(meta.Labels, common.TemplateHashKey)
@@ -83,7 +83,7 @@ func (sth *StatefulsetTemplateHash)generateTemplateHash(template *appsv1.Statefu
 	return fmt.Sprintf("%d", util.GenerateHash(copyTemplate))
 }
 
-func (sth *StatefulsetTemplateHash)IsTemplateHashChanged(ssg *crdv1.StatefulSetGrid, gridValues string, ss *appsv1.StatefulSet) bool {
+func (sth *StatefulsetTemplateHash) IsTemplateHashChanged(ssg *crdv1.StatefulSetGrid, gridValues string, ss *appsv1.StatefulSet) bool {
 	hash := util.GetTemplateHash(ss.Spec.Template.Labels)
 
 	template, err := sth.getStatefulsetTemplate(&ssg.Spec, gridValues)
@@ -95,7 +95,7 @@ func (sth *StatefulsetTemplateHash)IsTemplateHashChanged(ssg *crdv1.StatefulSetG
 	return hash != expected
 }
 
-func (sth *StatefulsetTemplateHash)getStatefulsetTemplate(spec *crdv1.StatefulSetGridSpec, gridValues string) (*appsv1.StatefulSetSpec, error) {
+func (sth *StatefulsetTemplateHash) getStatefulsetTemplate(spec *crdv1.StatefulSetGridSpec, gridValues string) (*appsv1.StatefulSetSpec, error) {
 	templateName := commonutil.GetTemplateName(spec.Templates, gridValues, spec.DefaultTemplateName)
 	if templateName == common.DefaultTemplateName || templateName == "" {
 		return &spec.Template, nil

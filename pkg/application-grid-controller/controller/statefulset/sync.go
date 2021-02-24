@@ -104,7 +104,7 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 			scheme := scheme.Scheme
 			scheme.Default(StatefulSetToUpdate)
 			StatefulSetToUpdate.Spec.Replicas = set.Spec.Replicas
-			if !commonutil.DeepContains(set.Spec, StatefulSetToUpdate.Spec){
+			if !commonutil.DeepContains(set.Spec, StatefulSetToUpdate.Spec) {
 				klog.Infof("statefulset %s template changed", set.Name)
 				out, _ := json.Marshal(StatefulSetToUpdate.Spec)
 				klog.V(5).Infof("StatefulSetToUpdate is %s", string(out))

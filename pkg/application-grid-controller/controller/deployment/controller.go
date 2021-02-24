@@ -213,7 +213,7 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 		dgCopy.Spec.DefaultTemplateName = common.DefaultTemplateName
 	}
 
-	if err := dgc.templateHasher.RemoveUnusedTemplate(dgCopy); err != nil{
+	if err := dgc.templateHasher.RemoveUnusedTemplate(dgCopy); err != nil {
 		klog.Errorf("Failed to remove unused template for deploymentGrid %s: %v", dg.Name, err)
 		return err
 	}

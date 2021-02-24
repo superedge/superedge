@@ -211,7 +211,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		ssgCopy.Spec.DefaultTemplateName = common.DefaultTemplateName
 	}
 
-	if err := ssgc.templateHasher.RemoveUnusedTemplate(ssgCopy); err != nil{
+	if err := ssgc.templateHasher.RemoveUnusedTemplate(ssgCopy); err != nil {
 		klog.Errorf("Failed to remove unused template for statefulsetGrid %s: %v", ssg.Name, err)
 		return err
 	}

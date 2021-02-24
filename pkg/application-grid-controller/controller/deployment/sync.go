@@ -106,7 +106,7 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 			scheme := scheme.Scheme
 			scheme.Default(DeploymentToUpdate)
 			DeploymentToUpdate.Spec.Replicas = dp.Spec.Replicas
-			if !commonutil.DeepContains(dp.Spec, DeploymentToUpdate.Spec){
+			if !commonutil.DeepContains(dp.Spec, DeploymentToUpdate.Spec) {
 				klog.Infof("deployment %s template changed", dp.Name)
 				out, _ := json.Marshal(DeploymentToUpdate.Spec)
 				klog.V(5).Infof("deploymentToUpdate is %s", string(out))

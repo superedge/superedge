@@ -26,13 +26,13 @@ import (
 	"k8s.io/klog"
 )
 
-type DeploymentTemplateHash struct {}
+type DeploymentTemplateHash struct{}
 
-func NewDeploymentTemplateHash() DeploymentTemplateHash{
+func NewDeploymentTemplateHash() DeploymentTemplateHash {
 	return DeploymentTemplateHash{}
 }
 
-func (dth *DeploymentTemplateHash)RemoveUnusedTemplate(dg *crdv1.DeploymentGrid) error {
+func (dth *DeploymentTemplateHash) RemoveUnusedTemplate(dg *crdv1.DeploymentGrid) error {
 	if !dg.Spec.AutoDeleteUnusedTemplate {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (dth *DeploymentTemplateHash)RemoveUnusedTemplate(dg *crdv1.DeploymentGrid)
 	return nil
 }
 
-func (dth *DeploymentTemplateHash)UpdateTemplateHash(dg *crdv1.DeploymentGrid) {
+func (dth *DeploymentTemplateHash) UpdateTemplateHash(dg *crdv1.DeploymentGrid) {
 	updateHash := func(template *appsv1.DeploymentSpec) {
 		dth.setTemplateHash(template)
 	}
@@ -64,7 +64,7 @@ func (dth *DeploymentTemplateHash)UpdateTemplateHash(dg *crdv1.DeploymentGrid) {
 	}
 }
 
-func (dth *DeploymentTemplateHash)setTemplateHash(template *appsv1.DeploymentSpec) {
+func (dth *DeploymentTemplateHash) setTemplateHash(template *appsv1.DeploymentSpec) {
 	expected := dth.generateTemplateHash(template)
 	hash := util.GetTemplateHash(template.Template.Labels)
 	if hash != expected {
@@ -75,7 +75,7 @@ func (dth *DeploymentTemplateHash)setTemplateHash(template *appsv1.DeploymentSpe
 	}
 }
 
-func (dth *DeploymentTemplateHash)generateTemplateHash(template *appsv1.DeploymentSpec) string {
+func (dth *DeploymentTemplateHash) generateTemplateHash(template *appsv1.DeploymentSpec) string {
 	meta := template.Template.ObjectMeta.DeepCopy()
 	copyTemplate := template.DeepCopy()
 	delete(meta.Labels, common.TemplateHashKey)
@@ -83,7 +83,7 @@ func (dth *DeploymentTemplateHash)generateTemplateHash(template *appsv1.Deployme
 	return fmt.Sprintf("%d", util.GenerateHash(copyTemplate))
 }
 
-func (dth *DeploymentTemplateHash)IsTemplateHashChanged(dg *crdv1.DeploymentGrid, gridValues string, dp *appsv1.Deployment) bool {
+func (dth *DeploymentTemplateHash) IsTemplateHashChanged(dg *crdv1.DeploymentGrid, gridValues string, dp *appsv1.Deployment) bool {
 	hash := util.GetTemplateHash(dp.Spec.Template.Labels)
 
 	template, err := dth.getDeployTemplate(&dg.Spec, gridValues)
@@ -95,7 +95,7 @@ func (dth *DeploymentTemplateHash)IsTemplateHashChanged(dg *crdv1.DeploymentGrid
 	return hash != expected
 }
 
-func (dth *DeploymentTemplateHash)getDeployTemplate(spec *crdv1.DeploymentGridSpec, gridValues string) (*appsv1.DeploymentSpec, error) {
+func (dth *DeploymentTemplateHash) getDeployTemplate(spec *crdv1.DeploymentGridSpec, gridValues string) (*appsv1.DeploymentSpec, error) {
 	templateName := commonutil.GetTemplateName(spec.Templates, gridValues, spec.DefaultTemplateName)
 	if templateName == common.DefaultTemplateName || templateName == "" {
 		return &spec.Template, nil

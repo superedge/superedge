@@ -5,7 +5,6 @@ import (
 	"unsafe"
 )
 
-
 // During deepValueContains, must keep track of checks that are
 // in progress. The comparison algorithm assumes that all
 // checks in progress are true when it reencounters them.
