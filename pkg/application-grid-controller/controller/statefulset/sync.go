@@ -111,6 +111,7 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 				out, _ = json.Marshal(set.Spec)
 				klog.Infof("StatefulSet is %s", string(out))
 				updates = append(updates, StatefulSetToUpdate)
+				continue
 			}
 		}
 	}
