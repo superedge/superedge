@@ -17,65 +17,29 @@ limitations under the License.
 package util
 
 import (
-	"io/ioutil"
 	"k8s.io/api/core/v1"
 )
 
-func GetCABundle(certFile string) ([]byte, error) {
-	certByte, err := ioutil.ReadFile(certFile)
-	if err != nil {
-		return []byte{}, err
-	}
-	return certByte, nil
-}
-
-func TaintSetDiff(t1, t2 []v1.Taint) (taintsToAdd []v1.Taint, taintsToRemove []*v1.Taint) {
-	for _, taint := range t1 {
-		if !TaintExists(t2, &taint) {
-			t := taint
-			taintsToAdd = append(taintsToAdd, t)
-		}
-	}
-
-	for _, taint := range t2 {
-		if !TaintExists(t1, &taint) {
-			t := taint
-			taintsToRemove = append(taintsToRemove, &t)
-		}
-	}
-
-	return
-}
-
-// TaintExists checks if the given taint exists in list of taints. Returns true if exists false otherwise.
-func TaintExists(taints []v1.Taint, taintToFind *v1.Taint) bool {
-	for _, taint := range taints {
-		if taint.MatchTaint(taintToFind) {
-			return true
-		}
-	}
-	return false
-}
-
-func TaintExistsPosition(taints []v1.Taint, taintToFind *v1.Taint) (int, bool) {
+// TaintExists checks whether or not the given taint exists in the list of taints. Returns true and index if exists and false otherwise.
+func TaintExistsPosition(taints []v1.Taint, taintToFind v1.Taint) (int, bool) {
 	for index, taint := range taints {
-		if taint.MatchTaint(taintToFind) {
+		if taint.MatchTaint(&taintToFind) {
 			return index, true
 		}
 	}
 	return -1, false
 }
 
-// GetNodeCondition extracts the provided condition from the given status and returns that.
-// Returns nil and -1 if the condition is not present, and the index of the located condition.
-func GetNodeCondition(status *v1.NodeStatus, conditionType v1.NodeConditionType) (int, *v1.NodeCondition) {
+// GetNodeCondition extracts the node condition from the provided node status and specified condition type.
+// Returns nil and -1 if the condition is not present, otherwise the index of the located condition.
+func GetNodeCondition(status *v1.NodeStatus, conditionType v1.NodeConditionType) (int, v1.NodeCondition) {
 	if status == nil {
-		return -1, nil
+		return -1, v1.NodeCondition{}
 	}
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == conditionType {
-			return i, &status.Conditions[i]
+			return i, status.Conditions[i]
 		}
 	}
-	return -1, nil
+	return -1, v1.NodeCondition{}
 }

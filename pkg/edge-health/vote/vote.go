@@ -19,123 +19,145 @@ package vote
 import (
 	"context"
 	admissionutil "github.com/superedge/superedge/pkg/edge-health-admission/util"
-	"github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
+	"github.com/superedge/superedge/pkg/edge-health/config"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"github.com/superedge/superedge/pkg/edge-health/util"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	clientset "k8s.io/client-go/kubernetes"
 	log "k8s.io/klog"
 	"time"
 )
 
-var UnreachNoExecuteTaint = &corev1.Taint{
-	Key:    corev1.TaintNodeUnreachable,
-	Effect: corev1.TaintEffectNoExecute,
+type Vote interface {
+	Vote(*metadata.EdgeHealthMetadata, clientset.Interface, string, <-chan struct{})
 }
 
-type Vote interface {
-	Vote()
-	GetVotePeriod() int
-	GetVoteTimeout() int
+type votePair struct {
+	pros int
+	cons int
 }
 
 type VoteEdge struct {
-	VoteTimeOut int
-	VotePeriod  int
+	*config.EdgeHealthVote
 }
 
-func NewVoteEdge(voteTimeOut, votePeriod int) Vote {
-	return VoteEdge{
-		VoteTimeOut: voteTimeOut,
-		VotePeriod:  votePeriod,
-	}
+func NewVoteEdge(cfg *config.EdgeHealthVote) *VoteEdge {
+	return &VoteEdge{cfg}
 }
 
-func (vote VoteEdge) GetVoteTimeout() int {
-	return vote.VoteTimeOut
+func (v *VoteEdge) Vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubeclient clientset.Interface,
+	localIp string, stopCh <-chan struct{}) {
+	go wait.Until(func() {
+		v.vote(edgeHealthMetadata, kubeclient, localIp, stopCh)
+	}, time.Duration(v.VotePeriod)*time.Second, stopCh)
 }
 
-func (vote VoteEdge) GetVotePeriod() int {
-	return vote.VotePeriod
-}
-
-func (vote VoteEdge) Vote() {
-	voteCountMap := make(map[string]map[string]int) // {"a":{"yes":1,"no":2}}
-	healthNodeMap := make(map[string]string)
-
-	tempNodeStatus := data.Result.CopyResultDataAll() //map[string]map[string]ResultDetail string:checker ip string:checked ip bool:noraml
-	for k, v := range tempNodeStatus {                //k is checker ip
-		for ip, resultdetail := range v { //ip is checked ip
-			if k == common.LocalIp || (k != common.LocalIp && !time.Now().After(resultdetail.Time.Add(time.Duration(vote.GetVoteTimeout())*time.Second))) {
-				healthNodeMap[k] = "" //node is a health node if it has at least one valid check
-				if _, ok := voteCountMap[ip]; !ok {
-					voteCountMap[ip] = make(map[string]int)
+func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubeclient clientset.Interface, localIp string, stopCh <-chan struct{}) {
+	var (
+		prosVoteIpList, consVoteIpList []string
+		// Init votePair since cannot assign to struct field voteCountMap[checkedIp].pros in map
+		vp votePair
+	)
+	voteCountMap := make(map[string]votePair) // {"127.0.0.1":{"pros":1,"cons":2}}
+	copyCheckInfo := edgeHealthMetadata.CopyAll()
+	// Note that voteThreshold should be calculated by checked instead of checker
+	// since checked represents the total valid edge health nodes while checker may contain partly ones.
+	voteThreshold := (edgeHealthMetadata.GetCheckedIpLen() + 1) / 2
+	for _, checkedDetails := range copyCheckInfo {
+		for checkedIp, checkedDetail := range checkedDetails {
+			if !time.Now().After(checkedDetail.Time.Add(time.Duration(v.VoteTimeout) * time.Second)) {
+				if _, existed := voteCountMap[checkedIp]; !existed {
+					voteCountMap[checkedIp] = votePair{0, 0}
 				}
-				if resultdetail.Normal {
-					if _, ok := voteCountMap[ip]["yes"]; !ok {
-						voteCountMap[ip]["yes"] = 0
+				vp = voteCountMap[checkedIp]
+				if checkedDetail.Normal {
+					vp.pros++
+					if vp.pros >= voteThreshold {
+						prosVoteIpList = append(prosVoteIpList, checkedIp)
 					}
-					voteCountMap[ip]["yes"] += 1
 				} else {
-					if _, ok := voteCountMap[ip]["no"]; !ok {
-						voteCountMap[ip]["no"] = 0
+					vp.cons++
+					if vp.cons >= voteThreshold {
+						consVoteIpList = append(consVoteIpList, checkedIp)
 					}
-					voteCountMap[ip]["no"] += 1
 				}
+				voteCountMap[checkedIp] = vp
 			}
 		}
 	}
-	log.V(4).Infof("Vote: healthNodeMap is %v , voteCountMap is %v", healthNodeMap, voteCountMap)
+	log.V(4).Infof("Vote: voteCountMap is %+v", voteCountMap)
 
-	//num := (float64(len(healthNodeMap)) + 1) / 2
-	num := (float64(data.CheckInfoResult.GetLenCheckInfo()) + 1) / 2
+	// Handle prosVoteIpList
+	util.ParallelizeUntil(context.TODO(), 16, len(prosVoteIpList), func(index int) {
+		if node := edgeHealthMetadata.GetNodeByAddr(prosVoteIpList[index]); node != nil {
+			log.V(4).Infof("Vote: vote pros to edge node %s begin ...", node.Name)
+			nodeCopy := node.DeepCopy()
+			needUpdated := false
+			if nodeCopy.Annotations == nil {
+				nodeCopy.Annotations = map[string]string{
+					common.NodeHealthAnnotation: common.NodeHealthAnnotationPros,
+				}
+				needUpdated = true
+			} else {
+				if healthy, existed := nodeCopy.Annotations[common.NodeHealthAnnotation]; existed {
+					if healthy != common.NodeHealthAnnotationPros {
+						nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationPros
+						needUpdated = true
+					}
+				} else {
+					nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationPros
+					needUpdated = true
+				}
+			}
+			if index, existed := admissionutil.TaintExistsPosition(nodeCopy.Spec.Taints, common.UnreachableNoExecuteTaint); existed {
+				nodeCopy.Spec.Taints = append(nodeCopy.Spec.Taints[:index], nodeCopy.Spec.Taints[index+1:]...)
+				needUpdated = true
+			}
+			if needUpdated {
+				if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+					log.Errorf("Vote: update pros vote to edge node %s error %+v ", nodeCopy.Name, err)
+				} else {
+					log.V(2).Infof("Vote: update pros vote to edge node %s successfully", nodeCopy.Name)
+				}
+			}
+		} else {
+			log.Warningf("Vote: edge node addr %s not found", prosVoteIpList[index])
+		}
+	})
 
-	if len(healthNodeMap) == 1 {
-		return
-	}
-	for ip, v := range voteCountMap {
-		if _, ok := v["yes"]; ok {
-			if float64(v["yes"]) >= num {
-				log.V(4).Infof("vote: vote yes to master begin")
-				name := util.GetNodeNameByIp(data.NodeList.NodeList.Items, ip)
-				if node, err := check.NodeManager.NodeLister.Get(name); err == nil && name != "" {
-					if _, ok := node.Annotations["nodeunhealth"]; ok {
-						nodenew := node.DeepCopy()
-						delete(nodenew.Annotations, "nodeunhealth")
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("update yes vote to master error: %v ", err)
-						} else {
-							log.V(2).Infof("update yes vote of %s to master", nodenew.Name)
-						}
-					} else if index, flag := admissionutil.TaintExistsPosition(node.Spec.Taints, UnreachNoExecuteTaint); flag {
-						nodenew := node.DeepCopy()
-						nodenew.Spec.Taints = append(nodenew.Spec.Taints[:index], nodenew.Spec.Taints[index+1:]...)
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("remove no excute taint for health node error: %v ", err)
-						} else {
-							log.V(2).Infof("remove no excute taint for health node: %s to master", nodenew.Name)
-						}
+	// Handle consVoteIpList
+	util.ParallelizeUntil(context.TODO(), 16, len(consVoteIpList), func(index int) {
+		if node := edgeHealthMetadata.GetNodeByAddr(consVoteIpList[index]); node != nil {
+			log.V(4).Infof("Vote: vote cons to edge node %s begin ...", node.Name)
+			nodeCopy := node.DeepCopy()
+			needUpdated := false
+			if nodeCopy.Annotations == nil {
+				nodeCopy.Annotations = map[string]string{
+					common.NodeHealthAnnotation: common.NodeHealthAnnotationCons,
+				}
+				needUpdated = true
+			} else {
+				if healthy, existed := nodeCopy.Annotations[common.NodeHealthAnnotation]; existed {
+					if healthy != common.NodeHealthAnnotationCons {
+						nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationCons
+						needUpdated = true
 					}
+				} else {
+					nodeCopy.Annotations[common.NodeHealthAnnotation] = common.NodeHealthAnnotationCons
+					needUpdated = true
 				}
 			}
-		}
-		if _, ok := v["no"]; ok {
-			if float64(v["no"]) >= num {
-				log.V(4).Infof("vote: vote no to master begin")
-				name := util.GetNodeNameByIp(data.NodeList.NodeList.Items, ip)
-				if node, err := check.NodeManager.NodeLister.Get(name); err == nil && name != "" {
-					if _, ok := node.Annotations["nodeunhealth"]; !ok {
-						nodenew := node.DeepCopy()
-						nodenew.Annotations["nodeunhealth"] = "yes"
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("update no vote to master error: %v ", err)
-						} else {
-							log.V(2).Infof("update no vote of %s to master", nodenew.Name)
-						}
-					}
+			if needUpdated {
+				if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+					log.Errorf("Vote: update cons vote to edge node %s error %+v ", nodeCopy.Name, err)
+				} else {
+					log.V(2).Infof("Vote: update cons vote to edge node %s successfully", nodeCopy.Name)
 				}
 			}
+		} else {
+			log.Warningf("Vote: edge node addr %s not found", consVoteIpList[index])
 		}
-	}
+	})
 }

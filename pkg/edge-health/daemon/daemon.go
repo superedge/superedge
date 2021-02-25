@@ -17,77 +17,83 @@ limitations under the License.
 package daemon
 
 import (
-	"context"
-	"github.com/superedge/superedge/cmd/edge-health/app/options"
-	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
+	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
-	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/communicate"
+	"github.com/superedge/superedge/pkg/edge-health/commun"
+	"github.com/superedge/superedge/pkg/edge-health/config"
+	"github.com/superedge/superedge/pkg/edge-health/metadata"
 	"github.com/superedge/superedge/pkg/edge-health/vote"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"sync"
-	"time"
+	corev1 "k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
-type Daemon interface {
-	Run(ctx context.Context)
+type EdgeHealthDaemon struct {
+	cfg         *config.EdgeHealthConfig
+	metadata    *metadata.EdgeHealthMetadata
+	checkPlugin checkplugin.Plugin
+	nodeLister  corelisters.NodeLister
+	cmLister    corelisters.ConfigMapLister
 }
 
-type EdgeDaemon struct {
-	HealthCheckPeriod     int
-	HealthCheckScoreLine  float64
-	CommunicatePeriod     int
-	CommunicateTimeout    int
-	CommunicateRetryTime  int
-	CommunicateServerPort int
-	VotePeriod            int
-	VoteTimeOut           int
-	MasterUrl             string
-	KubeconfigPath        string
-	HostName              string
-}
-
-func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
-	return EdgeDaemon{
-		HealthCheckPeriod:     o.CheckOptions.HealthCheckPeriod,
-		HealthCheckScoreLine:  o.CheckOptions.HealthCheckScoreLine,
-		CommunicatePeriod:     o.CommunOptions.CommunicatePeriod,
-		CommunicateTimeout:    o.CommunOptions.CommunicateTimeout,
-		CommunicateRetryTime:  o.CommunOptions.CommunicateRetryTime,
-		CommunicateServerPort: o.CommunOptions.CommunicateServerPort,
-		VotePeriod:            o.VoteOptions.VotePeriod,
-		VoteTimeOut:           o.VoteOptions.VoteTimeOut,
-		MasterUrl:             o.NodeOptions.MasterUrl,
-		KubeconfigPath:        o.NodeOptions.KubeconfigPath,
-		HostName:              o.NodeOptions.HostName,
+func NewEdgeHealthDaemon(c *config.EdgeHealthConfig) *EdgeHealthDaemon {
+	ehd := &EdgeHealthDaemon{
+		cfg:         c,
+		metadata:    metadata.NewEdgeHealthMetadata(),
+		checkPlugin: checkplugin.NewPlugin(),
+		nodeLister:  c.NodeInformer.Lister(),
+		cmLister:    c.ConfigMapInformer.Lister(),
 	}
+	ehd.cfg.NodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			node := obj.(*corev1.Node)
+			klog.V(4).Infof("Add Node %s", node.Name)
+			ehd.metadata.NodeMetadata.AddOrUpdateByNode(node)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			newNode := new.(*corev1.Node)
+			oldNode := old.(*corev1.Node)
+			klog.V(4).Infof("Update Node %s", newNode.Name)
+			if newNode.ResourceVersion == oldNode.ResourceVersion {
+				// Periodic resync will send update events for all known Nodes.
+				// Two different versions of the same Pod will always have different RVs.
+				return
+			}
+			ehd.metadata.NodeMetadata.AddOrUpdateByNode(newNode)
+		},
+		DeleteFunc: func(obj interface{}) {
+			node, ok := obj.(*corev1.Node)
+			if !ok {
+				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+				if !ok {
+					utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+					return
+				}
+				node, ok = tombstone.Obj.(*corev1.Node)
+				if !ok {
+					utilruntime.HandleError(fmt.Errorf("Tombstone contained object is not a Node %#v", obj))
+					return
+				}
+			}
+			ehd.metadata.NodeMetadata.DeleteByNode(node)
+		},
+	})
+	return ehd
 }
 
-func (d EdgeDaemon) Run(ctx context.Context) {
+func (ehd *EdgeHealthDaemon) Run(stopCh <-chan struct{}) {
+	// Execute edge health prepare and check
+	ehd.PrepareAndCheck(stopCh)
 
-	wg := sync.WaitGroup{}
+	// Execute vote
+	vote := vote.NewVoteEdge(&ehd.cfg.Vote)
+	go vote.Vote(ehd.metadata, ehd.cfg.Kubeclient, ehd.cfg.Node.LocalIp, stopCh)
 
-	initialize(d.MasterUrl, d.KubeconfigPath, d.HostName)
+	// Execute communication
+	communEdge := commun.NewCommunEdge(&ehd.cfg.Commun)
+	communEdge.Commun(ehd.metadata.CheckMetadata, ehd.cmLister, ehd.cfg.Node.LocalIp, stopCh)
 
-	check := checkpkg.NewCheckEdge(checkplugin.PluginInfo.Plugins, d.HealthCheckPeriod, d.HealthCheckScoreLine)
-
-	//TODO: Template pattern
-	go checkpkg.NewNodeController(common.ClientSet).Run(ctx)
-	go checkpkg.NewConfigMapController(common.ClientSet).Run(ctx)
-	go wait.Until(check.GetNodeList, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())
-	go wait.Until(check.Check, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())
-
-	commun := communicate.NewCommunicateEdge(d.CommunicatePeriod, d.CommunicateTimeout, d.CommunicateRetryTime, d.CommunicateServerPort)
-	//TODO: Template pattern
-	wg.Add(1)
-	go commun.Server(ctx, &wg)
-	go wait.Until(commun.Client, time.Duration(commun.GetPeriod())*time.Second, ctx.Done())
-
-	vote := vote.NewVoteEdge(d.VoteTimeOut, d.VotePeriod)
-	go wait.Until(vote.Vote, time.Duration(vote.GetVotePeriod())*time.Second, ctx.Done())
-
-	for range ctx.Done() {
-		wg.Wait()
-		return
-	}
+	<-stopCh
 }

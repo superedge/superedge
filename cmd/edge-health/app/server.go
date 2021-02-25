@@ -20,30 +20,39 @@ import (
 	"context"
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
-	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/config"
 	"github.com/superedge/superedge/pkg/edge-health/daemon"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/klog"
+	"os"
 )
 
 func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 	o := options.NewEdgeHealthOptions()
 	cmd := &cobra.Command{
-		Use: common.CmdName,
+		Use: "edge-health",
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
 
 			klog.Infof("Versions: %#v\n", version.Get())
 			util.PrintFlags(cmd.Flags())
 
-			completedOptions := options.Complete(o)
-			if errs := completedOptions.Validate(); len(errs) != 0 {
-				klog.Fatalf("options validate err: %v", errs)
+			// Complete options
+			completedOptions, err := options.Complete(o)
+			if err != nil {
+				klog.Fatalf("Complete options err: %+v", err)
+				os.Exit(1)
 			}
 
-			daemon.NewEdgeHealthDaemon(completedOptions).Run(ctx)
+			// Validate options
+			if errs := completedOptions.Validate(); len(errs) != 0 {
+				klog.Fatalf("Validate options errs: %+v", errs)
+				os.Exit(1)
+			}
+
+			runEdgeHealth(ctx, completedOptions)
 		},
 	}
 	fs := cmd.Flags()
@@ -53,4 +62,16 @@ func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 	}
 
 	return cmd
+}
+
+func runEdgeHealth(ctx context.Context, o options.CompletedOptions) {
+	edgeHealthConfig, err := config.NewEdgeHealthConfig(o)
+	if err != nil {
+		klog.Fatalf("NewEdgeHealthConfig err: %+v", err)
+		return
+	}
+
+	go edgeHealthConfig.Run(ctx.Done())
+	go daemon.NewEdgeHealthDaemon(edgeHealthConfig).Run(ctx.Done())
+	<-ctx.Done()
 }

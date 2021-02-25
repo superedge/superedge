@@ -17,23 +17,31 @@ limitations under the License.
 package common
 
 import (
-	"k8s.io/client-go/kubernetes"
-	"time"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	CmdName         = "edge-health"
-	TopologyZone    = "superedgehealth/topology-zone"
-	TaintZoneConfig = "edge-health-zone-config"
-	HmacConfig      = "hmac-config"
-	HmacKey         = "hmackey"
-	MasterLabel     = "node-role.kubernetes.io/master"
-	TokenFile       = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	ReListTime      = 2 * time.Minute
+	CheckScoreMax = 100
+	CheckScoreMin = 0
+
+	TopologyZone          = "superedgehealth/topology-zone"
+	TaintZoneConfigMap    = "edge-health-zone-config"
+	TaintZoneConfigMapKey = "TaintZoneAdmission"
+
+	HmacConfig = "hmac-config"
+	HmacKey    = "hmackey"
+
+	MasterLabel = "node-role.kubernetes.io/master"
+	TokenFile   = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	NodeHealthAnnotation     = "superedgehealth/node-health"
+	NodeHealthAnnotationPros = "true"
+	NodeHealthAnnotationCons = "false"
 )
 
 var (
-	HostName  string
-	ClientSet *kubernetes.Clientset
-	LocalIp   string
+	UnreachableNoExecuteTaint = corev1.Taint{
+		Key:    corev1.TaintNodeUnreachable,
+		Effect: corev1.TaintEffectNoExecute,
+	}
 )

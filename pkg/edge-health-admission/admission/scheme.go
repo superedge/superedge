@@ -17,7 +17,9 @@ limitations under the License.
 package admission
 
 import (
+	admissionv1 "k8s.io/api/admission/v1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,7 +28,7 @@ import (
 )
 
 var scheme = runtime.NewScheme()
-var Codecs = serializer.NewCodecFactory(scheme)
+var codecs = serializer.NewCodecFactory(scheme)
 
 func init() {
 	addToScheme(scheme)
@@ -35,5 +37,7 @@ func init() {
 func addToScheme(scheme *runtime.Scheme) {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(admissionv1beta1.AddToScheme(scheme))
+	utilruntime.Must(admissionv1.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1beta1.AddToScheme(scheme))
+	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
 }
