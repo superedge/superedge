@@ -67,7 +67,7 @@ func (cm *CertManager) Init() error {
 			continue
 		}
 
-		if  tlsCert.Leaf.NotAfter.After(time.Now()) {
+		if  tlsCert.Leaf.NotAfter.Before(time.Now()) {
 			klog.Infof("cert %s,%s has expired.", cert, key)
 			fastReload = true
 		}
@@ -99,7 +99,7 @@ func (cm *CertManager) Start() {
 						fastReload = true
 						continue
 					}
-					if  tlsCert.Leaf.NotAfter.After(time.Now()) {
+					if  tlsCert.Leaf.NotAfter.Before(time.Now()) {
 						klog.Infof("cert %s,%s has expired.", cert, key)
 						fastReload = true
 					}

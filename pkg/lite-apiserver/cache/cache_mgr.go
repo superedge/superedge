@@ -249,6 +249,10 @@ func (c CacheManager) handleQuery(key string, verb string) (*EdgeCache, error) {
 		return nil, fmt.Errorf("unsupported verb %s for query cache", verb)
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
 	cache, err := UnmarshalEdgeCache(data)
 	if err != nil {
 		klog.Errorf("unmarshal key %s error: %v", key, err)

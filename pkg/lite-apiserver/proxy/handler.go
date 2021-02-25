@@ -135,15 +135,18 @@ func (h *EdgeServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *EdgeServerHandler) getEdgeReverseProxy(commonName string) *EdgeReverseProxy {
 	if len(commonName) == 0 {
+		klog.V(6).Info("commonName is empty, use default proxy")
 		return h.defaultProxy
 	}
 
 	h.proxyMapLock.RLock()
 	defer h.proxyMapLock.RUnlock()
-	proxy, e := h.reverseProxyMap[commonName]
-	if !e {
-		klog.V(4).Infof("couldn't get proxy for %s, use default proxy", commonName)
-		return h.defaultProxy
+	proxy, ok := h.reverseProxyMap[commonName]
+	if ok {
+		klog.V(6).Infof("got proxy for commonName %s", commonName)
+		return proxy
 	}
-	return proxy
+
+	klog.V(2).Infof("couldn't get proxy for %s, use default proxy", commonName)
+	return h.defaultProxy
 }

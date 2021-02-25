@@ -3,10 +3,22 @@ package storage
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/badger/v3"
 
 	"k8s.io/klog"
+)
+
+const (
+	// Default BadgerDB discardRatio. It represents the discard ratio for the
+	// BadgerDB GC.
+	//
+	// Ref: https://godoc.org/github.com/dgraph-io/badger#DB.RunValueLogGC
+	badgerDiscardRatio = 0.5
+
+	// Default BadgerDB GC interval
+	badgerGCInterval = 10 * time.Minute
 )
 
 type badgerStorage struct {
@@ -28,13 +40,16 @@ func NewBadgerStorage(path string) Storage {
 		db: db,
 	}
 
+	// run gc
+	go bs.runGC()
+
 	return bs
 }
 
-func (fs *badgerStorage) StoreOne(key string, data []byte) error {
+func (bs *badgerStorage) StoreOne(key string, data []byte) error {
 	klog.V(8).Infof("storage one key=%s, cache=%s", key, string(data))
 
-	err := fs.update(fs.oneKey(key), data)
+	err := bs.update(bs.oneKey(key), data)
 	if err != nil {
 		klog.Errorf("write one cache %s error: %v", key, err)
 		return err
@@ -43,10 +58,10 @@ func (fs *badgerStorage) StoreOne(key string, data []byte) error {
 	return nil
 }
 
-func (fs *badgerStorage) StoreList(key string, data []byte) error {
+func (bs *badgerStorage) StoreList(key string, data []byte) error {
 	klog.V(8).Infof("storage list key=%s, cache=%s", key, string(data))
 
-	err := fs.update(fs.listKey(key), data)
+	err := bs.update(bs.listKey(key), data)
 	if err != nil {
 		klog.Errorf("write list cache %s error: %v", key, err)
 		return err
@@ -55,8 +70,8 @@ func (fs *badgerStorage) StoreList(key string, data []byte) error {
 	return nil
 }
 
-func (fs *badgerStorage) LoadOne(key string) ([]byte, error) {
-	data, err := fs.get(fs.oneKey(key))
+func (bs *badgerStorage) LoadOne(key string) ([]byte, error) {
+	data, err := bs.get(bs.oneKey(key))
 	if err != nil {
 		klog.Errorf("read one cache %s error: %v", key, err)
 		return nil, err
@@ -66,8 +81,8 @@ func (fs *badgerStorage) LoadOne(key string) ([]byte, error) {
 	return data, nil
 }
 
-func (fs *badgerStorage) LoadList(key string) ([]byte, error) {
-	data, err := fs.get(fs.listKey(key))
+func (bs *badgerStorage) LoadList(key string) ([]byte, error) {
+	data, err := bs.get(bs.listKey(key))
 	if err != nil {
 		klog.Errorf("read list cache %s error: %v", key, err)
 		return nil, err
@@ -77,22 +92,41 @@ func (fs *badgerStorage) LoadList(key string) ([]byte, error) {
 	return data, nil
 }
 
-func (fs *badgerStorage) Delete(key string) error {
+func (bs *badgerStorage) Delete(key string) error {
 	return nil
 }
 
-func (fs *badgerStorage) oneKey(key string) string {
+func (bs *badgerStorage) runGC() {
+	ticker := time.NewTicker(badgerGCInterval)
+	for {
+		select {
+		case <-ticker.C:
+			err := bs.db.RunValueLogGC(badgerDiscardRatio)
+			if err != nil {
+				// don't report error when GC didn't result in any cleanup
+				if err == badger.ErrNoRewrite {
+					klog.V(2).Infof("no BadgerDB GC occurred: %v", err)
+				} else {
+					klog.Errorf("failed to GC BadgerDB: %v", err)
+				}
+			}
+		}
+	}
+}
+
+
+func (bs *badgerStorage) oneKey(key string) string {
 	return strings.ReplaceAll(key, "/", "_")
 }
 
-func (fs *badgerStorage) listKey(key string) string {
+func (bs *badgerStorage) listKey(key string) string {
 	return strings.ReplaceAll(fmt.Sprintf("%s_%s", key, "list"), "/", "_")
 }
 
-func (fs *badgerStorage) get(key string) ([]byte, error) {
+func (bs *badgerStorage) get(key string) ([]byte, error) {
 	var data []byte
-	err := fs.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(fs.oneKey(key)))
+	err := bs.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(bs.oneKey(key)))
 		if err != nil {
 			klog.Errorf("get one cache %s error: %v", key, err)
 			return err
@@ -114,8 +148,8 @@ func (fs *badgerStorage) get(key string) ([]byte, error) {
 	return data, nil
 }
 
-func (fs *badgerStorage) update(key string, data []byte) error {
-	err := fs.db.Update(func(txn *badger.Txn) error {
+func (bs *badgerStorage) update(key string, data []byte) error {
+	err := bs.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte(key), data)
 		return err
 	})
