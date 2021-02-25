@@ -40,7 +40,7 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 	// Filter cloud nodes and retain edge ones
 	masterRequirement, err := labels.NewRequirement(common.MasterLabel, selection.DoesNotExist, []string{})
 	if err != nil {
-		klog.Errorf("New masterRequirement failed %v", err)
+		klog.Errorf("New masterRequirement failed %+v", err)
 		return
 	}
 	masterSelector := labels.NewSelector()
@@ -49,13 +49,13 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 	if mrc, err := ehd.cmLister.ConfigMaps(metav1.NamespaceSystem).Get(common.TaintZoneConfigMap); err != nil {
 		if apierrors.IsNotFound(err) { // multi-region configmap not found
 			if NodeList, err := ehd.nodeLister.List(masterSelector); err != nil {
-				klog.Errorf("Multi-region configmap not found and get nodes err %v", err)
+				klog.Errorf("Multi-region configmap not found and get nodes err %+v", err)
 				return
 			} else {
 				ehd.metadata.SetByNodeList(NodeList)
 			}
 		} else {
-			klog.Errorf("Get multi-region configmap err %v", err)
+			klog.Errorf("Get multi-region configmap err %+v", err)
 			return
 		}
 	} else { // multi-region configmap found
@@ -63,7 +63,7 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 		klog.V(4).Infof("Multi-region value is %s", mrcv)
 		if mrcv == "false" { // close multi-region check
 			if NodeList, err := ehd.nodeLister.List(masterSelector); err != nil {
-				klog.Errorf("Multi-region configmap exist but disabled and get nodes err %v", err)
+				klog.Errorf("Multi-region configmap exist but disabled and get nodes err %+v", err)
 				return
 			} else {
 				ehd.metadata.SetByNodeList(NodeList)
@@ -73,13 +73,13 @@ func (ehd *EdgeHealthDaemon) SyncNodeList() {
 				klog.V(4).Infof("Host %s has HostZone %s", host.Name, hostZone)
 				zoneRequirement, err := labels.NewRequirement(common.TopologyZone, selection.Equals, []string{hostZone})
 				if err != nil {
-					klog.Errorf("New masterZoneRequirement failed: %v", err)
+					klog.Errorf("New masterZoneRequirement failed: %+v", err)
 					return
 				}
 				masterZoneSelector := labels.NewSelector()
 				masterZoneSelector = masterZoneSelector.Add(*masterRequirement, *zoneRequirement)
 				if nodeList, err := ehd.nodeLister.List(masterZoneSelector); err != nil {
-					klog.Errorf("TopologyZone label for hostname %s but get nodes err: %v", host.Name, err)
+					klog.Errorf("TopologyZone label for hostname %s but get nodes err: %+v", host.Name, err)
 					return
 				} else {
 					ehd.metadata.SetByNodeList(nodeList)
@@ -123,7 +123,7 @@ func (ehd *EdgeHealthDaemon) ExecuteCheck() {
 	util.ParallelizeUntil(context.TODO(), 16, len(ehd.checkPlugin.Plugins), func(index int) {
 		ehd.checkPlugin.Plugins[index].CheckExecute(ehd.metadata.CheckMetadata)
 	})
-	klog.V(4).Infof("CheckPluginScoreInfo is %v after health check", ehd.metadata.CheckPluginScoreInfo)
+	klog.V(4).Infof("CheckPluginScoreInfo is %+v after health check", ehd.metadata.CheckPluginScoreInfo)
 
 	for checkedIp, pluginScores := range ehd.metadata.CopyCheckPluginScore() {
 		totalScore := 0.0
@@ -136,5 +136,5 @@ func (ehd *EdgeHealthDaemon) ExecuteCheck() {
 			ehd.metadata.SetByCheckDetail(ehd.cfg.Node.LocalIp, checkedIp, metadata.CheckDetail{Normal: false})
 		}
 	}
-	klog.V(4).Infof("CheckInfo is %v after health check", ehd.metadata.CheckInfo)
+	klog.V(4).Infof("CheckInfo is %+v after health check", ehd.metadata.CheckInfo)
 }

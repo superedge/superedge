@@ -87,7 +87,7 @@ func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 			}
 		}
 	}
-	log.V(4).Infof("Vote: voteCountMap is %v", voteCountMap)
+	log.V(4).Infof("Vote: voteCountMap is %+v", voteCountMap)
 
 	// Handle prosVoteIpList
 	util.ParallelizeUntil(context.TODO(), 16, len(prosVoteIpList), func(index int) {
@@ -117,7 +117,7 @@ func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 			}
 			if needUpdated {
 				if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-					log.Errorf("Vote: update pros vote to edge node %s error %v ", nodeCopy.Name, err)
+					log.Errorf("Vote: update pros vote to edge node %s error %+v ", nodeCopy.Name, err)
 				} else {
 					log.V(2).Infof("Vote: update pros vote to edge node %s successfully", nodeCopy.Name)
 				}
@@ -151,7 +151,7 @@ func (v *VoteEdge) vote(edgeHealthMetadata *metadata.EdgeHealthMetadata, kubecli
 			}
 			if needUpdated {
 				if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-					log.Errorf("Vote: update cons vote to edge node %s error %v ", nodeCopy.Name, err)
+					log.Errorf("Vote: update cons vote to edge node %s error %+v ", nodeCopy.Name, err)
 				} else {
 					log.V(2).Infof("Vote: update cons vote to edge node %s successfully", nodeCopy.Name)
 				}

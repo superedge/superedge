@@ -86,19 +86,19 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmList
 
 		err := json.NewDecoder(r.Body).Decode(&communInfo)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Invalid commun information %v", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Invalid commun information %+v", err), http.StatusBadRequest)
 			return
 		}
-		log.V(4).Infof("Received common information from %s : %v", communInfo.SourceIP, communInfo.CheckDetail)
+		log.V(4).Infof("Received common information from %s : %+v", communInfo.SourceIP, communInfo.CheckDetail)
 
 		if _, err := io.WriteString(w, "Received!\n"); err != nil {
-			log.Errorf("communReceive: send response err %v", err)
-			http.Error(w, fmt.Sprintf("Send response err %v", err), http.StatusInternalServerError)
+			log.Errorf("communReceive: send response err %+v", err)
+			http.Error(w, fmt.Sprintf("Send response err %+v", err), http.StatusInternalServerError)
 			return
 		}
 		if hmac, err := util.GenerateHmac(communInfo, cmLister); err != nil {
-			log.Errorf("communReceive: server GenerateHmac err %v", err)
-			http.Error(w, fmt.Sprintf("GenerateHmac err %v", err), http.StatusInternalServerError)
+			log.Errorf("communReceive: server GenerateHmac err %+v", err)
+			http.Error(w, fmt.Sprintf("GenerateHmac err %+v", err), http.StatusInternalServerError)
 			return
 		} else {
 			if hmac != communInfo.Hmac {
@@ -110,12 +110,12 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmList
 		log.V(4).Infof("communReceive: Hmac match")
 
 		checkMetadata.SetByCommunInfo(communInfo)
-		log.V(4).Infof("After communicate, check info is %v", checkMetadata.CheckInfo)
+		log.V(4).Infof("After communicate, check info is %+v", checkMetadata.CheckInfo)
 	})
 
 	go func() {
 		if err := svr.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("Server: exit with error %v", err)
+			log.Fatalf("Server: exit with error %+v", err)
 		}
 	}()
 
@@ -125,7 +125,7 @@ func (c *CommunEdge) communReceive(checkMetadata *metadata.CheckMetadata, cmList
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := svr.Shutdown(ctx); err != nil {
-				log.Errorf("Server: program exit, server exit error %v", err)
+				log.Errorf("Server: program exit, server exit error %+v", err)
 			}
 			return
 		default:
@@ -148,27 +148,27 @@ func (c *CommunEdge) communSend(checkMetadata *metadata.CheckMetadata, cmLister 
 		// Send commun information
 		communInfo := metadata.CommunInfo{SourceIP: localIp, CheckDetail: copyLocalCheckDetail}
 		if hmac, err := util.GenerateHmac(communInfo, cmLister); err != nil {
-			log.Errorf("communSend: generateHmac err %v", err)
+			log.Errorf("communSend: generateHmac err %+v", err)
 			return
 		} else {
 			communInfo.Hmac = hmac
 		}
 		commonInfoBytes, err := json.Marshal(communInfo)
 		if err != nil {
-			log.Errorf("communSend: json.Marshal commun info err %v", err)
+			log.Errorf("communSend: json.Marshal commun info err %+v", err)
 			return
 		}
 		commonInfoReader := bytes.NewReader(commonInfoBytes)
 		for i := 0; i < c.CommunRetries; i++ {
 			req, err := http.NewRequest("PUT", "http://"+dstIp+":"+strconv.Itoa(c.CommunServerPort)+"/result", commonInfoReader)
 			if err != nil {
-				log.Errorf("communSend: NewRequest for remote edge node %s err %v", dstIp, err)
+				log.Errorf("communSend: NewRequest for remote edge node %s err %+v", dstIp, err)
 				continue
 			}
 			if err = util.DoRequestAndDiscard(c.client, req); err != nil {
-				log.Errorf("communSend: DoRequestAndDiscard for remote edge node %s err %v", dstIp, err)
+				log.Errorf("communSend: DoRequestAndDiscard for remote edge node %s err %+v", dstIp, err)
 			} else {
-				log.V(4).Infof("communSend: put commun info %v to remote edge node %s successfully", communInfo, dstIp)
+				log.V(4).Infof("communSend: put commun info %+v to remote edge node %s successfully", communInfo, dstIp)
 				break
 			}
 		}

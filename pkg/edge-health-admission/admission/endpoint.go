@@ -91,7 +91,7 @@ func (eha *EdgeHealthAdmission) mutateEndpoint(ar admissionv1.AdmissionReview) *
 					}
 				}
 			} else {
-				klog.Errorf("Get pod's node err %v", err)
+				klog.Errorf("Get pod's node err %+v", err)
 			}
 		}
 

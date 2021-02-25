@@ -42,13 +42,13 @@ func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 			// Complete options
 			completedOptions, err := options.Complete(o)
 			if err != nil {
-				klog.Fatalf("Complete options err: %v", err)
+				klog.Fatalf("Complete options err: %+v", err)
 				os.Exit(1)
 			}
 
 			// Validate options
 			if errs := completedOptions.Validate(); len(errs) != 0 {
-				klog.Fatalf("Validate options errs: %v", errs)
+				klog.Fatalf("Validate options errs: %+v", errs)
 				os.Exit(1)
 			}
 
@@ -67,7 +67,7 @@ func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 func runEdgeHealth(ctx context.Context, o options.CompletedOptions) {
 	edgeHealthConfig, err := config.NewEdgeHealthConfig(o)
 	if err != nil {
-		klog.Fatalf("NewEdgeHealthConfig err: %v", err)
+		klog.Fatalf("NewEdgeHealthConfig err: %+v", err)
 		return
 	}
 

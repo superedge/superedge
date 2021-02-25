@@ -64,5 +64,5 @@ func NewPlugin() Plugin {
 
 func (p *Plugin) Register(plugin CheckPlugin) {
 	p.Plugins = append(p.Plugins, plugin)
-	klog.V(4).Info("Register check plugin: %v", plugin)
+	klog.V(4).Info("Register check plugin: %+v", plugin)
 }

@@ -88,7 +88,7 @@ func (kacp *KubeletAuthCheckPlugin) Set(s string) error {
 }
 
 func (kacp *KubeletAuthCheckPlugin) String() string {
-	return fmt.Sprintf("%v", kacp)
+	return fmt.Sprintf("%+v", kacp)
 }
 
 func (kacp *KubeletAuthCheckPlugin) Type() string {
@@ -119,7 +119,7 @@ func kubeletAuthPing(client *http.Client, checkedIp string, port, retries int) e
 		// Read kubelet token file
 		token, err = ioutil.ReadFile(common.TokenFile)
 		if err != nil {
-			klog.Errorf("ReadTokenFile failed %v", err)
+			klog.Errorf("ReadTokenFile failed %+v", err)
 			continue
 		}
 		// Construct kubelet healthz http request with token
@@ -127,12 +127,12 @@ func kubeletAuthPing(client *http.Client, checkedIp string, port, retries int) e
 		klog.V(4).Infof("Url is %s", url)
 		req, err = http.NewRequest("GET", url, nil)
 		if err != nil {
-			klog.Errorf("New kubelet auth ping request failed %v", err)
+			klog.Errorf("New kubelet auth ping request failed %+v", err)
 			continue
 		}
 		req.Header.Add("Authorization", "Bearer "+string(token))
 		if err = util.DoRequestAndDiscard(client, req); err != nil {
-			klog.Errorf("DoRequestAndDiscard kubelet auth ping request failed %v", err)
+			klog.Errorf("DoRequestAndDiscard kubelet auth ping request failed %+v", err)
 		} else {
 			break
 		}

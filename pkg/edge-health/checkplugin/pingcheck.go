@@ -67,7 +67,7 @@ func (pcp *PingCheckPlugin) Set(s string) error {
 }
 
 func (pcp *PingCheckPlugin) String() string {
-	return fmt.Sprintf("%v", pcp)
+	return fmt.Sprintf("%+v", pcp)
 }
 
 func (pcp *PingCheckPlugin) Type() string {

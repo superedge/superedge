@@ -33,7 +33,7 @@ func DoRequestAndDiscard(client *http.Client, req *http.Request) error {
 	// Close the connection to reuse it
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Request %v failed, StatusCode is %d", req, resp.StatusCode)
+		return fmt.Errorf("Request %+v failed, StatusCode is %d", req, resp.StatusCode)
 	}
 	// Discard resp body
 	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {

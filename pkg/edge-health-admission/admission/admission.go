@@ -92,7 +92,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	// Return the same UID
 	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 
-	klog.V(4).Info(fmt.Sprintf("sending response: %v", responseAdmissionReview.Response))
+	klog.V(4).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview.Response))
 
 	respBytes, err := json.Marshal(responseAdmissionReview)
 	if err != nil {
@@ -124,7 +124,7 @@ func (eha *EdgeHealthAdmission) Run(stopCh <-chan struct{}) {
 
 	go func() {
 		if err := server.ListenAndServeTLS(eha.cfg.CertFile, eha.cfg.KeyFile); err != http.ErrServerClosed {
-			klog.Fatalf("ListenAndServeTLS err %v", err)
+			klog.Fatalf("ListenAndServeTLS err %+v", err)
 		}
 	}()
 
@@ -134,7 +134,7 @@ func (eha *EdgeHealthAdmission) Run(stopCh <-chan struct{}) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := server.Shutdown(ctx); err != nil {
-				klog.Errorf("Server: program exit, server exit error %v", err)
+				klog.Errorf("Server: program exit, server exit error %+v", err)
 			}
 			return
 		default:

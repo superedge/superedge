@@ -84,7 +84,7 @@ func (kcp *KubeletCheckPlugin) Set(s string) error {
 }
 
 func (kcp *KubeletCheckPlugin) String() string {
-	return fmt.Sprintf("%v", kcp)
+	return fmt.Sprintf("%+v", kcp)
 }
 
 func (kcp *KubeletCheckPlugin) Type() string {
@@ -116,11 +116,11 @@ func kubeletPing(client *http.Client, checkedIp string, port, retries int) error
 		klog.V(4).Infof("Url is %s", url)
 		req, err = http.NewRequest("HEAD", url, nil)
 		if err != nil {
-			klog.Errorf("New kubelet ping request failed %v", err)
+			klog.Errorf("New kubelet ping request failed %+v", err)
 			continue
 		}
 		if err = util.DoRequestAndDiscard(client, req); err != nil {
-			klog.Errorf("DoRequestAndDiscard kubelet ping request failed %v", err)
+			klog.Errorf("DoRequestAndDiscard kubelet ping request failed %+v", err)
 		} else {
 			break
 		}
