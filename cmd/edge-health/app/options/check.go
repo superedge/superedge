@@ -47,6 +47,11 @@ func (o *CheckOptions) Validate() []error {
 	if o.CheckScoreLine <= 0 || o.CheckScoreLine > 100 {
 		errs = append(errs, fmt.Errorf("Invalid health check score line %f", o.CheckScoreLine))
 	}
+	// Total weight of edge health check plugins must be 1 since CheckScoreLine is in the range of (0, 100]
+	totalWeight := o.PingCheckPlugin.GetWeight() + o.KubeletCheckPlugin.GetWeight() + o.KubeletAuthCheckPlugin.GetWeight()
+	if totalWeight != 1 {
+		errs = append(errs, fmt.Errorf("Invalid health check plugins total weight %f", totalWeight))
+	}
 	return errs
 }
 
@@ -58,5 +63,5 @@ func (o *CheckOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.Var(&o.PingCheckPlugin, "ping-plugin", "Ping check plugin")
 	fs.Var(&o.KubeletAuthCheckPlugin, "kubelet-auth-plugin", "Kubelet token check plugin")
 	fs.IntVar(&o.CheckPeriod, "health-check-period", o.CheckPeriod, "Period of Health check")
-	fs.Float64Var(&o.CheckScoreLine, "health-check-scoreline", o.CheckScoreLine, "Health check score line")
+	fs.Float64Var(&o.CheckScoreLine, "health-check-scoreline", o.CheckScoreLine, "Health check score line(in the range of (0, 100])")
 }
