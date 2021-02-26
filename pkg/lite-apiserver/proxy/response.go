@@ -18,7 +18,6 @@ package proxy
 
 import (
 	"encoding/json"
-	"net/http"
 )
 
 // EdgeResponseDataHolder hold all data of a response
@@ -26,14 +25,6 @@ type EdgeResponseDataHolder struct {
 	Code   int                 `json:"code"`
 	Body   []byte              `json:"body"`
 	Header map[string][]string `json:"header"`
-}
-
-func NewEdgeResponseDataHolder(res *http.Response) *EdgeResponseDataHolder {
-	d := &EdgeResponseDataHolder{}
-	d.Body, res.Body = CopyByteFromReader(res.Body)
-	d.Code = res.StatusCode
-	d.Header = res.Header
-	return d
 }
 
 func (holder *EdgeResponseDataHolder) Output() ([]byte, error) {
