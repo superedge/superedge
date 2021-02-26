@@ -34,7 +34,7 @@ func CopyHeader(dst, src http.Header) {
 	}
 }
 
-// WithRequestAccept delete Accept header is set, application/json will be used
+// WithRequestAccept delete header Accept, use default application/json
 func WithRequestAccept(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodGet {

@@ -16,6 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
+	go.etcd.io/bbolt v1.3.4
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
@@ -34,6 +35,7 @@ require (
 )
 
 replace (
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 	github.com/moby/term => github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200329194405-dd816f0735f8
 )

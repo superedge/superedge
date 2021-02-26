@@ -19,6 +19,8 @@ package storage
 import (
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
+	"k8s.io/klog"
+	"os"
 )
 
 type Storage interface {
@@ -41,8 +43,17 @@ func CreateStorage(config *config.LiteServerConfig) Storage {
 		return NewMemoryStorage()
 	case constant.BadgerStorage:
 		return NewBadgerStorage(config.BadgerCachePath)
+	case constant.BoltStorage:
+		return NewBoltStorage(config.BoltCacheFile)
 	default:
 		// error type, use FileStorage
 		return NewFileStorage(config.FileCachePath)
+	}
+}
+
+func mkdir(dirPath string) {
+	err := os.MkdirAll(dirPath, os.ModePerm)
+	if err != nil {
+		klog.Fatalf("mkdir %s error: %v", dirPath, err)
 	}
 }

@@ -90,6 +90,11 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 		return nil
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
+		return nil
+	}
+
 	dump, err := httputil.DumpResponse(resp, false)
 	if err != nil {
 		return nil

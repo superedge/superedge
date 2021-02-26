@@ -35,6 +35,7 @@ type RunServerOptions struct {
 	CacheType         string
 	FileCachePath     string
 	BadgerCachePath   string
+	BoltCacheFile     string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -54,6 +55,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.CacheType = s.CacheType
 	c.FileCachePath = s.FileCachePath
 	c.BadgerCachePath = s.BadgerCachePath
+	c.BoltCacheFile = s.BoltCacheFile
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -109,4 +111,5 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
 	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
+	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
 }

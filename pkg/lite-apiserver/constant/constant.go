@@ -20,6 +20,7 @@ const (
 	FileStorage   = "file"
 	MemoryStorage = "memory"
 	BadgerStorage = "badger"
+	BoltStorage   = "bolt"
 )
 
 const (

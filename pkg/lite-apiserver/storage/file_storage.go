@@ -34,12 +34,13 @@ type fileStorage struct {
 }
 
 func NewFileStorage(filePath string) Storage {
+	mkdir(filePath)
+
 	fs := &fileStorage{
 		seed:     rand.New(rand.NewSource(time.Now().Unix())),
 		filePath: filePath,
 	}
 
-	mkdirPath(fs.filePath)
 	return fs
 }
 
@@ -160,13 +161,4 @@ func (fs *fileStorage) oneFileName(key string) string {
 
 func (fs *fileStorage) listFileName(key string) string {
 	return strings.ReplaceAll(fmt.Sprintf("%s_%s", key, "list"), "/", "_")
-}
-
-func mkdirPath(filePath string) {
-	if _, err := os.Lstat(filePath); err != nil && os.IsNotExist(err) {
-		err := os.MkdirAll(filePath, os.ModePerm)
-		if err != nil {
-			klog.Fatalf("mkdir %s error : %v", filePath, err)
-		}
-	}
 }
