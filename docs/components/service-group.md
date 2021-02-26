@@ -368,6 +368,150 @@ Each NodeUnit will use the same headless service to access the pod inside its gr
 ...
 ```
 
+## Grayscale according to NodeUnit
+DeploymentGrid and StatefulSetGrid support grayscale in NodeUnit level
+
+### Key concepts
+Grayscale related additional fields:
+
+autoDeleteUnusedTemplate,templatePool,templates,defaultTemplateName
+  
+templatePool: templates used for grayscale
+
+templates: Relation between NodeUnit and template in templatePool, specify the template will use; If not specify, other NodeUnits will use template according to defaultTemplateName
+
+defaultTemplateName: The template used by default, if don’t fill in or fill in "dafault", it will use template in spec.template
+
+autoDeleteUnusedTemplate: The default value is false. If it is set to true, the template in templatePool that is neither in templates nor in spec.template will be deleted automatically
+
+### Create workload with same template
+This is exactly the same as the DeploymentGrid and StatefulsetGrid examples above. If you don't need grayscale, you don't need to add these additional fields
+
+### Create workload with different templates
+```yaml
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: deploymentgrid-demo
+  namespace: default
+spec:
+  defaultTemplateName: test1
+  gridUniqKey: zone
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        appGrid: echo
+    strategy: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          appGrid: echo
+      spec:
+        containers:
+        - image: superedge/echoserver:2.2
+          name: echo
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
+  templatePool:
+    test1:
+      replicas: 2
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+    test2:
+      replicas: 3
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.3
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+  templates:
+    zone1: test1
+    zone2: test2
+```
+In this example, NodeUnit zone1 will use test1 template, NodeUnit zone2 will use test2 template, and other unspecified NodeUnits will use the template specified in the defaultTemplateName, which is test1 in templatePool
+
 ## Refs
 
 * [SEP: ServiceGroup StatefulSetGrid Design Specification](https://github.com/superedge/superedge/issues/26)
