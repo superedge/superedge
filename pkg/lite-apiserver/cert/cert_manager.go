@@ -56,10 +56,13 @@ func (m *CertManager) Init() error {
 	return nil
 }
 
-func (m *CertManager) Load(name string) *http.Transport {
+func (m *CertManager) GetTransport(name string) *http.Transport {
+	if len(name) == 0 {
+		return m.defaultTr
+	}
 	t, e := m.transportMap[name]
 	if !e {
-		return nil
+		return m.defaultTr
 	}
 	return t
 }
@@ -81,7 +84,12 @@ func (m *CertManager) DefaultTransport() *http.Transport {
 	return m.defaultTr
 }
 
+func (m *CertManager) GetTransportMap() map[string]*http.Transport {
+	return m.transportMap
+}
+
 func (m *CertManager) loadTransport() error {
+	m.DefaultTransport()
 	for i := range m.config.TLSConfig {
 		cert := m.config.TLSConfig[i].CertPath
 		key := m.config.TLSConfig[i].KeyPath
