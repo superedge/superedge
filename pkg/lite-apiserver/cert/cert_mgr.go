@@ -24,8 +24,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"k8s.io/klog"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 const (
@@ -66,7 +68,7 @@ func (cm *CertManager) Init() error {
 			continue
 		}
 
-		if  tlsCert.Leaf.NotAfter.Before(time.Now()) {
+		if util.CertHasExpired(tlsCert.Leaf) {
 			klog.Infof("cert %s,%s has expired.", cert, key)
 			fastReload = true
 		}
@@ -98,7 +100,7 @@ func (cm *CertManager) Start() {
 						fastReload = true
 						continue
 					}
-					if  tlsCert.Leaf.NotAfter.Before(time.Now()) {
+					if util.CertHasExpired(tlsCert.Leaf) {
 						klog.Infof("cert %s,%s has expired.", cert, key)
 						fastReload = true
 					}
