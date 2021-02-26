@@ -29,12 +29,12 @@ type RunServerOptions struct {
 	KubeApiserverUrl  string
 	KubeApiserverPort int
 	Port              int
-	InsecurePort      int
 	SyncDuration      int
 	BackendTimeout    int
 	CAFile            string
 	CertFile          string
 	KeyFile           string
+	ApiserverCAFile   string
 	FileCachePath     string
 }
 
@@ -50,10 +50,15 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.KubeApiserverUrl = s.KubeApiserverUrl
 	c.KubeApiserverPort = s.KubeApiserverPort
 	c.Port = s.Port
-	c.InsecurePort = s.InsecurePort
 	c.SyncDuration = time.Duration(s.SyncDuration) * time.Second
 	c.FileCachePath = s.FileCachePath
 	c.BackendTimeout = s.BackendTimeout
+
+	if len(s.ApiserverCAFile) > 0 {
+		c.ApiserverCAFile = s.ApiserverCAFile
+	} else {
+		c.ApiserverCAFile = s.CAFile
+	}
 
 	return nil
 }
@@ -93,15 +98,15 @@ func (s *RunServerOptions) Validate() []error {
 func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	// Note: the weird ""+ in below lines seems to be the only way to get gofmt to
 	// arrange these text blocks sensibly.
-	fs.StringVar(&s.CAFile, "ca-file", "", "")
-	fs.StringVar(&s.CertFile, "tls-cert-file", "", "")
-	fs.StringVar(&s.KeyFile, "tls-private-key-file", "", "")
+	fs.StringVar(&s.CAFile, "ca-file", "", "the CA that lite-apiserver used to verify a client certificate")
+	fs.StringVar(&s.CertFile, "tls-cert-file", "", "the tls cert of lite-apiserver")
+	fs.StringVar(&s.KeyFile, "tls-private-key-file", "", "the tls key of lite-apiserver")
+	fs.StringVar(&s.ApiserverCAFile, "apiserver-ca-file", "", "the CA used to verify kube-apiserver server tls")
 
-	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "")
-	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "")
+	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "the host of kube-apiserver")
+	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
-	fs.IntVar(&s.Port, "port", 51003, "")
-	fs.IntVar(&s.InsecurePort, "insecure-port", 0, "")
+	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
 	fs.IntVar(&s.SyncDuration, "sync-duration", 60, "self sync data time(second)")
 	fs.IntVar(&s.BackendTimeout, "timeout", 30, "timeout for proxy to backend")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for storage")
