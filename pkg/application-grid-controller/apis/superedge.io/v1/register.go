@@ -25,11 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var (
-	DeploymentGridResourceName = "deploymentgrids"
-	ServiceGridResourceName    = "servicegrids"
-)
-
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = schema.GroupVersion{Group: superedge.GroupName, Version: superedge.Version}
 
@@ -55,6 +50,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentGridList{},
 		&ServiceGrid{},
 		&ServiceGridList{},
+		&StatefulSetGrid{},
+		&StatefulSetGridList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

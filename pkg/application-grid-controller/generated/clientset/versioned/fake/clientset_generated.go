@@ -4,7 +4,6 @@ package fake
 
 import (
 	clientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
-
 	superedgev1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1"
 	fakesuperedgev1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/typed/superedge.io/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"

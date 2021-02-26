@@ -34,11 +34,11 @@ import (
 )
 
 func init() {
-	flagsets := flag.NewFlagSet("test", flag.ExitOnError)
-	klog.InitFlags(flagsets)
-	_ = flagsets.Set("v", "4")
-	_ = flagsets.Set("logtostderr", "true")
-	_ = flagsets.Parse(nil)
+	flagSets := flag.NewFlagSet("test", flag.ExitOnError)
+	klog.InitFlags(flagSets)
+	_ = flagSets.Set("v", "4")
+	_ = flagSets.Set("logtostderr", "true")
+	_ = flagSets.Parse(nil)
 }
 
 func TestDeploymentControllerRefManager(t *testing.T) {
@@ -166,16 +166,6 @@ func TestDeploymentControllerRefManager(t *testing.T) {
 	changedObjects := []*appsv1.Deployment{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "obj-owned-not-match",
-				Namespace: "test",
-				Labels: map[string]string{
-					"a": "b",
-				},
-				UID: "obj-owned-not-match",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
 				Name:      "obj-adopt",
 				Namespace: "test",
 				Labels: map[string]string{
@@ -196,8 +186,8 @@ func TestDeploymentControllerRefManager(t *testing.T) {
 		},
 	}
 
-	manager := NewDeploymentControllerRefManager(&RealDPControl{
-		KubeClient: kubeClient,
+	manager := NewDeploymentControllerRefManager(&RealDeployClient{
+		kubeClient: kubeClient,
 	}, controller, selector, controllerKind, func() error { return nil })
 
 	claimed, err := manager.ClaimDeployment(testObjects)

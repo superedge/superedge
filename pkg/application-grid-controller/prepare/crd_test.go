@@ -11,12 +11,15 @@ import (
 	"testing"
 )
 
+type object struct {
+	Kind string `yaml:"kind"`
+}
+
 func TestYaml(t *testing.T) {
 	data, err := kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
 	if err != nil {
 		t.Error("err")
 	}
-	//klog.V(8).Infof("Create yaml: %s", string(data))
 	reg := regexp.MustCompile(`(?m)^-{3,}$`)
 	items := reg.Split(string(data), -1)
 	for _, item := range items {
@@ -29,10 +32,10 @@ func TestYaml(t *testing.T) {
 		if obj.Kind == "" {
 			continue
 		}
-		objcrd := new(apiext.CustomResourceDefinition)
-		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, objcrd); err != nil {
+		objCrd := new(apiext.CustomResourceDefinition)
+		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, objCrd); err != nil {
 			t.Error("err")
 		}
-		t.Logf("%v", objcrd.Spec.Validation.OpenAPIV3Schema.Properties)
+		t.Logf("%v", objCrd.Spec.Validation.OpenAPIV3Schema.Properties)
 	}
 }

@@ -48,13 +48,33 @@ type DeploymentGrid struct {
 	Status DeploymentGridStatusList `json:"status,omitempty"`
 }
 
+type DeploymentGridSpec struct {
+	GridUniqKey string               `json:"gridUniqKey,omitempty"`
+	Template    appv1.DeploymentSpec `json:"template,omitempty"`
+}
+
 type DeploymentGridStatusList struct {
 	States map[string]appv1.DeploymentStatus `json:"states,omitempty"`
 }
 
-type DeploymentGridSpec struct {
-	GridUniqKey string               `json:"gridUniqKey,omitempty"`
-	Template    appv1.DeploymentSpec `json:"template,omitempty"`
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type StatefulSetGrid struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   StatefulSetGridSpec       `json:"spec,omitempty"`
+	Status StatefulSetGridStatusList `json:"status,omitempty"`
+}
+
+type StatefulSetGridSpec struct {
+	GridUniqKey string                `json:"gridUniqKey,omitempty"`
+	Template    appv1.StatefulSetSpec `json:"template,omitempty"`
+}
+
+type StatefulSetGridStatusList struct {
+	States map[string]appv1.StatefulSetStatus `json:"states,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -67,13 +87,6 @@ type ServiceGridList struct {
 	Items []ServiceGrid `json:"items"`
 }
 
-func NewServiceGrid(namespace, name string, obj ServiceGrid) *ServiceGrid {
-	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("ServiceGrid").ToAPIVersionAndKind()
-	obj.Name = name
-	obj.Namespace = namespace
-	return &obj
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentGridList is a list of DeploymentGrid resources
@@ -84,9 +97,12 @@ type DeploymentGridList struct {
 	Items []DeploymentGrid `json:"items"`
 }
 
-func NewDeploymentGrid(namespace, name string, obj DeploymentGrid) *DeploymentGrid {
-	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("DeploymentGrid").ToAPIVersionAndKind()
-	obj.Name = name
-	obj.Namespace = namespace
-	return &obj
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// StatefulSetGridList is a list of StatefulSetGrid resources
+type StatefulSetGridList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []StatefulSetGrid `json:"items"`
 }
