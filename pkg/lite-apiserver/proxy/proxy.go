@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -29,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"

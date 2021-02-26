@@ -24,7 +24,7 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
 )
 
-func NewEdgeadmCommand() *cobra.Command {
+func NewEdgeAdmCommand() *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "edgeadm COMMAND [arg...]",
 		Short: "edgeadm use to manage edge cluster",

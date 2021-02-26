@@ -99,7 +99,7 @@ func getHttpConn(msg *proto.StreamMsg) (net.Conn, error) {
 		klog.Errorf("traceid = %s httpsclient deserialization failed err = %v", msg.Topic, err)
 		return nil, err
 	}
-	request, err := http.NewRequest(requestMsg.Method, msg.Addr, nil)
+	request, err := http.NewRequest(requestMsg.Method, msg.Addr, bytes.NewBuffer(requestMsg.HttpBody))
 	if err != nil {
 		klog.Errorf("traceid = %s httpsclient get request fail err = %v", msg.Topic, err)
 		return nil, err

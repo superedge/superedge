@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -53,7 +52,7 @@ import (
 )
 
 type DeploymentGridController struct {
-	dpControl          controller.DPControlInterface
+	dpClient           controller.DeployClientInterface
 	dpGridLister       crdv1listers.DeploymentGridLister
 	dpLister           appslisters.DeploymentLister
 	nodeLister         corelisters.NodeLister
@@ -88,9 +87,7 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(),
 			"deployment-grid-controller"),
 	}
-	dgc.dpControl = controller.RealDPControl{
-		KubeClient: kubeClient,
-	}
+	dgc.dpClient = controller.NewRealDeployClient(kubeClient)
 
 	dpGridInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    dgc.addDeploymentGrid,
@@ -144,56 +141,6 @@ func (dgc *DeploymentGridController) Run(workers int, stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
-	startTime := time.Now()
-	klog.V(4).Infof("Started syncing deployment-grid %q (%v)", key, startTime)
-	defer func() {
-		klog.V(4).Infof("Finished syncing deployment-grid %q (%v)", key, time.Since(startTime))
-	}()
-
-	ns, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-
-	grid, err := dgc.dpGridLister.DeploymentGrids(ns).Get(name)
-	if errors.IsNotFound(err) {
-		klog.V(2).Infof("Deployment-grid %v has been deleted", key)
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	dg := grid.DeepCopy()
-	if dg.Spec.GridUniqKey == "" {
-		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
-		return nil
-	}
-
-	/* get deploy list for this grid
-	 */
-	dpList, err := dgc.getDeploymentForGrid(dg)
-	if err != nil {
-		return err
-	}
-
-	/* gridValues: grid labels in all nodes
-	 */
-	gridValues, err := dgc.getGridValueFromNode(dg)
-	if err != nil {
-		return err
-	}
-
-	if dg.DeletionTimestamp != nil {
-		return dgc.syncStatus(dg, dpList, gridValues)
-	}
-
-	/*
-	 */
-	return dgc.reconcile(dg, dpList, gridValues)
-}
-
 func (dgc *DeploymentGridController) worker() {
 	for dgc.processNextWorkItem() {
 	}
@@ -229,6 +176,53 @@ func (dgc *DeploymentGridController) handleErr(err error, key interface{}) {
 	dgc.queue.Forget(key)
 }
 
+func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
+	startTime := time.Now()
+	klog.V(4).Infof("Started syncing deployment grid %q (%v)", key, startTime)
+	defer func() {
+		klog.V(4).Infof("Finished syncing deployment grid %q (%v)", key, time.Since(startTime))
+	}()
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+
+	dg, err := dgc.dpGridLister.DeploymentGrids(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("deployment grid %v has been deleted", key)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if dg.Spec.GridUniqKey == "" {
+		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "Empty", "This deployment-grid has an empty grid key")
+		return nil
+	}
+
+	// get deployment workload list of this grid
+	dpList, err := dgc.getDeploymentForGrid(dg)
+	if err != nil {
+		return err
+	}
+
+	// get all grid labels in all nodes
+	gridValues, err := common.GetGridValuesFromNode(dgc.nodeLister, dg.Spec.GridUniqKey)
+	if err != nil {
+		return err
+	}
+
+	// sync deployment grid workload status
+	if dg.DeletionTimestamp != nil {
+		return dgc.syncStatus(dg, dpList, gridValues)
+	}
+
+	// sync deployment grid status and its relevant deployments workload
+	return dgc.reconcile(dg, dpList, gridValues)
+}
+
 func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGrid) ([]*appsv1.Deployment, error) {
 	dpList, err := dgc.dpLister.Deployments(dg.Namespace).List(labels.Everything())
 	if err != nil {
@@ -251,31 +245,44 @@ func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGr
 		return fresh, nil
 	})
 
-	cm := controller.NewDeploymentControllerRefManager(dgc.dpControl, dg, labelSelector, util.ControllerKind, canAdoptFunc)
+	cm := controller.NewDeploymentControllerRefManager(dgc.dpClient, dg, labelSelector, util.ControllerKind, canAdoptFunc)
 	return cm.ClaimDeployment(dpList)
 }
 
-func (dgc *DeploymentGridController) getGridValueFromNode(dg *crdv1.DeploymentGrid) ([]string, error) {
-	labelSelector := labels.NewSelector()
-	gridRequirement, err := labels.NewRequirement(dg.Spec.GridUniqKey, selection.Exists, nil)
-	if err != nil {
-		return nil, err
-	}
-	labelSelector = labelSelector.Add(*gridRequirement)
+func (dgc *DeploymentGridController) addDeploymentGrid(obj interface{}) {
+	dg := obj.(*crdv1.DeploymentGrid)
+	klog.V(4).Infof("Adding deployment grid %s", dg.Name)
+	dgc.enqueueDeploymentGrid(dg)
+}
 
-	nodes, err := dgc.nodeLister.List(labelSelector)
-	if err != nil {
-		return nil, err
+func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interface{}) {
+	oldDg := oldObj.(*crdv1.DeploymentGrid)
+	curDg := newObj.(*crdv1.DeploymentGrid)
+	klog.V(4).Infof("Updating deployment grid %s", oldDg.Name)
+	if curDg.ResourceVersion == oldDg.ResourceVersion {
+		// Periodic resync will send update events for all known DeploymentGrids.
+		// Two different versions of the same DeploymentGrid will always have different RVs.
+		return
 	}
+	dgc.enqueueDeploymentGrid(curDg)
+}
 
-	values := make([]string, 0)
-	for _, n := range nodes {
-		gridVal := n.Labels[dg.Spec.GridUniqKey]
-		if gridVal != "" {
-			values = append(values, gridVal)
+func (dgc *DeploymentGridController) deleteDeploymentGrid(obj interface{}) {
+	dg, ok := obj.(*crdv1.DeploymentGrid)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		dg, ok = tombstone.Obj.(*crdv1.DeploymentGrid)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a deployment grid %#v", obj))
+			return
 		}
 	}
-	return values, nil
+	klog.V(4).Infof("Deleting deployment grid %s", dg.Name)
+	dgc.enqueueDeploymentGrid(dg)
 }
 
 func (dgc *DeploymentGridController) enqueue(deploymentGrid *crdv1.DeploymentGrid) {
