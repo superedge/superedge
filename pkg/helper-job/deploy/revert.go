@@ -78,7 +78,7 @@ func revertNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 	klog.Infof("Node: %s Status kubelet config success.", nodeName)
 
-	if err := checkKubletHealthz(); err != nil {
+	if err := checkKubeletHealthz(); err != nil {
 		return fmt.Errorf("Node: %s iCheck kubelet status error: %v\n", nodeName, err)
 	}
 
