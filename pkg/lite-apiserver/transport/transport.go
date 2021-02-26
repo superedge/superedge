@@ -14,14 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package proxy
+package transport
 
-import "net/http"
+import (
+	"net/http"
+
+	"k8s.io/client-go/util/connrotation"
+)
 
 type EdgeTransport struct {
-	tr *http.Transport
+	d         *connrotation.Dialer
+	Transport *http.Transport
 }
 
 func (t EdgeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.tr.RoundTrip(req)
+	return t.Transport.RoundTrip(req)
 }

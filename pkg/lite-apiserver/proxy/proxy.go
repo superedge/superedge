@@ -26,13 +26,13 @@ import (
 	"os"
 	"strings"
 	"syscall"
-	"time"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
+	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 )
 
 const EdgeUpdateHeader = "Edge-Update-Request"
@@ -53,30 +53,20 @@ type EdgeReverseProxy struct {
 
 	backendUrl  string
 	backendPort int
-	timeout     int
 
 	storage     storage.Storage
-	transport   *EdgeTransport
+	transport   *transport.EdgeTransport
 	certManager *cert.CertManager
 	cacher      *RequestCacheController
 }
 
-func NewEdgeReverseProxy(transport *http.Transport, backendUrl string, backendPort int, timeout int, s storage.Storage, cacher *RequestCacheController) *EdgeReverseProxy {
+func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, backendPort int, s storage.Storage, cacher *RequestCacheController) *EdgeReverseProxy {
 	p := &EdgeReverseProxy{
 		backendPort: backendPort,
 		backendUrl:  backendUrl,
-		timeout:     timeout,
 		storage:     s,
 		cacher:      cacher,
-	}
-
-	p.transport = p.newTransport(transport)
-
-	// set timeout for request, if overtime, we think request failed, and read cache
-	if p.timeout > 0 {
-		p.transport.tr.DialContext = (&net.Dialer{
-			Timeout: time.Duration(p.timeout) * time.Second,
-		}).DialContext
+		transport:   transport,
 	}
 
 	reverseProxy := &httputil.ReverseProxy{
@@ -120,13 +110,14 @@ func (p *EdgeReverseProxy) makeDirector(req *http.Request) {
 	req.URL.Host = fmt.Sprintf("%s:%d", p.backendUrl, p.backendPort)
 }
 
-func (p *EdgeReverseProxy) newTransport(tr *http.Transport) *EdgeTransport {
-	return &EdgeTransport{tr}
-}
-
 func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 	if resp == nil || resp.Request == nil {
 		klog.Infof("no response or request, skip cache response")
+		return nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
 		return nil
 	}
 
