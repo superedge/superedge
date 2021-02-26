@@ -132,7 +132,7 @@ func restartKubelet(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 	klog.Infof("Node: %s Status kubelet config success.", nodeName)
 
-	if err := checkKubletHealthz(); err != nil {
+	if err := checkKubeletHealthz(); err != nil {
 		return fmt.Errorf("Node: %s is NotReady, error: %v\n", nodeName, err)
 	}
 
@@ -396,7 +396,7 @@ func completeLiteApiServer(kubeClient *kubernetes.Clientset) error {
 	return nil
 }
 
-func checkKubletHealthz() error {
+func checkKubeletHealthz() error {
 	return wait.PollImmediate(time.Second, 3*time.Minute, func() (bool, error) {
 		resp, err := http.Get(constant.KubeletHealthzURl)
 		if err != nil {
