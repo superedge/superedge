@@ -30,8 +30,14 @@ import (
 // EdgeServerHandler is the real handler for each request
 type EdgeServerHandler struct {
 	timeout int
-	// manager is to manager all cert declared in config, and gen correct transport
-	manager *cert.CertManager
+
+	// certManager is to certManager all cert declared in config, and gen correct transport
+	certManager *cert.CertManager
+
+	// the default proxy
+	defaultProxy *EdgeReverseProxy
+	// proxy with client tls cert
+	reverseProxyMap map[string]*EdgeReverseProxy
 
 	// apiserverInfo is used to proxy to.
 	apiserverUrl  string
@@ -45,28 +51,64 @@ type EdgeServerHandler struct {
 	cacher *RequestCacheController
 }
 
-func NewEdgeServerHandler(config *config.LiteServerConfig, manager *cert.CertManager, cacher *RequestCacheController) (http.Handler, error) {
-	e := &EdgeServerHandler{
-		apiserverUrl:  config.KubeApiserverUrl,
-		apiserverPort: config.KubeApiserverPort,
-		manager:       manager,
-		storage:       storage.NewFileStorage(config),
-		cacher:        cacher,
-		timeout:       config.BackendTimeout,
+func NewEdgeServerHandler(config *config.LiteServerConfig, certManager *cert.CertManager, cacher *RequestCacheController) (http.Handler, error) {
+	h := &EdgeServerHandler{
+		apiserverUrl:    config.KubeApiserverUrl,
+		apiserverPort:   config.KubeApiserverPort,
+		certManager:     certManager,
+		reverseProxyMap: make(map[string]*EdgeReverseProxy),
+		storage:         storage.NewFileStorage(config),
+		cacher:          cacher,
+		timeout:         config.BackendTimeout,
 	}
-	return e.buildHandlerChain(e), nil
+
+	h.initProxies()
+
+	return h.buildHandlerChain(h), nil
 }
 
-func (h *EdgeServerHandler) buildHandlerChain(edgeHandler http.Handler) http.Handler {
+func (h *EdgeServerHandler) initProxies() {
+	h.defaultProxy = NewEdgeReverseProxy(h.certManager.DefaultTransport(), h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
+
+	for commonName, transport := range h.certManager.GetTransportMap() {
+		proxy := NewEdgeReverseProxy(transport, h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
+		h.reverseProxyMap[commonName] = proxy
+	}
+
+}
+
+func (h *EdgeServerHandler) buildHandlerChain(handler http.Handler) http.Handler {
 	cfg := &server.Config{
 		LegacyAPIGroupPrefixes: sets.NewString(server.DefaultLegacyAPIPrefix),
 	}
 	resolver := server.NewRequestInfoResolver(cfg)
-	handler := filters.WithRequestInfo(edgeHandler, resolver)
+	handler = filters.WithRequestInfo(handler, resolver)
 	return handler
 }
 
 func (h *EdgeServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	reverseProxy := NewEdgeReverseProxy(r, h.manager, h.apiserverUrl, h.apiserverPort, h.timeout, h.storage, h.cacher)
-	reverseProxy.backendProxy.ServeHTTP(w, r)
+	commonName := ""
+	if r.TLS != nil {
+		for _, cert := range r.TLS.PeerCertificates {
+			if !cert.IsCA {
+				commonName = cert.Subject.CommonName
+				break
+			}
+		}
+	}
+
+	reverseProxy := h.getEdgeReverseProxy(commonName)
+	reverseProxy.ServeHTTP(w, r)
+}
+
+func (h *EdgeServerHandler) getEdgeReverseProxy(commonName string) *EdgeReverseProxy {
+	if len(commonName) == 0 {
+		return h.defaultProxy
+	}
+
+	proxy, e := h.reverseProxyMap[commonName]
+	if !e {
+		return h.defaultProxy
+	}
+	return proxy
 }

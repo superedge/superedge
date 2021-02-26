@@ -149,14 +149,7 @@ func (c *RequestCacheController) doRequest(r *http.Request) {
 		}
 	}
 
-	if len(commonName) == 0 {
-		tr = c.certManager.DefaultTransport()
-	} else {
-		tr = c.certManager.Load(commonName)
-		if tr == nil {
-			tr = c.certManager.DefaultTransport()
-		}
-	}
+	tr = c.certManager.GetTransport(commonName)
 	client := http.Client{
 		Transport: tr,
 	}
