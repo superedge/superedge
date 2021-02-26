@@ -17,19 +17,11 @@ limitations under the License.
 package proxy
 
 import (
-	"bytes"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"k8s.io/klog"
 	"net/http"
 )
-
-func CopyByteFromReader(reader io.ReadCloser) ([]byte, io.ReadCloser) {
-	var bodyBytes []byte
-	bodyBytes, _ = ioutil.ReadAll(reader)
-
-	return bodyBytes, ioutil.NopCloser(bytes.NewReader(bodyBytes))
-}
 
 func CopyHeader(dst, src http.Header) {
 	for k, vv := range src {
@@ -38,4 +30,51 @@ func CopyHeader(dst, src http.Header) {
 			dst.Add(k, v)
 		}
 	}
+}
+
+// NewDupReadCloser create an dupReadCloser object
+func NewDupReadCloser(rc io.ReadCloser) (io.ReadCloser, io.ReadCloser) {
+	pr, pw := io.Pipe()
+	dr := &dupReadCloser{
+		rc: rc,
+		pw: pw,
+	}
+
+	return dr, pr
+}
+
+type dupReadCloser struct {
+	rc io.ReadCloser
+	pw *io.PipeWriter
+}
+
+// Read read data into p and write into pipe
+func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
+	n, err = dr.rc.Read(p)
+	if n > 0 {
+		if n, err := dr.pw.Write(p[:n]); err != nil {
+			klog.Errorf("dualReader: failed to write %v", err)
+			return n, err
+		}
+	}
+
+	return
+}
+
+// Close close dupReader
+func (dr *dupReadCloser) Close() error {
+	errs := make([]error, 0)
+	if err := dr.rc.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := dr.pw.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) != 0 {
+		return fmt.Errorf("failed to close dupReader, %v", errs)
+	}
+
+	return nil
 }
