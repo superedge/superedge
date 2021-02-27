@@ -17,12 +17,12 @@ limitations under the License.
 package main
 
 import (
-	goflag "flag"
-	"k8s.io/klog"
+	"flag"
 	"os"
 
 	"github.com/spf13/pflag"
-	"k8s.io/component-base/cli/flag"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/edgeadm/app"
 )
@@ -32,20 +32,17 @@ const (
 )
 
 func main() {
-	cmd := app.NewEdgeadmCommand()
-
-	pflag.CommandLine.SetNormalizeFunc(flag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-	pflag.Set("logtostderr", "true")
-
 	klog.InitFlags(nil)
-	defer klog.Flush()
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
+	pflag.Set("logtostderr", "true")
 	// We do not want these flags to show up in --help
 	// These MarkHidden calls must be after the lines above
 	pflag.CommandLine.MarkHidden("version")
 	pflag.CommandLine.MarkHidden("log-dir")
 
+	cmd := app.NewEdgeadmCommand()
 	cmd.GenBashCompletionFile(bashCompleteFile)
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

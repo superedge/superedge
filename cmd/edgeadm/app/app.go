@@ -18,6 +18,12 @@ package app
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/check"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/clean"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/init"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/install"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/join"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/token"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/change"
@@ -35,9 +41,21 @@ func NewEdgeadmCommand() *cobra.Command {
 
 	// add kubeconfig to persistent flags
 	cmds.PersistentFlags().String("kubeconfig", "", "The path to the kubeconfig file")
+	cmds.ResetFlags()
+
+	// edgeadm about change cluster
 	cmds.AddCommand(cmd.NewManifestsCMD())
 	cmds.AddCommand(change.NewChangeCMD())
 	cmds.AddCommand(revert.NewRevertCMD())
 	cmds.AddCommand(cmd.NewVersionCMD())
+
+	// edgeadm create edge cluster
+	cmds.AddCommand(check.NewCheckCMD())
+	cmds.AddCommand(install.NewInstallCMD())
+	cmds.AddCommand(init.NewInitCMD())
+	cmds.AddCommand(join.NewJoinCMD())
+	cmds.AddCommand(clean.NewCleanCMD())
+	cmds.AddCommand(token.NewTokenCMD())
+
 	return cmds
 }
