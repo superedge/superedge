@@ -66,13 +66,6 @@ func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, 
 }
 
 func (p *EdgeReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	dump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
-	klog.V(8).Infof("Dump request: %q", dump)
-
 	klog.V(2).Infof("New request: method->%s, url->%s", r.Method, r.URL.String())
 
 	// handle http
@@ -89,17 +82,6 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 		klog.Infof("no response or request, skip cache response")
 		return nil
 	}
-
-	if resp.StatusCode != http.StatusOK {
-		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
-		return nil
-	}
-
-	dump, err := httputil.DumpResponse(resp, false)
-	if err != nil {
-		return nil
-	}
-	klog.V(8).Infof("Dump response: %q", dump)
 
 	isNeedCache := needCache(resp.Request)
 	if !isNeedCache {
