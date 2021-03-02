@@ -17,34 +17,20 @@ limitations under the License.
 package proxy
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"strings"
 	"syscall"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
-	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
-)
-
-const EdgeUpdateHeader = "Edge-Update-Request"
-
-const (
-	UserAgent        = "User-Agent"
-	DefaultUserAgent = "default"
-)
-
-const (
-	VerbList  = "list"
-	VerbWatch = "watch"
 )
 
 // EdgeReverseProxy represents a real pair of http request and response
@@ -54,19 +40,16 @@ type EdgeReverseProxy struct {
 	backendUrl  string
 	backendPort int
 
-	storage     storage.Storage
-	transport   *transport.EdgeTransport
-	certManager *cert.CertManager
-	cacher      *RequestCacheController
+	transport    *transport.EdgeTransport
+	cacheManager *cache.CacheManager
 }
 
-func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, backendPort int, s storage.Storage, cacher *RequestCacheController) *EdgeReverseProxy {
+func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, backendPort int, cacheManager *cache.CacheManager) *EdgeReverseProxy {
 	p := &EdgeReverseProxy{
-		backendPort: backendPort,
-		backendUrl:  backendUrl,
-		storage:     s,
-		cacher:      cacher,
-		transport:   transport,
+		backendPort:  backendPort,
+		backendUrl:   backendUrl,
+		transport:    transport,
+		cacheManager: cacheManager,
 	}
 
 	reverseProxy := &httputil.ReverseProxy{
@@ -83,23 +66,7 @@ func NewEdgeReverseProxy(transport *transport.EdgeTransport, backendUrl string, 
 }
 
 func (p *EdgeReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	isList, isWatch := getRequestVerb(r)
-
-	userAgent := getUserAgent(r)
-
-	selfUpdate := false
-	val := r.Header.Get(EdgeUpdateHeader)
-	if len(val) != 0 {
-		selfUpdate = true
-		klog.V(4).Infof("Receive self update request, url->%s, time %s", r.URL.String(), val)
-		r.Header.Del(EdgeUpdateHeader)
-	}
-
-	if (isList || isWatch) && !selfUpdate {
-		p.cacher.AddRequest(r, userAgent, isList, isWatch)
-	}
-
-	klog.V(2).Infof("New request: userAgent->%s, method->%s, url->%s", userAgent, r.Method, r.URL.String())
+	klog.V(2).Infof("New request: method->%s, url->%s", r.Method, r.URL.String())
 
 	// handle http
 	p.backendProxy.ServeHTTP(w, r)
@@ -116,13 +83,13 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 		return nil
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
+	isNeedCache := needCache(resp.Request)
+	if !isNeedCache {
 		return nil
 	}
 
-	isNeedCache := needCache(resp.Request)
-	if !isNeedCache {
+	if resp.StatusCode != http.StatusOK {
+		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
 		return nil
 	}
 
@@ -131,10 +98,10 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 
 	go func(req *http.Request, header http.Header, statusCode int, pipeReader io.ReadCloser) {
 		err := p.writeCache(req, header, statusCode, pipeReader)
-		if err != nil && err != io.EOF {
+		if (err != nil) && (err != io.EOF) && (err != context.Canceled) {
 			klog.Errorf("Write cache error: %v", err)
 		}
-	}(resp.Request, resp.Header, resp.StatusCode, pipeReader)
+	}(resp.Request, resp.Header.Clone(), resp.StatusCode, pipeReader)
 
 	resp.Body = dupReader
 
@@ -142,21 +109,11 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 }
 
 func (p *EdgeReverseProxy) handlerError(rw http.ResponseWriter, req *http.Request, err error) {
-	klog.Warningf("Request url %s, %s error %v", req.URL.Host, req.URL, err)
+	klog.V(2).Infof("Request url=%s, error=%v", req.URL, err)
 
-	_, isWatch := getRequestVerb(req)
-	cache := needCache(req)
-	userAgent := getUserAgent(req)
-
-	defer func() {
-		if isWatch {
-			p.cacher.DeleteRequest(req, userAgent)
-		}
-	}()
-
-	// filter error, if not ECONNREFUSED or ETIMEDOUT, not read cache and ignore
-	if p.filterErrorToIgnore(cache, err) {
-		klog.V(4).Infof("Receive not syscall error %v", err)
+	// filter error. if true, not read cache and ignore
+	if p.ignoreCache(req, err) {
+		klog.V(6).Infof("Ignore request %s", req.URL)
 		rw.WriteHeader(http.StatusServiceUnavailable)
 		_, err := rw.Write([]byte(err.Error()))
 		if err != nil {
@@ -179,24 +136,22 @@ func (p *EdgeReverseProxy) handlerError(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	for k, v := range data.Header {
-		for i := range v {
-			rw.Header().Set(k, v[i])
-		}
-	}
-
 	CopyHeader(rw.Header(), data.Header)
-	rw.WriteHeader(data.Code)
+	rw.WriteHeader(data.Status)
 	_, err = rw.Write(data.Body)
 	if err != nil {
-		klog.Errorf("Write cache response err: %v", err)
+		klog.Errorf("Write cache response for %s err: %v", req.URL, err)
 	}
 }
 
-func (p *EdgeReverseProxy) filterErrorToIgnore(needCache bool, err error) bool {
+func (p *EdgeReverseProxy) ignoreCache(r *http.Request, err error) bool {
 	// ignore those requests that do not need cache
-	if !needCache {
+	if !needCache(r) {
 		return true
+	}
+
+	if (err == context.Canceled) || (err == context.DeadlineExceeded) {
+		return false
 	}
 
 	netErr, ok := err.(net.Error)
@@ -204,7 +159,6 @@ func (p *EdgeReverseProxy) filterErrorToIgnore(needCache bool, err error) bool {
 		klog.V(4).Infof("Request error is not net err: %+v", err)
 		return true
 	}
-
 	if netErr.Timeout() {
 		return false
 	}
@@ -218,6 +172,7 @@ func (p *EdgeReverseProxy) filterErrorToIgnore(needCache bool, err error) bool {
 	switch t := opError.Err.(type) {
 	case *os.SyscallError:
 		if errno, ok := t.Err.(syscall.Errno); ok {
+			klog.V(4).Infof("Request errorno is %+v", errno)
 			switch errno {
 			case syscall.ECONNREFUSED, syscall.ETIMEDOUT:
 				return false
@@ -227,77 +182,15 @@ func (p *EdgeReverseProxy) filterErrorToIgnore(needCache bool, err error) bool {
 		}
 	}
 
-	return true
+	return false
 }
 
-func (p *EdgeReverseProxy) key(r *http.Request) string {
-	userAgent := getUserAgent(r)
-	uri := r.URL.RequestURI()
-	return strings.ReplaceAll(fmt.Sprintf("%s_%s", userAgent, uri), "/", "_")
+func (p *EdgeReverseProxy) readCache(r *http.Request) (*cache.EdgeCache, error) {
+	return p.cacheManager.Query(r)
 }
 
-func (p *EdgeReverseProxy) readCache(r *http.Request) (*EdgeResponseDataHolder, error) {
-	key := p.key(r)
-	data, err := p.storage.Load(key)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &EdgeResponseDataHolder{}
-	err = res.Input(data)
-	if err != nil {
-		klog.Errorf("Read cache unmarshal %s error: %v", key, err)
-		return nil, err
-	}
-	return res, nil
-}
-
-func (p *EdgeReverseProxy) writeCache(req *http.Request, header http.Header, statusCode int, pipeReader io.ReadCloser) error {
-	var buf bytes.Buffer
-	n, err := buf.ReadFrom(pipeReader)
-	if err != nil {
-		klog.Errorf("Failed to get cache response, %v", err)
-		return err
-	}
-
-	key := p.key(req)
-	klog.V(4).Infof("Cache %d bytes from response for %s", n, key)
-
-	if n == 0 {
-		return nil
-	}
-
-	holder := &EdgeResponseDataHolder{
-		Code:   statusCode,
-		Body:   buf.Bytes(),
-		Header: header,
-	}
-	bodyBytes, err := holder.Output()
-	if err != nil {
-		klog.Errorf("Write cache marshal %s error: %v", key, err)
-		return err
-	}
-	err = p.storage.Store(key, bodyBytes)
-	if err != nil {
-		klog.Errorf("Write cache %s error: %v", key, err)
-		return err
-	}
-
-	return nil
-}
-
-func getRequestVerb(r *http.Request) (isList bool, isWatch bool) {
-	info, ok := apirequest.RequestInfoFrom(r.Context())
-	if ok {
-		klog.V(4).Infof("request resourceInfo=%+v", info)
-
-		isList = info.Verb == VerbList
-		isWatch = info.Verb == VerbWatch
-	} else {
-		klog.Errorf("parse requestInfo error")
-	}
-
-	return isList, isWatch
+func (p *EdgeReverseProxy) writeCache(req *http.Request, header http.Header, statusCode int, body io.ReadCloser) error {
+	return p.cacheManager.Cache(req, statusCode, header, body)
 }
 
 func needCache(r *http.Request) (needCache bool) {
@@ -308,9 +201,11 @@ func needCache(r *http.Request) (needCache bool) {
 		// only cache resource request
 		if info.IsResourceRequest {
 			needCache = true
-			if info.Verb == VerbWatch || r.Method != http.MethodGet {
+			if r.Method != http.MethodGet {
 				needCache = false
-			} else if info.Subresource == "log" {
+			}
+
+			if info.Subresource == "log" {
 				// do not cache logs
 				needCache = false
 			}
@@ -319,13 +214,4 @@ func needCache(r *http.Request) (needCache bool) {
 		klog.Errorf("parse requestInfo error")
 	}
 	return needCache
-}
-
-func getUserAgent(r *http.Request) string {
-	userAgent := DefaultUserAgent
-	h, exist := r.Header[UserAgent]
-	if exist {
-		userAgent = strings.Split(h[0], " ")[0]
-	}
-	return userAgent
 }

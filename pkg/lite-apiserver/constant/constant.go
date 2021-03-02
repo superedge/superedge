@@ -14,10 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package storage
+package constant
 
-type Storage interface {
-	Store(key string, data []byte) error
+const (
+	FileStorage   = "file"
+	MemoryStorage = "memory"
+	BadgerStorage = "badger"
+	BoltStorage   = "bolt"
+)
 
-	Load(key string) ([]byte, error)
-}
+const (
+	UserAgent     = "User-Agent"
+	ContentType   = "Content-Type"
+	ContentLength = "Content-Length"
+
+	DefaultUserAgent = "default"
+)
+
+const (
+	VerbGet   = "get"
+	VerbList  = "list"
+	VerbWatch = "watch"
+)
