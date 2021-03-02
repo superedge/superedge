@@ -130,7 +130,6 @@ func (bs *badgerStorage) runGC() {
 	}
 }
 
-
 func (bs *badgerStorage) oneKey(key string) string {
 	return strings.ReplaceAll(key, "/", "_")
 }
