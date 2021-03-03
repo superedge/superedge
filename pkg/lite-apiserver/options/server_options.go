@@ -106,7 +106,7 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
 	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
-	fs.IntVar(&s.BackendTimeout, "timeout", 30, "timeout for proxy to backend")
+	fs.IntVar(&s.BackendTimeout, "timeout", 3, "timeout for proxy to backend")
 
 	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
