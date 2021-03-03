@@ -137,7 +137,7 @@ func (p *EdgeReverseProxy) handlerError(rw http.ResponseWriter, req *http.Reques
 	}
 
 	CopyHeader(rw.Header(), data.Header)
-	rw.WriteHeader(data.Status)
+	rw.WriteHeader(data.StatusCode)
 	_, err = rw.Write(data.Body)
 	if err != nil {
 		klog.Errorf("Write cache response for %s err: %v", req.URL, err)
@@ -211,7 +211,7 @@ func needCache(r *http.Request) (needCache bool) {
 			}
 		}
 	} else {
-		klog.Errorf("parse requestInfo error")
+		klog.Errorf("no RequestInfo found in the context")
 	}
 	return needCache
 }

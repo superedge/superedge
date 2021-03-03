@@ -7,29 +7,29 @@ import (
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
 )
 
-// EdgeResponse hold all data of a response
+// EdgeCache hold all data of a response
 type EdgeCache struct {
-	Status int         `json:"code"`
-	Header http.Header `json:"header"`
-	Body   []byte      `json:"body"`
+	StatusCode int         `json:"code"`
+	Header     http.Header `json:"header"`
+	Body       []byte      `json:"body"`
 }
 
-func NewEdgeCache(status int, header http.Header, body []byte) *EdgeCache {
+func NewEdgeCache(statusCode int, header http.Header, body []byte) *EdgeCache {
 	return &EdgeCache{
-		Status: status,
-		Header: header,
-		Body:   body,
+		StatusCode: statusCode,
+		Header:     header,
+		Body:       body,
 	}
 }
 
-func NewEmptyEdgeCache() *EdgeCache {
+func NewDefaultEdgeCache() *EdgeCache {
 	header := make(http.Header)
 	header.Set(constant.ContentType, "application/json")
 
 	return &EdgeCache{
-		Status: http.StatusOK,
-		Header: header,
-		Body:   []byte(""),
+		StatusCode: http.StatusOK,
+		Header:     header,
+		Body:       []byte(""),
 	}
 }
 

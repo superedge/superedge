@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -51,7 +52,7 @@ func NewCacheManager(storage storage.Storage) *CacheManager {
 func (c CacheManager) Cache(req *http.Request, statusCode int, header http.Header, body io.ReadCloser) error {
 	info, ok := apirequest.RequestInfoFrom(req.Context())
 	if !ok {
-		return fmt.Errorf("parse requestInfo error")
+		return fmt.Errorf("no RequestInfo found in the context")
 	}
 
 	userAgent := getUserAgent(req)
@@ -103,9 +104,12 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 		switch eventType {
 		case watch.Bookmark:
 			klog.Infof("watch bookmark for key %s", key)
+			continue
 		case watch.Error:
 			klog.Infof("watch error for key %s", key)
+			continue
 		case watch.Added, watch.Modified, watch.Deleted:
+			// get list object
 			listData, err := c.storage.LoadList(key)
 			if err != nil {
 				klog.Warningf("get list for key %s error: %v", key, err)
@@ -130,13 +134,17 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 				continue
 			}
 
+			// update
+			updated := false
 			switch eventType {
 			case watch.Added:
 				items = append(items, obj)
+				updated = true
 			case watch.Modified:
 				for i, item := range items {
-					if sameObj(accessor, obj, item) {
+					if sameObj(accessor, obj, item) && newVersion(accessor, obj, item) {
 						items[i] = obj
+						updated = true
 						break
 					}
 				}
@@ -148,8 +156,14 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 					}
 				}
 				items = tmp
+				updated = true
 			default:
 				// impossible
+			}
+
+			if !updated {
+				klog.V(4).Infof("list object %s do not updated for event %s", key, eventType)
+				continue
 			}
 
 			// update items
@@ -174,12 +188,12 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 			}
 			listCache.Body = buffer.Bytes()
 
+			// update cache
 			data, err := MarshalEdgeCache(listCache)
 			if err != nil {
 				klog.Errorf("marshal key %s error: %v", key, err)
 				return err
 			}
-			// update cache
 			err = c.storage.StoreList(key, data)
 			if err != nil {
 				klog.Errorf("update cache list for %s error: %v", key, err)
@@ -244,7 +258,7 @@ func (c CacheManager) handleQuery(key string, verb string) (*EdgeCache, error) {
 	case constant.VerbGet:
 		data, err = c.storage.LoadOne(key)
 	case constant.VerbWatch:
-		return NewEmptyEdgeCache(), nil
+		return NewDefaultEdgeCache(), nil
 	default:
 		return nil, fmt.Errorf("unsupported verb %s for query cache", verb)
 	}
@@ -270,9 +284,9 @@ func cacheKey(userAgent string, info *apirequest.RequestInfo) string {
 
 func getUserAgent(r *http.Request) string {
 	userAgent := constant.DefaultUserAgent
-	h, exist := r.Header[constant.UserAgent]
-	if exist {
-		userAgent = strings.Split(h[0], " ")[0]
+	h := r.UserAgent()
+	if len(h) > 0 {
+		userAgent = strings.Split(h, " ")[0]
 	}
 	return userAgent
 }
@@ -321,4 +335,23 @@ func sameObj(accessor meta.MetadataAccessor, obj1 runtime.Object, obj2 runtime.O
 	}
 
 	return (kind1 == kind2) && (ns1 == ns2) && (name1 == name2)
+}
+
+func newVersion(accessor meta.MetadataAccessor, newOne runtime.Object, oldOne runtime.Object) bool {
+	newRvStr, err := accessor.ResourceVersion(newOne)
+	if err != nil {
+		klog.Errorf("get resource version for new error: %v", err)
+		return false
+	}
+
+	oldRvStr, err := accessor.ResourceVersion(oldOne)
+	if err != nil {
+		klog.Errorf("get resource version for old error: %v", err)
+		return false
+	}
+
+	oldRvInt, _ := strconv.Atoi(oldRvStr)
+	newRvInt, _ := strconv.Atoi(newRvStr)
+
+	return newRvInt > oldRvInt
 }

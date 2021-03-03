@@ -24,7 +24,6 @@ const (
 )
 
 const (
-	UserAgent     = "User-Agent"
 	ContentType   = "Content-Type"
 	ContentLength = "Content-Length"
 
