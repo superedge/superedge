@@ -19,12 +19,14 @@ package main
 import (
 	"flag"
 	"os"
+	"path"
 
 	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/edgeadm/app"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 )
 
 const (
@@ -36,16 +38,37 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
-	pflag.Set("logtostderr", "true")
-	// We do not want these flags to show up in --help
-	// These MarkHidden calls must be after the lines above
-	pflag.CommandLine.MarkHidden("version")
-	pflag.CommandLine.MarkHidden("log-dir")
+	klogSet()
+	defer klog.Flush()
 
-	cmd := app.NewEdgeadmCommand()
+	cmd := app.NewEdgeadmCommand(os.Stdin, os.Stdout, os.Stderr)
 	cmd.GenBashCompletionFile(bashCompleteFile)
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 	return
+}
+
+// We do not want these flags to show up in --help
+// These MarkHidden calls must be after the lines above
+func klogSet() {
+	pflag.CommandLine.MarkHidden("log-dir")
+	pflag.CommandLine.MarkHidden("version")
+	pflag.CommandLine.MarkHidden("vmodule")
+	pflag.CommandLine.MarkHidden("one-output")
+	pflag.CommandLine.MarkHidden("logtostderr")
+	pflag.CommandLine.MarkHidden("skip-headers")
+	pflag.CommandLine.MarkHidden("add-dir-header")
+	pflag.CommandLine.MarkHidden("alsologtostderr")
+	pflag.CommandLine.MarkHidden("stderrthreshold")
+	pflag.CommandLine.MarkHidden("log-backtrace-at")
+	pflag.CommandLine.MarkHidden("skip-log-headers")
+	pflag.CommandLine.MarkHidden("log-file-max-size")
+	pflag.CommandLine.MarkHidden("log-flush-frequency")
+
+	flag.Set("logtostderr", "false")
+	flag.Set("alsologtostderr", "true")
+	os.MkdirAll(path.Dir(constant.EdgeClusterLogFile), 0755)
+	pflag.Set("log_file", constant.EdgeClusterLogFile)
+	flag.Parse()
 }
