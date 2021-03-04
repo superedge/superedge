@@ -1,4 +1,0 @@
-
-    common:
-      metricsAddr: 9090
-      enableLeaderElection: false
