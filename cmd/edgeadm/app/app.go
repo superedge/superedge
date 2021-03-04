@@ -17,10 +17,13 @@ limitations under the License.
 package app
 
 import (
+	"io"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/check"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/clean"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd/init"
+	initCmd "github.com/superedge/superedge/pkg/edgeadm/cmd/init-cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/install"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/join"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/token"
@@ -30,7 +33,7 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
 )
 
-func NewEdgeadmCommand() *cobra.Command {
+func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "edgeadm COMMAND [arg...]",
 		Short: "edgeadm use to manage edge cluster",
@@ -52,7 +55,7 @@ func NewEdgeadmCommand() *cobra.Command {
 	// edgeadm create edge cluster
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
-	cmds.AddCommand(init.NewInitCMD())
+	cmds.AddCommand(initCmd.NewInitCMD(os.Stdout))
 	cmds.AddCommand(join.NewJoinCMD())
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
