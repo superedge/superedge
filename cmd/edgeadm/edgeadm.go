@@ -18,19 +18,20 @@ package main
 
 import (
 	"flag"
-	"os"
-	"path"
-
 	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
+	"os"
 
 	"github.com/superedge/superedge/cmd/edgeadm/app"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
 )
 
 const (
 	bashCompleteFile = "/etc/bash_completion.d/edgeadm.bash_complete"
+)
+
+var (
+	workerPath = "/tmp/"
 )
 
 func main() {
@@ -68,7 +69,4 @@ func klogSet() {
 
 	flag.Set("logtostderr", "false")
 	flag.Set("alsologtostderr", "true")
-	os.MkdirAll(path.Dir(constant.EdgeClusterLogFile), 0755)
-	pflag.Set("log_file", constant.EdgeClusterLogFile)
-	flag.Parse()
 }

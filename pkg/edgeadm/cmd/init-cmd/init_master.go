@@ -5,7 +5,6 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
 	"k8s.io/klog/v2"
-	"log"
 	"os"
 	"os/exec"
 )
@@ -19,7 +18,7 @@ func (e *initData) execHook(filename string) error {
 	klog.V(5).Info("Execute hook script %s", filename)
 	f, err := os.OpenFile(constant.EdgeClusterLogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0744)
 	if err != nil {
-		log.Fatal(err.Error())
+		klog.Error(err.Error())
 	}
 	defer f.Close()
 
@@ -30,15 +29,15 @@ func (e *initData) execHook(filename string) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return err
 }
 
 func (e *initData) tarInstallMovePackage() error {
+	workerPath := e.InitOptions.EdgeInitConfig.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
-		e.Config.EdgeConfig.InstallPkgPath, e.Config.EdgeConfig.InstallPkgPath)
+		e.InitOptions.EdgeInitConfig.InstallPkgPath, workerPath+constant.EdgeamdDir)
 	if err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
-
 	return nil
 }

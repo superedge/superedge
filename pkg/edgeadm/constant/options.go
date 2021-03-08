@@ -132,6 +132,7 @@ const (
 )
 
 const (
+	WorkerPath     = "worker-path"
 	InstallPkgPath = "install-pkg-path"
 )
 

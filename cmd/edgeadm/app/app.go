@@ -17,8 +17,12 @@ limitations under the License.
 package app
 
 import (
+	"flag"
+	"github.com/spf13/pflag"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"io"
 	"os"
+	"path"
 
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/check"
@@ -33,6 +37,13 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
 )
 
+var (
+	edgeadmConf = cmd.EdgeadmConfig{
+		WorkerPath: "/tmp",
+		Kubeconfig: "~/.kube/config",
+	}
+)
+
 func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "edgeadm COMMAND [arg...]",
@@ -43,7 +54,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	}
 
 	// add kubeconfig to persistent flags
-	cmds.PersistentFlags().String("kubeconfig", "", "The path to the kubeconfig file")
+	globalFlagSet(nil)
 	cmds.ResetFlags()
 
 	// edgeadm about change cluster
@@ -55,10 +66,24 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	// edgeadm create edge cluster
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
-	cmds.AddCommand(initCmd.NewInitCMD(os.Stdout))
+	cmds.AddCommand(initCmd.NewInitCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(join.NewJoinCMD())
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
 
 	return cmds
+}
+
+func globalFlagSet(flagset *flag.FlagSet) {
+	if flagset == nil {
+		flagset = flag.CommandLine
+	}
+
+	flagset.StringVar(&edgeadmConf.WorkerPath, "worker-path", "/tmp", "Worker path of install edge kubernetes cluster.")
+	flagset.StringVar(&edgeadmConf.Kubeconfig, "kubeconfig", "~/.kube/config", "The path to the kubeconfig file.")
+
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	os.MkdirAll(path.Dir(edgeadmConf.WorkerPath+constant.EdgeClusterLogFile), 0755)
+	pflag.Set("log_file", edgeadmConf.WorkerPath+constant.EdgeClusterLogFile)
+	flag.Parse()
 }

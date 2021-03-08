@@ -30,6 +30,7 @@ type Config struct {
 }
 
 type EdgeConfig struct {
+	WorkerPath     string `yaml:"workerPath"`
 	InstallPkgPath string `yaml:"InstallPkgPath"`
 }
 
