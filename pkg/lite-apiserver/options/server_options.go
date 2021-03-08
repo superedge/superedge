@@ -108,7 +108,7 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
 	fs.IntVar(&s.BackendTimeout, "timeout", 3, "timeout for proxy to backend")
 
-	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger")
+	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger, bolt")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
 	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
 	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
