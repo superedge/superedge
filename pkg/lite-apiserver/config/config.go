@@ -47,7 +47,10 @@ type LiteServerConfig struct {
 
 	SyncDuration time.Duration
 
-	FileCachePath string
+	CacheType       string
+	FileCachePath   string
+	BadgerCachePath string
+	BoltCacheFile   string
 }
 
 type TLSKeyPair struct {

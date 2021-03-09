@@ -26,7 +26,6 @@
 - port: https listener port of lite-apiserver, default to 51003
 - file-cache-path: file path of local cache
 - timeout: default request timeout for backend request to cloud kube-apiserver
-- sync-duration: default resync duration for backend data
 
 #### Certification Management
 - tls-config-file: path to the TLS secrets, default to empty

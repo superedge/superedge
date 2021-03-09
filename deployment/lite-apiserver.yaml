@@ -19,7 +19,6 @@ spec:
         - --tls-config-file=/etc/kubernetes/edge/tls.json
         - --v=4
         - --file-cache-path=/data/lite-apiserver/cache
-        - --sync-duration=120
         - --timeout=3
       image: superedge/lite-apiserver:v0.1.0
       imagePullPolicy: IfNotPresent

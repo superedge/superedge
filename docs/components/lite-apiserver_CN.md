@@ -23,6 +23,5 @@ lite-apiserver具有以下特点:
 - port: lite-apiserver监听的https端口，默认为51003
 - file-cache-path: 本地文件缓存模式下数据保存目录
 - timeout: 后端请求 kube-apiserver 默认的超时时间
-- sync-duration: 后端数据默认刷新同步时间
 #### 证书管理相关参数
 - tls-config-file: tls证书配置文件目录，默认为空

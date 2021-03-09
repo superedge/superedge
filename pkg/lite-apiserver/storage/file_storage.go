@@ -22,49 +22,79 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"k8s.io/klog"
-
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
-type FileStorage struct {
+type fileStorage struct {
 	filePath string
 	seed     *rand.Rand
 }
 
-func NewFileStorage(config *config.LiteServerConfig) *FileStorage {
-	s := &FileStorage{
+func NewFileStorage(filePath string) Storage {
+	mkdir(filePath)
+
+	fs := &fileStorage{
 		seed:     rand.New(rand.NewSource(time.Now().Unix())),
-		filePath: config.FileCachePath,
+		filePath: filePath,
 	}
 
-	mkdirPath(s.filePath)
-	return s
+	return fs
 }
 
-func (fs *FileStorage) Store(key string, data []byte) error {
-	return fs.writeFile(key, data)
-}
+func (fs *fileStorage) StoreOne(key string, data []byte) error {
+	klog.V(8).Infof("storage one key=%s, cache=%s", key, string(data))
 
-func (fs *FileStorage) Load(key string) ([]byte, error) {
-	f, err := os.Open(filepath.Join(fs.filePath, key))
+	err := fs.writeFile(fs.oneFileName(key), data)
 	if err != nil {
-		klog.Errorf("open cache file %s error: %v", key, err)
-		return []byte{}, err
+		klog.Errorf("write one cache %s error: %v", key, err)
+		return err
 	}
-	defer f.Close()
 
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		klog.Errorf("read cache %s error: %v", key, err)
-		return []byte{}, err
-	}
-	return b, nil
+	return nil
 }
 
-func (fs *FileStorage) randomString(l int) string {
+func (fs *fileStorage) StoreList(key string, data []byte) error {
+	klog.V(8).Infof("storage list key=%s, cache=%s", key, string(data))
+
+	err := fs.writeFile(fs.listFileName(key), data)
+	if err != nil {
+		klog.Errorf("write list cache %s error: %v", key, err)
+		return err
+	}
+
+	return nil
+}
+
+func (fs *fileStorage) LoadOne(key string) ([]byte, error) {
+	data, err := fs.readFile(fs.oneFileName(key))
+	if err != nil {
+		klog.Errorf("read one cache %s error: %v", key, err)
+		return nil, err
+	}
+
+	klog.V(8).Infof("load one key=%s, cache=%s", key, string(data))
+	return data, nil
+}
+
+func (fs *fileStorage) LoadList(key string) ([]byte, error) {
+	data, err := fs.readFile(fs.listFileName(key))
+	if err != nil {
+		klog.Errorf("read list cache %s error: %v", key, err)
+		return nil, err
+	}
+
+	klog.V(8).Infof("load list key=%s, cache=%s", key, string(data))
+	return data, nil
+}
+
+func (fs *fileStorage) Delete(key string) error {
+	return nil
+}
+
+func (fs *fileStorage) randomString(l int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyz"
 	bytes := []byte(str)
 	var result []byte
@@ -74,9 +104,10 @@ func (fs *FileStorage) randomString(l int) string {
 	return string(result)
 }
 
-func (fs *FileStorage) writeFile(hFileName string, data []byte) error {
+func (fs *fileStorage) writeFile(fileName string, data []byte) error {
 	salt := fs.randomString(12)
-	tmpFileName := fmt.Sprintf("%s_%s", hFileName, salt)
+	tmpFileName := fmt.Sprintf("%s_%s", fileName, salt)
+
 	f, err := os.Create(filepath.Join(fs.filePath, tmpFileName))
 	if err != nil {
 		klog.Errorf("create file %s error: %v", tmpFileName, err)
@@ -85,11 +116,7 @@ func (fs *FileStorage) writeFile(hFileName string, data []byte) error {
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			klog.Errorf("rename tmp to target file error: %v", err)
-		}
-		err = os.Rename(filepath.Join(fs.filePath, tmpFileName), filepath.Join(fs.filePath, hFileName))
-		if err != nil {
-			klog.Errorf("rename tmp to target file error: %v", err)
+			klog.Errorf("close file error: %v", err)
 		}
 	}()
 
@@ -98,15 +125,40 @@ func (fs *FileStorage) writeFile(hFileName string, data []byte) error {
 		klog.Errorf("write file %s error: %v", tmpFileName, err)
 		return err
 	}
-	return nil
 
+	err = os.Rename(filepath.Join(fs.filePath, tmpFileName), filepath.Join(fs.filePath, fileName))
+	if err != nil {
+		klog.Errorf("rename tmp to target file error: %v", err)
+		return err
+	}
+	return nil
 }
 
-func mkdirPath(filePath string) {
-	if _, err := os.Lstat(filePath); err != nil && os.IsNotExist(err) {
-		err := os.MkdirAll(filePath, os.ModePerm)
-		if err != nil {
-			klog.Fatalf("mkdir %s error : %v", filePath, err)
-		}
+func (fs *fileStorage) readFile(fileName string) ([]byte, error) {
+	f, err := os.Open(filepath.Join(fs.filePath, fileName))
+	if err != nil {
+		klog.Errorf("open cache file %s error: %v", fileName, err)
+		return []byte{}, err
 	}
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			klog.Errorf("close file error: %v", err)
+		}
+	}()
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		klog.Errorf("read cache %s error: %v", fileName, err)
+		return []byte{}, err
+	}
+	return data, nil
+}
+
+func (fs *fileStorage) oneFileName(key string) string {
+	return strings.ReplaceAll(key, "/", "_")
+}
+
+func (fs *fileStorage) listFileName(key string) string {
+	return strings.ReplaceAll(fmt.Sprintf("%s_%s", key, "list"), "/", "_")
 }
