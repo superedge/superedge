@@ -20,17 +20,19 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/superedge/superedge/pkg/util"
 	"io/ioutil"
 	"net/http"
 
+	"k8s.io/klog"
+
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
+	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/proxy"
+	"github.com/superedge/superedge/pkg/lite-apiserver/storage"
 	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
-
-	"k8s.io/klog"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 type LiteServer struct {
@@ -73,10 +75,12 @@ func (s *LiteServer) Run() error {
 	}
 	transportManager.Start()
 
-	cacher := proxy.NewRequestCacheController(s.ServerConfig, transportManager)
-	go cacher.Run(s.stopCh)
+	// init storage
+	storage := storage.CreateStorage(s.ServerConfig)
+	// init cache manager
+	cacheManager := cache.NewCacheManager(storage)
 
-	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, transportManager, cacher, transportChannel)
+	edgeServerHandler, err := proxy.NewEdgeServerHandler(s.ServerConfig, transportManager, cacheManager, transportChannel)
 	if err != nil {
 		klog.Errorf("Create edgeServerHandler error: %v", err)
 		return err
