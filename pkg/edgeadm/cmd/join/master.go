@@ -18,8 +18,10 @@ package join
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -47,10 +49,10 @@ func NewJoinMasterCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	action := newJoinMaster()
 	joinOptions := &action.JoinOptions
 	cmd := &cobra.Command{
-		Use:   "master",
+		Use:   "master [api-server-endpoint]",
 		Short: "Join a master node into cluster",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := action.complete(edgeConfig); err != nil {
+			if err := action.complete(edgeConfig, args, joinOptions); err != nil {
 				util.OutPutMessage(err.Error())
 				return
 			}
@@ -65,11 +67,29 @@ func NewJoinMasterCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 				return
 			}
 		},
+		// We accept the control-plane location as an optional positional argument
+		Args: cobra.MaximumNArgs(1),
 	}
 
 	AddEdgeConfigFlags(cmd.Flags(), &joinOptions.EdgeJoinConfig)
 	AddKubeadmConfigFlags(cmd.Flags(), &joinOptions.KubeadmConfig)
+	addMasterFlags(cmd.Flags(), joinOptions)
 	return cmd
+}
+
+func addMasterFlags(flagSet *pflag.FlagSet, option *joinOptions) {
+	flagSet.StringVar(
+		&option.JoinToken, constant.TokenStr, "",
+		"The token to use for establishing bidirectional trust between nodes and control-plane nodes. The format is [a-z0-9]{6}\\\\.[a-z0-9]{16} - e.g. abcdef.0123456789abcdef",
+	)
+	flagSet.StringVar(
+		&option.TokenCaCertHash, constant.TokenDiscoveryCAHash, "",
+		"For token-based discovery, validate that the root CA public key matches this hash (format: \\\"<type>:<value>\\\").",
+	)
+	flagSet.StringVar(
+		&option.CertificateKey, constant.CertificateKey, "",
+		"Key used to encrypt the control-plane certificates in the kubeadm-certs Secret.",
+	)
 }
 
 func (e *joinMasterData) preInstallHook() error {
@@ -122,8 +142,16 @@ func (e *joinMasterData) config() error {
 	return nil
 }
 
-func (e *joinMasterData) complete(edgeConfig *cmd.EdgeadmConfig) error {
+func (e *joinMasterData) complete(edgeConfig *cmd.EdgeadmConfig, args []string, option *joinOptions) error {
 	e.JoinOptions.EdgeJoinConfig.WorkerPath = edgeConfig.WorkerPath
+	if len(args) == 1 {
+		option.MasterIp = args[0]
+	} else if len(args) > 1 {
+		klog.Warningf("[WARNING] More than one API server endpoint supplied on command line %v. Using the first one.", args)
+		option.MasterIp = args[0]
+	} else {
+		return errors.New("[Error] need an API server endpoint as control plane to join")
+	}
 	return nil
 }
 
