@@ -362,6 +362,151 @@ StatefulSetGrid提供屏蔽NodeUnit的统一headless service访问形式，如�
 ...
 ```
 
+## 按NodeUnit灰度
+DeploymentGrid和StatefulSetGrid均支持按照NodeUnit进行灰度
+
+### 重要字段
+和灰度功能相关的字段有这些：
+
+autoDeleteUnusedTemplate，templatePool，templates，defaultTemplateName
+  
+templatePool：用于灰度的template集合
+
+templates：NodeUnit和其使用的templatePool中的template的映射关系，如果没有指定，NodeUnit使用defaultTemplateName指定的template
+
+defaultTemplateName：默认使用的template，如果不填写或者使用"default"就采用spec.template
+
+autoDeleteUnusedTemplate：默认为false，如果设置为ture，会自动删除templatePool中既不在templates中也不在spec.template中的template模板
+
+### 使用相同的template创建workload
+和上面的DeploymentGrid和StatefulsetGrid例子完全一致，如果不需要使用灰度功能，则无需添加额外字段
+
+### 使用不同的template创建workload
+```yaml
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: deploymentgrid-demo
+  namespace: default
+spec:
+  defaultTemplateName: test1
+  gridUniqKey: zone
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        appGrid: echo
+    strategy: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          appGrid: echo
+      spec:
+        containers:
+        - image: superedge/echoserver:2.2
+          name: echo
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
+  templatePool:
+    test1:
+      replicas: 2
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+    test2:
+      replicas: 3
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.3
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+  templates:
+    zone1: test1
+    zone2: test2
+```
+这个例子中，NodeUnit zone1将会使用test1 template，NodeUnit zone2将会使用test2 template，其余NodeUnit将会使用defaultTemplateName中指定的template，这里
+会使用test1
+
 ## Refs
 
 * [SEP: ServiceGroup StatefulSetGrid Design Specification](https://github.com/superedge/superedge/issues/26)

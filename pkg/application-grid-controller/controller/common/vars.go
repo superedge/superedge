@@ -27,4 +27,6 @@ const (
 	DeploymentGridKind  = "DeploymentGrid"
 	StatefulSetGridKind = "StatefulSetGrid"
 	ServiceGridKind     = "ServiceGrid"
+
+	DefaultTemplateName = "default"
 )

@@ -28,7 +28,6 @@ import (
 	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
 	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
-
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"

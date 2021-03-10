@@ -19,6 +19,7 @@ package util
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
+	"k8s.io/klog"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,7 +38,12 @@ func GetGridValueFromName(ssg *crdv1.StatefulSetGrid, name string) string {
 	return strings.TrimPrefix(name, ssg.Name+"-")
 }
 
-func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string) *appsv1.StatefulSet {
+func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string, sth StatefulsetTemplateHash) (*appsv1.StatefulSet, error) {
+	template, err := sth.getStatefulsetTemplate(&ssg.Spec, gridValue)
+	if err != nil {
+		klog.Errorf("Failed to get template StatefulsetGrid %s of grid value %s, err: %v", ssg.Name, gridValue, err)
+		return nil, err
+	}
 	set := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            GetStatefulSetName(ssg, gridValue),
@@ -58,12 +64,12 @@ func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string) *appsv1.Sta
 				}
 			}(),
 		},
-		Spec: ssg.Spec.Template,
+		Spec: *template,
 	}
 
 	// Append existed StatefulSetGrid NodeSelector to statefulset to be created
-	if ssg.Spec.Template.Template.Spec.NodeSelector != nil {
-		set.Spec.Template.Spec.NodeSelector = ssg.Spec.Template.Template.Spec.NodeSelector
+	if template.Template.Spec.NodeSelector != nil {
+		set.Spec.Template.Spec.NodeSelector = template.Template.Spec.NodeSelector
 		set.Spec.Template.Spec.NodeSelector[ssg.Spec.GridUniqKey] = gridValue
 	} else {
 		set.Spec.Template.Spec.NodeSelector = map[string]string{
@@ -71,7 +77,7 @@ func CreateStatefulSet(ssg *crdv1.StatefulSetGrid, gridValue string) *appsv1.Sta
 		}
 	}
 
-	return set
+	return set, nil
 }
 
 func KeepConsistence(ssg *crdv1.StatefulSetGrid, set *appsv1.StatefulSet, gridValue string) *appsv1.StatefulSet {
