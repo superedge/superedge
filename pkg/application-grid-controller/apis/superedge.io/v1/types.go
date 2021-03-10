@@ -51,6 +51,10 @@ type DeploymentGrid struct {
 type DeploymentGridSpec struct {
 	GridUniqKey string               `json:"gridUniqKey,omitempty"`
 	Template    appv1.DeploymentSpec `json:"template,omitempty"`
+	TemplatePool map[string]appv1.DeploymentSpec `json:"templatePool,omitempty"`
+	Templates map[string]string `json:"templates,omitempty"`
+	DefaultTemplateName string `json:"defaultTemplateName,omitempty"`
+	AutoDeleteUnusedTemplate bool `json:"autoDeleteUnusedTemplate,omitempty"`
 }
 
 type DeploymentGridStatusList struct {
@@ -71,6 +75,10 @@ type StatefulSetGrid struct {
 type StatefulSetGridSpec struct {
 	GridUniqKey string                `json:"gridUniqKey,omitempty"`
 	Template    appv1.StatefulSetSpec `json:"template,omitempty"`
+	TemplatePool map[string]appv1.StatefulSetSpec `json:"templatePool,omitempty"`
+	Templates map[string]string `json:"templates,omitempty"`
+	DefaultTemplateName string `json:"defaultTemplateName,omitempty"`
+	AutoDeleteUnusedTemplate bool `json:"autoDeleteUnusedTemplate,omitempty"`
 }
 
 type StatefulSetGridStatusList struct {
