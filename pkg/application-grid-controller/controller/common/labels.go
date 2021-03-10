@@ -32,7 +32,7 @@ const (
 	// GridSelectorKey corresponds to gridUniqKey of the custom-defined workload
 	GridSelectorUniqKeyName = "superedge.io/grid-uniq-key"
 	// TemplateHashKey is a key for storing template's hash value in labels.
-	TemplateHashKey = "service_group_template_hash_key"
+	TemplateHashKey = "superedge.io/template-hash-key"
 )
 
 func GetDefaultSelector(val string) (labels.Selector, error) {
