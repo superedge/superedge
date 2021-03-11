@@ -41,12 +41,13 @@ type Handler struct {
 }
 
 type joinOptions struct {
-	EdgeJoinConfig  edgeJoinConfig
-	KubeadmConfig   kubeadmConfig
-	MasterIp        string
-	JoinToken       string
-	TokenCaCertHash string
-	CertificateKey  string
+	EdgeJoinConfig             edgeJoinConfig
+	KubeadmConfig              kubeadmConfig
+	MasterIp                   string
+	JoinToken                  string
+	TokenCaCertHash            string
+	CertificateKey             string
+	KubernetesServiceClusterIP string
 }
 
 type edgeJoinConfig struct {

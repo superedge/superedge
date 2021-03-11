@@ -18,8 +18,10 @@ package join
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -50,7 +52,7 @@ func NewJoinNodeCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		Use:   "node",
 		Short: "Join a edge node into cluster",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := action.complete(edgeConfig); err != nil {
+			if err := action.complete(edgeConfig, args, joinOptions); err != nil {
 				util.OutPutMessage(err.Error())
 				return
 			}
@@ -65,11 +67,29 @@ func NewJoinNodeCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 				return
 			}
 		},
+		// We accept the control-plane location as an optional positional argument
+		Args: cobra.MaximumNArgs(1),
 	}
 
 	AddEdgeConfigFlags(cmd.Flags(), &joinOptions.EdgeJoinConfig)
 	AddKubeadmConfigFlags(cmd.Flags(), &joinOptions.KubeadmConfig)
+	addNodeFlags(cmd.Flags(), joinOptions)
 	return cmd
+}
+
+func addNodeFlags(flagSet *pflag.FlagSet, option *joinOptions) {
+	flagSet.StringVar(
+		&option.JoinToken, constant.TokenStr, "",
+		"The token to use for establishing bidirectional trust between nodes and control-plane nodes. The format is [a-z0-9]{6}\\\\.[a-z0-9]{16} - e.g. abcdef.0123456789abcdef",
+	)
+	flagSet.StringVar(
+		&option.TokenCaCertHash, constant.TokenDiscoveryCAHash, "",
+		"For token-based discovery, validate that the root CA public key matches this hash (format: \\\"<type>:<value>\\\").",
+	)
+	flagSet.StringVar(
+		&option.KubernetesServiceClusterIP, constant.KubernetesServiceClusterIP, "",
+		"Cluster IP of kubernetes service in default namespace, using command 'kubectl get service kubernetes' to get cluster IP",
+	)
 }
 
 func (e *joinNodeData) preInstallHook() error {
@@ -105,10 +125,10 @@ func (e *joinNodeData) tarInstallMovePackage() error {
 	return nil
 }
 
-func (e *joinNodeData) kubeadmJoinNode() error {
+func (e *joinNodeData) generateLiteApiserverKey() error {
 	cmds := []string{
-		//kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s
-		fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", e.JoinOptions.MasterIp, e.JoinOptions.JoinToken, e.JoinOptions.TokenCaCertHash, e.JoinOptions.CertificateKey),
+		fmt.Sprintf("mkdir -p /etc/kubernetes/edge/ && openssl genrsa -out /etc/kubernetes/edge/lite-apiserver.key 2048"),
+		fmt.Sprintf("cp /etc/kubernetes/edge/lite-apiserver.key /etc/kubernetes/pki/lite-apiserver.key"),
 	}
 	for _, cmd := range cmds {
 		if err := util.RunLinuxCommand(cmd); err != nil {
@@ -118,12 +138,85 @@ func (e *joinNodeData) kubeadmJoinNode() error {
 	return nil
 }
 
+func (e *joinNodeData) generateLiteApiserverCsr() error {
+	cmds := []string{
+		fmt.Sprintf("mkdir -p /etc/kubernetes/edge/ && cat << EOF >/etc/kubernetes/edge/lite-apiserver.conf\n[req]\ndistinguished_name = req_distinguished_name\nreq_extensions = v3_req\n[req_distinguished_name]\nCN = lite-apiserver\n[v3_req]\nbasicConstraints = CA:FALSE\nkeyUsage = nonRepudiation, digitalSignature, keyEncipherment\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1 = localhost\nIP.1 = 127.0.0.1\nIP.1 = %s\nEOF", e.JoinOptions.KubernetesServiceClusterIP),
+		fmt.Sprintf("cd /etc/kubernetes/edge/ && openssl req -new -key lite-apiserver.key -subj \"/CN=lite-apiserver\" -config lite-apiserver.conf -out lite-apiserver.csr"),
+		fmt.Sprintf("cd /etc/kubernetes/edge/ && openssl x509 -req -in lite-apiserver.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -days 5000 -extensions v3_req -extfile lite-apiserver.conf -out lite-apiserver.crt"),
+		fmt.Sprintf("cp /etc/kubernetes/edge/lite-apiserver.crt /etc/kubernetes/pki/lite-apiserver.crt"),
+	}
+	for _, cmd := range cmds {
+		if err := util.RunLinuxCommand(cmd); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *joinNodeData) generateLiteApiserverTlsJson() error {
+	cmds := []string{
+		fmt.Sprintf("mkdir -p /etc/kubernetes/edge/ && cat << EOF >/etc/kubernetes/edge/tls.json\n[\n    {\n        \"key\":\"/var/lib/kubelet/pki/kubelet-client-current.pem\",\n        \"cert\":\"/var/lib/kubelet/pki/kubelet-client-current.pem\"\n    }\n]\nEOF"),
+		fmt.Sprintf("cd /etc/kubernetes/edge/ && openssl req -new -key lite-apiserver.key -subj \"/CN=lite-apiserver\" -config lite-apiserver.conf -out lite-apiserver.csr"),
+		fmt.Sprintf("cd /etc/kubernetes/edge/ && openssl x509 -req -in lite-apiserver.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -days 5000 -extensions v3_req -extfile lite-apiserver.conf -out lite-apiserver.crt"),
+	}
+	for _, cmd := range cmds {
+		if err := util.RunLinuxCommand(cmd); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *joinNodeData) startLiteApiserver() error {
+	workerPath := e.JoinOptions.EdgeJoinConfig.WorkerPath
+	cmd := fmt.Sprintf("%s --ca-file=/etc/kubernetes/pki/ca.crt "+
+		"--tls-cert-file=/etc/kubernetes/edge/lite-apiserver.crt "+
+		"--tls-private-key-file=/etc/kubernetes/edge/lite-apiserver.key "+
+		"--kube-apiserver-url=%s "+
+		"--kube-apiserver-port=6443 "+
+		"--port=51003 --tls-config-file=/etc/kubernetes/edge/tls.json "+
+		"--v=4 "+
+		"--file-cache-path=/data/lite-apiserver/cache "+
+		"--sync-duration=120 "+
+		"--timeout=3",
+		workerPath+constant.InstallBin+"lite-apiserver", e.JoinOptions.MasterIp)
+	if err := util.RunLinuxCommand(cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *joinNodeData) kubeadmJoinNode() error {
+	cmds := []string{
+		//kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s
+		fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s", e.JoinOptions.MasterIp, e.JoinOptions.JoinToken, e.JoinOptions.TokenCaCertHash),
+	}
+	for _, cmd := range cmds {
+		if err := util.RunLinuxCommand(cmd); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *joinNodeData) checkEdgeCluster() error {
+	return nil
+}
+
 func (e *joinNodeData) config() error {
 	return nil
 }
 
-func (e *joinNodeData) complete(edgeConfig *cmd.EdgeadmConfig) error {
+func (e *joinNodeData) complete(edgeConfig *cmd.EdgeadmConfig, args []string, option *joinOptions) error {
 	e.JoinOptions.EdgeJoinConfig.WorkerPath = edgeConfig.WorkerPath
+	if len(args) == 1 {
+		option.MasterIp = args[0]
+	} else if len(args) > 1 {
+		klog.Warningf("[WARNING] More than one API server endpoint supplied on command line %v. Using the first one.", args)
+		option.MasterIp = args[0]
+	} else {
+		return errors.New("[Error] need an API server endpoint as control plane to join")
+	}
 	return nil
 }
 
@@ -204,8 +297,20 @@ func (e *joinNodeData) joinSteps() error {
 	// install lite-apiserver
 	e.steps = append(e.steps, []Handler{
 		{
-			Name: "install docker",
-			Func: e.tarInstallMovePackage,
+			Name: "generate lite-apiserver.key",
+			Func: e.generateLiteApiserverKey,
+		},
+		{
+			Name: "generate lite-apiserver.csr",
+			Func: e.generateLiteApiserverCsr,
+		},
+		{
+			Name: "generate tls.json",
+			Func: e.generateLiteApiserverTlsJson,
+		},
+		{
+			Name: "start lite-apiserver",
+			Func: e.startLiteApiserver,
 		},
 	}...)
 
@@ -221,7 +326,7 @@ func (e *joinNodeData) joinSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "check edge cluster",
-			Func: e.tarInstallMovePackage,
+			Func: e.checkEdgeCluster,
 		},
 	}...)
 
