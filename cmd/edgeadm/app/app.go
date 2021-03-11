@@ -67,7 +67,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
 	cmds.AddCommand(initCmd.NewInitCMD(os.Stdout, &edgeadmConf))
-	cmds.AddCommand(join.NewJoinCMD())
+	cmds.AddCommand(join.NewJoinCMD(&edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
 

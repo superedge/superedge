@@ -18,17 +18,70 @@ package join
 
 import (
 	"github.com/spf13/cobra"
-
+	"github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 )
 
-func NewJoinCMD() *cobra.Command {
-	cmds := &cobra.Command{
+type ClusterProgress struct {
+	Status     string   `json:"status"`
+	Data       string   `json:"data"`
+	URL        string   `json:"url,omitempty"`
+	Username   string   `json:"username,omitempty"`
+	Password   []byte   `json:"password,omitempty"`
+	CACert     []byte   `json:"caCert,omitempty"`
+	Hosts      []string `json:"hosts,omitempty"`
+	Servers    []string `json:"servers,omitempty"`
+	Kubeconfig []byte   `json:"kubeconfig,omitempty"`
+}
+
+type Handler struct {
+	Name string
+	Func func() error
+}
+
+type joinOptions struct {
+	EdgeJoinConfig             edgeJoinConfig
+	KubeadmConfig              kubeadmConfig
+	MasterIp                   string
+	JoinToken                  string
+	TokenCaCertHash            string
+	CertificateKey             string
+	KubernetesServiceClusterIP string
+}
+
+type edgeJoinConfig struct {
+	WorkerPath     string `yaml:"workerPath"`
+	InstallPkgPath string `yaml:"InstallPkgPath"`
+}
+
+type kubeadmConfig struct {
+	KubeadmConfPath string `yaml:"kubeadmConfPath"`
+}
+
+func NewJoinCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "join",
-		Short: "Output edgeadm build info",
+		Short: "Join a node into cluster",
+		Run: func(cmd *cobra.Command, _ []string) {
+			cmd.Help()
+		},
 	}
+	cmd.AddCommand(NewJoinMasterCMD(edgeConfig))
+	cmd.AddCommand(NewJoinNodeCMD(edgeConfig))
+	return cmd
+}
 
-	cmds.AddCommand(cmd.NewVersionCMD()) // example，Please implement specific command logic
+func AddEdgeConfigFlags(flagSet *pflag.FlagSet, cfg *edgeJoinConfig) {
+	flagSet.StringVar(
+		&cfg.InstallPkgPath, constant.InstallPkgPath, "./edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
+		"Install static package path of edge kubernetes cluster.",
+	)
+}
 
-	return cmds
+func AddKubeadmConfigFlags(flagSet *pflag.FlagSet, cfg *kubeadmConfig) {
+	flagSet.StringVar(
+		&cfg.KubeadmConfPath, constant.KubeadmConfig, "/root/.edgeadm/kubeadm.config",
+		"Install static package path of edge kubernetes cluster.",
+	)
 }
