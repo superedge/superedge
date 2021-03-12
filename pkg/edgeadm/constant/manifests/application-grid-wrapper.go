@@ -136,7 +136,7 @@ spec:
         kubernetes.io/os: linux # TODO select edge node
       containers:
         - name: application-grid-wrapper
-          image: superedge/application-grid-wrapper:v0.1.0
+          image: superedge/application-grid-wrapper:v0.2.0
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-wrapper
@@ -206,7 +206,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: application-grid-wrapper
-          image: superedge/application-grid-wrapper:v0.1.0
+          image: superedge/application-grid-wrapper:v0.2.0
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-wrapper

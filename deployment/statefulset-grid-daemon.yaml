@@ -104,7 +104,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: statefulset-grid-daemon
-          image: superedge/statefulset-grid-daemon:v0.1.0
+          image: superedge/statefulset-grid-daemon:v0.2.0
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/statefulset-grid-daemon

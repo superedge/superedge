@@ -40,7 +40,7 @@ spec:
         - --v=4
         - --file-cache-path=/data/lite-apiserver/cache
         - --timeout=3
-      image: superedge/lite-apiserver:v0.1.0
+      image: superedge/lite-apiserver:v0.2.0
       imagePullPolicy: IfNotPresent
       name: lite-apiserver
       volumeMounts:
@@ -65,11 +65,11 @@ spec:
       name: cache
     - hostPath:
         path: /etc/kubernetes/pki
-        name: DirectoryOrCreate
+        type: DirectoryOrCreate
       name: k8s-certs
     - hostPath:
         path: /etc/kubernetes/edge
-        name: DirectoryOrCreate
+        type: DirectoryOrCreate
       name: edge-certs
 status: {}
 `
