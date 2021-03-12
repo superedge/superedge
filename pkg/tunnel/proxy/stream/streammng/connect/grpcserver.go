@@ -61,7 +61,7 @@ func StartServer() {
 	proto.RegisterStreamServer(s, &stream.Server{})
 
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
-	klog.Infof("the https server of the cloud tunnel  listen on %s", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
+	klog.Infof("the stream server of the cloud tunnel  listen on %s", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
 	if err != nil {
 		klog.Fatalf("failed to listen: %v", err)
 		return

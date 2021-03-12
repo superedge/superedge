@@ -47,7 +47,7 @@ const (
 )
 const (
 	config_path = "../../../conf"
-	main_path   = "../../conf"
+	main_path   = "../../../../conf" /*The .Path parameter of the matching template*/
 )
 const token = "6ff2a1ea0f1611eb9896362096106d9d"
 
