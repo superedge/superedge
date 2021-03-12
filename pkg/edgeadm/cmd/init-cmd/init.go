@@ -174,7 +174,7 @@ func (e *initData) runInit() error {
 		e.backup()
 	}
 
-	klog.V(1).Info("===>install task [Sucesss] [%fs]", time.Since(start).Seconds())
+	klog.V(1).Infof("===>install task [Sucesss] [%fs]", time.Since(start).Seconds())
 	return nil
 }
 
@@ -190,11 +190,21 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "tar -xzvf install.tar.gz",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return TarInstallMovePackage(e) //todo：Abstract into general functions
+			},
 		},
 		{
-			Name: "set /root/.bashrc",
-			Func: e.tarInstallMovePackage,
+			Name: "init shell before install",
+			Func: func() error {
+				return InitShellPreInstall(e)
+			},
+		},
+		{
+			Name: "set bash_complete", //todo: set kubectl bash_complete
+			Func: func() error {
+				return SetBinExport(e)
+			},
 		},
 	}...)
 
@@ -202,11 +212,15 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "check node",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "init node",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -214,7 +228,25 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "install docker",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
+		},
+		{
+			Name: "load images",
+			Func: func() error {
+				return NilFunc(e)
+			},
+		},
+	}...)
+
+	// create kubeadm config
+	e.steps = append(e.steps, []Handler{
+		{
+			Name: "create kubeadm config",
+			Func: func() error {
+				return CreateKubeadmConfig(e)
+			},
 		},
 	}...)
 
@@ -222,19 +254,27 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "create etcd ca",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "create kube-api-service ca",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "create kube-controller-manager ca",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "create kube-scheduler ca",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -242,23 +282,33 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "create kubeadm config",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "config etcd",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "config kube-api-service",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "config kube-controller-manager",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "config kube-scheduler",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -266,7 +316,9 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "kubeadm init",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -274,7 +326,9 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "check kubernetes cluster",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -282,23 +336,33 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "deploy tunnel-coredns",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "deploy tunnel-cloud",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "deploy application-grid controller",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "deploy application-grid wrapper",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "deploy edge-health admission",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -306,23 +370,33 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "daemonset flannel",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "daemonset tunnel edge",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "daemonset coredns",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "daemonset kube-proxy",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 		{
 			Name: "daemonset edge-health",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
@@ -330,7 +404,9 @@ func (e *initData) initSteps() error {
 	e.steps = append(e.steps, []Handler{
 		{
 			Name: "check edge cluster",
-			Func: e.tarInstallMovePackage,
+			Func: func() error {
+				return NilFunc(e)
+			},
 		},
 	}...)
 
