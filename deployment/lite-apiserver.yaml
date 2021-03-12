@@ -20,7 +20,7 @@ spec:
         - --v=4
         - --file-cache-path=/data/lite-apiserver/cache
         - --timeout=3
-      image: superedge/lite-apiserver:v0.1.0
+      image: superedge/lite-apiserver:v0.2.0
       imagePullPolicy: IfNotPresent
       name: lite-apiserver
       volumeMounts:

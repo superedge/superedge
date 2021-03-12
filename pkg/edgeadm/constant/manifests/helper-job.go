@@ -69,7 +69,7 @@ spec:
       hostPID: true
       containers:
         - name: helper
-          image: superedge/helper-job:v0.1.0
+          image: superedge/helper-job:v0.2.0
           command:
             - /bin/sh
             - -c
