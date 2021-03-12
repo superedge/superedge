@@ -140,7 +140,7 @@ spec:
       serviceAccountName: tunnel-cloud
       containers:
         - name: tunnel-cloud
-          image: superedge/tunnel:v0.1.0
+          image: superedge/tunnel:v0.2.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
