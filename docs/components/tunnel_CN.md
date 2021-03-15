@@ -188,8 +188,7 @@ tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://
 ```
 
 ### https转发
-
-
+通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用tunnel cloud，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)
 #### tunnel cloud配置
 ```toml
 [mode]
