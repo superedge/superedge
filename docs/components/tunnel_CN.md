@@ -327,7 +327,7 @@ spec:
 ```
 部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server的ca证书；
 ### https转发
-通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)
+通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)。使用https转发需要部署[tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)、[tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)和[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)三个模块。
 #### tunnel cloud配置
 ```toml
 [mode]
@@ -349,7 +349,8 @@ spec:
 			[mode.cloud.https.addr]
 				"10250" = "127.0.0.1:10250"
 ```
-tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server
+tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server。
+tunnel-cloud配置对应的是tunnel-cloud的部署yaml中[tunnel-cloud-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml#L41)configmap对应的内容
 
 #### tunnel edge配置
 ```toml
@@ -366,7 +367,8 @@ tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长�
 				cert= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
 				key= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
-https模块的证书和私钥是tunnel cloud 代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的
+https模块的证书和私钥是tunnel cloud代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的。
+tunnel-edge配置对应的tunnel-edge的部署yaml中[tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33)configmap对应的内容。
 client端证书。
 ## 本地调试
 tunnel支持https和tcp协议分别对应https模块和tcp模块，协议模块的数据是通过grpc长连接传输,即对应的stream模块，可以通过go的testing测试框架
