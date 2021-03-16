@@ -26,14 +26,15 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 #### stream模块
 ##### server组件
 - grpcport: grpc server监听的端口
-- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8")和健康检查server的监听端口
+- logport: log和健康检查的http server的监听端口，使用(curl -X PUT http://podip:logport/debug/flags/v -d "8")可以设置日志等级
 - key: grpc server的server端私钥
 - cert: grpc server的server端证书
 - tokenfile: token的列表文件(nodename:随机字符串)，用于验证边缘节点tunnel edge发送的token，如果根据节点名验证没有通过，会用default对应的token去验证
 - channelzAddr: grpc [channlez](https://grpc.io/blog/a-short-introduction-to-channelz/) server的监听地址，用于获取grpc的调试信息
 ##### dns组件
+
 - configmap: coredns hosts插件的配置文件的configmap
-- hosts: coredns hosts插件的配置文件的configmap在tunnel cloud pod的挂载文件
+- hosts: coredns hosts插件的配置文件的configmap，在tunnel cloud pod的挂载文件
 - service: tunnel cloud的service name
 - debug: dns组件开关，debug=true dns组件关闭，tunnel cloud 内存中的节点名映射不会保存到coredns hosts插件的配置文件的configmap，默认值为false
 #### tcp模块
@@ -41,18 +42,20 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 #### https模块
 - cert: https模块server端证书
 - key: https模块server端私钥
-- addr: 参数的格式是"httpsServerPort":"EdgeHttpsServerIp:EdgeHttpsServerPort"，httpsServerPort为https模块server端监听的地址，EdgeHttpsServerIp:EdgeHttpsServerPort为代理转发边缘节点https server的ip和port，
-        https模块的server是跳过验证client端证书的，因此可以使用curl -k https://podip:httpsServerPort/path 访问https模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
+- addr: 参数的格式是"httpsServerPort":"EdgeHttpsServerIp:EdgeHttpsServerPort"
+  ，httpsServerPort为https模块server端的监听端口，EdgeHttpsServerIp:EdgeHttpsServerPort为代理转发边缘节点https server的ip和port，
+  https模块的server是跳过验证client端证书的，因此可以使用(curl -k https://podip:httpsServerPort)访问https模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
 ### tunnel edge
 #### https模块
 - cert: tunnel cloud 代理转发的https server的client端的证书
 - key: tunnel cloud 代理转发的https server的client端的私钥
 #### stream模块
+
 - token: 访问tunnel cloud的验证token
-- cert: tunnel cloud grpc server 的 server端证书的ca证书，用于验证server端证书
-- dns: tunnel cloud grpc server证书签的ip或域名 
-- servername: tunnel cloud grpc server的ip和端口
-- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8")和健康检查server的监听端口 
+- cert: tunnel cloud的grpc server 的 server端证书的ca证书，用于验证server端证书
+- dns: tunnel cloud的grpc server证书签的ip或域名
+- servername: tunnel cloud的grpc server的ip和端口
+- logport: log和健康检查的http server的监听端口，使用(curl -X PUT http://podip:logport/debug/flags/v -d "8")可以设置日志等级
 - channelzaddr: grpc channlez server的监听地址，用于获取grpc的调试信息
 ## 使用场景
 ### tcp转发
@@ -191,31 +194,38 @@ spec:
             secretName: tunnel-cloud-cert
         - name: conf
           configMap:
-            name: tunnel-cloud-conf
+                  name: tunnel-cloud-conf
       nodeSelector:
-        node-role.kubernetes.io/master: ""
+              node-role.kubernetes.io/master: ""
       tolerations:
-        - key: "node-role.kubernetes.io/master"
-          operator: "Exists"
-          effect: "NoSchedule"
+              - key: "node-role.kubernetes.io/master"
+                operator: "Exists"
+                effect: "NoSchedule"
 ```
-部署yaml中的tunnel-cloud-conf的configmap对应的就是tunnel cloud的配置文件；tunnel-cloud-token的configmap中的TunnelCloudEdgeToken为随机字符串，用于验证tunnel edge；
-tunnel-cloud-cert的secret对应的grpc server的server端证书和私钥。
-#### tunnel edge的配置
+
+部署yaml中的tunnel-cloud-conf的configmap对应的就是tunnel
+cloud的配置文件；tunnel-cloud-token的configmap中的TunnelCloudEdgeToken为随机字符串，用于验证tunnel edge； tunnel-cloud-cert的secret对应的grpc
+server的server端证书和私钥。
+
+#### tunnel edge
+
+##### 配置文件
+
 ```toml
 [mode]
-	[mode.edge]
-		[mode.edge.stream]
-			[mode.edge.stream.client]
-				token = "{{.TunnelCloudEdgeToken}}"
-				cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
-  				dns = "{{ServerName}}"
-				servername = "{{.MasterIP}}:9000"
-				logport = 51000
+[mode.edge]
+[mode.edge.stream]
+[mode.edge.stream.client]
+token = "{{.TunnelCloudEdgeToken}}"
+cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
+dns = "{{ServerName}}"
+servername = "{{.MasterIP}}:9000"
+logport = 51000
 ```
-tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。
-token为tunnel cloud的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为tunnel cloud的grpc server的证书签的域名或ip；MasterIP为云端tunnel cloud 所在节点的ip，9000为
-tunnel-cloud service的nodePort
+
+tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。 token为tunnel
+cloud的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为tunnel cloud的grpc
+server的证书签的域名或ip；MasterIP为云端tunnel cloud 所在节点的ip，9000为 tunnel-cloud service的nodePort
 ##### 完整的yaml
 ```yaml
 ---
@@ -435,7 +445,8 @@ func Test_StreamClient(t *testing.T) {
 ```
 设置节点名环境变量->加载配置文件(conf.InitConf)->初始化模块(model.InitMoudule)->初始化stream模块(InitStream)->加载初始化的模块->注册自定义的handler(StreamDebugHandler)->关闭模块(model.ShutDown)
 ```
-节点名是通过NODE_NAME的环境加载的
+
+节点名是通过NODE_NAME的环境变量加载的
 ### tcp模块调试
 #### tcp server的调试
 ```go
