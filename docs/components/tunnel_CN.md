@@ -335,10 +335,10 @@ spec:
 		[mode.cloud.stream]
 			[mode.cloud.stream.server]
 				grpcport = 9000
-                logport = 51010
-                key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
-                cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
-                tokenfile = "/etc/superedge/tunnel/token/token"
+                		logport = 51010
+                		key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+                		cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+                		tokenfile = "/etc/superedge/tunnel/token/token"
 			[mode.cloud.stream.dns]
 				configmap= "tunnel-nodes"
 				hosts = "/etc/superedge/tunnel/nodes/hosts"
