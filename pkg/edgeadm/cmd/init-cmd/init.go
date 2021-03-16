@@ -52,16 +52,18 @@ type Handler struct {
 }
 
 type initOptions struct {
-	EdgeInitConfig edgeInitConfig
-	KubeadmConfig  kubeadmConfig
-}
-type edgeInitConfig struct {
+	VIP             string   `yaml:"vip"` //todo: default value
+	PodCIDR         string   `yaml:"podCidr"`
+	ServiceCIDR     string   `yaml:"serviceCIDR"`
+	Registry        string   `yaml:"registry"` //container registry to pull control plane images
+	CertSANS        []string `yaml:"certSans"`
+	MasterIP        string   `yaml:"masterIP"`
+	ApiServer       string   `yaml:"apiServer"` //apiserver domain name
+	K8sVersion      string   `yaml:"k8sVersion"`
+	KubeadmConfPath string   `yaml:"kubeadmConfPath"` //todo: if need ?
+	//
 	WorkerPath     string `yaml:"workerPath"`
 	InstallPkgPath string `yaml:"InstallPkgPath"`
-}
-
-type kubeadmConfig struct {
-	KubeadmConfPath string `yaml:"kubeadmConfPath"`
 }
 
 type initData struct {
@@ -108,33 +110,72 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		},
 	}
 
-	AddEdgeConfigFlags(cmd.Flags(), &initOptions.EdgeInitConfig)
-	AddKubeadmConfigFlags(cmd.Flags(), &initOptions.KubeadmConfig)
+	AddEdgeConfigFlags(cmd.Flags(), initOptions)
+	AddKubeConfigFlags(cmd.Flags(), initOptions)
+	//AddKubeadmConfigFlags(cmd.Flags(), &initOptions.KubeadmConfig)
 	// parse-config
 
 	return cmd
 }
 
-func AddEdgeConfigFlags(flagSet *pflag.FlagSet, cfg *edgeInitConfig) {
+func AddEdgeConfigFlags(flagSet *pflag.FlagSet, cfg *initOptions) {
 	flagSet.StringVar(
 		&cfg.InstallPkgPath, constant.InstallPkgPath, "./edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
 		"Install static package path of edge kubernetes cluster.",
 	)
 }
 
-func AddKubeadmConfigFlags(flagSet *pflag.FlagSet, cfg *kubeadmConfig) {
+func AddKubeConfigFlags(flagSet *pflag.FlagSet, cfg *initOptions) {
 	flagSet.StringVar(
-		&cfg.KubeadmConfPath, constant.KubeadmConfig, "/root/.edgeadm/kubeadm.config",
-		"Install static package path of edge kubernetes cluster.",
+		&cfg.VIP, constant.VIP, "10.10.0.2", "Virtual ip.",
+	)
+	flagSet.StringVar(
+		&cfg.PodCIDR, constant.PodCIDR, "192.168.0.0/18",
+		"Specify range of IP addresses for the pod network. If set, the control plane will automatically allocate CIDRs for every node.",
+	)
+	flagSet.StringVar(
+		&cfg.ServiceCIDR, constant.ServiceCIDR, "10.96.0.0/12",
+		"Use alternative range of IP address for service VIPs.",
+	)
+
+	flagSet.StringVar(
+		&cfg.Registry, constant.Registry, "ccr.ccs.tencentyun.com/eck-private", //todo: ccr.ccs.tencentyun.com/eck-private only using test
+		"Choose a container registry to pull control plane images from.",
+	)
+	flagSet.StringSliceVar(
+		&cfg.CertSANS, constant.CertSANS, []string{"apiserver.cluster.local,apiserver.edge.com"},
+		"Optional extra Subject Alternative Names (SANs) to use for the API Server serving certificate. Can be both IP addresses and DNS names.",
+	)
+	flagSet.StringVar(
+		&cfg.MasterIP, constant.MasterIP, "", "First Master node IP address.",
+	)
+	flagSet.StringVar(
+		&cfg.ApiServer, constant.APIServer, "apiserver.cluster.local",
+		"The IP address the API Server will advertise it's listening on. If not set the default network interface will be used.",
+	)
+	flagSet.StringVar(
+		&cfg.K8sVersion, constant.K8sVersion, "v1.18.2", "Choose a specific Kubernetes version for the control plane.",
 	)
 }
+
+//func AddKubeadmConfigFlags(flagSet *pflag.FlagSet, cfg *kubeadmConfig) {
+//	flagSet.StringVar(
+//		&cfg.KubeadmConfPath, constant.KubeadmConfig, "/root/.edgeadm/kubeadm.config",
+//		"Install static package path of edge kubernetes cluster.",
+//	)
+//}
 
 func (e *initData) config() error {
 	return nil
 }
 
 func (e *initData) complete(edgeConfig *cmd.EdgeadmConfig) error {
-	e.InitOptions.EdgeInitConfig.WorkerPath = edgeConfig.WorkerPath
+	e.InitOptions.WorkerPath = edgeConfig.WorkerPath
+	loadIP, err := util.GetLocalIP() //todo: private default Interface to choose loadIP
+	if err != nil {
+		return err
+	}
+	e.InitOptions.MasterIP = loadIP
 	return nil
 }
 
@@ -145,7 +186,7 @@ func (e *initData) validate() error {
 func (e *initData) backup() error {
 	klog.V(4).Infof("===>starting install backup()")
 	data, _ := json.MarshalIndent(e, "", " ")
-	return ioutil.WriteFile(e.InitOptions.EdgeInitConfig.WorkerPath+constant.EdgeClusterFile, data, 0777)
+	return ioutil.WriteFile(e.InitOptions.WorkerPath+constant.EdgeClusterFile, data, 0777)
 }
 
 func (e *initData) runInit() error {

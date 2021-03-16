@@ -143,7 +143,7 @@ ipvs:
   - "{{.VIP}}/32"
 `
 
-const KubeadmTemplateV1bate2 = `
+const KubeadmTemplateV1beta2 = `
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:

@@ -2,14 +2,17 @@ package init_cmd
 
 import (
 	"fmt"
+
+	"k8s.io/klog/v2"
+
+	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
-	"io/ioutil"
-	"k8s.io/klog/v2"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func WorkerHome(e *initData) string {
-	return e.InitOptions.EdgeInitConfig.WorkerPath
+	return e.InitOptions.WorkerPath
 }
 
 func (e *initData) preInstallHook() error { //todo finish
@@ -23,9 +26,9 @@ func NilFunc(e *initData) error {
 }
 
 func TarInstallMovePackage(e *initData) error {
-	workerPath := e.InitOptions.EdgeInitConfig.WorkerPath
+	workerPath := e.InitOptions.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
-		e.InitOptions.EdgeInitConfig.InstallPkgPath, workerPath+constant.EdgeamdDir)
+		e.InitOptions.InstallPkgPath, workerPath+constant.EdgeamdDir)
 	if err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
@@ -47,37 +50,41 @@ func SetBinExport(e *initData) error {
 }
 
 func CreateKubeadmConfig(e *initData) error {
-	var templateData string
-	kubeadmConfig := e.InitOptions.KubeadmConfig.KubeadmConfPath
-	if kubeadmConfig == "" {
-
-	} else {
-		fileData, err := ioutil.ReadFile(KubeadmFile)
-		defer func() {
-			if r := recover(); r != nil {
-				logger.Error("[globals]template file read failed:", err)
-			}
-		}()
-		if err != nil {
-			panic(1)
-		}
-		templateData = string(TemplateFromTemplateContent(string(fileData)))
+	initOption := e.InitOptions
+	option := map[string]interface{}{ // todo: 填充这些参数
+		"VIP":       initOption.VIP,
+		"Repo":      initOption.Registry,
+		"Version":   initOption.K8sVersion,
+		"ApiServer": initOption.ApiServer,
+		"PodCIDR":   initOption.PodCIDR,
+		"SvcCIDR":   initOption.ServiceCIDR,
+		"CertSANS":  initOption.CertSANS,
+		"Masters":   initOption.MasterIP,
+		"Master0":   initOption.MasterIP,
 	}
-	///////////////////////
-	kubeadmConfigTemplate := string(Template()) //todo: 到填充模板写/root/kubeadm-config.yaml这一步了。。。
-	///////////////////////
 
-	cmd := fmt.Sprintf(`echo "%s" > /root/kubeadm-config.yaml`, templateData)
-	//cmd := "echo \"" + templateData + "\" > /root/kubeadm-config.yaml"
-	_ = SSHConfig.CmdAsync(s.Masters[0], cmd)
-	//读取模板数据
-	kubeadm := KubeadmDataFromYaml(templateData)
-	if kubeadm != nil {
-		DnsDomain = kubeadm.Networking.DnsDomain
-		ApiServerCertSANs = kubeadm.ApiServer.CertSANs
-	} else {
-		logger.Warn("decode certSANs from config failed, using default SANs")
-		ApiServerCe
+	isOverV120, err := kubeclient.IsOverK8sVersion("v1.20.00", e.InitOptions.K8sVersion)
+	if err != nil {
+		klog.Errorf("IsOverK8sVersion baseK8sVersion: %s, k8sVersion: %s, error: %v", err)
+		return err
+	}
+
+	kubeadmConfigTemplate := constant.KubeadmTemplateV1beta1
+	if isOverV120 {
+		kubeadmConfigTemplate = constant.KubeadmTemplateV1beta2
+	}
+
+	kubeadmConfigYaml := common.ReadYaml("", kubeadmConfigTemplate) //todo: support user config
+	kubeadmConfig, err := kubeclient.ParseString(kubeadmConfigYaml, option)
+	if err != nil {
+		klog.Errorf("Parse kubeadm config yaml: %s, option: %v, error: %v", kubeadmConfigYaml, option, err)
+		return err
+	}
+
+	writeKubeadmConfig := fmt.Sprintf(`echo "%s" > %skubeadm-config.yaml`, constant.InstallConf, string(kubeadmConfig))
+	if err := util.RunLinuxCommand(writeKubeadmConfig); err != nil {
+		klog.Errorf("Run linux command: %s, error: %v", writeKubeadmConfig, err)
+		return err
 	}
 	return nil
 }
