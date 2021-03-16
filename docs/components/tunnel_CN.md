@@ -26,7 +26,7 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 #### stream模块
 ##### server组件
 - grpcport: grpc server监听的端口
-- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8")
+- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8")和健康检查server的监听端口
 - key: grpc server的server端私钥
 - cert: grpc server的server端证书
 - tokenfile: token的列表文件(nodename:随机字符串)，用于验证边缘节点tunnel edge发送的token，如果根据节点名验证没有通过，会用default对应的token去验证
@@ -52,8 +52,322 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 - cert: tunnel cloud grpc server 的 server端证书的ca证书，用于验证server端证书
 - dns: tunnel cloud grpc server证书签的ip或域名 
 - servername: tunnel cloud grpc server的ip和端口
-- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8") 
+- logport: log的http server的监听地址(curl -X PUT http://podip:logport/debug/flags/v -d "8")和健康检查server的监听端口 
 - channelzaddr: grpc channlez server的监听地址，用于获取grpc的调试信息
+## 使用场景
+### tcp转发
+tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69)，当连接tunnel cloud只有一个tunnel edge时，
+默认转发到tunnel edge所在的节点
+#### tunnel cloud
+##### 配置文件
+```toml
+[mode]
+	[mode.cloud]
+		[mode.cloud.stream]
+			[mode.cloud.stream.server]
+				grpcport = 9000
+				key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+				cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+				tokenfile = "/etc/superedge/tunnel/token/token"
+                                logport = 51000
+			[mode.cloud.stream.dns]
+				debug = true
+                [mode.cloud.tcp]
+                    "0.0.0.0:6443" = "127.0.0.1:6443"
+                [mode.cloud.https]
+```
+tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的6443的请求会被转发到边缘节点的访问地址127.0.0.1:6443的server
+##### 部署的yaml
+```yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-cloud-conf
+  namespace: kube-system
+data:
+  mode.toml: |
+    {{tunnel-cloud-tcp.toml}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-cloud-token
+  namespace: kube-system
+data:
+  token: |
+    default:{{.TunnelCloudEdgeToken}}
+---
+apiVersion: v1
+data:
+  tunnel-cloud-server.crt: '{{tunnel-cloud-server.crt}}'
+  tunnel-cloud-server.key: '{{tunnel-cloud-server.key}}'
+kind: Secret
+metadata:
+  name: tunnel-cloud-cert
+  namespace: kube-system
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tunnel-cloud
+  namespace: kube-system
+spec:
+  ports:
+    - name: proxycloud
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: tunnel-cloud
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tunnel-cloud
+  name: tunnel-cloud
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: tunnel-cloud
+  template:
+    metadata:
+      labels:
+        app: tunnel-cloud
+    spec:
+      serviceAccount: tunnel-cloud
+      serviceAccountName: tunnel-cloud
+      containers:
+        - name: tunnel-cloud
+          image: superedge/tunnel:v0.2.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /cloud/healthz
+              port: 51010
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 1
+          command:
+            - /usr/local/bin/tunnel
+          args:
+            - --m=cloud
+            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --log-dir=/var/log/tunnel
+            - --alsologtostderr
+          volumeMounts:
+            - name: token
+              mountPath: /etc/superedge/tunnel/token
+            - name: certs
+              mountPath: /etc/superedge/tunnel/certs
+            - name: conf
+              mountPath: /etc/superedge/tunnel/conf
+          ports:
+            - containerPort: 9000
+              name: tunnel
+              protocol: TCP
+            - containerPort: 6443
+              name: apiserver
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 50m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      volumes:
+        - name: token
+          configMap:
+            name: tunnel-cloud-token
+        - name: certs
+          secret:
+            secretName: tunnel-cloud-cert
+        - name: conf
+          configMap:
+            name: tunnel-cloud-conf
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+```
+部署yaml中的tunnel-cloud-conf的configmap对应的就是tunnel cloud的配置文件；tunnel-cloud-token的configmap中的TunnelCloudEdgeToken为随机字符串，用于验证tunnel edge；
+tunnel-cloud-cert的secret对应的grpc server的server端证书和私钥。
+#### tunnel edge的配置
+```toml
+[mode]
+	[mode.edge]
+		[mode.edge.stream]
+			[mode.edge.stream.client]
+				token = "{{.TunnelCloudEdgeToken}}"
+				cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
+  				dns = "{{ServerName}}"
+				servername = "{{.MasterIP}}:9000"
+				logport = 51000
+```
+tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。
+token为tunnel cloud的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为tunnel cloud的grpc server的证书签的域名或ip；MasterIP为云端tunnel cloud 所在节点的ip，9000为
+tunnel-cloud service的nodePort
+```yaml
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tunnel-edge
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tunnel-edge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tunnel-edge
+subjects:
+  - kind: ServiceAccount
+    name: tunnel-edge
+    namespace: kube-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tunnel-edge
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-edge-conf
+  namespace: kube-system
+data:
+  mode.toml: |
+    {{tunnel-edge-conf}}
+---
+apiVersion: v1
+data:
+  tunnel-ca.crt: '{{.tunnel-ca.crt}}'
+kind: Secret
+metadata:
+  name: tunnel-edge-cert
+  namespace: kube-system
+type: Opaque
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tunnel-edge
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: tunnel-edge
+  template:
+    metadata:
+      labels:
+        app: tunnel-edge
+    spec:
+      hostNetwork: true
+      containers:
+        - name: tunnel-edge
+          image: superedge/tunnel:v0.2.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /edge/healthz
+              port: 51010
+            initialDelaySeconds: 10
+            periodSeconds: 180
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 20m
+              memory: 20Mi
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          command:
+            - /usr/local/bin/tunnel
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          args:
+            - --m=edge
+            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --log-dir=/var/log/tunnel
+            - --alsologtostderr
+          volumeMounts:
+            - name: certs
+              mountPath: /etc/superedge/tunnel/certs
+            - name: conf
+              mountPath: /etc/superedge/tunnel/conf
+      volumes:
+        - secret:
+            secretName: tunnel-edge-cert
+          name: certs
+        - configMap:
+            name: tunnel-edge-conf
+          name: conf
+```
+部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server的ca证书；
+### https转发
+通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)
+#### tunnel cloud配置
+```toml
+[mode]
+	[mode.cloud]
+		[mode.cloud.stream]
+			[mode.cloud.stream.server]
+				grpcport = 9000
+                logport = 51010
+                key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+                cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+                tokenfile = "/etc/superedge/tunnel/token/token"
+			[mode.cloud.stream.dns]
+				configmap= "tunnel-nodes"
+				hosts = "/etc/superedge/tunnel/nodes/hosts"
+				service = "tunnel-cloud"
+            [mode.cloud.https]
+                cert = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.crt"
+                key = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.key"
+			[mode.cloud.https.addr]
+				"10250" = "127.0.0.1:10250"
+```
+tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server
+
+#### tunnel edge配置
+```toml
+[mode]
+	[mode.edge]
+		[mode.edge.stream]
+			[mode.edge.stream.client]
+				token = "{{.TunnelCloudEdgeToken}}"
+				cert = "/etc/superedge/tunnel/certs/cluster-ca.crt"
+  				dns = "tunnel.cloud.io"
+				servername = "{{.MasterIP}}:9000"
+				logport = 51000
+			[mode.edge.https]
+				cert= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
+				key= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
+```
+https模块的证书和私钥是tunnel cloud 代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的
+client端证书。
 ## 本地调试
 tunnel支持https和tcp协议分别对应https模块和tcp模块，协议模块的数据是通过grpc长连接传输,即对应的stream模块，可以通过go的testing测试框架
 进行本地调试。配置文件的生成可以通过调用[config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go)的
@@ -157,80 +471,6 @@ func Test_TcpClient(t *testing.T) {
 ### tunnel main()函数的调试
 在tunnel的main的测试文件[tunnel_test](https://github.com/superedge/superedge/blob/main/cmd/tunnel/tunnel_test.go)，需要使用init()
 设置参数，同时需要使用TestMain解析参数和调用测试方法
-## 使用场景
-### tcp转发
-tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69)
-#### tunnel cloud的配置
-```toml
-[mode]
-	[mode.cloud]
-		[mode.cloud.stream]
-			[mode.cloud.stream.server]
-				grpcport = 9000
-				logport = 8000
-                channelzaddr = "0.0.0.0:6000"
-				key = "../../../../conf/certs/cloud.key"
-				cert = "../../../../conf/certs/cloud.crt"
-				tokenfile = "../../../../conf/token"
-			[mode.cloud.stream.dns]
-				configmap= "proxy-nodes"
-				hosts = "/etc/superedge/proxy/nodes/hosts"
-				service = "proxy-cloud-public"
-				debug = true
-            [mode.cloud.tcp]
-                "0.0.0.0:6443" = "127.0.0.1:6443"
-            [mode.cloud.https]
-                cert ="../../../../conf/certs/kubelet.crt"#kubelet的服务端证书
-                key = "../../../../conf/certs/kubelet.key"
-			[mode.cloud.https.addr]
-				"10250" = "101.206.162.213:10250"
-```
-
-### https转发
-通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用tunnel cloud，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)
-#### tunnel cloud配置
-```toml
-[mode]
-	[mode.cloud]
-		[mode.cloud.stream]
-			[mode.cloud.stream.server]
-				grpcport = 9000
-				logport = 8000
-                channelzaddr = "0.0.0.0:6000"
-				key = "../../../../conf/certs/cloud.key"
-				cert = "../../../../conf/certs/cloud.crt"
-				tokenfile = "../../../../conf/token"
-			[mode.cloud.stream.dns]
-				configmap= "proxy-nodes"
-				hosts = "/etc/superedge/proxy/nodes/hosts"
-				service = "proxy-cloud-public"
-				debug = true
-            [mode.cloud.tcp]
-                "0.0.0.0:6443" = "127.0.0.1:6443"
-            [mode.cloud.https]
-                cert ="../../../../conf/certs/kubelet.crt"#kubelet的服务端证书
-                key = "../../../../conf/certs/kubelet.key"
-			[mode.cloud.https.addr]
-				"10250" = "101.206.162.213:10250"
-```
-#### tunnel edge配置
-```toml
-[mode]
-	[mode.edge]
-		[mode.edge.stream]
-			[mode.edge.stream.client]
-				token = "6ff2a1ea0f1611eb9896362096106d9d"
-				cert = "../../../../conf/certs/ca.crt"
-  				dns = "localhost"
-				servername = "localhost:9000"
-				logport = 7000
-				channelzaddr = "0.0.0.0:5000"
-			[mode.edge.https]
-				cert= "../../../../conf/certs/kubelet-client.crt"#apiserver访问kubelet的客户端证书
-				key= "../../../../conf/certs/kubelet-client.key"
-```
-https模块的证书和私钥是tunnel cloud 代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的
-client端证书。
 
 
 
