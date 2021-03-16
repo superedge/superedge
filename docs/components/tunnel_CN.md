@@ -42,7 +42,7 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 - cert: https模块server端证书
 - key: https模块server端私钥
 - addr: 参数的格式是"httpsServerPort":"EdgeHttpsServerIp:EdgeHttpsServerPort"，httpsServerPort为https模块server端监听的地址，EdgeHttpsServerIp:EdgeHttpsServerPort为代理转发边缘节点https server的ip和port，
-        https模块的server是跳过验证client端证书的，因此使用curl -k https://podip:httpsServerPort/path 访问https模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
+        https模块的server是跳过验证client端证书的，因此可以使用curl -k https://podip:httpsServerPort/path 访问https模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
 ### tunnel edge
 #### https模块
 - cert: tunnel cloud 代理转发的https server的client端的证书
