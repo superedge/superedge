@@ -101,19 +101,19 @@ tunnel edge is located by default
 
 ```toml
 [mode]
-[mode.cloud]
-[mode.cloud.stream]
-[mode.cloud.stream.server]
-grpcport = 9000
-key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
-cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
-tokenfile = "/etc/superedge/tunnel/token/token"
-logport = 51000
-[mode.cloud.stream.dns]
-debug = true
-[mode.cloud.tcp]
-"0.0.0.0:6443" = "127.0.0.1:6443"
-[mode.cloud.https]
+    [mode.cloud]
+        [mode.cloud.stream]
+            [mode.cloud.stream.server]
+                grpcport = 9000
+                key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+                cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+                tokenfile = "/etc/superedge/tunnel/token/token"
+                logport = 51000
+            [mode.cloud.stream.dns]
+                debug = true
+        [mode.cloud.tcp]
+            "0.0.0.0:6443" = "127.0.0.1:6443"
+        [mode.cloud.https]
 ```
 
 The grpc server of the tunnel cloud listens on port 9000 and waits for the tunnel edge to establish a grpc long
@@ -254,14 +254,14 @@ server-side certificate and private key of grpc server corresponding to the secr
 
 ```toml
 [mode]
-[mode.edge]
-[mode.edge.stream]
-[mode.edge.stream.client]
-token = "{{.TunnelCloudEdgeToken}}"
-cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
-dns = "{{ServerName}}"
-servername = "{{.MasterIP}}:9000"
-logport = 51000
+    [mode.edge]
+        [mode.edge.stream]
+            [mode.edge.stream.client]
+                token = "{{.TunnelCloudEdgeToken}}"
+                cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
+                dns = "{{ServerName}}"
+                servername = "{{.MasterIP}}:9000"
+                logport = 51000
 ```
 
 Tunnel edge uses MasterIP:9000 to access the cloud tunnel cloud, uses TunnelCloudEdgeToken as the verification token,
@@ -400,23 +400,23 @@ and [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment
 
 ```toml
 [mode]
-[mode.cloud]
-[mode.cloud.stream]
-[mode.cloud.stream.server]
-grpcport = 9000
-logport = 51010
-key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
-cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
-tokenfile = "/etc/superedge/tunnel/token/token"
-[mode.cloud.stream.dns]
-configmap = "tunnel-nodes"
-hosts = "/etc/superedge/tunnel/nodes/hosts"
-service = "tunnel-cloud"
-[mode.cloud.https]
-cert = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.crt"
-key = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.key"
-[mode.cloud.https.addr]
-"10250" = "127.0.0.1:10250"
+    [mode.cloud]
+        [mode.cloud.stream]
+            [mode.cloud.stream.server]
+                grpcport = 9000
+                logport = 51010
+                key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+                cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+                tokenfile = "/etc/superedge/tunnel/token/token"
+            [mode.cloud.stream.dns]
+                configmap = "tunnel-nodes"
+                hosts = "/etc/superedge/tunnel/nodes/hosts"
+                service = "tunnel-cloud"
+            [mode.cloud.https]
+                cert = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.crt"
+                key = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.key"
+                [mode.cloud.https.addr]
+                    "10250" = "127.0.0.1:10250"
 ```
 
 The grpc server of the tunnel cloud listens on port 9000 and waits for the tunnel edge to establish a grpc long
@@ -429,17 +429,17 @@ the tunnel-cloud deployment yaml Content.
 
 ```toml
 [mode]
-[mode.edge]
-[mode.edge.stream]
-[mode.edge.stream.client]
-token = "{{.TunnelCloudEdgeToken}}"
-cert = "/etc/superedge/tunnel/certs/cluster-ca.crt"
-dns = "tunnel.cloud.io"
-servername = "{{.MasterIP}}:9000"
-logport = 51000
-[mode.edge.https]
-cert = "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
-key = "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
+    [mode.edge]
+        [mode.edge.stream]
+            [mode.edge.stream.client]
+                token = "{{.TunnelCloudEdgeToken}}"
+                cert = "/etc/superedge/tunnel/certs/cluster-ca.crt"
+                dns = "tunnel.cloud.io"
+                servername = "{{.MasterIP}}:9000"
+                logport = 51000
+        [mode.edge.https]
+            cert = "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
+            key = "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
 
 The certificate and private key of the https module are the client certificate corresponding to the server-side

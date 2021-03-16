@@ -213,14 +213,14 @@ server的server端证书和私钥。
 
 ```toml
 [mode]
-[mode.edge]
-[mode.edge.stream]
-[mode.edge.stream.client]
-token = "{{.TunnelCloudEdgeToken}}"
-cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
-dns = "{{ServerName}}"
-servername = "{{.MasterIP}}:9000"
-logport = 51000
+    [mode.edge]
+        [mode.edge.stream]
+            [mode.edge.stream.client]
+                token = "{{.TunnelCloudEdgeToken}}"
+                cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
+                dns = "{{ServerName}}"
+                servername = "{{.MasterIP}}:9000"
+                logport = 51000
 ```
 
 tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。 token为tunnel
