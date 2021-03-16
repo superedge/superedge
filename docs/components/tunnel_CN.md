@@ -77,7 +77,7 @@ tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://
                 [mode.cloud.https]
 ```
 tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的6443的请求会被转发到边缘节点的访问地址127.0.0.1:6443的server
-##### 部署的yaml
+##### 完整的yaml
 ```yaml
 
 apiVersion: v1
@@ -216,6 +216,7 @@ tunnel-cloud-cert的secret对应的grpc server的server端证书和私钥。
 tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。
 token为tunnel cloud的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为tunnel cloud的grpc server的证书签的域名或ip；MasterIP为云端tunnel cloud 所在节点的ip，9000为
 tunnel-cloud service的nodePort
+##### 完整的yaml
 ```yaml
 ---
 kind: ClusterRole
@@ -265,7 +266,7 @@ metadata:
 type: Opaque
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: tunnel-edge
   namespace: kube-system
@@ -325,7 +326,7 @@ spec:
             name: tunnel-edge-conf
           name: conf
 ```
-部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server的ca证书；
+部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server的ca证书；tunnel edge是以deployment的形式部署的，副本数为1，tcp转发现在只支持转发到单个节点。
 ### https转发
 通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)。使用https转发需要部署[tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)、[tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)和[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)三个模块。
 #### tunnel cloud配置
