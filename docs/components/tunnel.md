@@ -434,6 +434,7 @@ func Test_StreamServer(t *testing.T) {
 	model.ShutDown()
 
 }
+```
 
 ```
 Load configuration file(conf.InitConf)->Initialize the module(model.InitMoudule)->Initialize the stream module(InitStream)->Load the initialized module->Register a custom handler (StreamDebugHandler)->Shut down the module (model.ShutDown)
