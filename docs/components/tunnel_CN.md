@@ -336,7 +336,7 @@ spec:
             name: tunnel-edge-conf
           name: conf
 ```
-部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server的ca证书；tunnel edge是以deployment的形式部署的，副本数为1，tcp转发现在只支持转发到单个节点。
+部署yaml中的tunnel-edge-conf的configmap对应的就是tunnel edge的配置文件；tunnel-edge-cert的secret对应的验证grpc server证书的ca证书；tunnel edge是以deployment的形式部署的，副本数为1，tcp转发现在只支持转发到单个节点。
 ### https转发
 通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为https request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)。使用https转发需要部署[tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)、[tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)和[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)三个模块。
 #### tunnel cloud配置
@@ -378,16 +378,14 @@ tunnel-cloud配置对应的是tunnel-cloud的部署yaml中[tunnel-cloud-conf](ht
 				cert= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
 				key= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
-https模块的证书和私钥是tunnel cloud代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的。
+https模块的证书和私钥是tunnel cloud代理转发的边缘节点的server的server端证书对应的client证书，例如tunnel cloud转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的client证书和私钥。
 tunnel-edge配置对应的tunnel-edge的部署yaml中[tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33)configmap对应的内容。
-client端证书。
 ## 本地调试
-tunnel支持https和tcp协议分别对应https模块和tcp模块，协议模块的数据是通过grpc长连接传输,即对应的stream模块，可以通过go的testing测试框架
-进行本地调试。配置文件的生成可以通过调用[config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go)的
+tunnel支持https(https模块)和tcp协议(tcp模块)，协议模块的数据是通过grpc长连接传输(stream模块)，因此可以分模块进行本地调试。本地调试可以使用go的testing测试框架。配置文件的生成可以通过调用[config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go)的
 测试方法Test_Config(其中constant变量config_path是生成的配置文件的路径相对于config_test go 文件的路径，main_path 是配置文件相对testing文件的
-路径)，例如stream模块的本地调试:config_path = "../../../conf"生成的配置文件在项目的根目录下的conf文件夹，则
-main_path="../../../../conf"([stream_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/stream/stream_test.go)相对
-于conf的路径，同时生成配置文件支持配置ca.crt和ca.key(在configpath/certs/ca.crt和configpath/certs/ca.key存在时则使用指定的ca签发证书)。
+路径)，例如stream模块的本地调试:config_path = "../../../conf"(生成的配置文件在项目的根目录下的conf文件夹)，则
+main_path="../../../../conf"(([stream_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/stream/stream_test.go)相对
+于conf的路径)，同时生成配置文件支持配置ca.crt和ca.key(在configpath/certs/ca.crt和configpath/certs/ca.key存在时则使用指定的ca签发证书)。
 ### stream模块调试
 #### stream server的启动
 ```go
@@ -483,8 +481,7 @@ func Test_TcpClient(t *testing.T) {
 ### https模块调试
 和tcp模块调试类似，需要同时加载https模块和stream模块
 ### tunnel main()函数的调试
-在tunnel的main的测试文件[tunnel_test](https://github.com/superedge/superedge/blob/main/cmd/tunnel/tunnel_test.go)，需要使用init()
-设置参数，同时需要使用TestMain解析参数和调用测试方法
+在tunnel的main的测试文件[tunnel_test](https://github.com/superedge/superedge/blob/main/cmd/tunnel/tunnel_test.go)，需要使用init()设置参数，同时需要使用TestMain解析参数和调用测试方法
 
 
 
