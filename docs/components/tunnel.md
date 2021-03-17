@@ -422,19 +422,18 @@ certificate).
 
 ```go
 func Test_StreamServer(t *testing.T) {
-err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
-if err != nil {
-t.Errorf("failed to initialize stream server configuration file err = %v", err)
-return
-}
-model.InitModules(util.CLOUD)
-InitStream(util.CLOUD)
-model.LoadModules(util.CLOUD)
-context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
-model.ShutDown()
+	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	if err != nil {
+		t.Errorf("failed to initialize stream server configuration file err = %v", err)
+		return
+	}
+	model.InitModules(util.CLOUD)
+	InitStream(util.CLOUD)
+	model.LoadModules(util.CLOUD)
+	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	model.ShutDown()
 
 }
-```
 
 ```
 Load configuration file(conf.InitConf)->Initialize the module(model.InitMoudule)->Initialize the stream module(InitStream)->Load the initialized module->Register a custom handler (StreamDebugHandler)->Shut down the module (model.ShutDown)
@@ -445,33 +444,33 @@ StreamDebugHandler is a custom handler for debugging cloud side messaging
 
 ```go
 func Test_StreamClient(t *testing.T) {
-os.Setenv(util.NODE_NAME_ENV, "node1")
-err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
-if err != nil {
-t.Errorf("failed to initialize stream client configuration file err = %v", err)
-return
-}
-model.InitModules(util.EDGE)
-InitStream(util.EDGE)
-model.LoadModules(util.EDGE)
-context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
-go func () {
-running := true
-for running {
-node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
-if node != nil {
-node.Send2Node(&proto.StreamMsg{
-Node:     os.Getenv(util.NODE_NAME_ENV),
-Category: util.STREAM,
-Type:     util.MODULE_DEBUG,
-Topic:    uuid.NewV4().String(),
-Data:     []byte{'c'},
-})
-}
-time.Sleep(10 * time.Second)
-}
-}()
-model.ShutDown()
+	os.Setenv(util.NODE_NAME_ENV, "node1")
+	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	if err != nil {
+		t.Errorf("failed to initialize stream client configuration file err = %v", err)
+		return
+	}
+	model.InitModules(util.EDGE)
+	InitStream(util.EDGE)
+	model.LoadModules(util.EDGE)
+	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	go func() {
+		running := true
+		for running {
+			node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+			if node != nil {
+				node.Send2Node(&proto.StreamMsg{
+					Node:     os.Getenv(util.NODE_NAME_ENV),
+					Category: util.STREAM,
+					Type:     util.MODULE_DEBUG,
+					Topic:    uuid.NewV4().String(),
+					Data:     []byte{'c'},
+				})
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}()
+	model.ShutDown()
 
 }
 ```
@@ -482,20 +481,20 @@ Set the node name environment variable->Load configuration file (conf.InitConf)-
 
 The node name is loaded through the environment variable of NODE_NAME
 ### tcp module debugging
-#### tcp server debugging
+####  tcp server debugging
 
 ```go
 func Test_TcpServer(t *testing.T) {
-err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
-if err != nil {
-t.Errorf("failed to initialize stream server configuration file err = %v", err)
-return
-}
-model.InitModules(util.CLOUD)
-InitTcp()
-stream.InitStream(util.CLOUD)
-model.LoadModules(util.CLOUD)
-model.ShutDown()
+	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	if err != nil {
+		t.Errorf("failed to initialize stream server configuration file err = %v", err)
+		return
+	}
+	model.InitModules(util.CLOUD)
+	InitTcp()
+	stream.InitStream(util.CLOUD)
+	model.LoadModules(util.CLOUD)
+	model.ShutDown()
 }
 ```
 
@@ -504,17 +503,17 @@ Need to initialize the tcp module (InitTcp) and the stream module (stream.InitSt
 
 ```go
 func Test_TcpClient(t *testing.T) {
-os.Setenv(util.NODE_NAME_ENV, "node1")
-err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
-if err != nil {
-t.Errorf("failed to initialize stream client configuration file err = %v", err)
-return
-}
-model.InitModules(util.EDGE)
-InitTcp()
-stream.InitStream(util.EDGE)
-model.LoadModules(util.EDGE)
-model.ShutDown()
+	os.Setenv(util.NODE_NAME_ENV, "node1")
+	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	if err != nil {
+		t.Errorf("failed to initialize stream client configuration file err = %v", err)
+		return
+	}
+	model.InitModules(util.EDGE)
+	InitTcp()
+	stream.InitStream(util.EDGE)
+	model.LoadModules(util.EDGE)
+	model.ShutDown()
 }
 ```
 ### https module debugging
