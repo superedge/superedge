@@ -27,57 +27,51 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
 
 ## Configuration File
 
- The startup configuration file of tunnel cloud and tunnel edge
-### tunnel cloud
-#### stream module
-##### server component
+The tunnel component includes tunnel cloud and tunnel edge. The tunnel edge running on the edge node establishes a grpc long connection with the tunnel cloud running on the cloud, which is used to forward the tunnel from the cloud to the edge node.
+Tunnel cloud contains three modules of stream, tcp and https. The stream module includes grpc server and dns components. The grpcs server is used to receive grpc long connection requests from tunnel edge, and the dns component is used to update the node name and ip mapping in the tunnel cloud memory to the coredns hosts plug-in configmap.
+Tunnel edge also contains three modules of stream, tcp and https. The stream module includes the grpcc client component, which is used to send grpc long connection requests to the tunnel cloud.
+### tunnel cloud(tunnel_cloud.toml)
+```toml
+[mode]
+	[mode.cloud]
+		[mode.cloud.stream]                                         # stream module
+			[mode.cloud.stream.server]                          # grpc server component
+				grpcport = 9000                             # listening port of grpc server
+				logport = 8000                              #  The listening port of the http server for log and health check,use (curl -X PUT http://podip:logport/debug/flags/v -d "8") to set the log level
+                                channelzaddr = "0.0.0.0:6000"               # The listening address of the grpc [channlez](https://grpc.io/blog/a-short-introduction-to-channelz/)server, used to obtain the debugging information of grpc
+				key = "../../conf/certs/cloud.key"          # The server-side private key of grpc server
+				cert = "../../conf/certs/cloud.crt"         # Server-side certificate of grpc server
+				tokenfile = "../../conf/token"              # The token list file (nodename: random string) is used to verify the token sent by the edge node tunneledge. If the verification fails according to the node name, the token corresponding to the default will be used to verify
+			[mode.cloud.stream.dns]                             # dns component
+				configmap= "proxy-nodes"                    # configmap of the configuration file of the coredns hosts plugin
+				hosts = "/etc/superedge/proxy/nodes/hosts"  # The path of the configmap of the configuration file of the coredns hosts plugin in the mount file of the tunnel cloud pod
+				service = "proxy-cloud-public"              # tunnel cloud service name
+				debug = true                                # dns component switch, debug=true dns component is closed, the node name mapping in the tunnel cloud memory will not be saved to the configmap of the coredns hosts plug-in configuration file, the default value is false
+                [mode.cloud.tcp]                                            # tcp module
+                    "0.0.0.0:6443" = "127.0.0.1:6443"                       # The parameter format is "0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort", cloudPort is the server listening port ofthe tunnel cloud tcp module, EdgeServerIp and EdgeServerPort are the ip and port of the edge node server forwarded by the proxy
+                [mode.cloud.https]                                          # https module
+                    cert ="../../conf/certs/kubelet.crt"                    # https module server certificate
+                    key = "../../conf/certs/kubelet.key"                    # https module server private key
+                    [mode.cloud.https.addr]                                 # The parameter format is "httpsServerPort": "EdgeHttpsServerIp: EdgeHttpsServerPort", httpsServerPort is the listening port of the https module server, EdgeHttpsServerIp:EdgeHttpsServerPort is the proxy forwarding the ip and port of the edge node https server, The server of the https module skips verifying the client certificate, so you can use (curl -k https://podip:httpsServerPort) to access the port monitored by the https module. The data type of the addr parameter is map, which can support monitoring multiple ports.
+                        "10250" = "101.206.162.213:10250"               
+```
+### tunnel edge(tunnel_edge.toml)
+```toml
+[mode]
+	[mode.edge]
+		[mode.edge.stream]                                          # stream module
+			[mode.edge.stream.client]                           # grpc client component
+				token = "6ff2a1ea0f1611eb9896362096106d9d"  # Authentication token for access to tunnel cloud
+				cert = "../../conf/certs/ca.crt"            # The ca certificate of the server-side certificate of the grpc server of tunnel cloud is used to verify the server-side certificate
+  				dns = "localhost"                           # The ip or domain name signed by the grpc server certificate of tunnel cloud
+				servername = "localhost:9000"               # The ip and port of grpc server of tunnel cloud
+				logport = 7000                              # The listening port of the http server for log and health check,use (curl -X PUT http://podip:logport/debug/flags/v -d "8") to set the log level
+				channelzaddr = "0.0.0.0:5000"               # The listening address of the grpc channlez server, used to obtain the debugging information of grpc
+			[mode.edge.https]
+				cert= "../../conf/certs/kubelet-client.crt" # The client certificate of the https server forwarded by tunnel cloud proxy
+				key= "../../conf/certs/kubelet-client.key"  # The private key of the client side of the https server forwarded by the tunnel cloud proxy
+```
 
-- grpcport: listening port of grpc server
-- logport: The listening port of the http server for log and health check,use (curl -X PUT http://podip:
-  logport/debug/flags/v -d "8") to set the log level
-- key: The server-side private key of grpc server
-- cert: Server-side certificate of grpc server
-- tokenfile: The token list file (nodename: random string) is used to verify the token sent by the edge node tunnel
-  edge. If the verification fails according to the node name, the token corresponding to the default will be used to
-  verify
-- channelzAddr: The listening address of the grpc [channlez](https://grpc.io/blog/a-short-introduction-to-channelz/)
-  server, used to obtain the debugging information of grpc
-##### dns component
-
-- configmap: configmap of the configuration file of the coredns hosts plugin
-- hosts: The configmap of the configuration file of the coredns hosts plug-in, the mount file of the tunnel cloud pod
-- service: tunnel cloud service name
-- debug: dns component switch, debug=true dns component is closed, the node name mapping in the tunnel cloud memory will
-  not be saved to the configmap of the coredns hosts plug-in configuration file, the default value is false
-#### tcp module
-
-- The parameter format is "0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort", cloudPort is the server listening port of
-  the tunnel cloud tcp module, EdgeServerIp and EdgeServerPort are the ip and port of the edge node server forwarded by
-  the proxy
-#### https module
-
-- cert: https module server certificate
-- key: https module server private key
-- addr: The parameter format is "httpsServerPort": "EdgeHttpsServerIp: EdgeHttpsServerPort", httpsServerPort is the
-  listening port of the https module server, EdgeHttpsServerIp:EdgeHttpsServerPort is the proxy forwarding the ip and
-  port of the edge node https server, The server of the https module skips verifying the client certificate, so you can
-  use (curl -k https://podip:httpsServerPort) to access the port monitored by the https module. The data type of the
-  addr parameter is map, which can support monitoring multiple ports.
-### tunnel edge
-#### https module
-
-- cert: The client certificate of the https server forwarded by tunnel cloud proxy
-- key: The private key of the client side of the https server forwarded by the tunnel cloud proxy
-#### stream模块
-
-- token: Authentication token for access to tunnel cloud
-- cert: The ca certificate of the server-side certificate of the grpc server of tunnel cloud is used to verify the
-  server-side certificate
-- dns: The ip or domain name signed by the grpc server certificate of tunnel cloud
-- servername: The ip and port of grpc server of tunnel cloud
-- logport: The listening port of the http server for log and health check,use (curl -X PUT http://podip:
-  logport/debug/flags/v -d "8") to set the log level
-- channelzaddr: The listening address of the grpc channlez server, used to obtain the debugging information of grpc
 ## Usage Scenarios
 ### tcp forwarding
 
