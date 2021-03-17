@@ -22,7 +22,9 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
    - tunnel-edge根据接收的请求信息请求边缘节点上的应用。
 
 ## 配置文件
+tunnel cloud和tunnel edge的启动配置文件
 ### tunnel cloud
+
 #### stream模块
 ##### server组件
 - grpcport: grpc server监听的端口
@@ -62,7 +64,8 @@ tunnel是云边端通信的隧道，分为tunnel-cloud和tunnel-edge，分别承
 tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69)，当连接tunnel cloud只有一个tunnel edge时，
 默认转发到tunnel edge所在的节点
 #### tunnel cloud
-##### 配置文件
+##### 配置文件(tunnel_cloud.toml)
+
 ```toml
 [mode]
 	[mode.cloud]
@@ -80,7 +83,8 @@ tcp模块会把tcp请求转发到[第一个连接云端的边缘节点](https://
                 [mode.cloud.https]
 ```
 tunnel cloud 的grpc server监听在9000端口，等待tunnel edge建立grpc长连接。访问tunnel cloud的6443的请求会被转发到边缘节点的访问地址127.0.0.1:6443的server
-##### 完整的yaml
+##### tunnel-cloud.yaml
+
 ```yaml
 
 apiVersion: v1
@@ -209,7 +213,7 @@ server的server端证书和私钥。
 
 #### tunnel edge
 
-##### 配置文件
+##### 配置文件(tunnel_edge.toml)
 
 ```toml
 [mode]
@@ -226,7 +230,7 @@ server的server端证书和私钥。
 tunnel edge使用MasterIP:9000访问云端tunnel cloud，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证。 token为tunnel
 cloud的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为tunnel cloud的grpc
 server的证书签的域名或ip；MasterIP为云端tunnel cloud 所在节点的ip，9000为 tunnel-cloud service的nodePort
-##### 完整的yaml
+##### tunnel-edge.yaml
 ```yaml
 ---
 kind: ClusterRole
@@ -320,7 +324,7 @@ spec:
                   fieldPath: spec.nodeName
           args:
             - --m=edge
-            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --c=/etc/superedge/tunnel/conf/tunnel_edge.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           volumeMounts:

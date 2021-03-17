@@ -61,7 +61,7 @@ metadata:
   name: tunnel-cloud-conf
   namespace: kube-system
 data:
-  mode.toml: |
+  tunnel_cloud.toml: |
     [mode]
         [mode.cloud]
             [mode.cloud.stream]
@@ -155,7 +155,7 @@ spec:
             - /usr/local/bin/tunnel
           args:
             - --m=cloud
-            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --c=/etc/superedge/tunnel/conf/tunnel_cloud.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           env:

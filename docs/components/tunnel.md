@@ -26,11 +26,10 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
 - The tunnel-edge requests the application on the edge node according to the received request information.
 
 ## Configuration File
-
+ The startup configuration file of tunnel cloud and tunnel edge
 ### tunnel cloud
 
 #### stream module
-
 ##### server component
 
 - grpcport: listening port of grpc server
@@ -43,7 +42,6 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
   verify
 - channelzAddr: The listening address of the grpc [channlez](https://grpc.io/blog/a-short-introduction-to-channelz/)
   server, used to obtain the debugging information of grpc
-
 ##### dns component
 
 - configmap: configmap of the configuration file of the coredns hosts plugin
@@ -51,13 +49,11 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
 - service: tunnel cloud service name
 - debug: dns component switch, debug=true dns component is closed, the node name mapping in the tunnel cloud memory will
   not be saved to the configmap of the coredns hosts plug-in configuration file, the default value is false
-
 #### tcp module
 
 - The parameter format is "0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort", cloudPort is the server listening port of
   the tunnel cloud tcp module, EdgeServerIp and EdgeServerPort are the ip and port of the edge node server forwarded by
   the proxy
-
 #### https module
 
 - cert: https module server certificate
@@ -69,12 +65,10 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
   addr parameter is map, which can support monitoring multiple ports.
 
 ### tunnel edge
-
 #### https module
 
 - cert: The client certificate of the https server forwarded by tunnel cloud proxy
 - key: The private key of the client side of the https server forwarded by the tunnel cloud proxy
-
 #### stream模块
 
 - token: Authentication token for access to tunnel cloud
@@ -87,17 +81,14 @@ Tunnel acts as the bridge between edge and cloud. It consists of `tunnel-cloud` 
 - channelzaddr: The listening address of the grpc channlez server, used to obtain the debugging information of grpc
 
 ## Usage Scenarios
-
 ### tcp forwarding
 
 The tcp module will forward the tcp request to
 the [first edge node connected to the cloud](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69)
 , When there is only one tunnel edge connected to the tunnel cloud, The request will be forwarded to the node where the
 tunnel edge is located by default
-
 #### tunnel cloud
-
-##### configuration file
+##### configuration file(tunnel_cloud.toml)
 
 ```toml
 [mode]
@@ -115,12 +106,10 @@ tunnel edge is located by default
             "0.0.0.0:6443" = "127.0.0.1:6443"
         [mode.cloud.https]
 ```
-
 The grpc server of the tunnel cloud listens on port 9000 and waits for the tunnel edge to establish a grpc long
 connection. The 6443 request to access the tunnel cloud will be forwarded to the server with the access address
 127.0.0.1:6443 of the edge node.
-
-##### complete yaml
+##### tunnel-cloud.yaml
 
 ```yaml
 
@@ -248,7 +237,7 @@ The configmap of tunnel-cloud-conf in the deployment yaml corresponds to the con
 
 #### tunnel edge
 
-##### configuration file
+##### configuration file(tunnel_edge.toml)
 
 ```toml
 [mode]
@@ -265,7 +254,7 @@ The configmap of tunnel-cloud-conf in the deployment yaml corresponds to the con
 Tunnel edge uses MasterIP:9000 to access the  tunnel cloud, uses TunnelCloudEdgeToken as the verification token,and sends it to the cloud for verification. The token is the TunnelCloudEdgeToken in the configmap of the tunnel-cloud-token of the deployment of the tunnel cloud; dns is the domain name or ip signed by the grpc server certificate of the tunnel cloud; MasterIP is the ip of the node where the  tunnel cloud is located, and 9000 is the tunnel-cloud
 service NodePort.
 
-##### complete yaml
+##### tunnel-edge.yaml
 
 ```yaml
 ---
@@ -360,7 +349,7 @@ spec:
                   fieldPath: spec.nodeName
           args:
             - --m=edge
-            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --c=/etc/superedge/tunnel/conf/tunnel_edge.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           volumeMounts:
@@ -384,7 +373,7 @@ The configmap of tunnel-edge-conf in the deployment yaml corresponds to the conf
 To forward cloud requests to edge nodes through tunnel, you need to use the edge node name as the domain name of the
 https request host. Domain name resolution can reuse [tunnel-coredns](https://github.com/superedge/superedge/blob/main /deployment/tunnel-coredns.yaml). To use https forwarding, you need to deploy [tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml), [tunnel-edge](https://github.com/ superedge/superedge/blob/main/deployment/tunnel-edge.yaml) and [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) three modules .
 
-#### tunnel cloud configuration file
+#### tunnel cloud configuration file(tunnel_cloud.toml)
 
 ```toml
 [mode]
@@ -413,7 +402,7 @@ connection. The request to access tunnel cloud 10250 will be forwarded to the se
 the [tunnel-cloud-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml#L41) configmap in
 the tunnel-cloud deployment yaml Content.
 
-#### tunnel edge configuration file
+#### tunnel edge configuration file(tunnel_edge.toml)
 
 ```toml
 [mode]
@@ -435,7 +424,7 @@ content. Client-side certificate. The tunnel-edge configuration corresponding to
 corresponds to [tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33)
 configmap content.
 
-## Local debugging
+## Local Debugging
 
 Tunnel supports https (https module) and tcp protocol (tcp module). The data of the protocol module is transmitted through grpc long connection (stream module), so it can be divided into modules for local debugging. Local debugging can use go's testing framework. The configuration file can be generated by
 calling [config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go) test method Test_Config (where the constant variable config_path is the path of the generated configuration file relative to the path of the config_test go file, and main_path is the configuration file relative to the test file Path), such as the local debugging of the stream module: config_path = "../../../conf" (The generated configuration file is in
@@ -443,9 +432,7 @@ the conf folder under the root directory of the project), then main_path="../../
 relative to conf), the configuration file is generated to support the configuration of ca.crt and
 ca.key (when configpath/certs/ca.crt and configpath/certs/ca.key exist, the specified ca is used to issue the
 certificate).
-
 ### stream module debugging
-
 #### start of the stream server
 
 ```go
@@ -469,7 +456,6 @@ Load configuration file(conf.InitConf)->Initialize the module(model.InitMoudule)
 ```
 
 StreamDebugHandler is a custom handler for debugging cloud side messaging
-
 #### start of the stream client
 
 ```go
@@ -510,9 +496,7 @@ Set the node name environment variable->Load configuration file (conf.InitConf)-
 ```
 
 The node name is loaded through the environment variable of NODE_NAME
-
 ### tcp module debugging
-
 #### tcp server debugging
 
 ```go
@@ -531,7 +515,6 @@ model.ShutDown()
 ```
 
 Need to initialize the tcp module (InitTcp) and the stream module (stream.InitStream) at the same time
-
 #### tcp client debugging
 
 ```go
@@ -549,11 +532,9 @@ model.LoadModules(util.EDGE)
 model.ShutDown()
 }
 ```
-
 ### https module debugging
 
 Similar to tcp module debugging, https module and stream module need to be loaded at the same time.
-
 ### Debugging of tunnel main() function
 
 In the main test file of the
