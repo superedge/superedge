@@ -53,7 +53,7 @@ metadata:
   name: tunnel-edge-conf
   namespace: kube-system
 data:
-  tunnel_edge.toml: |
+  mode.toml: |
     [mode]
         [mode.edge]
             [mode.edge.stream]

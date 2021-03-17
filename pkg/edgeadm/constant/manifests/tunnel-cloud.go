@@ -61,7 +61,7 @@ metadata:
   name: tunnel-cloud-conf
   namespace: kube-system
 data:
-  tunnel_cloud.toml: |
+  mode.toml: |
     [mode]
         [mode.cloud]
             [mode.cloud.stream]
@@ -140,7 +140,7 @@ spec:
       serviceAccountName: tunnel-cloud
       containers:
         - name: tunnel-cloud
-          image: superedge/tunnel:v0.1.0
+          image: superedge/tunnel:v0.2.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -155,7 +155,7 @@ spec:
             - /usr/local/bin/tunnel
           args:
             - --m=cloud
-            - --c=/etc/superedge/tunnel/conf/tunnel_cloud.toml
+            - --c=/etc/superedge/tunnel/conf/mode.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           env:
