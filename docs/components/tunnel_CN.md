@@ -63,7 +63,7 @@ tunnel edge同样包含stream、tcp和https三个模块。其中stream模块包�
 				servername = "localhost:9000"               # tunnel cloud的grpc server的ip和端口
 				logport = 7000                              # log和健康检查的http server的监听端口，使用(curl -X PUT http://podip:logport/debug/flags/v -d "8")可以设置日志等级
 				channelzaddr = "0.0.0.0:5000"               # grpc channlez server的监听地址，用于获取grpc的调试信息
-			[mode.edge.https]
+			[mode.edge.https]                                   # https模块
 				cert= "../../conf/certs/kubelet-client.crt" # tunnel cloud 代理转发的https server的client端的证书
 				key= "../../conf/certs/kubelet-client.key"  # tunnel cloud 代理转发的https server的client端的私钥
 ```
