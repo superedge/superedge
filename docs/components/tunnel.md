@@ -244,9 +244,7 @@ spec:
           effect: "NoSchedule"
 ```
 
-The configmap of tunnel-cloud-conf in the deployment yaml corresponds to the configuration file of tunnel cloud; the
-TunnelCloudEdgeToken in the configmap of tunnel-cloud-token is a random string used to verify the tunnel edge; The
-server-side certificate and private key of grpc server corresponding to the secret of tunnel-cloud-cert.
+The configmap of tunnel-cloud-conf in the deployment yaml corresponds to the configuration file of tunnel cloud; the TunnelCloudEdgeToken in the configmap of tunnel-cloud-token is a random string used to verify the tunnel edge; The server-side certificate and private key of grpc server corresponding to the secret of tunnel-cloud-cert.
 
 #### tunnel edge
 
@@ -264,10 +262,7 @@ server-side certificate and private key of grpc server corresponding to the secr
                 logport = 51000
 ```
 
-Tunnel edge uses MasterIP:9000 to access the cloud tunnel cloud, uses TunnelCloudEdgeToken as the verification token,
-and sends it to the cloud for verification. The token is the TunnelCloudEdgeToken in the configmap of the
-tunnel-cloud-token of the deployment of the tunnel cloud; dns is the domain name or ip signed by the grpc server of the
-tunnel cloud; MasterIP is the ip of the node where the cloud tunnel cloud is located, and 9000 is the tunnel-cloud
+Tunnel edge uses MasterIP:9000 to access the  tunnel cloud, uses TunnelCloudEdgeToken as the verification token,and sends it to the cloud for verification. The token is the TunnelCloudEdgeToken in the configmap of the tunnel-cloud-token of the deployment of the tunnel cloud; dns is the domain name or ip signed by the grpc server certificate of the tunnel cloud; MasterIP is the ip of the node where the  tunnel cloud is located, and 9000 is the tunnel-cloud
 service NodePort.
 
 ##### complete yaml
@@ -382,19 +377,12 @@ spec:
           name: conf
 ```
 
-The configmap of tunnel-edge-conf in the deployment yaml corresponds to the configuration file of tunnel edge; the
-secret of tunnel-edge-cert corresponds to the CA certificate for verifying grpc server; tunnel edge is deployed in the
-form of deployment, and the number of copies is 1 , Tcp forwarding now only supports forwarding to a single node.
+The configmap of tunnel-edge-conf in the deployment yaml corresponds to the configuration file of tunnel edge; The ca certificate corresponding to the secret of tunnel-edge-cert to verify the grpc server certificate; tunnel edge is deployed in the form of deployment, and the number of copies is 1 , Tcp forwarding now only supports forwarding to a single node.
 
 ### https forwarding
 
 To forward cloud requests to edge nodes through tunnel, you need to use the edge node name as the domain name of the
-https request host. Domain name resolution can be
-reused [tunnel-coredns](https://github.com/superedge/superedge/blob/main /deployment/tunnel-coredns.yaml). To use https
-forwarding, you need to
-deploy [tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
-, [tunnel-edge](https://github.com/ superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
-and [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) three modules .
+https request host. Domain name resolution can reuse [tunnel-coredns](https://github.com/superedge/superedge/blob/main /deployment/tunnel-coredns.yaml). To use https forwarding, you need to deploy [tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml), [tunnel-edge](https://github.com/ superedge/superedge/blob/main/deployment/tunnel-edge.yaml) and [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) three modules .
 
 #### tunnel cloud configuration file
 
@@ -442,27 +430,17 @@ the tunnel-cloud deployment yaml Content.
             key = "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
 
-The certificate and private key of the https module are the client certificate corresponding to the server-side
-certificate of the edge node server forwarded by the tunnel cloud agent. For example, the tunnel cloud forwards the
-request of the apiserver to the kubelet, you need to configure the kubelet port 10250 corresponding to the server-side
-certificate. The tunnel-edge configuration corresponding to the tunnel-edge deployment yaml corresponds
-to [tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33) configmap
+The certificate and private key of the https module are the client certificate corresponding to the server-side certificate of the server of the edge node forwarded by the tunnel cloud. For example, when tunnel cloud forwards the request from apiserver to kubelet, it is necessary to configure the client certificate and private key corresponding to the kubelet port 10250 server certificate. The tunnel-edge configuration corresponding to the tunnel-edge deployment yaml corresponds to [tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33) configmap
 content. Client-side certificate. The tunnel-edge configuration corresponding to the tunnel-edge deployment yaml
 corresponds to [tunnel-edge-conf](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml#L33)
-configmap content. Client-side certificate.
+configmap content.
 
 ## Local debugging
 
-Tunnel supports https and tcp protocols corresponding to the https module and tcp module, respectively. The data of the
-protocol module is transmitted through grpc long connection, that is, the corresponding stream module, which can pass
-the test framework of go Perform local debugging. The configuration file can be generated by
-calling [config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go)
-Test method Test_Config (where the constant variable config_path is the path of the generated configuration file
-relative to the path of the config_test go file, and main_path is the configuration file relative to the test file Path)
-, such as the local debugging of the stream module: config_path = "../../../conf" The generated configuration file is in
-the conf folder under the root directory of the project, then main_path="
-../../../../conf"([stream_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/stream/stream_test.go)
-relatively Based on the conf path, the configuration file is generated to support the configuration of ca.crt and
+Tunnel supports https (https module) and tcp protocol (tcp module). The data of the protocol module is transmitted through grpc long connection (stream module), so it can be divided into modules for local debugging. Local debugging can use go's testing framework. The configuration file can be generated by
+calling [config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go) test method Test_Config (where the constant variable config_path is the path of the generated configuration file relative to the path of the config_test go file, and main_path is the configuration file relative to the test file Path), such as the local debugging of the stream module: config_path = "../../../conf" (The generated configuration file is in
+the conf folder under the root directory of the project), then main_path="../../../../conf"(the path of [stream_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/stream/stream_test.go)
+relative to conf), the configuration file is generated to support the configuration of ca.crt and
 ca.key (when configpath/certs/ca.crt and configpath/certs/ca.key exist, the specified ca is used to issue the
 certificate).
 
@@ -579,5 +557,4 @@ Similar to tcp module debugging, https module and stream module need to be loade
 ### Debugging of tunnel main() function
 
 In the main test file of the
-tunnel [tunnel_test](https://github.com/superedge/superedge/blob/main/cmd/tunnel/tunnel_test.go), you need to use init()
-Set the parameters, at the same time you need to use TestMain to parse the parameters and call the test method
+tunnel [tunnel_test](https://github.com/superedge/superedge/blob/main/cmd/tunnel/tunnel_test.go), you need to use init() set the parameters, at the same time you need to use TestMain to parse the parameters and call the test method
