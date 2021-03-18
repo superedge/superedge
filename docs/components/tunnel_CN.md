@@ -450,7 +450,7 @@ data:
 ```
 **HTTPS模块**的证书和私钥是**tunnel-cloud**代理转发的边缘节点的server的server端证书对应的client证书，例如**tunnel-cloud**转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的client证书和私钥。
 ##### tunnel-edge.yaml
-[tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
+[tunnel-edge.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
 </p>
 </details>
 
