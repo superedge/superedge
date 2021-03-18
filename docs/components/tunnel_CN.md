@@ -422,7 +422,7 @@ data:
 ```
 **tunnel-cloud** 的gRPC server监听在9000端口，等待**tunnel-edge**建立gRPC长连接。访问**tunnel-cloud**的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server。
 ##### tunel-cloud.yaml
-[**tunnel-cloud.yaml**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
+[tunnel-cloud.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
 
 #### tunnel-edge
 #### 配置文件
@@ -450,7 +450,7 @@ data:
 ```
 **HTTPS模块**的证书和私钥是**tunnel-cloud**代理转发的边缘节点的server的server端证书对应的client证书，例如**tunnel-cloud**转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的client证书和私钥。
 ##### tunnel-edge.yaml
-
+[tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
 </p>
 </details>
 
