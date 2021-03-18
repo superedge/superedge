@@ -389,8 +389,9 @@ tunnel-edge-cert的secret对应的验证gRPC server证书的ca证书；**tunnel-
 <details><summary>HTTPS转发</summary>
 <p>
 
-通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为**HTTPS** request的host的域名，域名解析可以复用[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)。使用**HTTPS**转发需要部署[**tunnel-cloud**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)、[**tunnel-edge**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)和[tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml)三个模块。
-#### tunnel-cloud配置
+通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为**HTTPS** request的host的域名，域名解析可以复用[**tunnel-coredns**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) 。使用**HTTPS**转发需要部署[**tunnel-cloud**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml) 、[**tunnel-edge**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml) 和**tunnel-coredns**三个模块。
+#### tunnel-cloud
+##### 配置文件
 tunnel-cloud-conf.yaml
 ```yaml
 apiVersion: v1
@@ -420,8 +421,12 @@ data:
           "10250" = "127.0.0.1:10250"
 ```
 **tunnel-cloud** 的gRPC server监听在9000端口，等待**tunnel-edge**建立gRPC长连接。访问**tunnel-cloud**的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server。
+##### tunel-cloud.yaml
+[**tunnel-cloud.yaml**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
 
-#### tunnel-edge配置
+#### tunnel-edge
+#### 配置文件
+tunnel-edge-conf.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -444,6 +449,7 @@ data:
           key= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
 **HTTPS模块**的证书和私钥是**tunnel-cloud**代理转发的边缘节点的server的server端证书对应的client证书，例如**tunnel-cloud**转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的client证书和私钥。
+##### tunnel-edge.yaml
 
 </p>
 </details>

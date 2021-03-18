@@ -395,7 +395,7 @@ The ca certificate corresponding to the secret of tunnel-edge-cert to verify the
 <p>
 
 To forward cloud requests to edge nodes through tunnel, you need to use the edge node name as the domain name of the
-**HTTPS** request host. Domain name resolution can reuse [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) ,To use **HTTPS** forwarding, you need to deploy [tunnel-cloud](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml), [tunnel-edge](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml) and tunnel-coredns three modules .
+**HTTPS** request host. Domain name resolution can reuse [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) ,To use **HTTPS** forwarding, you need to deploy [**tunnel-cloud**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml), [**tunnel-edge**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml) and **tunnel-coredns** three modules .
 #### Tunnel-cloud 
 ##### Configuration
 tunnel-cloud-conf.yaml
