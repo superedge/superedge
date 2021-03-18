@@ -33,7 +33,7 @@ metadata:
   name: tunnel-edge-conf
   namespace: kube-system
 data:
-  mode.toml: |
+  tunnel_edge.toml: |
     [mode]
         [mode.edge]
             [mode.edge.stream]
@@ -103,7 +103,7 @@ spec:
                   fieldPath: spec.nodeName
           args:
             - --m=edge
-            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --c=/etc/superedge/tunnel/conf/tunnel_edge.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           volumeMounts:
