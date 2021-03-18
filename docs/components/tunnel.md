@@ -27,9 +27,9 @@ Tunnel acts as the bridge between edge and cloud. It consists of **tunnel-cloud*
 
 ## Configuration File
 
-The tunnel component includes **tunnel-cloud** and **tunnel-edge**. The **tunnel-edge** running on the edge node establishes a gRPC long connection with the **tunnel-cloud** running on the cloud, which is used to forward the tunnel from the cloud to the edge node.
+The tunnel component includes **tunnel-cloud** and **tunnel-edge**. The **tunnel-edge** running on the edge node establishes a gRPC long-lived with the **tunnel-cloud** running on the cloud, which is used to forward the tunnel from the cloud to the edge node.
 ### Tunnel-cloud
-The **tunnel-cloud** contains three modules of **stream**, **TCP** and **HTTPS**. The **stream module**  includes gRPC server and dns components. The gRPC server is used to receive gRPC long connection requests from **tunnel-edge**, and the dns component is used to update the node name and ip mapping in the **tunnel-cloud** memory to the coredns hosts plug-in configmap.
+The **tunnel-cloud** contains three modules of **stream**, **TCP** and **HTTPS**. The **stream module**  includes gRPC server and dns components. The gRPC server is used to receive gRPC long-lived requests from **tunnel-edge**, and the dns component is used to update the node name and IP mapping in the **tunnel-cloud** memory to the coredns hosts plug-in configmap.
 ### Tunnel-cloud Configuration
 tunnel-cloud-conf.yaml
 ````yaml
@@ -45,28 +45,28 @@ data:
         [mode.cloud.stream]                             # stream module
           [mode.cloud.stream.server]                    # gRPC server component
             grpcport = 9000                             # listening port of gRPC server
-            logport = 8000                              #  The listening port of the http server for log and health check,use (curl -X PUT http://podip:logport/debug/flags/v -d "8") to set the log level
+            logport = 8000                              # The listening port of the http server for log and health check,use (curl -X PUT http://podip:logport/debug/flags/v -d "8") to set the log level
             channelzaddr = "0.0.0.0:6000"               # The listening address of the gRPC [channlez](https://grpc.io/blog/a-short-introduction-to-channelz/)server, used to obtain the debugging information of gRPC
             key = "../../conf/certs/cloud.key"          # The server-side private key of gRPC server
             cert = "../../conf/certs/cloud.crt"         # Server-side certificate of gRPC server
             tokenfile = "../../conf/token"              # The token list file (nodename: random string) is used to verify the token sent by the edge node tunneledge. If the verification fails according to the node name, the token corresponding to the default will be used to verify
-          [mode.cloud.stream.dns]                       # dns component
+          [mode.cloud.stream.dns]                       # DNS component
             configmap= "proxy-nodes"                    # configmap of the configuration file of the coredns hosts plugin
             hosts = "/etc/superedge/proxy/nodes/hosts"  # The path of the configmap of the configuration file of the coredns hosts plugin in the mount file of the tunnel-cloud pod
             service = "proxy-cloud-public"              # tunnel-cloud service name
-            debug = true                                # dns component switch, debug=true dns component is closed, the node name mapping in the tunnel-cloud memory will not be saved to the configmap of the coredns hosts plug-in configuration file, the default value is false
+            debug = true                                # DNS component switch, debug=true dns component is closed, the node name mapping in the tunnel-cloud memory will not be saved to the configmap of the coredns hosts plug-in configuration file, the default value is false
           [mode.cloud.tcp]                              # TCP module
-            "0.0.0.0:6443" = "127.0.0.1:6443"           # The parameter format is "0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort", cloudPort is the server listening port ofthe tunnel-cloud TCP module, EdgeServerIp and EdgeServerPort are the ip and port of the edge node server forwarded by the proxy
+            "0.0.0.0:6443" = "127.0.0.1:6443"           # The parameter format is "0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort", cloudPort is the server listening port ofthe tunnel-cloud TCP module, EdgeServerIp and EdgeServerPort are the IP and port of the edge node server forwarded by the proxy
           [mode.cloud.https]                            # HTTPS module
             cert ="../../conf/certs/kubelet.crt"        # HTTPS module server certificate
             key = "../../conf/certs/kubelet.key"        # HTTPS module server private key
-            [mode.cloud.https.addr]                     # The parameter format is "httpsServerPort": "EdgeHttpsServerIp: EdgeHttpsServerPort", httpsServerPort is the listening port of the HTTPS module server, EdgeHttpsServerIp:EdgeHttpsServerPort is the proxy forwarding the ip and port of the edge node HTTPS server, The server of the HTTPS module skips verifying the client certificate, so you can use (curl -k https://podip:httpsServerPort) to access the port monitored by the HTTPS module. The data type of the addr parameter is map, which can support monitoring multiple ports.
+            [mode.cloud.https.addr]                     # The parameter format is "httpsServerPort": "EdgeHttpsServerIp: EdgeHttpsServerPort", httpsServerPort is the listening port of the HTTPS module server, EdgeHttpsServerIp:EdgeHttpsServerPort is the proxy forwarding the IP and port of the edge node HTTPS server, The server of the HTTPS module skips verifying the client certificate, so you can use (curl -k https://podip:httpsServerPort) to access the port monitored by the HTTPS module. The data type of the addr parameter is map, which can support monitoring multiple ports.
               "10250" = "101.206.162.213:10250"
 
 ````
 
 ### Tunnel-edge
-The **tunnel-edge** also contains three modules of **stream**, **TCP** and **HTTPS**. The **stream module**  includes the gRPC client component, which is used to send gRPC long connection requests to the **tunnel-cloud**.
+The **tunnel-edge** also contains three modules of **stream**, **TCP** and **HTTPS**. The **stream module**  includes the gRPC client component, which is used to send gRPC long-lived requests to the **tunnel-cloud**.
 ### Tunnel-edge Configuration
 tunnel-edge-conf.yaml
 ```yaml
@@ -83,8 +83,8 @@ data:
           [mode.edge.stream.client]                     # gRPC client component
             token = "6ff2a1ea0f1611eb9896362096106d9d"  # Authentication token for access to tunnel-cloud
             cert = "../../conf/certs/ca.crt"            # The ca certificate of the server-side certificate of the gRPC server of tunnel-cloud is used to verify the server-side certificate
-            dns = "localhost"                           # The ip or domain name signed by the gRPC server certificate of tunnel-cloud
-            servername = "localhost:9000"               # The ip and port of gRPC server of tunnel-cloud
+            dns = "localhost"                           # The IP or domain name signed by the gRPC server certificate of tunnel-cloud
+            servername = "localhost:9000"               # The IP and port of gRPC server of tunnel-cloud
             logport = 7000                              # The listening port of the http server for log and health check,use (curl -X PUT http://podip:logport/debug/flags/v -d "8") to set the log level
             channelzaddr = "0.0.0.0:5000"               # The listening address of the gRPC channlez server, used to obtain the debugging information of gRPC
         [mode.edge.https]
@@ -99,8 +99,7 @@ Tunnel proxy supports either **TCP** or **HTTPS** request forwarding.
 <p>
 
 The **TCP module** will forward the **TCP** request to the [first edge node connected to the cloud](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69). When there is only one **tunnel-edge** connected to the **tunnel-cloud**, The request will be forwarded to the node where the **tunnel-edge** is located
-#### Tunnel-cloud
-##### Configuration 
+#### Tunnel-cloud Configuration 
 tunnel-cloud-conf.yaml
 ```yaml
 apiVersion: v1
@@ -127,8 +126,8 @@ data:
 
 ```
 
-The gRPC server of the **tunnel-cloud** listens on port 9000 and waits for the **tunnel-edge** to establish a gRPC long connection. The 6443 request to access the **tunnel-cloud** will be forwarded to the server with the access address 127.0.0.1:6443 of the edge node.
-##### tunnel-cloud.yaml
+The gRPC server of the **tunnel-cloud** listens on port 9000 and waits for the **tunnel-edge** to establish a gRPC long-lived. The 6443 request to access the **tunnel-cloud** will be forwarded to the server with the access address 127.0.0.1:6443 of the edge node.
+#### tunnel-cloud.yaml
 
 ```yaml
 
@@ -253,8 +252,7 @@ spec:
 ```
 
 The TunnelCloudEdgeToken in the configmap of tunnel-cloud-token is a random string used to verify the **tunnel-edge**; The server-side certificate and private key of gRPC server corresponding to the secret of tunnel-cloud-cert.
-#### Tunnel-edge
-##### Configuration
+#### Tunnel-edge Configuration
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -274,8 +272,8 @@ data:
                 logport = 51000
 ```
 
-The **tunnel-edge** uses MasterIP:9000 to access the  **tunnel-cloud**, uses TunnelCloudEdgeToken as the verification token,and sends it to the cloud for verification. The token is the TunnelCloudEdgeToken in the configmap of the tunnel-cloud-token of the deployment of the **tunnel-cloud**; dns is the domain name or ip signed by the gRPC server certificate of the **tunnel-cloud**; MasterIP is the ip of the node where the  **tunnel-cloud** is located, and 9000 is the **tunnel-cloud** service NodePort.
-##### tunnel-edge.yaml
+The **tunnel-edge** uses MasterIP:9000 to access the  **tunnel-cloud**, uses TunnelCloudEdgeToken as the verification token,and sends it to the cloud for verification. The token is the TunnelCloudEdgeToken in the configmap of the tunnel-cloud-token of the deployment of the **tunnel-cloud**; DNS is the domain name or IP signed by the gRPC server certificate of the **tunnel-cloud**; MasterIP is the IP of the node where the  **tunnel-cloud** is located, and 9000 is the **tunnel-cloud** service NodePort.
+#### tunnel-edge.yaml
 
 ```yaml
 ---
@@ -396,8 +394,7 @@ The ca certificate corresponding to the secret of tunnel-edge-cert to verify the
 
 To forward cloud requests to edge nodes through tunnel, you need to use the edge node name as the domain name of the
 **HTTPS** request host. Domain name resolution can reuse [tunnel-coredns](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) ,To use **HTTPS** forwarding, you need to deploy [**tunnel-cloud**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml), [**tunnel-edge**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml) and **tunnel-coredns** three modules .
-#### Tunnel-cloud 
-##### Configuration
+#### Tunnel-cloud Configuration
 tunnel-cloud-conf.yaml
 ```yaml
 apiVersion: v1
@@ -428,12 +425,11 @@ data:
 
 ```
 
-The gRPC server of the **tunnel-cloud** listens on port 9000 and waits for the **tunnel-edge** to establish a gRPC long connection. The request to access **tunnel-cloud** 10250 will be forwarded to the server with the access address 127.0.0.1:10250 of the edge node.
-#####tunnel-cloud.yaml
+The gRPC server of the **tunnel-cloud** listens on port 9000 and waits for the **tunnel-edge** to establish a gRPC long-lived. The request to access **tunnel-cloud** 10250 will be forwarded to the server with the access address 127.0.0.1:10250 of the edge node.
+#### tunnel-cloud.yaml
 
 [tunnel-cloud.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
-#### Tunnel-edge 
-##### Configuration
+#### Tunnel-edge Configuration
 tunnel-edge-conf.yaml
 ```yaml
 apiVersion: v1
@@ -458,7 +454,7 @@ data:
 ```
 
 The certificate and private key of the **HTTPS module** are the client certificate corresponding to the server-side certificate of the server of the edge node forwarded by the **tunnel-cloud**. For example, when **tunnel-cloud** forwards the request from apiserver to kubelet, it is necessary to configure the client certificate and private key corresponding to the kubelet port 10250 server certificate.  
-##### tunnel-edge.yaml
+#### tunnel-edge.yaml
 
 [tunnel-edge.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
 </p>
@@ -468,7 +464,7 @@ The certificate and private key of the **HTTPS module** are the client certifica
 
 ## Local Debugging
 
-Tunnel supports **HTTPS** (**HTTPS module**) and **TCP** protocol (**TCP module**). The data of the protocol module is transmitted through gRPC long connection (**stream module** ), so it can be divided into modules for local debugging. Local debugging can use go's testing framework. The configuration file can be generated by
+Tunnel supports **HTTPS** (**HTTPS module**) and **TCP** protocol (**TCP module**). The data of the protocol module is transmitted through gRPC long-lived (**stream module** ), so it can be divided into modules for local debugging. Local debugging can use go's testing framework. The configuration file can be generated by
 calling [config_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/conf/config_test.go) test method Test_Config (where the constant variable config_path is the path of the generated configuration file relative to the path of the config_test go file, and main_path is the configuration file relative to the test file Path), such as the local debugging of the **stream module**: config_path = "../../../conf" (The generated configuration file is in
 the conf folder under the root directory of the project), then main_path="../../../../conf"(the path of [stream_test](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/stream/stream_test.go)
 relative to conf), the configuration file is generated to support the configuration of ca.crt and

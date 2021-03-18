@@ -24,8 +24,8 @@ tunnel是云边端通信的隧道，分为**tunnel-cloud**和**tunnel-edge**，�
 ## 配置文件
 tunnel组件包括**tunnel-cloud**和**tunnel-edge**，运行在边缘节点**tunnel-edge**与运行在云端的**tunnel-cloud**建立gRPC长连接，用于云端转发到边缘节点的隧道。
 ### tunnel-cloud
-**tunnel-cloud**包含**stream**、**TCP**和HTTPS三个模块。其中**stream模块**包括gRPC server和dns组件，gRPC server用于接收**tunnel-edge**的gRPC长连接请求，dns组件
-用于把**tunnel-cloud**内存中的节点名和ip的映射更新到coredns hosts插件的configmap中。
+**tunnel-cloud**包含**stream**、**TCP**和HTTPS三个模块。其中**stream模块**包括gRPC server和DNS组件，gRPC server用于接收**tunnel-edge**的gRPC长连接请求，DNS组件
+用于把**tunnel-cloud**内存中的节点名和IP的映射更新到coredns hosts插件的configmap中。
 ### tunnel-cloud配置文件
 tunnel-cloud-conf.yaml
 ```yaml
@@ -46,23 +46,23 @@ data:
             key = "../../conf/certs/cloud.key"          # gRPC server的server端私钥
             cert = "../../conf/certs/cloud.crt"         # gRPC server的server端证书
             tokenfile = "../../conf/token"              # token的列表文件(nodename:随机字符串)，用于验证边缘节点tunnel-edge发送的token，如果根据节点名验证没有通过，会用default对应的token去验证
-          [mode.cloud.stream.dns]                       # dns组件
+          [mode.cloud.stream.dns]                       # DNS组件
             configmap= "proxy-nodes"                    # coredns hosts插件的配置文件的configmap
             hosts = "/etc/superedge/proxy/nodes/hosts"  # coredns hosts插件的配置文件的configmap在tunnel-cloud pod的挂载文件的路径
             service = "proxy-cloud-public"              # tunnel-cloud的service name
-            debug = true                                # dns组件开关，debug=true dns组件关闭，**tunnel-cloud** 内存中的节点名映射不会保存到coredns hosts插件的配置文件的configmap，默认值为false
+            debug = true                                # DNS组件开关，debug=true DNS组件关闭，**tunnel-cloud** 内存中的节点名映射不会保存到coredns hosts插件的配置文件的configmap，默认值为false
         [mode.cloud.tcp]                                # TCP模块
-          "0.0.0.0:6443" = "127.0.0.1:6443"             # 参数的格式是"0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort"，cloudPort为tunnel-cloud TCP模块server监听端口，EdgeServerIp和EdgeServerPort为代理转发的边缘节点server的ip和端口
+          "0.0.0.0:6443" = "127.0.0.1:6443"             # 参数的格式是"0.0.0.0:cloudPort": "EdgeServerIp:EdgeServerPort"，cloudPort为tunnel-cloud TCP模块server监听端口，EdgeServerIp和EdgeServerPort为代理转发的边缘节点server的IP和端口
         [mode.cloud.https]                              # HTTPS模块
           cert ="../../conf/certs/kubelet.crt"          # HTTPS模块server端证书
           key = "../../conf/certs/kubelet.key"          # HTTPS模块server端私钥
-          [mode.cloud.https.addr]                       # 参数的格式是"httpsServerPort":"EdgeHttpsServerIp:EdgeHttpsServerPort"，httpsServerPort为HTTPS模块server端的监听端口，EdgeHttpsServerIp:EdgeHttpsServerPort为代理转发边缘节点HTTPS server的ip和port，HTTPS模块的server是跳过验证client端证书的，因此可以使用(curl -k https://podip:httpsServerPort)访问HTTPS模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
+          [mode.cloud.https.addr]                       # 参数的格式是"httpsServerPort":"EdgeHttpsServerIp:EdgeHttpsServerPort"，httpsServerPort为HTTPS模块server端的监听端口，EdgeHttpsServerIp:EdgeHttpsServerPort为代理转发边缘节点HTTPS server的IP和port，HTTPS模块的server是跳过验证client端证书的，因此可以使用(curl -k https://podip:httpsServerPort)访问HTTPS模块监听的端口，addr参数的数据类型为map，可以支持监听多个端口
             "10250" = "101.206.162.213:10250"
 
 ```
 ### tunnel-edge
 **tunnel-edge**同样包含**stream**、**TCP**和**HTTPS**三个模块。其中**stream模块**包括gRPC client组件，用于向 **tunnel-cloud**发送gRPC长连接的请求。
-### tunnel-edge配置文件
+### tunnel-edge 配置文件
 tunnel-edge-conf.yaml
 ```yaml
 apiVersion: v1
@@ -78,8 +78,8 @@ data:
           [mode.edge.stream.client]                     # gRPC client组件
             token = "6ff2a1ea0f1611eb9896362096106d9d"  # 访问tunnel-cloud的验证token
             cert = "../../conf/certs/ca.crt"            # tunnel-cloud的gRPC server 的 server端证书的ca证书，用于验证server端证书
-            dns = "localhost"                           # tunnel-cloud的gRPC server证书签的ip或域名
-            servername = "localhost:9000"               # tunnel-cloud的gRPC server的ip和端口
+            dns = "localhost"                           # tunnel-cloud的gRPC server证书签的IP或域名
+            servername = "localhost:9000"               # tunnel-cloud的gRPC server的IP和端口
             logport = 7000                              # log和健康检查的http server的监听端口，使用(curl -X PUT http://podip:logport/debug/flags/v -d "8")可以设置日志等级
             channelzaddr = "0.0.0.0:5000"               # gRPC channlez server的监听地址，用于获取gRPC的调试信息
         [mode.edge.https]                               # HTTPS模块
@@ -93,8 +93,7 @@ tunnel代理支持**TCP**或**HTTPS**请求转发。
 
 **TCP模块**会把**TCP**请求转发到[第一个连接云端的边缘节点](https://github.com/superedge/superedge/blob/main/pkg/tunnel/proxy/tcp/tcp.go#L69), 当**tunnel-cloud**只有一个**tunnel-edge**连接时，
 请求会转发到**tunnel-edge**所在的节点
-#### tunnel-cloud
-##### 配置文件
+#### tunnel-cloud 配置文件
 tunnel-cloud-conf.yaml
 ```yaml
 apiVersion: v1
@@ -121,7 +120,7 @@ data:
 
 ```
 **tunnel-cloud** 的gRPC server监听在9000端口，等待**tunnel-edge**建立gRPC长连接。访问**tunnel-cloud**的6443的请求会被转发到边缘节点的访问地址127.0.0.1:6443的server
-##### tunnel-cloud.yaml
+#### tunnel-cloud.yaml
 
 ```yaml
 
@@ -247,9 +246,7 @@ spec:
 
 tunnel-cloud-token的configmap中的TunnelCloudEdgeToken为随机字符串，用于验证**tunnel-edge**；tunnel-cloud-cert的secret对应的gRPC server的server端证书和私钥。
 
-#### tunnel-edge
-
-##### 配置文件
+#### tunnel-edge 配置文件
 tunnel-edge-conf.yaml
 ```yaml
 apiVersion: v1
@@ -270,9 +267,9 @@ data:
             logport = 51000
 ```
 
-**tunnel-edge**使用MasterIP:9000访问云端**tunnel-cloud**，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证； token为**tunnel-cloud**的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；dns为**tunnel-cloud**的gRPC
-server的证书签的域名或ip；MasterIP为云端**tunnel-cloud** 所在节点的ip，9000为 **tunnel-cloud** service的nodePort
-##### tunnel-edge.yaml
+**tunnel-edge**使用MasterIP:9000访问云端**tunnel-cloud**，使用TunnelCloudEdgeToken做为验证token，发向云端进行验证； token为**tunnel-cloud**的部署deployment的tunnel-cloud-token的configmap中的TunnelCloudEdgeToken；DNS为**tunnel-cloud**的gRPC
+server的证书签的域名或IP；MasterIP为云端**tunnel-cloud** 所在节点的IP，9000为 **tunnel-cloud** service的nodePort
+#### tunnel-edge.yaml
 ```yaml
 ---
 kind: ClusterRole
@@ -390,8 +387,7 @@ tunnel-edge-cert的secret对应的验证gRPC server证书的ca证书；**tunnel-
 <p>
 
 通过tunnel将云端请求转发到边缘节点，需要使用边缘节点名做为**HTTPS** request的host的域名，域名解析可以复用[**tunnel-coredns**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-coredns.yaml) 。使用**HTTPS**转发需要部署[**tunnel-cloud**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml) 、[**tunnel-edge**](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml) 和**tunnel-coredns**三个模块。
-#### tunnel-cloud
-##### 配置文件
+#### tunnel-cloud 配置文件
 tunnel-cloud-conf.yaml
 ```yaml
 apiVersion: v1
@@ -421,11 +417,10 @@ data:
           "10250" = "127.0.0.1:10250"
 ```
 **tunnel-cloud** 的gRPC server监听在9000端口，等待**tunnel-edge**建立gRPC长连接。访问**tunnel-cloud**的10250的请求会被转发到边缘节点的访问地址127.0.0.1:10250的server。
-##### tunel-cloud.yaml
+#### tunel-cloud.yaml
 [tunnel-cloud.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-cloud.yaml)
 
-#### tunnel-edge
-#### 配置文件
+#### tunnel-edge 配置文件
 tunnel-edge-conf.yaml
 ```yaml
 apiVersion: v1
@@ -449,7 +444,7 @@ data:
           key= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
 ```
 **HTTPS模块**的证书和私钥是**tunnel-cloud**代理转发的边缘节点的server的server端证书对应的client证书，例如**tunnel-cloud**转发apiserver到kubelet的请求，需要配置kubelet 10250端口server端证书对应的client证书和私钥。
-##### tunnel-edge.yaml
+#### tunnel-edge.yaml
 [tunnel-edge.yaml](https://github.com/superedge/superedge/blob/main/deployment/tunnel-edge.yaml)
 </p>
 </details>
