@@ -368,26 +368,19 @@ Each NodeUnit will use the same headless service to access the pod inside its gr
 ...
 ```
 
-## Grayscale according to NodeUnit
-DeploymentGrid and StatefulSetGrid support grayscale in NodeUnit level
+## Canary deployment
+Both DeploymentGrid and StatefulSetGrid provide build-in support for **NodeUnit** based canary deployment. User can define multiple workload templates in the `templatePool` and assign them to different NodeUnits so as to roll out different releases in different NodeUnit.  
 
-### Key concepts
-Grayscale related additional fields:
+### Configuration
+To use canary deployment, additional fields need to be added to the YAML object:
+* **spec.templatePool**: Defines a template pool for multiple workload templates to be used.
+* **spec.templates**: Assigns the name of the template, which defined in the templatePool, to be used by each NodeUnit. For NodeUnits that don't have template assignment, the `spec.defaultTemplateName` template will be used.
+* **spec.defaultTemplateName**: (Optional, default to "default") Defines a default workload template to be used by NodeUnit if not provided in the `spec.templates`. Setting it to "default" will use the workload template in the `spec.template`.
+* **spec.autoDeleteUnusedTemplate**: (Optional, default to false) Setting it to true will delete unused templates in the templatePool. i.e. Unused templates can't be retrieved from etcd.
 
-autoDeleteUnusedTemplate,templatePool,templates,defaultTemplateName
-  
-templatePool: templates used for grayscale
+Example:
 
-templates: Relation between NodeUnit and template in templatePool, specify the template will use; If not specify, other NodeUnits will use template according to defaultTemplateName
-
-defaultTemplateName: The template used by default, if don’t fill in or fill in "dafault", it will use template in spec.template
-
-autoDeleteUnusedTemplate: The default value is false. If it is set to true, the template in templatePool that is neither in templates nor in spec.template will be deleted automatically
-
-### Create workload with same template
-This is exactly the same as the DeploymentGrid and StatefulsetGrid examples above. If you don't need grayscale, you don't need to add these additional fields
-
-### Create workload with different templates
+For DeploymentGrid,
 ```yaml
 apiVersion: superedge.io/v1
 kind: DeploymentGrid
@@ -395,45 +388,12 @@ metadata:
   name: deploymentgrid-demo
   namespace: default
 spec:
-  defaultTemplateName: test1
+  defaultTemplateName: test1 # (Optional) Default to "default".
+  autoDeleteUnusedTemplate: false # (Optional). Default to false.
   gridUniqKey: zone
   template:
-    replicas: 1
-    selector:
-      matchLabels:
-        appGrid: echo
-    strategy: {}
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          appGrid: echo
-      spec:
-        containers:
-        - image: superedge/echoserver:2.2
-          name: echo
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-          resources: {}
-  templatePool:
+    ...... # Omit workload spec. If defaultTemplateName is set to default, this template will be used. Otherwise, it will be ignored.
+  templatePool: # Defines workload templates for NodeUnits
     test1:
       replicas: 2
       selector:
@@ -447,29 +407,9 @@ spec:
             appGrid: echo
         spec:
           containers:
-          - image: superedge/echoserver:2.2
+          - image: superedge/echoserver:2.2 # Old release
             name: echo
-            ports:
-            - containerPort: 8080
-              protocol: TCP
-            env:
-              - name: NODE_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: spec.nodeName
-              - name: POD_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.name
-              - name: POD_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.namespace
-              - name: POD_IP
-                valueFrom:
-                  fieldRef:
-                    fieldPath: status.podIP
-            resources: {}
+            # Omit container spec
     test2:
       replicas: 3
       selector:
@@ -483,36 +423,21 @@ spec:
             appGrid: echo
         spec:
           containers:
-          - image: superedge/echoserver:2.3
+          - image: superedge/echoserver:2.3  # New release
             name: echo
-            ports:
-            - containerPort: 8080
-              protocol: TCP
-            env:
-              - name: NODE_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: spec.nodeName
-              - name: POD_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.name
-              - name: POD_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.namespace
-              - name: POD_IP
-                valueFrom:
-                  fieldRef:
-                    fieldPath: status.podIP
-            resources: {}
-  templates:
+            # Omit container spec
+  templates: # Assigns workload templates to NodeUnits.
+    # <NodeUnit_name>: <template_name_from_templatePool>
     zone1: test1
     zone2: test2
 ```
-In this example, NodeUnit zone1 will use test1 template, NodeUnit zone2 will use test2 template, and other unspecified NodeUnits will use the template specified in the defaultTemplateName, which is test1 in templatePool
+
+In this example, the NodeGroup
+- Zone1 will use workload template **test1** with image version `2.2`.
+- Zone2 will use workload template **test2** with image version `2.3`.
+- Other NodeGroups will use the default template **test1**, which was specified in the `spec.defaultTemplateName`.
+
 
 ## Refs
 
 * [SEP: ServiceGroup StatefulSetGrid Design Specification](https://github.com/superedge/superedge/issues/26)
- 
