@@ -95,7 +95,7 @@ spec:
       hostNetwork: true
       containers:
         - name: tunnel-edge
-          image: superedge/tunnel:v0.1.0
+          image: superedge/tunnel:v0.2.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -109,7 +109,7 @@ spec:
           resources:
             limits:
               cpu: 20m
-              memory: 20Mi
+              memory: 40Mi
             requests:
               cpu: 10m
               memory: 10Mi
