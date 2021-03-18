@@ -3,8 +3,8 @@
 `lite-apiserver`具有以下特点:
 - 支持所有 Client 类型，包括以 bin(如 kubelet 等)或 pod(如 flannel\kube-proxy 等)形式运行的 Kubernetes 组件，以及以 InCluster 方式访问 kube-apiserver 的业务容器
 - 支持缓存所有类型资源(Kubernetes 内置资源和 Custom Resources)
-- 支持访问 kube-apisever 的所有认证和鉴权方式(TLS 客户端证书、token 等)，各组件和pod使用自己的认证方式和权限
-- 支持多种存储
+- 支持访问 kube-apisever 的所有认证和鉴权方式(TLS 客户端证书、token 等)，各组件和业务容器使用自己的认证方式和权限。支持证书轮换
+- 支持多种存储, 包括文件存储、KV存储（bolt, badger）等
 
 ## 架构图
 <div align="left">
