@@ -84,13 +84,13 @@ ServiceGrid的格式与Service类似，<service-template>字段就是原先servi
 apiVersion: superedge.io/v1
 kind: ServiceGrid
 metadata:
-  name: 
-  namespace: 
+  name:
+  namespace:
 spec:
   gridUniqKey: <NodeLabel Key>
   <service-template>
 ```
-    
+
 # 操作步骤
 
 以在边缘部署echo-service为例，我们希望在多个节点组内分别部署echo-service服务，需要做如下事情：
@@ -369,7 +369,7 @@ DeploymentGrid和StatefulSetGrid均支持按照NodeUnit进行灰度
 和灰度功能相关的字段有这些：
 
 autoDeleteUnusedTemplate，templatePool，templates，defaultTemplateName
-  
+
 templatePool：用于灰度的template集合
 
 templates：NodeUnit和其使用的templatePool中的template的映射关系，如果没有指定，NodeUnit使用defaultTemplateName指定的template
