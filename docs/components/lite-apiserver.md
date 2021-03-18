@@ -4,8 +4,9 @@
 
 `lite-apiserver` has the following functionalities:
 - Caches request for all edge components (kubelet, kube-proxy, etc.) and pods running on edge nodes
-- Provides various authentication mechanism for edge components and pods including X509 Client Certs, Bearer Token, etc.
-- Caches requests from all kind of Kubernetes resources, including build-in Kubernetes resource and custom CRDs
+- Provides various authentication mechanism for edge components and pods, including X509 Client Certs, Bearer Token, etc. Support X509 Client Certs rotation
+- Caches all kind of Kubernetes resources, including build-in Kubernetes resources and custom resources
+- Support multiple cache storage, including file, kv storage(bolt, badger)
 
 ## Architecture
 <div align="left">
