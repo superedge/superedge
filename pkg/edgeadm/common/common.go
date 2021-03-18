@@ -33,6 +33,8 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
+
+	helper_constant "github.com/superedge/superedge/pkg/helper-job/constant"
 )
 
 func ReadYaml(intputPath, defaults string) string {
@@ -66,9 +68,21 @@ func DeleteByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
 }
 
 func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role string) error {
+	var nodes *v1.NodeList
+	var err error
 	if role == constant.NODE_ROLE_NODE {
 		label := labels.SelectorFromSet(labels.Set(map[string]string{"app": "helper"}))
 		if err := ClearJob(clientSet, label.String()); err != nil {
+			return err
+		}
+
+		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.EDGE_CHANGE_NODE_KEY + "=enable"})
+		if err != nil {
+			return err
+		}
+	} else {
+		nodes, err = clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.KUBERNETES_DEFAULT_ROLE_LABEL + "="})
+		if err != nil {
 			return err
 		}
 	}
@@ -83,11 +97,6 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 	}
 
 	kubeConf, err := util.ReadFile(os.Getenv("KUBECONF"))
-	if err != nil {
-		return err
-	}
-
-	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

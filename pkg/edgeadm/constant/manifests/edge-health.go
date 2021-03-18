@@ -105,6 +105,8 @@ spec:
             procMount: Default
       dnsPolicy: ClusterFirst
       hostNetwork: true
+      nodeSelector:
+        superedge.io/change: enable
       restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30

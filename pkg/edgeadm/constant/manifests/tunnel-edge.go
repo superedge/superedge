@@ -93,6 +93,8 @@ spec:
         app: tunnel-edge
     spec:
       hostNetwork: true
+      nodeSelector:
+        superedge.io/change: enable
       containers:
         - name: tunnel-edge
           image: superedge/tunnel:v0.1.0

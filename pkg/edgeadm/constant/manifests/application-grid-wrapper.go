@@ -133,7 +133,8 @@ spec:
       hostNetwork: true
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/os: linux # TODO select edge node
+        kubernetes.io/os: linux 
+        superedge.io/change: enable   # TODO select nodes labeled as edges
       containers:
         - name: application-grid-wrapper
           image: superedge/application-grid-wrapper:v0.1.0
