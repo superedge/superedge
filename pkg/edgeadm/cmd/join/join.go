@@ -23,6 +23,11 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 )
 
+/*
+添加master的一些注意事项：
+- 需要把添加maste的hostname，写入第一个master的/etc/host: masterIP hostname, 这样在其他master节点才能用其他master的hostname访问
+*/
+
 type ClusterProgress struct {
 	Status     string   `json:"status"`
 	Data       string   `json:"data"`

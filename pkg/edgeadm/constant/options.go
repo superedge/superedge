@@ -134,6 +134,16 @@ const (
 const (
 	WorkerPath     = "worker-path"
 	InstallPkgPath = "install-pkg-path"
+	K8sVersion     = "kubernetes-version"
+
+	// kube config
+	VIP         = "vip"
+	PodCIDR     = "pod-network-cidr"
+	ServiceCIDR = "service-cidr"
+	Registry    = "image-repository"
+	CertSANS    = "apiserver-cert-extra-sans"
+	MasterIP    = "master-ip"
+	APIServer   = "apiserver-advertise-address"
 )
 
 const (
@@ -143,3 +153,4 @@ const (
 const (
 	KubernetesServiceClusterIP = "kubernetes-service-cluster-ip"
 )
+
