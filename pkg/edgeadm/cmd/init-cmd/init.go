@@ -52,6 +52,12 @@ type Handler struct {
 }
 
 type initOptions struct {
+	// base config
+	WorkerPath      string `yaml:"workerPath"`
+	InstallPkgPath  string `yaml:"InstallPkgPath"`
+	KubeadmConfPath string   `yaml:"kubeadmConfPath"` //todo: if need ?
+
+	// kube-api config
 	VIP             string   `yaml:"vip"` //todo: default value
 	PodCIDR         string   `yaml:"podCidr"`
 	ServiceCIDR     string   `yaml:"serviceCIDR"`
@@ -60,7 +66,6 @@ type initOptions struct {
 	MasterIP        string   `yaml:"masterIP"`
 	ApiServer       string   `yaml:"apiServer"` //apiserver domain name
 	K8sVersion      string   `yaml:"k8sVersion"`
-	KubeadmConfPath string   `yaml:"kubeadmConfPath"` //todo: if need ?
 }
 
 type initData struct {
