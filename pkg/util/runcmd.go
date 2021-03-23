@@ -30,3 +30,23 @@ func RunLinuxCommand(command string) error {
 
 	return nil
 }
+
+func RunLinuxShellFile(filename string) error {
+	klog.V(5).Infof("Run shell script %s", filename)
+
+	var outBuff bytes.Buffer
+	cmd := exec.Command(filename)
+	cmd.Stdout = &outBuff
+	cmd.Stderr = &outBuff
+
+	defer func() {
+		defer klog.V(4).Infof("Run shell script %s output:\n %s", filename, outBuff.String())
+	}()
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return err
+}
+
