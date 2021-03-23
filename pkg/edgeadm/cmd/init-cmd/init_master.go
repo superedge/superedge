@@ -2,7 +2,6 @@ package init_cmd
 
 import (
 	"fmt"
-
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/edgeadm/common"

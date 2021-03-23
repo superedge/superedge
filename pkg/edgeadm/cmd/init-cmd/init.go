@@ -61,9 +61,6 @@ type initOptions struct {
 	ApiServer       string   `yaml:"apiServer"` //apiserver domain name
 	K8sVersion      string   `yaml:"k8sVersion"`
 	KubeadmConfPath string   `yaml:"kubeadmConfPath"` //todo: if need ?
-	//
-	WorkerPath     string `yaml:"workerPath"`
-	InstallPkgPath string `yaml:"InstallPkgPath"`
 }
 
 type initData struct {
@@ -164,7 +161,6 @@ func AddKubeConfigFlags(flagSet *pflag.FlagSet, cfg *initOptions) {
 //		"Install static package path of edge kubernetes cluster.",
 //	)
 //}
-
 func (e *initData) config() error {
 	return nil
 }

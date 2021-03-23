@@ -149,3 +149,8 @@ const (
 const (
 	KubeadmConfig = "kubeadm-config"
 )
+
+const (
+	KubernetesServiceClusterIP = "kubernetes-service-cluster-ip"
+)
+
