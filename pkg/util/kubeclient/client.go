@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -90,4 +92,43 @@ func CustomConfig() string {
 	}
 
 	return "/tmp/kubeconf"
+}
+
+func IsOverK8sVersion(baseK8sVersion, k8sVersion string) (bool, error) {
+	drtK8sVerion, err := k8sVerisonInt(k8sVersion)
+	if err != nil {
+		return false, err
+	}
+	srcK8sVerion, err := k8sVerisonInt(baseK8sVersion)
+	if err != nil {
+		return false, err
+	}
+	return srcK8sVerion >= drtK8sVerion, nil
+}
+
+func k8sVerisonInt(version string) (int, error) {
+	if strings.Contains(version, "-") {
+		v := strings.Split(version, "-")[0]
+		version = v
+	}
+	version = strings.Replace(version, "v", "", -1)
+	versionSlice := strings.Split(version, ".")
+
+	versionStr := ""
+	for index, value := range versionSlice {
+		if 0 == len(value) {
+			versionStr += "00"
+		}
+		if 1 == len(value) {
+			versionStr += "0" + value
+		}
+		if 2 == len(value) {
+			versionStr += value
+		}
+		if index == 2 {
+			break
+		}
+	}
+
+	return strconv.Atoi(versionStr)
 }

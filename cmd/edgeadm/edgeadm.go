@@ -17,12 +17,11 @@ limitations under the License.
 package main
 
 import (
-	goflag "flag"
-	"k8s.io/klog"
-	"os"
-
+	"flag"
 	"github.com/spf13/pflag"
-	"k8s.io/component-base/cli/flag"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog/v2"
+	"os"
 
 	"github.com/superedge/superedge/cmd/edgeadm/app"
 )
@@ -31,24 +30,43 @@ const (
 	bashCompleteFile = "/etc/bash_completion.d/edgeadm.bash_complete"
 )
 
+var (
+	workerPath = "/tmp/"
+)
+
 func main() {
-	cmd := app.NewEdgeadmCommand()
-
-	pflag.CommandLine.SetNormalizeFunc(flag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-	pflag.Set("logtostderr", "true")
-
 	klog.InitFlags(nil)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	klogSet()
 	defer klog.Flush()
 
-	// We do not want these flags to show up in --help
-	// These MarkHidden calls must be after the lines above
-	pflag.CommandLine.MarkHidden("version")
-	pflag.CommandLine.MarkHidden("log-dir")
-
+	cmd := app.NewEdgeadmCommand(os.Stdin, os.Stdout, os.Stderr)
 	cmd.GenBashCompletionFile(bashCompleteFile)
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 	return
+}
+
+// We do not want these flags to show up in --help
+// These MarkHidden calls must be after the lines above
+func klogSet() {
+	pflag.CommandLine.MarkHidden("log-dir")
+	pflag.CommandLine.MarkHidden("version")
+	pflag.CommandLine.MarkHidden("vmodule")
+	pflag.CommandLine.MarkHidden("one-output")
+	pflag.CommandLine.MarkHidden("logtostderr")
+	pflag.CommandLine.MarkHidden("skip-headers")
+	pflag.CommandLine.MarkHidden("add-dir-header")
+	pflag.CommandLine.MarkHidden("alsologtostderr")
+	pflag.CommandLine.MarkHidden("stderrthreshold")
+	pflag.CommandLine.MarkHidden("log-backtrace-at")
+	pflag.CommandLine.MarkHidden("skip-log-headers")
+	pflag.CommandLine.MarkHidden("log-file-max-size")
+	pflag.CommandLine.MarkHidden("log-flush-frequency")
+
+	flag.Set("logtostderr", "false")
+	flag.Set("alsologtostderr", "true")
 }
