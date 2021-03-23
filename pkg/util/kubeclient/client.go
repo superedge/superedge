@@ -54,7 +54,7 @@ func GetClientSet(kubeconfigFile string) (*kubernetes.Clientset, error) {
 	}
 
 	if kubeconfigFile == "" {
-		return nil, fmt.Errorf("kubeconfig nil, Please appoint --kubeconfig, KUBECONFIG or ~/kube/config")
+		return nil, fmt.Errorf("kubeconfig nil, Please appoint --kubeconfig, KUBECONFIG or ~/.kube/config")
 	}
 
 	os.Setenv("KUBECONF", kubeconfigFile)
