@@ -184,7 +184,7 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = localhost
 IP.1 = 127.0.0.1
-IP.1 = 10.10.0.1 # please change the value to Kubernetes's Cluster IP
+IP.2 = 10.10.0.1 # please change the value to Kubernetes's Cluster IP
 EOF
 
 $ openssl req -new -key lite-apiserver.key -subj "/CN=lite-apiserver" -config lite-apiserver.conf -out lite-apiserver.csr
