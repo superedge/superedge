@@ -112,6 +112,4 @@ func (c *changeAction) runChange() error {
 	default:
 		return fmt.Errorf("Not support %s change to edge cluster\n", c.deployName)
 	}
-
-	return nil
 }
