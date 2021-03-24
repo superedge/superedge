@@ -197,7 +197,7 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = localhost
 IP.1 = 127.0.0.1
-IP.1 = 10.10.0.1 # 请改成对应kubernetes的ClusterIP
+IP.2 = 10.10.0.1 # 请改成对应kubernetes的ClusterIP
 EOF
 
 $ openssl req -new -key lite-apiserver.key -subj "/CN=lite-apiserver" -config lite-apiserver.conf -out lite-apiserver.csr
