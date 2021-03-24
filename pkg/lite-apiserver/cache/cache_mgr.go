@@ -293,7 +293,7 @@ func getUserAgent(r *http.Request) string {
 
 func getWatchDecoder(body io.ReadCloser) *restclientwatch.Decoder {
 	framer := jsonserializer.Framer.NewFrameReader(body)
-	jsonSerializer := jsonserializer.NewSerializerWithOptions(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, jsonserializer.SerializerOptions{false, false, false})
+	jsonSerializer := jsonserializer.NewSerializerWithOptions(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, jsonserializer.SerializerOptions{Yaml: false, Pretty: false, Strict: false})
 	streamingDecoder := streaming.NewDecoder(framer, jsonSerializer)
 	return restclientwatch.NewDecoder(streamingDecoder, unstructured.UnstructuredJSONScheme)
 }

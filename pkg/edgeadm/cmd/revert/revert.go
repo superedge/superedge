@@ -93,6 +93,4 @@ func (r *revertAction) runRevert() error {
 	default:
 		return fmt.Errorf("Not support %s change to edge cluster\n", r.deployName)
 	}
-
-	return nil
 }
