@@ -111,7 +111,7 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 				out, _ := json.Marshal(DeploymentToUpdate.Spec)
 				klog.V(5).Infof("deploymentToUpdate is %s", string(out))
 				out, _ = json.Marshal(dp.Spec)
-				klog.V(5).Info("deployment is %s", string(out))
+				klog.V(5).Infof("deployment is %s", string(out))
 				updates = append(updates, DeploymentToUpdate)
 				continue
 			}
