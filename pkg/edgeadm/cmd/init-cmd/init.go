@@ -51,21 +51,29 @@ type Handler struct {
 	Func func() error
 }
 
+type Host struct {
+	IP     string
+	Domain string
+}
+
 type initOptions struct {
 	// base config
 	WorkerPath      string `yaml:"workerPath"`
 	InstallPkgPath  string `yaml:"InstallPkgPath"`
-	KubeadmConfPath string   `yaml:"kubeadmConfPath"` //todo: if need ?
+	KubeadmConfPath string `yaml:"kubeadmConfPath"` //todo: if need ?
 
 	// kube-api config
-	VIP             string   `yaml:"vip"` //todo: default value
-	PodCIDR         string   `yaml:"podCidr"`
-	ServiceCIDR     string   `yaml:"serviceCIDR"`
-	Registry        string   `yaml:"registry"` //container registry to pull control plane images
-	CertSANS        []string `yaml:"certSans"`
-	MasterIP        string   `yaml:"masterIP"`
-	ApiServer       string   `yaml:"apiServer"` //apiserver domain name
-	K8sVersion      string   `yaml:"k8sVersion"`
+	VIP         string   `yaml:"vip"` //todo: default value
+	PodCIDR     string   `yaml:"podCidr"`
+	ServiceCIDR string   `yaml:"serviceCIDR"`
+	Registry    string   `yaml:"registry"` //container registry to pull control plane images
+	CertSANS    []string `yaml:"certSans"`
+	MasterIP    string   `yaml:"masterIP"`
+	ApiServer   string   `yaml:"apiServer"` //apiserver domain name
+	K8sVersion  string   `yaml:"k8sVersion"`
+
+	// other
+	Hosts []Host `yaml:"k8sVersion"`
 }
 
 type initData struct {
@@ -172,11 +180,36 @@ func (e *initData) config() error {
 
 func (e *initData) complete(edgeConfig *cmd.EdgeadmConfig) error {
 	e.InitOptions.WorkerPath = edgeConfig.WorkerPath
-	loadIP, err := util.GetLocalIP() //todo: private default Interface to choose loadIP
+	localIP, err := util.GetLocalIP() //todo: private default Interface to choose loadIP
 	if err != nil {
 		return err
 	}
-	e.InitOptions.MasterIP = loadIP
+	e.InitOptions.MasterIP = localIP
+
+	publicIP, err := util.GetHostPublicIP()
+	if err != nil {
+		return err
+	}
+	e.InitOptions.CertSANS = append(e.InitOptions.CertSANS,
+		"127.0.0.1", localIP, publicIP, e.InitOptions.VIP)
+
+	// default init
+	localHosts := []Host{
+		{
+			IP:     "127.0.0.1",
+			Domain: constant.EdgeClusterKubeAPI,
+		},
+		{
+			IP:     localIP,
+			Domain: constant.EdgeClusterKubeAPI,
+		},
+		{
+			IP:     publicIP,
+			Domain: constant.EdgeClusterKubeAPI,
+		},
+	}
+	e.InitOptions.Hosts = localHosts
+
 	return nil
 }
 
@@ -185,7 +218,7 @@ func (e *initData) validate() error {
 }
 
 func (e *initData) backup() error {
-	klog.V(4).Infof("===>starting install backup()")
+	klog.V(4).Infof("Install backup()")
 	data, _ := json.MarshalIndent(e, "", " ")
 	return ioutil.WriteFile(e.InitOptions.WorkerPath+constant.EdgeClusterFile, data, 0777)
 }
@@ -196,12 +229,12 @@ func (e *initData) runInit() error {
 	defer e.backup()
 
 	if e.Step == 0 {
-		klog.V(4).Infof("===>starting install task")
+		klog.V(4).Infof("starting install task")
 		e.Progress.Status = constant.StatusDoing
 	}
 
 	for e.Step < len(e.steps) {
-		klog.V(4).Infof("%d.%s doing", e.Step, e.steps[e.Step].Name)
+		klog.V(4).Infof("===> %d.%s doing", e.Step, e.steps[e.Step].Name)
 
 		start := time.Now()
 		err := e.steps[e.Step].Func()
@@ -210,13 +243,13 @@ func (e *initData) runInit() error {
 			klog.V(4).Infof("%d.%s [Failed] [%fs] error %s", e.Step, e.steps[e.Step].Name, time.Since(start).Seconds(), err)
 			return nil
 		}
-		klog.V(4).Infof("%d.%s [Success] [%fs]", e.Step, e.steps[e.Step].Name, time.Since(start).Seconds())
+		klog.V(4).Infof("Running %s [Success] [%fs]", e.steps[e.Step].Name, time.Since(start).Seconds())
 
 		e.Step++
 		e.backup()
 	}
 
-	klog.V(1).Infof("===>install task [Sucesss] [%fs]", time.Since(start).Seconds())
+	klog.V(1).Infof("install task [Sucesss] [%fs]", time.Since(start).Seconds())
 	return nil
 }
 
@@ -239,6 +272,7 @@ func (e *initData) initSteps() error {
 		{
 			Name: "init shell before install",
 			Func: func() error {
+				return NilFunc(e) //todo step test
 				return InitShellPreInstall(e)
 			},
 		},
@@ -259,9 +293,24 @@ func (e *initData) initSteps() error {
 			},
 		},
 		{
-			Name: "init node",
+			Name: "set node host",
 			Func: func() error {
-				return NilFunc(e)
+				return NilFunc(e) //todo step test
+				return SetNodeHost(e)
+			},
+		},
+		{
+			Name: "set kernel module",
+			Func: func() error {
+				return NilFunc(e) //todo step test
+				return SetKernelModule(e)
+			},
+		},
+		{
+			Name: "set sysctl",
+			Func: func() error {
+				return NilFunc(e) //todo step test
+				return SetSysctl(e)
 			},
 		},
 	}...)
@@ -287,6 +336,7 @@ func (e *initData) initSteps() error {
 		{
 			Name: "create kubeadm config",
 			Func: func() error {
+				return NilFunc(e) //todo step test
 				return CreateKubeadmConfig(e)
 			},
 		},

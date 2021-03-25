@@ -24,6 +24,72 @@ func NilFunc(e *initData) error {
 	return nil
 }
 
+func SetNodeHost(e *initData) error {
+	klog.V(5).Infof("Start set node host")
+
+	content := "## Start edgeadm hosts config \n"
+	for _, host := range e.InitOptions.Hosts {
+		content += fmt.Sprintf("%s %s\n", host.IP, host.Domain)
+	}
+	content += "## End edgeadm hosts config \n"
+
+	if err := util.WriteWithAppend("/etc/hosts", content); err != nil {
+		klog.Errorf("Write /etc/hosts error: %v", err)
+		return err
+	}
+	return nil
+}
+
+func SetKernelModule(e *initData) error {
+	klog.V(5).Infof("Start set kernel module")
+
+	modules := []string{"iptable_nat", "ip_vs", "ip_vs_rr", "ip_vs_wrr", "ip_vs_sh"}
+	if err := util.RunLinuxCommand("modinfo br_netfilter"); err == nil {
+		modules = append(modules, "br_netfilter")
+	}
+
+	moduleConfig := ""
+	for _, m := range modules {
+		modprobeCommand := fmt.Sprintf("modprobe %s", m)
+		if err := util.RunLinuxCommand(modprobeCommand); err != nil {
+			klog.Errorf("Run linux command: %s, error: %v", modprobeCommand, err)
+			return err
+		}
+		moduleConfig += fmt.Sprintf("%s\n", m)
+	}
+
+	if err := util.WriteWithBufio(constant.ModuleFile, moduleConfig); err != nil {
+		klog.Errorf("Write file: %s error: %v", constant.ModuleFile, err)
+		return err
+	}
+
+	return nil
+}
+
+func SetSysctl(e *initData) error {
+	klog.V(5).Infof("Start set sysctl")
+
+	ipForwardCMD := util.SetFileContent(constant.SysctlFile, "^net.ipv4.ip_forward.*", "net.ipv4.ip_forward = 1")
+	if err := util.RunLinuxCommand(ipForwardCMD); err != nil {
+		klog.Errorf("Set sysctl run linux command: %s, error: %s", ipForwardCMD, err)
+		return err
+	}
+
+	ipTablesCMD := util.SetFileContent(constant.SysctlFile, "^net.bridge.bridge-nf-call-iptables.*", "net.bridge.bridge-nf-call-iptables = 1")
+	if err := util.RunLinuxCommand(ipTablesCMD); err != nil {
+		klog.Errorf("Set sysctl run linux command: %s, error: %s", ipTablesCMD, err)
+		return err
+	}
+
+	workerPath := WorkerHome(e)
+	sysctlConf := workerPath + constant.SysctlConf
+	if err := util.CopyFile(sysctlConf, constant.SysctlCustomFile); err != nil {
+		klog.Errorf("Copy file: %s into %s, error: %s", sysctlConf, constant.SysctlCustomFile, err)
+		return err
+	}
+	return nil
+}
+
 func TarInstallMovePackage(e *initData) error {
 	workerPath := e.InitOptions.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
@@ -80,7 +146,7 @@ func CreateKubeadmConfig(e *initData) error {
 		return err
 	}
 
-	writeKubeadmConfig := fmt.Sprintf(`echo "%s" > %skubeadm-config.yaml`, constant.InstallConf, string(kubeadmConfig))
+	writeKubeadmConfig := fmt.Sprintf(`echo "%s" > %s/kubeadm-config.yaml`, string(kubeadmConfig), constant.InstallConf)
 	if err := util.RunLinuxCommand(writeKubeadmConfig); err != nil {
 		klog.Errorf("Run linux command: %s, error: %v", writeKubeadmConfig, err)
 		return err
