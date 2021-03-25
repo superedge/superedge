@@ -53,6 +53,7 @@ const (
 	InstallBin = InstallDir + "bin/"
 
 	InstallConf = InstallDir + "conf/"
+	SysctlConf  = InstallConf + "sysctl.conf"
 
 	InstallContainer = InstallDir + "container/"
 
@@ -72,6 +73,16 @@ const (
 	StatusDoing   = "Doing"
 	StatusSuccess = "Success"
 	StatusFailed  = "Failed"
+)
+
+const (
+	EdgeClusterKubeAPI = "kubeapi.edgeadm.com"
+)
+
+const (
+	SysctlFile       = "/etc/sysctl.conf"
+	ModuleFile       = "/etc/modules-load.d/edgeadm.conf"
+	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
 )
 
 const KubeadmTemplateV1beta1 = `
@@ -212,4 +223,3 @@ ipvs:
   excludeCIDRs:
   - "{{.VIP}}/32"
 `
-
