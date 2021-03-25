@@ -15,46 +15,46 @@ func SetFileContent(file, pattern, content string) string {
 		content, file)
 }
 
-func RunLinuxCommand(command string) error {
-	var outBuff bytes.Buffer
-	cmd := exec.Command("/bin/bash", "-c", command)
+func RunLinuxCommand(command string) (string, string, error) {
+	var outBuff, errBuff bytes.Buffer
+	cmd := exec.Command("/bin/sh", "-c", command)
+	cmd.Stdout, cmd.Stderr = &outBuff, &errBuff
 
-	cmd.Stdout = &outBuff
-	cmd.Stderr = &outBuff
 	defer func() {
-		defer klog.V(4).Infof("Run command: '%s' output: \n %s", command, outBuff.String())
+		klog.V(4).Infof("Run command: '%s' \n "+
+			"stdout: %s\n stderr: %s\n", command, outBuff.String(), errBuff.String())
 	}()
 
 	//Run cmd
 	if err := cmd.Start(); err != nil {
 		klog.Errorf("Exec command: %s, error: %v", command, err)
-		return err
+		return "", "", err
 	}
 
 	//Wait cmd run finish
 	if err := cmd.Wait(); err != nil {
 		klog.Errorf("Wait command: %s exec finish error: %v", command, err)
-		return err
+		return "", "", err
 	}
 
-	return nil
+	return outBuff.String(), errBuff.String(), nil
 }
 
-func RunLinuxShellFile(filename string) error {
+func RunLinuxShellFile(filename string) (string, string, error) {
 	klog.V(5).Infof("Run shell script %s", filename)
 
-	var outBuff bytes.Buffer
 	cmd := exec.Command(filename)
-	cmd.Stdout = &outBuff
-	cmd.Stderr = &outBuff
+	var outBuff, errBuff bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &outBuff, &errBuff
 
 	defer func() {
-		defer klog.V(4).Infof("Run shell script %s output:\n %s", filename, outBuff.String())
+		klog.V(4).Infof("Run shell script %s \n"+
+			"stdout: %s\n stderr: %s\n", filename, outBuff.String(), errBuff.String())
 	}()
 
 	err := cmd.Run()
 	if err != nil {
-		return err
+		return "", "", err
 	}
-	return err
+	return outBuff.String(), errBuff.String(), nil
 }

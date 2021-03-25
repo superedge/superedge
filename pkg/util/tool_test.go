@@ -22,3 +22,13 @@ func TestWriteWithAppend(t *testing.T) {
 	content := "12345\n"
 	fmt.Println(WriteWithAppend(name, content))
 }
+
+func TestRunLinuxCommand(t *testing.T) {
+	stdout, stderr, err := RunLinuxCommand("ls -l")
+	fmt.Println("stdout:", stdout, "stderr:", stderr, "err:", err)
+}
+
+func TestRunLinuxShellFile(t *testing.T) {
+	stdout, stderr, err := RunLinuxShellFile("./shell_test.sh")
+	fmt.Println("stdout:", stdout, "stderr:", stderr, "err:", err)
+}

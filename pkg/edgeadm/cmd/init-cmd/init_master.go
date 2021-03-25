@@ -16,7 +16,8 @@ func WorkerHome(e *initData) string {
 
 func (e *initData) preInstallHook() error { //todo finish
 	klog.Infof("=========, preInstallHook")
-	return util.RunLinuxShellFile(constant.PreInstallHook)
+	_, _, err := util.RunLinuxShellFile(constant.PreInstallHook)
+	return err
 }
 
 func NilFunc(e *initData) error {
@@ -44,14 +45,14 @@ func SetKernelModule(e *initData) error {
 	klog.V(5).Infof("Start set kernel module")
 
 	modules := []string{"iptable_nat", "ip_vs", "ip_vs_rr", "ip_vs_wrr", "ip_vs_sh"}
-	if err := util.RunLinuxCommand("modinfo br_netfilter"); err == nil {
+	if _, _, err := util.RunLinuxCommand("modinfo br_netfilter"); err == nil {
 		modules = append(modules, "br_netfilter")
 	}
 
 	moduleConfig := ""
 	for _, m := range modules {
 		modprobeCommand := fmt.Sprintf("modprobe %s", m)
-		if err := util.RunLinuxCommand(modprobeCommand); err != nil {
+		if _, _, err := util.RunLinuxCommand(modprobeCommand); err != nil {
 			klog.Errorf("Run linux command: %s, error: %v", modprobeCommand, err)
 			return err
 		}
@@ -70,13 +71,13 @@ func SetSysctl(e *initData) error {
 	klog.V(5).Infof("Start set sysctl")
 
 	ipForwardCMD := util.SetFileContent(constant.SysctlFile, "^net.ipv4.ip_forward.*", "net.ipv4.ip_forward = 1")
-	if err := util.RunLinuxCommand(ipForwardCMD); err != nil {
+	if _, _, err := util.RunLinuxCommand(ipForwardCMD); err != nil {
 		klog.Errorf("Set sysctl run linux command: %s, error: %s", ipForwardCMD, err)
 		return err
 	}
 
 	ipTablesCMD := util.SetFileContent(constant.SysctlFile, "^net.bridge.bridge-nf-call-iptables.*", "net.bridge.bridge-nf-call-iptables = 1")
-	if err := util.RunLinuxCommand(ipTablesCMD); err != nil {
+	if _, _, err := util.RunLinuxCommand(ipTablesCMD); err != nil {
 		klog.Errorf("Set sysctl run linux command: %s, error: %s", ipTablesCMD, err)
 		return err
 	}
@@ -94,7 +95,7 @@ func TarInstallMovePackage(e *initData) error {
 	workerPath := e.InitOptions.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
 		e.InitOptions.InstallPkgPath, workerPath+constant.EdgeamdDir)
-	if err := util.RunLinuxCommand(tarInstallCmd); err != nil {
+	if _, _, err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
 	return nil
@@ -103,7 +104,7 @@ func TarInstallMovePackage(e *initData) error {
 func InitShellPreInstall(e *initData) error {
 	workerPath := WorkerHome(e)
 	initShell := workerPath + constant.InitInstallShell
-	if err := util.RunLinuxShellFile(initShell); err != nil {
+	if _, _, err := util.RunLinuxShellFile(initShell); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +148,7 @@ func CreateKubeadmConfig(e *initData) error {
 	}
 
 	writeKubeadmConfig := fmt.Sprintf(`echo "%s" > %s/kubeadm-config.yaml`, string(kubeadmConfig), constant.InstallConf)
-	if err := util.RunLinuxCommand(writeKubeadmConfig); err != nil {
+	if _, _, err := util.RunLinuxCommand(writeKubeadmConfig); err != nil {
 		klog.Errorf("Run linux command: %s, error: %v", writeKubeadmConfig, err)
 		return err
 	}
