@@ -9,17 +9,6 @@ import (
 	"testing"
 )
 
-package tcp
-
-import (
-"github.com/superedge/superedge/pkg/tunnel/conf"
-"github.com/superedge/superedge/pkg/tunnel/model"
-"github.com/superedge/superedge/pkg/tunnel/proxy/stream"
-"github.com/superedge/superedge/pkg/tunnel/util"
-"os"
-"testing"
-)
-
 func Test_TcpServer(t *testing.T) {
 	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
 	if err != nil {
