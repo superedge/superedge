@@ -119,7 +119,7 @@ func (e *joinMasterData) tarInstallMovePackage() error {
 	workerPath := e.JoinOptions.EdgeJoinConfig.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
 		e.JoinOptions.EdgeJoinConfig.InstallPkgPath, workerPath+constant.EdgeamdDir)
-	if err := util.RunLinuxCommand(tarInstallCmd); err != nil {
+	if _, _, err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
 	return nil
@@ -131,7 +131,7 @@ func (e *joinMasterData) kubeadmJoinMaster() error {
 		fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s --experimental-control-plane --certificate-key %s", e.JoinOptions.MasterIp, e.JoinOptions.JoinToken, e.JoinOptions.TokenCaCertHash, e.JoinOptions.CertificateKey),
 	}
 	for _, cmd := range cmds {
-		if err := util.RunLinuxCommand(cmd); err != nil {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 			return err
 		}
 	}
