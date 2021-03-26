@@ -48,13 +48,9 @@ func Request(msg *proto.StreamMsg) {
 	bodyMsg := HttpsMsg{
 		StatusCode:  resp.StatusCode,
 		HttpsStatus: util.CONNECTED,
-		Header:      make(map[string]string),
+		Header:      make(http.Header),
 	}
-	for k, v := range resp.Header {
-		for _, vv := range v {
-			bodyMsg.Header[k] = vv
-		}
-	}
+	bodyMsg.Header = resp.Header
 	msgData := bodyMsg.Serialization()
 	if len(msgData) == 0 {
 		klog.Errorf("traceid = %s httpsclient httpsmsg serialization failed", msg.Topic)
@@ -104,9 +100,7 @@ func getHttpConn(msg *proto.StreamMsg) (net.Conn, error) {
 		klog.Errorf("traceid = %s httpsclient get request fail err = %v", msg.Topic, err)
 		return nil, err
 	}
-	for k, v := range requestMsg.Header {
-		request.Header.Add(k, v)
-	}
+	request.Header = requestMsg.Header
 	conn, err := tls.Dial("tcp", request.Host, &tls.Config{
 		Certificates:       []tls.Certificate{cert},
 		InsecureSkipVerify: true,
