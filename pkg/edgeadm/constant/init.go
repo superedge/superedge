@@ -18,7 +18,7 @@ edgeadm/
     │   ├── kubelet.service
     │   └── net
     │       └── calico.yaml
-    ├── container
+    ├── containerd
     │   ├── cri-containerd-cni-linux-amd64.tar.gz
     │   └── docker-18.06-install-1.4.tgz
     ├── images
@@ -50,11 +50,18 @@ const (
 
 	InstallDir = EdgeamdDir + "edge-install/"
 
-	InstallBin       = InstallDir + "bin/"
-	InstallConf      = InstallDir + "conf/"
+	InstallBin = InstallDir + "bin/"
+
+	InstallConf = InstallDir + "conf/"
+	PatchDir    = InstallConf + "patch/"
+	SysctlConf  = InstallConf + "sysctl.conf"
+
 	InstallContainer = InstallDir + "container/"
-	InstallImages    = InstallDir + "images/"
+
+	InstallImages = InstallDir + "images/"
+
 	InstallShell     = InstallDir + "shell/"
+	InitInstallShell = InstallShell + "init-install.sh"
 
 	HooksDir             = InstallDir + "hooks/"
 	PreInstallHook       = HooksDir + "pre-install"
@@ -68,3 +75,165 @@ const (
 	StatusSuccess = "Success"
 	StatusFailed  = "Failed"
 )
+
+const (
+	EdgeClusterKubeAPI = "kubeapi.edgeadm.com"
+)
+
+const (
+	SysctlFile       = "/etc/sysctl.conf"
+	ModuleFile       = "/etc/modules-load.d/edgeadm.conf"
+	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
+)
+
+const KubeAPIServerPatch = "kube-apiserver-ptach.yaml"
+const KubeAPIServerPatchYaml = `
+apiVersion: v1
+kind: Pod
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  dnsConfig:
+    nameservers:
+    - {{.TunnelCoreDNSClusterIP}}
+  dnsPolicy: None
+`
+
+const KubeadmTemplateV1beta1 = `
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{.Master0}}
+  bindPort: 6443
+
+---
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: {{.Version}}
+controlPlaneEndpoint: "{{.ApiServer}}:6443"
+imageRepository: {{.Repo}}
+
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: {{.PodCIDR}}
+  serviceSubnet: {{.SvcCIDR}}
+
+apiServer:
+  certSANs:
+  - 127.0.0.1
+  - {{.ApiServer}}
+  {{range .Masters -}}
+  - {{.}}
+  {{end -}}
+  {{range .CertSANS -}}
+  - {{.}}
+  {{end -}}
+  - {{.VIP}}
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+  extraVolumes:
+  - name: localtime
+    hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    readOnly: true
+    pathType: File
+
+controllerManager:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+    experimental-cluster-signing-duration: 876000h
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+
+scheduler:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+ipvs:
+  excludeCIDRs:
+  - "{{.VIP}}/32"
+`
+
+const KubeadmTemplateV1beta2 = `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{.Master0}}
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /run/containerd/containerd.sock
+---
+
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: {{.Version}}
+controlPlaneEndpoint: "{{.ApiServer}}:6443"
+imageRepository: {{.Repo}}
+networking:
+  # dnsDomain: cluster.local
+  podSubnet: {{.PodCIDR}}
+  serviceSubnet: {{.SvcCIDR}}
+
+apiServer:
+  certSANs:
+  - 127.0.0.1
+  - {{.ApiServer}}
+  {{range .Masters -}}
+  - {{.}}
+  {{end -}}
+  {{range .CertSANS -}}
+  - {{.}}
+  {{end -}}
+  - {{.VIP}}
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+  extraVolumes:
+  - name: localtime
+    hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    readOnly: true
+    pathType: File
+
+controllerManager:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+    experimental-cluster-signing-duration: 876000h
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+
+scheduler:
+  extraArgs:
+    feature-gates: TTLAfterFinished=true
+  extraVolumes:
+  - hostPath: /etc/localtime
+    mountPath: /etc/localtime
+    name: localtime
+    readOnly: true
+    pathType: File
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+ipvs:
+  excludeCIDRs:
+  - "{{.VIP}}/32"
+`
