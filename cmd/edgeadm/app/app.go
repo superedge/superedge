@@ -29,7 +29,7 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/clean"
 	initCmd "github.com/superedge/superedge/pkg/edgeadm/cmd/init-cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/install"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd/join"
+	joinCmd "github.com/superedge/superedge/pkg/edgeadm/cmd/join"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/token"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
@@ -39,8 +39,9 @@ import (
 
 var (
 	edgeadmConf = cmd.EdgeadmConfig{
-		WorkerPath: "/tmp",
-		Kubeconfig: "~/.kube/config",
+		IsEnableEdge: true,
+		WorkerPath:   "/tmp",
+		Kubeconfig:   "~/.kube/config",
 	}
 )
 
@@ -67,7 +68,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
 	cmds.AddCommand(initCmd.NewCmdInit(os.Stdout, &edgeadmConf))
-	cmds.AddCommand(join.NewJoinCMD(&edgeadmConf))
+	cmds.AddCommand(joinCmd.NewJoinCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
 
@@ -80,6 +81,7 @@ func globalFlagSet(flagset *flag.FlagSet) {
 	}
 
 	flagset.StringVar(&edgeadmConf.WorkerPath, "worker-path", "/tmp", "Worker path of install edge kubernetes cluster.")
+	flagset.BoolVar(&edgeadmConf.IsEnableEdge, constant.ISEnableEdge, true, "id Install edge kubernetes cluster.")
 	flagset.StringVar(&edgeadmConf.Kubeconfig, "kubeconfig", "~/.kube/config", "The path to the kubeconfig file.")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
