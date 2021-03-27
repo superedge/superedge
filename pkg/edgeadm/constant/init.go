@@ -53,6 +53,7 @@ const (
 	InstallBin = InstallDir + "bin/"
 
 	InstallConf = InstallDir + "conf/"
+	PatchDir    = InstallConf + "patch/"
 	SysctlConf  = InstallConf + "sysctl.conf"
 
 	InstallContainer = InstallDir + "container/"
@@ -84,6 +85,19 @@ const (
 	ModuleFile       = "/etc/modules-load.d/edgeadm.conf"
 	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
 )
+
+const KubeAPIServerPatch = "kube-apiserver-ptach.yaml"
+const KubeAPIServerPatchYaml = `
+apiVersion: v1
+kind: Pod
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  dnsConfig:
+    nameservers:
+    - {{.TunnelCoreDNSClusterIP}}
+  dnsPolicy: None
+`
 
 const KubeadmTemplateV1beta1 = `
 apiVersion: kubeadm.k8s.io/v1beta1
