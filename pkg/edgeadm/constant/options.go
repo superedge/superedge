@@ -133,6 +133,7 @@ const (
 
 const (
 	WorkerPath     = "worker-path"
+	ISEnableEdge   = "enable-edge"
 	InstallPkgPath = "install-pkg-path"
 	K8sVersion     = "kubernetes-version"
 
@@ -153,4 +154,3 @@ const (
 const (
 	KubernetesServiceClusterIP = "kubernetes-service-cluster-ip"
 )
-

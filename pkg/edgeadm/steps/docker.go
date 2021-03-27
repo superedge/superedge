@@ -3,6 +3,7 @@ package steps
 import (
 	"fmt"
 	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/init"
+	"k8s.io/klog"
 
 	"github.com/pkg/errors"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
@@ -57,5 +58,33 @@ func runPreflight(c workflow.RunData) error {
 		fmt.Println("[preflight] Would pull the required images (like 'kubeadm config images pull')")
 	}
 
+	return nil
+}
+
+////////////////
+var (
+	dockerExample = cmdutil.Examples(`
+		# Install docker container runtime.
+		kubeadm init phase docker -docker-config docker.json
+		`)
+)
+
+func NewContainerPhase() workflow.Phase {
+	return workflow.Phase{
+		Name:    "container",
+		Short:   "Install container runtime",
+		Long:    "Install container runtime",
+		Example: dockerExample,
+		Run:     installDocker,
+		InheritFlags: []string{
+			options.CfgPath,               //todo
+			options.IgnorePreflightErrors, //todo
+		},
+	}
+}
+
+// runPreflight executes preflight checks logic.
+func installDocker(c workflow.RunData) error { //todo
+	klog.V(5).Infof("Start install docker container runtime")
 	return nil
 }
