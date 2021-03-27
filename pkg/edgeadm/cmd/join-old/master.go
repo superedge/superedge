@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package join
+package join_cmd
 
 import (
 	"encoding/json"
@@ -28,6 +28,7 @@ import (
 	"github.com/superedge/superedge/pkg/util/edgecluster"
 	"io/ioutil"
 	"k8s.io/klog/v2"
+	"net"
 	"os"
 	"os/exec"
 	"time"
@@ -57,7 +58,7 @@ func NewJoinMasterCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 				return
 			}
 
-			if err := action.validate(); err != nil {
+			if err := action.validate(joinOptions); err != nil {
 				util.OutPutMessage(err.Error())
 				return
 			}
@@ -71,8 +72,8 @@ func NewJoinMasterCMD(edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 	}
 
-	AddEdgeConfigFlags(cmd.Flags(), &joinOptions.EdgeJoinConfig)
-	AddKubeadmConfigFlags(cmd.Flags(), &joinOptions.KubeadmConfig)
+	AddEdgeConfigFlags(cmd.Flags(), joinOptions)
+	AddKubeadmConfigFlags(cmd.Flags(), joinOptions)
 	addMasterFlags(cmd.Flags(), joinOptions)
 	return cmd
 }
@@ -116,9 +117,9 @@ func (e *joinMasterData) execHook(filename string) error {
 }
 
 func (e *joinMasterData) tarInstallMovePackage() error {
-	workerPath := e.JoinOptions.EdgeJoinConfig.WorkerPath
+	workerPath := e.JoinOptions.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
-		e.JoinOptions.EdgeJoinConfig.InstallPkgPath, workerPath+constant.EdgeamdDir)
+		e.JoinOptions.InstallPkgPath, workerPath+constant.EdgeamdDir)
 	if _, _, err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
@@ -143,26 +144,38 @@ func (e *joinMasterData) config() error {
 }
 
 func (e *joinMasterData) complete(edgeConfig *cmd.EdgeadmConfig, args []string, option *joinOptions) error {
-	e.JoinOptions.EdgeJoinConfig.WorkerPath = edgeConfig.WorkerPath
+	e.JoinOptions.WorkerPath = edgeConfig.WorkerPath
 	if len(args) == 1 {
 		option.MasterIp = args[0]
 	} else if len(args) > 1 {
 		klog.Warningf("[WARNING] More than one API server endpoint supplied on command line %v. Using the first one.", args)
 		option.MasterIp = args[0]
 	} else {
-		return errors.New("[Error] need an API server endpoint as control plane to join")
+		return errors.New("[Error] need an API server endpoint as control plane to join, use \"edgeadm join master -h\" to show usage")
 	}
 	return nil
 }
 
-func (e *joinMasterData) validate() error {
+func (e *joinMasterData) validate(option *joinOptions) error {
+	ip := net.ParseIP(option.MasterIp)
+	if ip == nil {
+		return errors.New("[Error] invalid IP format: " + option.MasterIp)
+	}
+	for _, s := range option.MasterIp {
+		switch s {
+		case '.':
+			return nil
+		case ':':
+			return errors.New("[Error] IPv6 is not supported: " + option.MasterIp)
+		}
+	}
 	return nil
 }
 
 func (e *joinMasterData) backup() error {
 	klog.V(4).Infof("===>starting install backup()")
 	data, _ := json.MarshalIndent(e, "", " ")
-	return ioutil.WriteFile(e.JoinOptions.EdgeJoinConfig.WorkerPath+constant.EdgeClusterFile, data, 0777)
+	return ioutil.WriteFile(e.JoinOptions.WorkerPath+constant.EdgeClusterFile, data, 0777)
 }
 
 func (e *joinMasterData) runJoin() error {
