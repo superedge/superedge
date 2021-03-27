@@ -19,8 +19,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	steps "github.com/superedge/superedge/pkg/edgeadm/steps/init"
+	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"io"
@@ -92,6 +93,12 @@ var (
 		`)))
 )
 
+type edgeadmInitOptions struct {
+	isEnableEdge   bool
+	workerPath     string
+	installPkgPath string
+}
+
 // initOptions defines all the init options exposed via flags by kubeadm init.
 // Please note that this structure includes the public kubeadm config API, but only a subset of the options
 // supported by this api will be exposed as a flag.
@@ -110,9 +117,8 @@ type initOptions struct {
 	skipCertificateKeyPrint bool
 	patchesDir              string
 
-	//edgeadm add flags
-	workerPath     string
-	installPkgPath string
+	// edgeadm add flags
+	edgaadm *edgeadmInitOptions
 }
 
 // compile-time assert that the local data object satisfies the phases data interface.
@@ -143,6 +149,7 @@ type initData struct {
 func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initOptions := newInitOptions()
 	initRunner := workflow.NewRunner()
+	initOptions.edgaadm = new(edgeadmInitOptions)
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -182,13 +189,35 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		options.AddControlPlanExtraArgsFlags(flags, &initOptions.externalClusterCfg.APIServer.ExtraArgs, &initOptions.externalClusterCfg.ControllerManager.ExtraArgs, &initOptions.externalClusterCfg.Scheduler.ExtraArgs)
 	})
 
+	if edgeConfig.IsEnableEdge {
+		addEdgeConfigFlags(cmd.Flags(), initOptions.edgaadm)
+		edgaadm := initOptions.edgaadm
+		edgaadm.workerPath = edgeConfig.WorkerPath
+		edgaadm.isEnableEdge = edgeConfig.IsEnableEdge
+	}
+
 	// edgeadm default config
-	addEdgeConfigFlags(cmd.Flags(), initOptions)
-	edgeadmConfigUpdate(initOptions, edgeConfig)
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if edgeConfig.IsEnableEdge {
+			edgaadmOption := initOptions.edgaadm
+			if err := edgeadmConfigUpdate(initOptions, edgeConfig); err != nil {
+				klog.Errorf("Init edgeadm config error: %v", err)
+				return err
+			}
+			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
+				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+				return err
+			}
+		}
+		return nil
+	}
 
 	//edgeadm add
-	initRunner.AppendPhase(steps.NewPreflightPhase())
-
+	if initOptions.edgaadm.isEnableEdge { //todo yifan
+		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
+		initRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
+		initRunner.AppendPhase(steps.NewKubeletPhase())   // todo: install kubelet
+	}
 	// initialize the workflow runner with the list of phases
 	initRunner.AppendPhase(phases.NewPreflightPhase())
 	initRunner.AppendPhase(phases.NewCertsPhase())
@@ -205,6 +234,9 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initRunner.AppendPhase(phases.NewAddonPhase())
 
 	// deploy edge apps
+	if initOptions.edgaadm.isEnableEdge { //todo shubiao
+		initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
+	}
 
 	// sets the data builder function, that will be used by the runner
 	// both when running the entire workflow or single phases
@@ -219,24 +251,32 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	return cmd
 }
 
-func addEdgeConfigFlags(flagSet *flag.FlagSet, initOptions *initOptions) {
+func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmInitOptions) {
 	flagSet.StringVar(
-		&initOptions.installPkgPath, constant.InstallPkgPath, "./edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
+		&edgeadmOptions.installPkgPath, constant.InstallPkgPath,
+		"https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
 		"Install static package path of edge kubernetes cluster.",
 	)
 }
 
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {
 	// edgeadm flagSet config
-	initOptions.workerPath = edgeadmConfig.WorkerPath
+	edgaadm := initOptions.edgaadm
 
 	// edgeadm default value
 	initOptions.externalClusterCfg.APIServer.ExtraArgs = map[string]string{
 		"kubelet-preferred-address-types": "Hostname",
 	}
 
+	clusterConfig := initOptions.externalClusterCfg
+	serviceCIDR := clusterConfig.Networking.ServiceSubnet
+	clusterIP, err := common.GetIndexedIP(serviceCIDR, 10)
+	if err != nil {
+		klog.Errorf("Get tunnel-coreDNS ClusterIP, error: %v", err)
+		return err
+	}
 	option := map[string]interface{}{
-		"TunnelCoreDNSClusterIP": "", //todo service IP
+		"TunnelCoreDNSClusterIP": clusterIP,
 	}
 	kubeAPIServerPatch, err := kubeclient.ParseString(constant.KubeAPIServerPatchYaml, option)
 	if err != nil {
@@ -245,7 +285,7 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	if initOptions.patchesDir == "" {
-		initOptions.patchesDir = initOptions.workerPath + constant.PatchDir
+		initOptions.patchesDir = edgaadm.workerPath + constant.PatchDir
 	}
 	if err := util.WriteFile(initOptions.patchesDir+constant.KubeAPIServerPatch, string(kubeAPIServerPatch)); err != nil {
 		klog.Errorf("Write file: %s, error: %v", constant.KubeAPIServerPatch, err)

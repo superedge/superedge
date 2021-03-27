@@ -1,6 +1,7 @@
 package cmd
 
 type EdgeadmConfig struct {
-	WorkerPath string
-	Kubeconfig string
+	IsEnableEdge bool
+	WorkerPath   string
+	Kubeconfig   string
 }

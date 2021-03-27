@@ -39,8 +39,9 @@ import (
 
 var (
 	edgeadmConf = cmd.EdgeadmConfig{
-		WorkerPath: "/tmp",
-		Kubeconfig: "~/.kube/config",
+		IsEnableEdge: true,
+		WorkerPath:   "/tmp",
+		Kubeconfig:   "~/.kube/config",
 	}
 )
 
@@ -80,6 +81,7 @@ func globalFlagSet(flagset *flag.FlagSet) {
 	}
 
 	flagset.StringVar(&edgeadmConf.WorkerPath, "worker-path", "/tmp", "Worker path of install edge kubernetes cluster.")
+	flagset.BoolVar(&edgeadmConf.IsEnableEdge, constant.ISEnableEdge, true, "id Install edge kubernetes cluster.")
 	flagset.StringVar(&edgeadmConf.Kubeconfig, "kubeconfig", "~/.kube/config", "The path to the kubeconfig file.")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
