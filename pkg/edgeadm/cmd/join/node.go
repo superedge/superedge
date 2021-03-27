@@ -119,7 +119,7 @@ func (e *joinNodeData) tarInstallMovePackage() error {
 	workerPath := e.JoinOptions.EdgeJoinConfig.WorkerPath
 	tarInstallCmd := fmt.Sprintf("tar -xzvf %s -C %s",
 		e.JoinOptions.EdgeJoinConfig.InstallPkgPath, workerPath+constant.EdgeamdDir)
-	if err := util.RunLinuxCommand(tarInstallCmd); err != nil {
+	if _, _, err := util.RunLinuxCommand(tarInstallCmd); err != nil {
 		return err
 	}
 	return nil
@@ -131,7 +131,7 @@ func (e *joinNodeData) generateLiteApiserverKey() error {
 		fmt.Sprintf("cp /etc/kubernetes/edge/lite-apiserver.key /etc/kubernetes/pki/lite-apiserver.key"),
 	}
 	for _, cmd := range cmds {
-		if err := util.RunLinuxCommand(cmd); err != nil {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 			return err
 		}
 	}
@@ -146,7 +146,7 @@ func (e *joinNodeData) generateLiteApiserverCsr() error {
 		fmt.Sprintf("cp /etc/kubernetes/edge/lite-apiserver.crt /etc/kubernetes/pki/lite-apiserver.crt"),
 	}
 	for _, cmd := range cmds {
-		if err := util.RunLinuxCommand(cmd); err != nil {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 			return err
 		}
 	}
@@ -160,7 +160,7 @@ func (e *joinNodeData) generateLiteApiserverTlsJson() error {
 		fmt.Sprintf("cd /etc/kubernetes/edge/ && openssl x509 -req -in lite-apiserver.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -days 5000 -extensions v3_req -extfile lite-apiserver.conf -out lite-apiserver.crt"),
 	}
 	for _, cmd := range cmds {
-		if err := util.RunLinuxCommand(cmd); err != nil {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 			return err
 		}
 	}
@@ -180,7 +180,7 @@ func (e *joinNodeData) startLiteApiserver() error {
 		"--sync-duration=120 "+
 		"--timeout=3",
 		workerPath+constant.InstallBin+"lite-apiserver", e.JoinOptions.MasterIp)
-	if err := util.RunLinuxCommand(cmd); err != nil {
+	if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 		return err
 	}
 	return nil
@@ -192,7 +192,7 @@ func (e *joinNodeData) kubeadmJoinNode() error {
 		fmt.Sprintf("kubeadm join %s:6443 --token %s --discovery-token-ca-cert-hash %s", e.JoinOptions.MasterIp, e.JoinOptions.JoinToken, e.JoinOptions.TokenCaCertHash),
 	}
 	for _, cmd := range cmds {
-		if err := util.RunLinuxCommand(cmd); err != nil {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
 			return err
 		}
 	}
