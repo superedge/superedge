@@ -7,7 +7,7 @@ go_library(
         "phase.go",
         "runner.go",
     ],
-    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow",
+    importpath = "github.com/superedge/superedge/pkg/edgeadm/kubeadm/app/cmd/phases/workflow",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/pkg/errors:go_default_library",

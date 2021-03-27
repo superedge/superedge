@@ -66,7 +66,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	// edgeadm create edge cluster
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
-	cmds.AddCommand(initCmd.NewInitCMD(os.Stdout, &edgeadmConf))
+	cmds.AddCommand(initCmd.NewCmdInit(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(join.NewJoinCMD(&edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())

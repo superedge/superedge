@@ -90,3 +90,16 @@ func WriteWithAppend(name, content string) error {
 
 	return nil
 }
+
+func CopyFile(sourceFile, destinationFile string) error {
+	input, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(destinationFile, input, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}

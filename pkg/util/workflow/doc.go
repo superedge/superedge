@@ -55,6 +55,6 @@ but this requires explicit opt-in so each phase can select the subset of relevan
 via explicit opt-in, but are not applied to the parent command
 
 In order to keep flags definition under control, please refer to the
-"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options" package.
+"github.com/superedge/superedge/pkg/edgeadm/kubeadm/app/cmd/options" package.
 */
 package workflow
