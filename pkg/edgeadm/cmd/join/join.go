@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+
 	"io"
 	"os"
 	"strings"
@@ -28,6 +28,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -120,6 +124,12 @@ var (
 		`)
 )
 
+type edgeadmJoinOptions struct {
+	isEnableEdge   bool
+	workerPath     string
+	installPkgPath string
+}
+
 // joinOptions defines all the options exposed via flags by kubeadm join.
 // Please note that this structure includes the public kubeadm config API, but only a subset of the options
 // supported by this api will be exposed as a flag.
@@ -131,6 +141,9 @@ type joinOptions struct {
 	externalcfg           *kubeadmapiv1beta2.JoinConfiguration
 	joinControlPlane      *kubeadmapiv1beta2.JoinControlPlane
 	patchesDir            string
+
+	// edgeadm add flags
+	edgaadm *edgeadmJoinOptions
 }
 
 // compile-time assert that the local data object satisfies the phases data interface.
@@ -154,6 +167,7 @@ type joinData struct {
 func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinOptions := newJoinOptions()
 	joinRunner := workflow.NewRunner()
+	joinOptions.edgaadm = new(edgeadmJoinOptions)
 
 	cmd := &cobra.Command{
 		Use:   "join [api-server-endpoint]",
@@ -203,6 +217,37 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	addJoinConfigFlags(cmd.Flags(), joinOptions.externalcfg, joinOptions.joinControlPlane)
 	addJoinOtherFlags(cmd.Flags(), joinOptions)
 
+	if edgeConfig.IsEnableEdge {
+		addEdgeConfigFlags(cmd.Flags(), joinOptions.edgaadm)
+		edgaadm := joinOptions.edgaadm
+		edgaadm.workerPath = edgeConfig.WorkerPath
+		edgaadm.isEnableEdge = edgeConfig.IsEnableEdge
+	}
+
+	// edgeadm default config
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if edgeConfig.IsEnableEdge {
+			edgaadmOption := joinOptions.edgaadm
+			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
+				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+				return err
+			}
+		}
+		return nil
+	}
+
+	//edgeadm add
+	if joinOptions.edgaadm.isEnableEdge { //todo yifan
+		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
+		joinRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
+		if !joinOptions.controlPlane {
+			joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(joinOptions.joinControlPlane.LocalAPIEndpoint.AdvertiseAddress, joinOptions.edgaadm.workerPath))
+			joinRunner.AppendPhase(steps.NewEdgeKubeletPhase())
+		} else {
+			joinRunner.AppendPhase(steps.NewKubeletPhase()) // todo: install kubelet
+		}
+	}
+
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
@@ -220,6 +265,14 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinRunner.BindToCommand(cmd)
 
 	return cmd
+}
+
+func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmJoinOptions) {
+	flagSet.StringVar(
+		&edgeadmOptions.installPkgPath, constant.InstallPkgPath,
+		"https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
+		"Install static package path of edge kubernetes cluster.",
+	)
 }
 
 // addJoinConfigFlags adds join flags bound to the config to the specified flagset
