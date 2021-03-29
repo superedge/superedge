@@ -49,7 +49,7 @@ require (
 	k8s.io/kube-proxy v0.20.5
 	k8s.io/kubelet v0.20.5
 	k8s.io/system-validators v1.4.0
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.2.0
 )

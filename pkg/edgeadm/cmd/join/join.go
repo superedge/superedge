@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"io"
 	"os"
 	"strings"
@@ -27,11 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -44,6 +40,11 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
+	"k8s.io/apimachinery/pkg/util/sets"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -149,13 +150,11 @@ type joinData struct {
 	patchesDir            string
 }
 
-// NewCmdJoin returns "kubeadm join" command.
+// newCmdJoin returns "kubeadm join" command.
 // NB. joinOptions is exposed as parameter for allowing unit testing of
 //     the newJoinData method, that implements all the command options validation logic
-func NewCmdJoin(out io.Writer, joinOptions *joinOptions) *cobra.Command {
-	if joinOptions == nil {
-		joinOptions = newJoinOptions()
-	}
+func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
+	joinOptions := newJoinOptions()
 	joinRunner := workflow.NewRunner()
 
 	cmd := &cobra.Command{
