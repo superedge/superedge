@@ -87,15 +87,13 @@ func (serverHandler *ServerHandler) ServeHTTP(writer http.ResponseWriter, reques
 	}
 	httpmsg := &HttpsMsg{
 		HttpsStatus: util.CONNECTING,
-		Header:      make(map[string]string),
+		Header:      make(map[string][]string),
 		Method:      request.Method,
 		HttpBody:    requestBody,
 	}
-	for k, v := range request.Header {
-		for _, vv := range v {
-			httpmsg.Header[k] = vv
-		}
-	}
+
+	httpmsg.Header = request.Header
+
 	bmsg := httpmsg.Serialization()
 	if len(bmsg) == 0 {
 		klog.Errorf("traceid = %s httpsmsg serialization failed err = %v req = %v serverName = %s", uid, err, request, request.TLS.ServerName)
@@ -142,7 +140,9 @@ func (serverHandler *ServerHandler) ServeHTTP(writer http.ResponseWriter, reques
 
 func handleServerHttp(rmsg *HttpsMsg, writer http.ResponseWriter, request *http.Request, node context.Node, conn context.Conn) {
 	for k, v := range rmsg.Header {
-		writer.Header().Add(k, v)
+		for _, vv := range v {
+			writer.Header().Add(k, vv)
+		}
 	}
 	flusher, ok := writer.(http.Flusher)
 	if ok {

@@ -19,14 +19,15 @@ package httpsmng
 import (
 	"encoding/json"
 	"k8s.io/klog"
+	"net/http"
 )
 
 type HttpsMsg struct {
-	StatusCode  int               `json:"status_code"`
-	HttpsStatus string            `json:"https_status"`
-	HttpBody    []byte            `json:"http_body"`
-	Header      map[string]string `json:"header"`
-	Method      string            `json:"method"`
+	StatusCode  int         `json:"status_code"`
+	HttpsStatus string      `json:"https_status"`
+	HttpBody    []byte      `json:"http_body"`
+	Header      http.Header `json:"header"`
+	Method      string      `json:"method"`
 }
 
 func (msg *HttpsMsg) Serialization() []byte {
