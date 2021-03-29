@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/golang/protobuf v1.3.3
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
@@ -13,7 +14,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	go.etcd.io/bbolt v1.3.4
@@ -35,7 +35,7 @@ require (
 )
 
 replace (
-	golang.org/x/sys => golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 	github.com/moby/term => github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200329194405-dd816f0735f8
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 )
