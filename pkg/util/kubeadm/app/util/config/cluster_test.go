@@ -28,12 +28,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	testresources "github.com/superedge/superedge/pkg/util/kubeadm/test/resources"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,6 +36,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	testresources "github.com/superedge/superedge/pkg/util/kubeadm/test/resources"
 )
 
 var k8sVersionString = kubeadmconstants.MinimumControlPlaneVersion.String()
@@ -303,7 +303,7 @@ func TestGetNodeRegistration(t *testing.T) {
 					},
 				},
 				Spec: v1.NodeSpec{
-					Taints: []v1.Taint{kubeadmconstants.OldControlPlaneTaint},
+					Taints: []v1.Taint{kubeadmconstants.ControlPlaneTaint},
 				},
 			},
 		},
@@ -583,7 +583,7 @@ func TestGetInitConfigurationFromCluster(t *testing.T) {
 					},
 				},
 				Spec: v1.NodeSpec{
-					Taints: []v1.Taint{kubeadmconstants.OldControlPlaneTaint},
+					Taints: []v1.Taint{kubeadmconstants.ControlPlaneTaint},
 				},
 			},
 		},
@@ -660,7 +660,7 @@ func TestGetInitConfigurationFromCluster(t *testing.T) {
 					},
 				},
 				Spec: v1.NodeSpec{
-					Taints: []v1.Taint{kubeadmconstants.OldControlPlaneTaint},
+					Taints: []v1.Taint{kubeadmconstants.ControlPlaneTaint},
 				},
 			},
 		},

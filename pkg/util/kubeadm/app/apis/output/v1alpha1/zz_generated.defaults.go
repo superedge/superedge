@@ -21,8 +21,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	v1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.

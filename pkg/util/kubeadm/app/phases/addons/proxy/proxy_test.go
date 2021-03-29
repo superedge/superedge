@@ -20,10 +20,6 @@ import (
 	"strings"
 	"testing"
 
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	apps "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +27,10 @@ import (
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	core "k8s.io/client-go/testing"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
+	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 )
 
 func TestCreateServiceAccount(t *testing.T) {
@@ -194,12 +194,12 @@ func TestEnsureProxyAddon(t *testing.T) {
 				controlPlaneConfig.LocalAPIEndpoint.AdvertiseAddress = "1.2.3"
 			case IPv6SetBindAddress:
 				controlPlaneConfig.LocalAPIEndpoint.AdvertiseAddress = "1:2::3:4"
-				controlPlaneClusterConfig.Networking.PodSubnet = "2001:101::/48"
+				controlPlaneClusterConfig.Networking.PodSubnet = "2001:101::/96"
 			}
 
 			intControlPlane, err := configutil.DefaultedInitConfiguration(controlPlaneConfig, controlPlaneClusterConfig)
 			if err != nil {
-				t.Errorf("test failed to convert external to internal version: %v", err)
+				t.Errorf("test failed to convert external to internal version")
 				return
 			}
 			err = EnsureProxyAddon(&intControlPlane.ClusterConfiguration, &intControlPlane.LocalAPIEndpoint, client)

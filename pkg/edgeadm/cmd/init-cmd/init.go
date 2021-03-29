@@ -27,6 +27,7 @@ import (
 	"io"
 	"k8s.io/klog/v2"
 	"os"
+	"path"
 	"path/filepath"
 	"text/template"
 
@@ -192,7 +193,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	if edgeConfig.IsEnableEdge {
 		addEdgeConfigFlags(cmd.Flags(), initOptions.edgaadm)
 		edgaadm := initOptions.edgaadm
-		edgaadm.workerPath = edgeConfig.WorkerPath
+		edgaadm.workerPath   = edgeConfig.WorkerPath
 		edgaadm.isEnableEdge = edgeConfig.IsEnableEdge
 	}
 
@@ -235,7 +236,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 
 	// deploy edge apps
 	if initOptions.edgaadm.isEnableEdge { //todo shubiao
-		initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
+		//initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
 	}
 
 	// sets the data builder function, that will be used by the runner
@@ -260,9 +261,6 @@ func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmInitOption
 }
 
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {
-	// edgeadm flagSet config
-	edgaadm := initOptions.edgaadm
-
 	// edgeadm default value
 	initOptions.externalClusterCfg.APIServer.ExtraArgs = map[string]string{
 		"kubelet-preferred-address-types": "Hostname",
@@ -285,7 +283,9 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	if initOptions.patchesDir == "" {
-		initOptions.patchesDir = edgaadm.workerPath + constant.PatchDir
+		patchDir := initOptions.kubeconfigDir + constant.PatchDir
+		os.MkdirAll(path.Dir(patchDir), 0755)
+		initOptions.patchesDir = patchDir
 	}
 	if err := util.WriteFile(initOptions.patchesDir+constant.KubeAPIServerPatch, string(kubeAPIServerPatch)); err != nil {
 		klog.Errorf("Write file: %s, error: %v", constant.KubeAPIServerPatch, err)

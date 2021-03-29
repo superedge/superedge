@@ -19,8 +19,8 @@ package upgrade
 import (
 	"testing"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"k8s.io/apimachinery/pkg/util/version"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 func TestEnforceVersionPolicies(t *testing.T) {

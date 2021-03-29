@@ -36,14 +36,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/features"
-	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/features"
+	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 )
 
 const (
@@ -240,7 +240,7 @@ func TryLoadCertAndKeyFromDisk(pkiPath, name string) (*x509.Certificate, crypto.
 	return cert, key, nil
 }
 
-// TryLoadCertFromDisk tries to load the cert from the disk
+// TryLoadCertFromDisk tries to load the cert from the disk and validates that it is valid
 func TryLoadCertFromDisk(pkiPath, name string) (*x509.Certificate, error) {
 	certificatePath := pathForCert(pkiPath, name)
 
@@ -252,6 +252,15 @@ func TryLoadCertFromDisk(pkiPath, name string) (*x509.Certificate, error) {
 	// We are only putting one certificate in the certificate pem file, so it's safe to just pick the first one
 	// TODO: Support multiple certs here in order to be able to rotate certs
 	cert := certs[0]
+
+	// Check so that the certificate is valid now
+	now := time.Now()
+	if now.Before(cert.NotBefore) {
+		return nil, errors.New("the certificate is not valid yet")
+	}
+	if now.After(cert.NotAfter) {
+		return nil, errors.New("the certificate has expired")
+	}
 
 	return cert, nil
 }
@@ -609,18 +618,4 @@ func RemoveDuplicateAltNames(altNames *certutil.AltNames) {
 		}
 	}
 	altNames.IPs = ips
-}
-
-// ValidateCertPeriod checks if the certificate is valid relative to the current time
-// (+/- offset)
-func ValidateCertPeriod(cert *x509.Certificate, offset time.Duration) error {
-	period := fmt.Sprintf("NotBefore: %v, NotAfter: %v", cert.NotBefore, cert.NotAfter)
-	now := time.Now().Add(offset)
-	if now.Before(cert.NotBefore) {
-		return errors.Errorf("the certificate is not valid yet: %s", period)
-	}
-	if now.After(cert.NotAfter) {
-		return errors.Errorf("the certificate has expired: %s", period)
-	}
-	return nil
 }

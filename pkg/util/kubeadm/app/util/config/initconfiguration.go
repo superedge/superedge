@@ -26,6 +26,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	netutil "k8s.io/apimachinery/pkg/util/net"
+	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -35,11 +40,6 @@ import (
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/config/strict"
 	kubeadmruntime "github.com/superedge/superedge/pkg/util/kubeadm/app/util/runtime"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	netutil "k8s.io/apimachinery/pkg/util/net"
-	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 )
 
 // SetInitDynamicDefaults checks and sets configuration values for the InitConfiguration object
@@ -83,7 +83,7 @@ func SetBootstrapTokensDynamicDefaults(cfg *[]kubeadmapi.BootstrapToken) error {
 }
 
 // SetNodeRegistrationDynamicDefaults checks and sets configuration values for the NodeRegistration object
-func SetNodeRegistrationDynamicDefaults(cfg *kubeadmapi.NodeRegistrationOptions, controlPlaneTaint bool) error {
+func SetNodeRegistrationDynamicDefaults(cfg *kubeadmapi.NodeRegistrationOptions, ControlPlaneTaint bool) error {
 	var err error
 	cfg.Name, err = kubeadmutil.GetHostname(cfg.Name)
 	if err != nil {
@@ -91,9 +91,8 @@ func SetNodeRegistrationDynamicDefaults(cfg *kubeadmapi.NodeRegistrationOptions,
 	}
 
 	// Only if the slice is nil, we should append the control-plane taint. This allows the user to specify an empty slice for no default control-plane taint
-	if controlPlaneTaint && cfg.Taints == nil {
-		// TODO: https://github.com/kubernetes/kubeadm/issues/2200
-		cfg.Taints = []v1.Taint{kubeadmconstants.OldControlPlaneTaint}
+	if ControlPlaneTaint && cfg.Taints == nil {
+		cfg.Taints = []v1.Taint{kubeadmconstants.ControlPlaneTaint}
 	}
 
 	if cfg.CRISocket == "" {

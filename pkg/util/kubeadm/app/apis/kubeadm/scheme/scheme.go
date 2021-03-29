@@ -17,14 +17,14 @@ limitations under the License.
 package scheme
 
 import (
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta1"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 // Scheme is the runtime.Scheme to which all kubeadm api types are registered.

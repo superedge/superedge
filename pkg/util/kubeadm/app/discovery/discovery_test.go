@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func TestFor(t *testing.T) {

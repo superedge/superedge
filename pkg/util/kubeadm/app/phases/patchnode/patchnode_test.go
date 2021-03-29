@@ -23,11 +23,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 func TestAnnotateCRISocket(t *testing.T) {

@@ -19,13 +19,13 @@ package phases
 import (
 	"github.com/pkg/errors"
 
+	clientset "k8s.io/client-go/kubernetes"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 	dnsaddon "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/addons/dns"
 	proxyaddon "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/addons/proxy"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
 var (

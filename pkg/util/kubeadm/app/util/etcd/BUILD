@@ -2,10 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "etcd.go",
-        "etcddata.go",
-    ],
+    srcs = ["etcd.go"],
     importpath = "github.com/superedge/superedge/pkg/util/kubeadm/app/util/etcd",
     visibility = ["//visibility:public"],
     deps = [

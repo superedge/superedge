@@ -338,7 +338,8 @@ func (e *Runner) BindToCommand(cmd *cobra.Command) {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				// if the phase has subphases, print the help and exits
 				if len(p.Phases) > 0 {
-					return cmd.Help()
+					cmd.Help()
+					return nil
 				}
 
 				// overrides the command triggering the Runner using the phaseCmd

@@ -22,19 +22,18 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/version"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/features"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/upgrade"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/preflight"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/version"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	utilsexec "k8s.io/utils/exec"
 )
 
@@ -52,6 +51,7 @@ type applyFlags struct {
 	etcdUpgrade        bool
 	renewCerts         bool
 	imagePullTimeout   time.Duration
+	kustomizeDir       string
 	patchesDir         string
 }
 
@@ -60,8 +60,8 @@ func (f *applyFlags) sessionIsInteractive() bool {
 	return !(f.nonInteractiveMode || f.dryRun || f.force)
 }
 
-// newCmdApply returns the cobra command for `kubeadm upgrade apply`
-func newCmdApply(apf *applyPlanFlags) *cobra.Command {
+// NewCmdApply returns the cobra command for `kubeadm upgrade apply`
+func NewCmdApply(apf *applyPlanFlags) *cobra.Command {
 	flags := &applyFlags{
 		applyPlanFlags:   apf,
 		imagePullTimeout: defaultImagePullTimeout,
@@ -89,6 +89,7 @@ func newCmdApply(apf *applyPlanFlags) *cobra.Command {
 	cmd.Flags().DurationVar(&flags.imagePullTimeout, "image-pull-timeout", flags.imagePullTimeout, "The maximum amount of time to wait for the control plane pods to be downloaded.")
 	// TODO: The flag was deprecated in 1.19; remove the flag following a GA deprecation policy of 12 months or 2 releases (whichever is longer)
 	cmd.Flags().MarkDeprecated("image-pull-timeout", "This flag is deprecated and will be removed in a future version.")
+	options.AddKustomizePodsFlag(cmd.Flags(), &flags.kustomizeDir)
 	options.AddPatchesFlag(cmd.Flags(), &flags.patchesDir)
 
 	return cmd
@@ -164,13 +165,6 @@ func runApply(flags *applyFlags, args []string) error {
 		return errors.Wrap(err, "[upgrade/apply] FATAL")
 	}
 
-	// TODO: https://github.com/kubernetes/kubeadm/issues/2200
-	fmt.Printf("[upgrade/postupgrade] Applying label %s='' to Nodes with label %s='' (deprecated)\n",
-		kubeadmconstants.LabelNodeRoleControlPlane, kubeadmconstants.LabelNodeRoleOldControlPlane)
-	if err := upgrade.LabelOldControlPlaneNodes(client); err != nil {
-		return err
-	}
-
 	// Upgrade RBAC rules and addons.
 	klog.V(1).Infoln("[upgrade/postupgrade] upgrading RBAC rules and addons")
 	if err := upgrade.PerformPostUpgradeTasks(client, cfg, flags.dryRun); err != nil {
@@ -223,8 +217,8 @@ func PerformControlPlaneUpgrade(flags *applyFlags, client clientset.Interface, w
 	fmt.Printf("[upgrade/apply] Upgrading your Static Pod-hosted control plane to version %q...\n", internalcfg.KubernetesVersion)
 
 	if flags.dryRun {
-		return upgrade.DryRunStaticPodUpgrade(flags.patchesDir, internalcfg)
+		return upgrade.DryRunStaticPodUpgrade(flags.kustomizeDir, flags.patchesDir, internalcfg)
 	}
 
-	return upgrade.PerformStaticPodUpgrade(client, waiter, internalcfg, flags.etcdUpgrade, flags.renewCerts, flags.patchesDir)
+	return upgrade.PerformStaticPodUpgrade(client, waiter, internalcfg, flags.etcdUpgrade, flags.renewCerts, flags.kustomizeDir, flags.patchesDir)
 }

@@ -24,9 +24,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	apps "k8s.io/api/apps/v1"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	apps "k8s.io/api/apps/v1"
 )
 
 const (

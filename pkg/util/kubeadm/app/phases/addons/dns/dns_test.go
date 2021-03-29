@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +30,8 @@ import (
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	core "k8s.io/client-go/testing"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 )
 
 func TestCreateServiceAccount(t *testing.T) {
@@ -102,19 +102,18 @@ func TestCompileManifests(t *testing.T) {
 			name:     "KubeDNSDeployment manifest",
 			manifest: KubeDNSDeployment,
 			data: struct {
-				DeploymentName, KubeDNSImage, DNSMasqImage, SidecarImage, DNSBindAddr, DNSProbeAddr, DNSDomain, OldControlPlaneTaintKey, ControlPlaneTaintKey string
-				Replicas                                                                                                                                      *int32
+				DeploymentName, KubeDNSImage, DNSMasqImage, SidecarImage, DNSBindAddr, DNSProbeAddr, DNSDomain, ControlPlaneTaintKey string
+				Replicas                                                                                                             *int32
 			}{
-				DeploymentName:          "foo",
-				KubeDNSImage:            "foo",
-				DNSMasqImage:            "foo",
-				SidecarImage:            "foo",
-				DNSBindAddr:             "foo",
-				DNSProbeAddr:            "foo",
-				DNSDomain:               "foo",
-				OldControlPlaneTaintKey: "foo",
-				ControlPlaneTaintKey:    "foo",
-				Replicas:                &replicas,
+				DeploymentName:       "foo",
+				KubeDNSImage:         "foo",
+				DNSMasqImage:         "foo",
+				SidecarImage:         "foo",
+				DNSBindAddr:          "foo",
+				DNSProbeAddr:         "foo",
+				DNSDomain:            "foo",
+				ControlPlaneTaintKey: "foo",
+				Replicas:             &replicas,
 			},
 		},
 		{
@@ -128,14 +127,13 @@ func TestCompileManifests(t *testing.T) {
 			name:     "CoreDNSDeployment manifest",
 			manifest: CoreDNSDeployment,
 			data: struct {
-				DeploymentName, Image, OldControlPlaneTaintKey, ControlPlaneTaintKey string
-				Replicas                                                             *int32
+				DeploymentName, Image, ControlPlaneTaintKey string
+				Replicas                                    *int32
 			}{
-				DeploymentName:          "foo",
-				Image:                   "foo",
-				OldControlPlaneTaintKey: "foo",
-				ControlPlaneTaintKey:    "foo",
-				Replicas:                &replicas,
+				DeploymentName:       "foo",
+				Image:                "foo",
+				ControlPlaneTaintKey: "foo",
+				Replicas:             &replicas,
 			},
 		},
 		{
@@ -508,34 +506,32 @@ func TestDeploymentsHaveSystemClusterCriticalPriorityClassName(t *testing.T) {
 			name:     "KubeDNSDeployment",
 			manifest: KubeDNSDeployment,
 			data: struct {
-				DeploymentName, KubeDNSImage, DNSMasqImage, SidecarImage, DNSBindAddr, DNSProbeAddr, DNSDomain, OldControlPlaneTaintKey, ControlPlaneTaintKey string
-				Replicas                                                                                                                                      *int32
+				DeploymentName, KubeDNSImage, DNSMasqImage, SidecarImage, DNSBindAddr, DNSProbeAddr, DNSDomain, ControlPlaneTaintKey string
+				Replicas                                                                                                             *int32
 			}{
-				DeploymentName:          "foo",
-				KubeDNSImage:            "foo",
-				DNSMasqImage:            "foo",
-				SidecarImage:            "foo",
-				DNSBindAddr:             "foo",
-				DNSProbeAddr:            "foo",
-				DNSDomain:               "foo",
-				OldControlPlaneTaintKey: "foo",
-				ControlPlaneTaintKey:    "foo",
-				Replicas:                &replicas,
+				DeploymentName:       "foo",
+				KubeDNSImage:         "foo",
+				DNSMasqImage:         "foo",
+				SidecarImage:         "foo",
+				DNSBindAddr:          "foo",
+				DNSProbeAddr:         "foo",
+				DNSDomain:            "foo",
+				ControlPlaneTaintKey: "foo",
+				Replicas:             &replicas,
 			},
 		},
 		{
 			name:     "CoreDNSDeployment",
 			manifest: CoreDNSDeployment,
 			data: struct {
-				DeploymentName, Image, OldControlPlaneTaintKey, ControlPlaneTaintKey, CoreDNSConfigMapName string
-				Replicas                                                                                   *int32
+				DeploymentName, Image, ControlPlaneTaintKey, CoreDNSConfigMapName string
+				Replicas                                                          *int32
 			}{
-				DeploymentName:          "foo",
-				Image:                   "foo",
-				OldControlPlaneTaintKey: "foo",
-				ControlPlaneTaintKey:    "foo",
-				CoreDNSConfigMapName:    "foo",
-				Replicas:                &replicas,
+				DeploymentName:       "foo",
+				Image:                "foo",
+				ControlPlaneTaintKey: "foo",
+				CoreDNSConfigMapName: "foo",
+				Replicas:             &replicas,
 			},
 		},
 	}

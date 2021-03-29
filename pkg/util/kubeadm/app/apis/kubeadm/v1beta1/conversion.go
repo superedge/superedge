@@ -18,8 +18,8 @@ package v1beta1
 
 import (
 	"github.com/pkg/errors"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/conversion"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func Convert_kubeadm_InitConfiguration_To_v1beta1_InitConfiguration(in *kubeadm.InitConfiguration, out *InitConfiguration, s conversion.Scope) error {

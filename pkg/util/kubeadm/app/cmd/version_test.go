@@ -26,7 +26,7 @@ import (
 
 func TestNewCmdVersion(t *testing.T) {
 	var buf bytes.Buffer
-	cmd := newCmdVersion(&buf)
+	cmd := NewCmdVersion(&buf)
 	if err := cmd.Execute(); err != nil {
 		t.Errorf("Cannot execute version command: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestRunVersion(t *testing.T) {
 	var buf bytes.Buffer
 	iface := make(map[string]interface{})
 	flagNameOutput := "output"
-	cmd := newCmdVersion(&buf)
+	cmd := NewCmdVersion(&buf)
 
 	testCases := []struct {
 		name              string

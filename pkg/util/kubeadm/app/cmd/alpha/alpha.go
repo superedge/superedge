@@ -20,6 +20,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 )
 
 // NewCmdAlpha returns "kubeadm alpha" command.
@@ -29,32 +30,25 @@ func NewCmdAlpha(in io.Reader, out io.Writer) *cobra.Command {
 		Short: "Kubeadm experimental sub-commands",
 	}
 
+	cmd.AddCommand(newCmdCertsUtility(out))
+	cmd.AddCommand(newCmdKubeletUtility())
 	cmd.AddCommand(newCmdKubeConfigUtility(out))
+	cmd.AddCommand(NewCmdSelfhosting(in))
 
-	const shDeprecatedMessage = "self-hosting support in kubeadm is deprecated " +
-		"and will be removed in a future release"
-	shCommand := newCmdSelfhosting(in)
-	shCommand.Deprecated = shDeprecatedMessage
-	for _, cmd := range shCommand.Commands() {
-		cmd.Deprecated = shDeprecatedMessage
-	}
-	cmd.AddCommand(shCommand)
-
-	certsCommand := NewCmdCertsUtility(out)
-	deprecateCertsCommand(certsCommand)
-	cmd.AddCommand(certsCommand)
+	// TODO: This command should be removed as soon as the kubeadm init phase refactoring is completed.
+	//		 current phases implemented as cobra.Commands should become workflow.Phases, while other utilities
+	// 		 hosted under kubeadm alpha phases command should found a new home under kubeadm alpha (without phases)
+	cmd.AddCommand(newCmdPhase(out))
 
 	return cmd
 }
 
-func deprecateCertsCommand(cmds ...*cobra.Command) {
-	const deprecatedMessage = "please use the same command under \"kubeadm certs\""
-
-	for _, cmd := range cmds {
-		cmd.Deprecated = deprecatedMessage
-		childCmds := cmd.Commands()
-		if len(childCmds) > 0 {
-			deprecateCertsCommand(childCmds...)
-		}
+func newCmdPhase(out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "phase",
+		Short: "Invoke subsets of kubeadm functions separately for a manual install",
+		Long:  cmdutil.MacroCommandLongDescription,
 	}
+
+	return cmd
 }

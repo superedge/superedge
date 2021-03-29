@@ -23,10 +23,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"sigs.k8s.io/yaml"
 )
 

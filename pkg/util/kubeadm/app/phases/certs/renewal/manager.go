@@ -21,11 +21,11 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	certutil "k8s.io/client-go/util/cert"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	certsphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
-	certutil "k8s.io/client-go/util/cert"
 )
 
 // Manager can be used to coordinate certificate renewal and related processes,

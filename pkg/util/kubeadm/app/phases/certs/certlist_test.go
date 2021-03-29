@@ -25,9 +25,9 @@ import (
 	"path"
 	"testing"
 
+	certutil "k8s.io/client-go/util/cert"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
-	certutil "k8s.io/client-go/util/cert"
 )
 
 func TestCertListOrder(t *testing.T) {

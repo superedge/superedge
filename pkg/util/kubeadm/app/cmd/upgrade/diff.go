@@ -23,6 +23,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/version"
+	client "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
@@ -31,10 +35,6 @@ import (
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/version"
-	client "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 type diffFlags struct {
@@ -54,8 +54,8 @@ var (
 	defaultSchedulerManifestPath         = constants.GetStaticPodFilepath(constants.KubeScheduler, constants.GetStaticPodDirectory())
 )
 
-// newCmdDiff returns the cobra command for `kubeadm upgrade diff`
-func newCmdDiff(out io.Writer) *cobra.Command {
+// NewCmdDiff returns the cobra command for `kubeadm upgrade diff`
+func NewCmdDiff(out io.Writer) *cobra.Command {
 	flags := &diffFlags{
 		kubeConfigPath: constants.GetAdminKubeConfigPath(),
 		out:            out,

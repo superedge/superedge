@@ -22,10 +22,10 @@ import (
 
 	"github.com/lithammer/dedent"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const KubeadmGroupName = "kubeadm.k8s.io"

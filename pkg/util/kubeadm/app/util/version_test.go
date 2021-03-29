@@ -197,6 +197,7 @@ func TestSplitVersion(t *testing.T) {
 		{"release/latest-1.7", "https://dl.k8s.io/release", "latest-1.7", true},
 		// CI builds area
 		{"ci/latest", "https://storage.googleapis.com/k8s-release-dev/ci", "latest", true},
+		{"ci/k8s-master", "https://storage.googleapis.com/k8s-release-dev/ci", "k8s-master", true},
 		{"ci/latest-1.7", "https://storage.googleapis.com/k8s-release-dev/ci", "latest-1.7", true},
 		// unknown label in default (release) area: splitVersion validate only areas.
 		{"unknown-1", "https://dl.k8s.io/release", "unknown-1", true},
@@ -233,6 +234,7 @@ func TestKubernetesIsCIVersion(t *testing.T) {
 		{"release/v1.0.0", false},
 		// CI builds
 		{"ci/latest-1", true},
+		{"ci/k8s-master", true},
 		{"ci/v1.9.0-alpha.1.123+acbcbfd53bfa0a", true},
 	}
 

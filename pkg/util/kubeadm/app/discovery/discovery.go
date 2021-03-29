@@ -21,14 +21,14 @@ import (
 
 	"github.com/pkg/errors"
 
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery/file"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery/https"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery/token"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/klog/v2"
 )
 
 // TokenUser defines token user

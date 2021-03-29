@@ -26,16 +26,16 @@ import (
 	"testing"
 
 	"github.com/lithammer/dedent"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
-	cryptoutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/crypto"
-	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	certutil "k8s.io/client-go/util/cert"
 	keyutil "k8s.io/client-go/util/keyutil"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
+	cryptoutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/crypto"
+	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
 )
 
 func TestGetDataFromInitConfig(t *testing.T) {

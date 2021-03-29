@@ -23,9 +23,9 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
-	output "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	output "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output"
 )
 
 func init() {

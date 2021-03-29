@@ -18,14 +18,14 @@ package phases
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 	etcdphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/etcd"
-	etcdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/etcd"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -69,6 +69,7 @@ func getEtcdPhaseFlags() []string {
 		options.CertificatesDir,
 		options.CfgPath,
 		options.ImageRepository,
+		options.Kustomize,
 		options.Patches,
 	}
 	return flags
@@ -86,15 +87,14 @@ func runEtcdPhaseLocal() func(c workflow.RunData) error {
 		if cfg.Etcd.External == nil {
 			// creates target folder if doesn't exist already
 			if !data.DryRun() {
-				// Create the etcd data directory
-				if err := etcdutil.CreateDataDirectory(cfg.Etcd.Local.DataDir); err != nil {
-					return err
+				if err := os.MkdirAll(cfg.Etcd.Local.DataDir, 0700); err != nil {
+					return errors.Wrapf(err, "failed to create etcd directory %q", cfg.Etcd.Local.DataDir)
 				}
 			} else {
 				fmt.Printf("[dryrun] Would ensure that %q directory is present\n", cfg.Etcd.Local.DataDir)
 			}
 			fmt.Printf("[etcd] Creating static Pod manifest for local etcd in %q\n", data.ManifestDir())
-			if err := etcdphase.CreateLocalEtcdStaticPodManifestFile(data.ManifestDir(), data.PatchesDir(), cfg.NodeRegistration.Name, &cfg.ClusterConfiguration, &cfg.LocalAPIEndpoint); err != nil {
+			if err := etcdphase.CreateLocalEtcdStaticPodManifestFile(data.ManifestDir(), data.KustomizeDir(), data.PatchesDir(), cfg.NodeRegistration.Name, &cfg.ClusterConfiguration, &cfg.LocalAPIEndpoint); err != nil {
 				return errors.Wrap(err, "error creating local etcd static pod manifest file")
 			}
 		} else {

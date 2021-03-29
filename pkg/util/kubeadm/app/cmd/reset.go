@@ -23,6 +23,9 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/validation"
@@ -33,9 +36,6 @@ import (
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	utilruntime "github.com/superedge/superedge/pkg/util/kubeadm/app/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -158,8 +158,8 @@ func AddResetFlags(flagSet *flag.FlagSet, resetOptions *resetOptions) {
 	cmdutil.AddCRISocketFlag(flagSet, &resetOptions.criSocketPath)
 }
 
-// newCmdReset returns the "kubeadm reset" command
-func newCmdReset(in io.Reader, out io.Writer, resetOptions *resetOptions) *cobra.Command {
+// NewCmdReset returns the "kubeadm reset" command
+func NewCmdReset(in io.Reader, out io.Writer, resetOptions *resetOptions) *cobra.Command {
 	if resetOptions == nil {
 		resetOptions = newResetOptions()
 	}
