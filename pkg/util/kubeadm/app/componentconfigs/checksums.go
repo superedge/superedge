@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	v1 "k8s.io/api/core/v1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 // ChecksumForConfigMap calculates a checksum for the supplied config map. The exact algorithm depends on hash and prefix parameters

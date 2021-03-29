@@ -24,10 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/images"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/preflight"
 	apps "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -37,6 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/images"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/preflight"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -208,34 +208,21 @@ func deleteHealthCheckJob(client clientset.Interface, ns, jobName string) error 
 
 // controlPlaneNodesReady checks whether all control-plane Nodes in the cluster are in the Running state
 func controlPlaneNodesReady(client clientset.Interface, _ *kubeadmapi.ClusterConfiguration) error {
-	// list nodes labeled with a "master" node-role
-	selectorOldControlPlane := labels.SelectorFromSet(labels.Set(map[string]string{
-		constants.LabelNodeRoleOldControlPlane: "",
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{
+		constants.LabelNodeRoleMaster: "",
 	}))
-	nodesWithOldLabel, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
-		LabelSelector: selectorOldControlPlane.String(),
+	controlPlanes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: selector.String(),
 	})
 	if err != nil {
-		return errors.Wrapf(err, "could not list nodes labeled with %q", constants.LabelNodeRoleOldControlPlane)
+		return errors.Wrap(err, "couldn't list control-planes in cluster")
 	}
 
-	// list nodes labeled with a "control-plane" node-role
-	selectorControlPlane := labels.SelectorFromSet(labels.Set(map[string]string{
-		constants.LabelNodeRoleControlPlane: "",
-	}))
-	nodesControlPlane, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
-		LabelSelector: selectorControlPlane.String(),
-	})
-	if err != nil {
-		return errors.Wrapf(err, "could not list nodes labeled with %q", constants.LabelNodeRoleControlPlane)
-	}
-
-	nodes := append(nodesWithOldLabel.Items, nodesControlPlane.Items...)
-	if len(nodes) == 0 {
+	if len(controlPlanes.Items) == 0 {
 		return errors.New("failed to find any nodes with a control-plane role")
 	}
 
-	notReadyControlPlanes := getNotReadyNodes(nodes)
+	notReadyControlPlanes := getNotReadyNodes(controlPlanes.Items)
 	if len(notReadyControlPlanes) != 0 {
 		return errors.Errorf("there are NotReady control-planes in the cluster: %v", notReadyControlPlanes)
 	}

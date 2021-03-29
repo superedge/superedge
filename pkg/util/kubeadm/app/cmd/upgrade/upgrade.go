@@ -57,10 +57,10 @@ func NewCmdUpgrade(out io.Writer) *cobra.Command {
 		RunE:  cmdutil.SubCmdRunE("upgrade"),
 	}
 
-	cmd.AddCommand(newCmdApply(flags))
-	cmd.AddCommand(newCmdPlan(flags))
-	cmd.AddCommand(newCmdDiff(out))
-	cmd.AddCommand(newCmdNode())
+	cmd.AddCommand(NewCmdApply(flags))
+	cmd.AddCommand(NewCmdPlan(flags))
+	cmd.AddCommand(NewCmdDiff(out))
+	cmd.AddCommand(NewCmdNode())
 	return cmd
 }
 

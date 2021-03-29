@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	v1 "k8s.io/api/core/v1"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func TestBuildKubeletArgMap(t *testing.T) {

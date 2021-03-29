@@ -30,6 +30,14 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	clientset "k8s.io/client-go/kubernetes"
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
+	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -44,18 +52,10 @@ import (
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/output"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/duration"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	clientset "k8s.io/client-go/kubernetes"
-	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 )
 
-// newCmdToken returns cobra.Command for token management
-func newCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
+// NewCmdToken returns cobra.Command for token management
+func NewCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
 	var kubeConfigFile string
 	var dryRun bool
 	tokenCmd := &cobra.Command{
@@ -149,7 +149,7 @@ func newCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
 	bto.AddDescriptionFlag(createCmd.Flags())
 
 	tokenCmd.AddCommand(createCmd)
-	tokenCmd.AddCommand(newCmdTokenGenerate(out))
+	tokenCmd.AddCommand(NewCmdTokenGenerate(out))
 
 	outputFlags := output.NewOutputFlags(&tokenTextPrintFlags{}).WithTypeSetter(outputapischeme.Scheme).WithDefaultOutput(output.TextOutput)
 
@@ -208,8 +208,8 @@ func newCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
 	return tokenCmd
 }
 
-// newCmdTokenGenerate returns cobra.Command to generate new token
-func newCmdTokenGenerate(out io.Writer) *cobra.Command {
+// NewCmdTokenGenerate returns cobra.Command to generate new token
+func NewCmdTokenGenerate(out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "generate",
 		Short: "Generate and print a bootstrap token, but do not create it on the server",
@@ -415,13 +415,13 @@ func RunDeleteTokens(out io.Writer, client clientset.Interface, tokenIDsOrTokens
 	for _, tokenIDOrToken := range tokenIDsOrTokens {
 		// Assume this is a token id and try to parse it
 		tokenID := tokenIDOrToken
-		klog.V(1).Info("[token] parsing token")
+		klog.V(1).Infof("[token] parsing token %q", tokenIDOrToken)
 		if !bootstraputil.IsValidBootstrapTokenID(tokenIDOrToken) {
 			// Okay, the full token with both id and secret was probably passed. Parse it and extract the ID only
 			bts, err := kubeadmapiv1beta2.NewBootstrapTokenString(tokenIDOrToken)
 			if err != nil {
-				return errors.Errorf("given token didn't match pattern %q or %q",
-					bootstrapapi.BootstrapTokenIDPattern, bootstrapapi.BootstrapTokenIDPattern)
+				return errors.Errorf("given token %q didn't match pattern %q or %q",
+					tokenIDOrToken, bootstrapapi.BootstrapTokenIDPattern, bootstrapapi.BootstrapTokenIDPattern)
 			}
 			tokenID = bts.ID
 		}

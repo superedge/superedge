@@ -21,11 +21,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 )
 
 // SubCmdRunE returns a function that handles a case where a subcommand must be specified

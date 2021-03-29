@@ -22,14 +22,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 )
 
-type tlsKeyPairPath struct {
+type tlsKeyPair struct {
 	name string
 	cert string
 	key  string
@@ -310,8 +310,8 @@ func createOpaqueSecretFromFile(secretName, file string) (*v1.Secret, error) {
 	}, nil
 }
 
-func getTLSKeyPairs() []*tlsKeyPairPath {
-	return []*tlsKeyPairPath{
+func getTLSKeyPairs() []*tlsKeyPair {
+	return []*tlsKeyPair{
 		{
 			name: kubeadmconstants.CACertAndKeyBaseName,
 			cert: kubeadmconstants.CACertName,

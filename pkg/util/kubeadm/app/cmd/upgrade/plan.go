@@ -29,23 +29,23 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/util/version"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	outputapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/upgrade"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"k8s.io/apimachinery/pkg/util/version"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 type planFlags struct {
 	*applyPlanFlags
 }
 
-// newCmdPlan returns the cobra command for `kubeadm upgrade plan`
-func newCmdPlan(apf *applyPlanFlags) *cobra.Command {
+// NewCmdPlan returns the cobra command for `kubeadm upgrade plan`
+func NewCmdPlan(apf *applyPlanFlags) *cobra.Command {
 	flags := &planFlags{
 		applyPlanFlags: apf,
 	}

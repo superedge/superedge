@@ -21,12 +21,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/images"
-	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -34,6 +28,12 @@ import (
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientset "k8s.io/client-go/kubernetes"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/images"
+	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 )
 
 const (

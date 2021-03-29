@@ -19,10 +19,10 @@ package phases
 import (
 	"io"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 // JoinData is the interface to use for join phases.
@@ -35,5 +35,6 @@ type JoinData interface {
 	ClientSet() (*clientset.Clientset, error)
 	IgnorePreflightErrors() sets.String
 	OutputWriter() io.Writer
+	KustomizeDir() string
 	PatchesDir() string
 }

@@ -17,8 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
-	kubeadm "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	conversion "k8s.io/apimachinery/pkg/conversion"
+	kubeadm "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func Convert_kubeadm_InitConfiguration_To_v1beta2_InitConfiguration(in *kubeadm.InitConfiguration, out *InitConfiguration, s conversion.Scope) error {

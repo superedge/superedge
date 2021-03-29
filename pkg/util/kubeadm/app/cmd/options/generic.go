@@ -17,12 +17,13 @@ limitations under the License.
 package options
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/spf13/pflag"
+	cliflag "k8s.io/component-base/cli/flag"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/features"
-	cliflag "k8s.io/component-base/cli/flag"
 )
 
 // AddKubeConfigFlag adds the --kubeconfig flag to the given flagset
@@ -87,6 +88,12 @@ func AddKubeadmOtherFlags(flagSet *pflag.FlagSet, rootfsPath *string) {
 		rootfsPath, "rootfs", *rootfsPath,
 		"[EXPERIMENTAL] The path to the 'real' host root filesystem.",
 	)
+}
+
+// AddKustomizePodsFlag adds the --kustomize flag to the given flagset
+func AddKustomizePodsFlag(fs *pflag.FlagSet, kustomizeDir *string) {
+	fs.StringVarP(kustomizeDir, Kustomize, "k", *kustomizeDir, "The path where kustomize patches for static pod manifests are stored.")
+	fs.MarkDeprecated(Kustomize, fmt.Sprintf("This flag is deprecated and will be removed in a future version. Please use %s instead.", Patches))
 }
 
 // AddPatchesFlag adds the --patches flag to the given flagset

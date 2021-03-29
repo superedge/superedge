@@ -24,9 +24,9 @@ import (
 	"path"
 	"testing"
 
-	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 )
 
 // SetupCertificateAuthority is a utility function for kubeadm testing that creates a

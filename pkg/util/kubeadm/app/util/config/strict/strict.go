@@ -19,10 +19,10 @@ package strict
 import (
 	"github.com/pkg/errors"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
 	"sigs.k8s.io/yaml"
 )
 

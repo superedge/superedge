@@ -26,11 +26,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +34,11 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/componentconfigs"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 )
 
 // unretriableError is an error used temporarily while we are migrating from the
@@ -63,7 +63,7 @@ func (ue *unretriableError) Error() string {
 // FetchInitConfigurationFromCluster fetches configuration from a ConfigMap in the cluster
 func FetchInitConfigurationFromCluster(client clientset.Interface, w io.Writer, logPrefix string, newControlPlane, skipComponentConfigs bool) (*kubeadmapi.InitConfiguration, error) {
 	fmt.Fprintf(w, "[%s] Reading configuration from the cluster...\n", logPrefix)
-	fmt.Fprintf(w, "[%s] FYI: You can look at this config file with 'kubectl -n %s get cm %s -o yaml'\n", logPrefix, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
+	fmt.Fprintf(w, "[%s] FYI: You can look at this config file with 'kubectl -n %s get cm %s -oyaml'\n", logPrefix, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
 
 	// Fetch the actual config from cluster
 	cfg, err := getInitConfigurationFromCluster(constants.KubernetesDir, client, newControlPlane, skipComponentConfigs)

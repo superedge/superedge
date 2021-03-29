@@ -23,8 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -32,6 +30,8 @@ import (
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 // MarshalToYaml marshals an object into yaml.

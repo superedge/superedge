@@ -17,8 +17,8 @@ limitations under the License.
 package phases
 
 import (
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"k8s.io/component-base/version"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 // SetKubernetesVersion gets the current Kubeadm version and sets it as KubeadmVersion in the config,

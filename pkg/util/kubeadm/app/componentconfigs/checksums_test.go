@@ -19,9 +19,9 @@ package componentconfigs
 import (
 	"testing"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 var checksumTestCases = []struct {

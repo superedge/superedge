@@ -27,6 +27,7 @@ import (
 	"io"
 	"k8s.io/klog/v2"
 	"os"
+	"path"
 	"path/filepath"
 	"text/template"
 
@@ -62,10 +63,6 @@ var (
 		  mkdir -p $HOME/.kube
 		  sudo cp -i {{.KubeConfigPath}} $HOME/.kube/config
 		  sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-		Alternatively, if you are the root user, you can run:
-
-		  export KUBECONFIG=/etc/kubernetes/admin.conf
 
 		You should now deploy a pod network to the cluster.
 		Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
@@ -115,6 +112,7 @@ type initOptions struct {
 	externalClusterCfg      *kubeadmapiv1beta2.ClusterConfiguration
 	uploadCerts             bool
 	skipCertificateKeyPrint bool
+	kustomizeDir            string
 	patchesDir              string
 
 	// edgeadm add flags
@@ -140,10 +138,11 @@ type initData struct {
 	outputWriter            io.Writer
 	uploadCerts             bool
 	skipCertificateKeyPrint bool
+	kustomizeDir            string
 	patchesDir              string
 }
 
-// newCmdInit returns "kubeadm init" command.
+// NewCmdInit returns "kubeadm init" command.
 // NB. initOptions is exposed as parameter for allowing unit testing of
 // the newInitOptions method, that implements all the command options validation logic
 func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
@@ -235,7 +234,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 
 	// deploy edge apps
 	if initOptions.edgaadm.isEnableEdge { //todo shubiao
-		initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
+		//initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
 	}
 
 	// sets the data builder function, that will be used by the runner
@@ -260,9 +259,6 @@ func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmInitOption
 }
 
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {
-	// edgeadm flagSet config
-	edgaadm := initOptions.edgaadm
-
 	// edgeadm default value
 	initOptions.externalClusterCfg.APIServer.ExtraArgs = map[string]string{
 		"kubelet-preferred-address-types": "Hostname",
@@ -285,7 +281,9 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	if initOptions.patchesDir == "" {
-		initOptions.patchesDir = edgaadm.workerPath + constant.PatchDir
+		patchDir := initOptions.kubeconfigDir + constant.PatchDir
+		os.MkdirAll(path.Dir(patchDir), 0755)
+		initOptions.patchesDir = patchDir
 	}
 	if err := util.WriteFile(initOptions.patchesDir+constant.KubeAPIServerPatch, string(kubeAPIServerPatch)); err != nil {
 		klog.Errorf("Write file: %s, error: %v", constant.KubeAPIServerPatch, err)
@@ -373,7 +371,8 @@ func AddInitOtherFlags(flagSet *flag.FlagSet, initOptions *initOptions) {
 		&initOptions.skipCertificateKeyPrint, options.SkipCertificateKeyPrint, initOptions.skipCertificateKeyPrint,
 		"Don't print the key used to encrypt the control-plane certificates.",
 	)
-	options.AddPatchesFlag(flagSet, &initOptions.patchesDir) //todo patch
+	options.AddKustomizePodsFlag(flagSet, &initOptions.kustomizeDir)
+	options.AddPatchesFlag(flagSet, &initOptions.patchesDir)
 }
 
 // newInitOptions returns a struct ready for being used for creating cmd init flags.
@@ -509,6 +508,7 @@ func newInitData(cmd *cobra.Command, args []string, options *initOptions, out io
 		outputWriter:            out,
 		uploadCerts:             options.uploadCerts,
 		skipCertificateKeyPrint: options.skipCertificateKeyPrint,
+		kustomizeDir:            options.kustomizeDir,
 		patchesDir:              options.patchesDir,
 	}, nil
 }
@@ -640,6 +640,11 @@ func (d *initData) Tokens() []string {
 		tokens = append(tokens, bt.Token.String())
 	}
 	return tokens
+}
+
+// KustomizeDir returns the folder where kustomize patches for static pod manifest are stored
+func (d *initData) KustomizeDir() string {
+	return d.kustomizeDir
 }
 
 // PatchesDir returns the folder where patches for components are stored

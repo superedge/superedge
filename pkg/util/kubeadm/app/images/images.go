@@ -19,10 +19,10 @@ package images
 import (
 	"fmt"
 
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"k8s.io/klog/v2"
 )
 
 const extraHyperKubeNote = ` The "useHyperKubeImage" field will be removed from future kubeadm config versions and possibly ignored in future releases.`

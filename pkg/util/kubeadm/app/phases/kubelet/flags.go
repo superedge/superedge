@@ -25,11 +25,11 @@ import (
 
 	"github.com/pkg/errors"
 
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/images"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"k8s.io/klog/v2"
 )
 
 type kubeletFlagsOpts struct {

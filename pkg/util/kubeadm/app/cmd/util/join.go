@@ -23,10 +23,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pubkeypin"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcertutil "k8s.io/client-go/util/cert"
+	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pubkeypin"
 )
 
 var joinCommandTemplate = template.Must(template.New("join").Parse(`` +

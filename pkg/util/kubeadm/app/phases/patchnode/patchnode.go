@@ -17,11 +17,11 @@ limitations under the License.
 package patchnode
 
 import (
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 )
 
 // AnnotateCRISocket annotates the node with the given crisocket

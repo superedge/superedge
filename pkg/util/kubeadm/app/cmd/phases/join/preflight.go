@@ -23,13 +23,13 @@ import (
 
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/preflight"
-	"k8s.io/klog/v2"
 	utilsexec "k8s.io/utils/exec"
 )
 

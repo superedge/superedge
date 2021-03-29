@@ -24,8 +24,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/validation"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	utilsnet "k8s.io/utils/net"
 )
 

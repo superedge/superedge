@@ -17,10 +17,10 @@ limitations under the License.
 package resources
 
 import (
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 )
 
 // FakeConfigMap represents a fake config map

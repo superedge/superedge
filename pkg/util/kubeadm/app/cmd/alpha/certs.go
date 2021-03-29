@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/duration"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -39,7 +40,6 @@ import (
 	kubeconfigphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/kubeconfig"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 var (
@@ -90,8 +90,8 @@ var (
 `)
 )
 
-// NewCmdCertsUtility returns main command for certs phase
-func NewCmdCertsUtility(out io.Writer) *cobra.Command {
+// newCmdCertsUtility returns main command for certs phase
+func newCmdCertsUtility(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "certs",
 		Aliases: []string{"certificates"},
@@ -100,8 +100,8 @@ func NewCmdCertsUtility(out io.Writer) *cobra.Command {
 
 	cmd.AddCommand(newCmdCertsRenewal(out))
 	cmd.AddCommand(newCmdCertsExpiration(out, constants.KubernetesDir))
-	cmd.AddCommand(newCmdCertificateKey())
-	cmd.AddCommand(newCmdGenCSR(out))
+	cmd.AddCommand(NewCmdCertificateKey())
+	cmd.AddCommand(newCmdGenCSR())
 	return cmd
 }
 
@@ -147,7 +147,7 @@ func (o *genCSRConfig) load() (err error) {
 }
 
 // newCmdGenCSR returns cobra.Command for generating keys and CSRs
-func newCmdGenCSR(out io.Writer) *cobra.Command {
+func newCmdGenCSR() *cobra.Command {
 	config := newGenCSRConfig()
 
 	cmd := &cobra.Command{
@@ -160,7 +160,7 @@ func newCmdGenCSR(out io.Writer) *cobra.Command {
 			if err := config.load(); err != nil {
 				return err
 			}
-			return runGenCSR(out, config)
+			return runGenCSR(config)
 		},
 	}
 	config.addFlagSet(cmd.Flags())
@@ -168,18 +168,18 @@ func newCmdGenCSR(out io.Writer) *cobra.Command {
 }
 
 // runGenCSR contains the logic of the generate-csr sub-command.
-func runGenCSR(out io.Writer, config *genCSRConfig) error {
-	if err := certsphase.CreateDefaultKeysAndCSRFiles(out, config.kubeadmConfig); err != nil {
+func runGenCSR(config *genCSRConfig) error {
+	if err := certsphase.CreateDefaultKeysAndCSRFiles(config.kubeadmConfig); err != nil {
 		return err
 	}
-	if err := kubeconfigphase.CreateDefaultKubeConfigsAndCSRFiles(out, config.kubeConfigDir, config.kubeadmConfig); err != nil {
+	if err := kubeconfigphase.CreateDefaultKubeConfigsAndCSRFiles(config.kubeConfigDir, config.kubeadmConfig); err != nil {
 		return err
 	}
 	return nil
 }
 
-// newCmdCertificateKey returns cobra.Command for certificate key generate
-func newCmdCertificateKey() *cobra.Command {
+// NewCmdCertificateKey returns cobra.Command for certificate key generate
+func NewCmdCertificateKey() *cobra.Command {
 	return &cobra.Command{
 		Use:   "certificate-key",
 		Short: "Generate certificate keys",
@@ -286,7 +286,6 @@ func getRenewSubCommands(out io.Writer, kdir string) []*cobra.Command {
 					return err
 				}
 			}
-			fmt.Printf("\nDone renewing certificates. You must restart the kube-apiserver, kube-controller-manager, kube-scheduler and etcd, so that they can use the new certificates.\n")
 			return nil
 		},
 		Args: cobra.NoArgs,

@@ -26,11 +26,11 @@ import (
 	"testing"
 	"time"
 
+	certutil "k8s.io/client-go/util/cert"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	certtestutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/certs"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
-	certutil "k8s.io/client-go/util/cert"
 )
 
 var (
