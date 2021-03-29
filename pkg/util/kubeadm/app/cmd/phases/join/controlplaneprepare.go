@@ -22,6 +22,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
@@ -31,8 +33,6 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/copycerts"
 	kubeconfigphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/kubeconfig"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 var controlPlanePrepareExample = cmdutil.Examples(`
@@ -78,6 +78,7 @@ func getControlPlanePreparePhaseFlags(name string) []string {
 			options.TLSBootstrapToken,
 			options.TokenStr,
 			options.CertificateKey,
+			options.Kustomize,
 			options.Patches,
 		}
 	case "download-certs":
@@ -123,6 +124,7 @@ func getControlPlanePreparePhaseFlags(name string) []string {
 			options.APIServerBindPort,
 			options.CfgPath,
 			options.ControlPlane,
+			options.Kustomize,
 			options.Patches,
 		}
 	default:
@@ -189,6 +191,7 @@ func runControlPlanePrepareControlPlaneSubphase(c workflow.RunData) error {
 		fmt.Printf("[control-plane] Creating static Pod manifest for %q\n", component)
 		err := controlplane.CreateStaticPodFiles(
 			kubeadmconstants.GetStaticPodDirectory(),
+			data.KustomizeDir(),
 			data.PatchesDir(),
 			&cfg.ClusterConfiguration,
 			&cfg.LocalAPIEndpoint,

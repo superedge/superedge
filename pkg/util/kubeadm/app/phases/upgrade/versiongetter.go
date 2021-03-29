@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 
-	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/component-base/version"
+	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 )
 
 // VersionGetter defines an interface for fetching different versions.

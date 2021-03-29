@@ -17,6 +17,8 @@ limitations under the License.
 package componentconfigs
 
 import (
+	"sort"
+
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -336,7 +338,13 @@ func GetVersionStates(clusterCfg *kubeadmapi.ClusterConfiguration, client client
 }
 
 // Validate is a placeholder for performing a validation on an already loaded component configs in a ClusterConfiguration
-// TODO: investigate if the function can be repurposed for validating component config via CLI
+// Currently it prints a warning that no validation was performed
 func Validate(clusterCfg *kubeadmapi.ClusterConfiguration) field.ErrorList {
+	groups := []string{}
+	for group := range clusterCfg.ComponentConfigs {
+		groups = append(groups, group)
+	}
+	sort.Strings(groups) // The sort is needed to make the output predictable
+	klog.Warningf("WARNING: kubeadm cannot validate component configs for API groups %v", groups)
 	return field.ErrorList{}
 }

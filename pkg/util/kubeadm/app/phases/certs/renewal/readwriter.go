@@ -24,12 +24,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	certsphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
-	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+	certsphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/certs"
+	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 )
 
 // certificateReadWriter defines the behavior of a component that

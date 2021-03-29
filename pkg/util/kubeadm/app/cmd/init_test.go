@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 )
 
 const (
@@ -153,7 +153,7 @@ func TestNewInitData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// initialize an external init option and inject it to the init cmd
 			initOptions := newInitOptions()
-			cmd := newCmdInit(nil, initOptions)
+			cmd := NewCmdInit(nil, initOptions)
 
 			// sets cmd flags (that will be reflected on the init options)
 			for f, v := range tc.flags {

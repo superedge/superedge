@@ -24,10 +24,6 @@ import (
 	"regexp"
 	"testing"
 
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
-	outputapischeme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output/scheme"
-	outputapiv1alpha1 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output/v1alpha1"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/output"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +31,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/clientcmd"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
+	outputapischeme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output/scheme"
+	outputapiv1alpha1 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output/v1alpha1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/output"
 )
 
 const (
@@ -186,7 +186,7 @@ func TestNewCmdTokenGenerate(t *testing.T) {
 	var buf bytes.Buffer
 	args := []string{}
 
-	cmd := newCmdTokenGenerate(&buf)
+	cmd := NewCmdTokenGenerate(&buf)
 	cmd.SetArgs(args)
 
 	if err := cmd.Execute(); err != nil {
@@ -242,8 +242,8 @@ func TestNewCmdToken(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// the command is created for each test so that the kubeConfigFile
-			// variable in newCmdToken() is reset.
-			cmd := newCmdToken(&buf, &bufErr)
+			// variable in NewCmdToken() is reset.
+			cmd := NewCmdToken(&buf, &bufErr)
 			if _, err = f.WriteString(tc.configToWrite); err != nil {
 				t.Errorf("Unable to write test file %q: %v", fullPath, err)
 			}
@@ -255,7 +255,7 @@ func TestNewCmdToken(t *testing.T) {
 			cmd.SetArgs(tc.args)
 			err := cmd.Execute()
 			if (err != nil) != tc.expectedError {
-				t.Errorf("Test case %q: newCmdToken expected error: %v, saw: %v", tc.name, tc.expectedError, (err != nil))
+				t.Errorf("Test case %q: NewCmdToken expected error: %v, saw: %v", tc.name, tc.expectedError, (err != nil))
 			}
 			// restore the environment variable.
 			os.Setenv(clientcmd.RecommendedConfigPathEnvVar, storedEnv)

@@ -31,15 +31,15 @@ func TestNewCmdCompletion(t *testing.T) {
 	if len(shells) == 0 {
 		t.Errorf(shellsError)
 	}
-	// test newCmdCompletion with a valid shell.
-	// use a dummy parent command as newCmdCompletion needs it.
+	// test NewCmdCompletion with a valid shell.
+	// use a dummy parent command as NewCmdCompletion needs it.
 	parentCmd := &cobra.Command{}
 	args := []string{"completion", shells[0]}
 	parentCmd.SetArgs(args)
-	cmd := newCmdCompletion(&out, "")
+	cmd := NewCmdCompletion(&out, "")
 	parentCmd.AddCommand(cmd)
 	if err := parentCmd.Execute(); err != nil {
-		t.Errorf("Cannot exectute newCmdCompletion: %v", err)
+		t.Errorf("Cannot exectute NewCmdCompletion: %v", err)
 	}
 }
 

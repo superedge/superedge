@@ -31,13 +31,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
+	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	certstestutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/certs"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
-	certutil "k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/keyutil"
 )
 
 func createTestCSR(t *testing.T) (*x509.CertificateRequest, crypto.Signer) {
@@ -707,7 +707,7 @@ func TestValidateMethods(t *testing.T) {
 }
 
 func TestNewCSR(t *testing.T) {
-	kubeadmCert := KubeadmCertAPIServer()
+	kubeadmCert := KubeadmCertAPIServer
 	cfg := testutil.GetDefaultInternalConfig(t)
 
 	certConfig, err := kubeadmCert.GetConfig(cfg)
@@ -715,7 +715,7 @@ func TestNewCSR(t *testing.T) {
 		t.Fatalf("couldn't get cert config: %v", err)
 	}
 
-	csr, _, err := NewCSR(kubeadmCert, cfg)
+	csr, _, err := NewCSR(&kubeadmCert, cfg)
 
 	if err != nil {
 		t.Errorf("invalid signature on CSR: %v", err)

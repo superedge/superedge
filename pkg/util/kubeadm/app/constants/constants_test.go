@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/version"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func TestGetStaticPodDirectory(t *testing.T) {

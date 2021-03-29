@@ -18,11 +18,11 @@ package fuzzer
 
 import (
 	fuzz "github.com/google/gofuzz"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 // Funcs returns the fuzzer functions for the kubeadm apis.

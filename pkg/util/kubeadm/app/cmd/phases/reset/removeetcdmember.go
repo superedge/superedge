@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	etcdphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/etcd"
 	utilstaticpod "github.com/superedge/superedge/pkg/util/kubeadm/app/util/staticpod"
-	"k8s.io/klog/v2"
 )
 
 // NewRemoveETCDMemberPhase creates a kubeadm workflow phase for remove-etcd-member

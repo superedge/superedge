@@ -29,11 +29,11 @@ import (
 	componentbaseconfig "k8s.io/component-base/config/v1alpha1"
 	kubeproxyconfig "k8s.io/kube-proxy/config/v1alpha1"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/features"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func testKubeProxyConfigMap(contents string) *v1.ConfigMap {

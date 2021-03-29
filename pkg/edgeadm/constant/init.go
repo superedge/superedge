@@ -57,7 +57,6 @@ const (
 	InstallBin = InstallDir + "bin/"
 
 	InstallConf = InstallDir + "conf/"
-	PatchDir    = InstallConf + "patch/"
 	SysctlConf  = InstallConf + "sysctl.conf"
 
 	InstallContainer = InstallDir + "container/"
@@ -71,6 +70,10 @@ const (
 	PreInstallHook       = HooksDir + "pre-install"
 	PostClusterReadyHook = HooksDir + "post-cluster-ready"
 	PostInstallHook      = HooksDir + "post-install"
+)
+
+const(
+	PatchDir = "/patch/"
 )
 
 const (
@@ -92,10 +95,11 @@ const (
 	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
 )
 
-const KubeAPIServerPatch = "kube-apiserver-ptach.yaml"
+const KubeAPIServerPatch = "kube-apiserver0+merge.yaml"
 const KubeAPIServerPatchYaml = `
 apiVersion: v1
 kind: Pod
+metadata:
   name: kube-apiserver
   namespace: kube-system
 spec:

@@ -9,7 +9,7 @@ import (
 
 func UnzipPackage(srcPackage, dstPath string) error {
 	if strings.Contains(srcPackage, "http") {
-		downloadPackage := fmt.Sprintf("rm %s && wget srcPackage -O %s", constant.TMPPackgePath, constant.TMPPackgePath)
+		downloadPackage := fmt.Sprintf("rm -rf %s && wget --progress=dot:giga %s -O %s", constant.TMPPackgePath, srcPackage, constant.TMPPackgePath)
 		if _, _, err := util.RunLinuxCommand(downloadPackage); err != nil {
 			return err
 		}

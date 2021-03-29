@@ -27,6 +27,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -39,11 +44,6 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery"
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -124,11 +124,12 @@ var (
 // supported by this api will be exposed as a flag.
 type joinOptions struct {
 	cfgPath               string
-	token                 string `datapolicy:"token"`
+	token                 string
 	controlPlane          bool
 	ignorePreflightErrors []string
 	externalcfg           *kubeadmapiv1beta2.JoinConfiguration
 	joinControlPlane      *kubeadmapiv1beta2.JoinControlPlane
+	kustomizeDir          string
 	patchesDir            string
 }
 
@@ -144,13 +145,14 @@ type joinData struct {
 	clientSet             *clientset.Clientset
 	ignorePreflightErrors sets.String
 	outputWriter          io.Writer
+	kustomizeDir          string
 	patchesDir            string
 }
 
-// newCmdJoin returns "kubeadm join" command.
+// NewCmdJoin returns "kubeadm join" command.
 // NB. joinOptions is exposed as parameter for allowing unit testing of
 //     the newJoinData method, that implements all the command options validation logic
-func newCmdJoin(out io.Writer, joinOptions *joinOptions) *cobra.Command {
+func NewCmdJoin(out io.Writer, joinOptions *joinOptions) *cobra.Command {
 	if joinOptions == nil {
 		joinOptions = newJoinOptions()
 	}
@@ -285,6 +287,7 @@ func addJoinOtherFlags(flagSet *flag.FlagSet, joinOptions *joinOptions) {
 		&joinOptions.controlPlane, options.ControlPlane, joinOptions.controlPlane,
 		"Create a new control plane instance on this node",
 	)
+	options.AddKustomizePodsFlag(flagSet, &joinOptions.kustomizeDir)
 	options.AddPatchesFlag(flagSet, &joinOptions.patchesDir)
 }
 
@@ -440,6 +443,7 @@ func newJoinData(cmd *cobra.Command, args []string, opt *joinOptions, out io.Wri
 		tlsBootstrapCfg:       tlsBootstrapCfg,
 		ignorePreflightErrors: ignorePreflightErrorsSet,
 		outputWriter:          out,
+		kustomizeDir:          opt.kustomizeDir,
 		patchesDir:            opt.patchesDir,
 	}, nil
 }
@@ -504,6 +508,11 @@ func (j *joinData) IgnorePreflightErrors() sets.String {
 // OutputWriter returns the io.Writer used to write messages such as the "join done" message.
 func (j *joinData) OutputWriter() io.Writer {
 	return j.outputWriter
+}
+
+// KustomizeDir returns the folder where kustomize patches for static pod manifest are stored
+func (j *joinData) KustomizeDir() string {
+	return j.kustomizeDir
 }
 
 // PatchesDir returns the folder where patches for components are stored

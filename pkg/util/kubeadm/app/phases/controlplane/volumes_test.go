@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"k8s.io/api/core/v1"
 )
 
 func TestGetEtcdCertVolumes(t *testing.T) {

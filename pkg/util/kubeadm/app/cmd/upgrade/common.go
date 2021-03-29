@@ -28,6 +28,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/validation"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
@@ -41,12 +47,6 @@ import (
 	configutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/config"
 	dryrunutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/dryrun"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-	fakediscovery "k8s.io/client-go/discovery/fake"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 // isKubeadmConfigPresent checks if a kubeadm config type is found in the provided document map

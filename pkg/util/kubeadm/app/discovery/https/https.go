@@ -21,10 +21,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery/file"
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/discovery/file"
 )
 
 // RetrieveValidatedConfigInfo connects to the API Server and makes sure it can talk

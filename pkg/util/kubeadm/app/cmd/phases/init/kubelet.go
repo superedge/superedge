@@ -20,11 +20,11 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 	kubeletphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/kubelet"
-	"k8s.io/klog/v2"
 )
 
 var (

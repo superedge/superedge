@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/pflag"
 
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 )
 
 // NewBootstrapTokenOptions creates a new BootstrapTokenOptions object with the default values
@@ -39,7 +39,7 @@ func NewBootstrapTokenOptions() *BootstrapTokenOptions {
 // TODO: In the future, we might want to group the flags in a better way than adding them all individually like this
 type BootstrapTokenOptions struct {
 	*kubeadmapiv1beta2.BootstrapToken
-	TokenStr string `datapolicy:"token"`
+	TokenStr string
 }
 
 // AddTokenFlag adds the --token flag to the given flagset

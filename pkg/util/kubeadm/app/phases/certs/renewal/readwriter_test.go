@@ -24,13 +24,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/client-go/tools/clientcmd"
+	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
 	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
-	"k8s.io/client-go/tools/clientcmd"
-	certutil "k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/keyutil"
 )
 
 func TestPKICertificateReadWriter(t *testing.T) {

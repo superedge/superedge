@@ -19,8 +19,8 @@ package fuzzer
 import (
 	"testing"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	"k8s.io/apimachinery/pkg/api/apitesting/roundtrip"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 )
 
 func TestRoundTripTypes(t *testing.T) {

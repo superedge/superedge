@@ -22,13 +22,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/klog/v2"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/initsystem"
 	utilruntime "github.com/superedge/superedge/pkg/util/kubeadm/app/util/runtime"
-	"k8s.io/klog/v2"
 	utilsexec "k8s.io/utils/exec"
 )
 

@@ -29,6 +29,8 @@ import (
 
 	"github.com/lithammer/dedent"
 
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
@@ -36,8 +38,6 @@ import (
 	pkiutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 	testutil "github.com/superedge/superedge/pkg/util/kubeadm/test"
 	kubeconfigtestutil "github.com/superedge/superedge/pkg/util/kubeadm/test/kubeconfig"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func TestGetKubeConfigSpecsFailsIfCADoesntExists(t *testing.T) {

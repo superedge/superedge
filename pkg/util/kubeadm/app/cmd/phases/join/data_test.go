@@ -19,10 +19,10 @@ package phases
 import (
 	"io"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 // a package local type for testing purposes.
@@ -38,4 +38,5 @@ func (j *testJoinData) InitCfg() (*kubeadmapi.InitConfiguration, error) { return
 func (j *testJoinData) ClientSet() (*clientset.Clientset, error)        { return nil, nil }
 func (j *testJoinData) IgnorePreflightErrors() sets.String              { return nil }
 func (j *testJoinData) OutputWriter() io.Writer                         { return nil }
+func (j *testJoinData) KustomizeDir() string                            { return "" }
 func (j *testJoinData) PatchesDir() string                              { return "" }

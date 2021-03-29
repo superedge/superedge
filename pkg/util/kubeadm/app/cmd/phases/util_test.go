@@ -19,8 +19,8 @@ package phases
 import (
 	"testing"
 
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"k8s.io/component-base/version"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 func TestSetKubernetesVersion(t *testing.T) {

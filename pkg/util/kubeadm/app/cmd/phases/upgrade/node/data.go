@@ -17,9 +17,9 @@ limitations under the License.
 package node
 
 import (
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 // Data is the interface to use for kubeadm upgrade node phases.
@@ -28,9 +28,11 @@ type Data interface {
 	EtcdUpgrade() bool
 	RenewCerts() bool
 	DryRun() bool
+	KubeletVersion() string
 	Cfg() *kubeadmapi.InitConfiguration
 	IsControlPlaneNode() bool
 	Client() clientset.Interface
 	IgnorePreflightErrors() sets.String
+	KustomizeDir() string
 	PatchesDir() string
 }

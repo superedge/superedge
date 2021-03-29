@@ -19,9 +19,9 @@ package phases
 import (
 	"io"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 // InitData is the interface to use for init phases.
@@ -45,5 +45,6 @@ type InitData interface {
 	OutputWriter() io.Writer
 	Client() (clientset.Interface, error)
 	Tokens() []string
+	KustomizeDir() string
 	PatchesDir() string
 }

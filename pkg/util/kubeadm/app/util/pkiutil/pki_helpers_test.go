@@ -29,8 +29,8 @@ import (
 	"reflect"
 	"testing"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	certutil "k8s.io/client-go/util/cert"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 )
 
 func TestNewCertificateAuthority(t *testing.T) {

@@ -23,14 +23,14 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	testresources "github.com/superedge/superedge/pkg/util/kubeadm/test/resources"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	testresources "github.com/superedge/superedge/pkg/util/kubeadm/test/resources"
 )
 
 func testGetURL(t *testing.T, getURLFunc func(*kubeadmapi.APIEndpoint) string, port int) {

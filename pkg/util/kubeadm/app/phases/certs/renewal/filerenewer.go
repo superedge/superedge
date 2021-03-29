@@ -23,13 +23,13 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/pkiutil"
 )
 
-// FileRenewer define a certificate renewer implementation that uses given CA cert and key for generating new certificates
+// FileRenewer define a certificate renewer implementation that uses given CA cert and key for generating new certficiates
 type FileRenewer struct {
 	caCert *x509.Certificate
 	caKey  crypto.Signer
 }
 
-// NewFileRenewer returns a new certificate renewer that uses given CA cert and key for generating new certificates
+// NewFileRenewer returns a new certificate renewer that uses given CA cert and key for generating new certficiates
 func NewFileRenewer(caCert *x509.Certificate, caKey crypto.Signer) *FileRenewer {
 	return &FileRenewer{
 		caCert: caCert,

@@ -24,13 +24,13 @@ import (
 	"strings"
 	"testing"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 type fakeVersionGetter struct {

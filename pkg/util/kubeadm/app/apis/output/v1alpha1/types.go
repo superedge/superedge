@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

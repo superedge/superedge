@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -255,7 +255,7 @@ func TestNewJoinData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// initialize an external join option and inject it to the join cmd
 			joinOptions := newJoinOptions()
-			cmd := newCmdJoin(nil, joinOptions)
+			cmd := NewCmdJoin(nil, joinOptions)
 
 			// sets cmd flags (that will be reflected on the join options)
 			for f, v := range tc.flags {

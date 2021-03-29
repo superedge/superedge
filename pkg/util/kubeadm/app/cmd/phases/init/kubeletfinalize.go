@@ -22,13 +22,13 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	clientcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	cmdutil "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/util"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeletphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/kubelet"
-	clientcmd "k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 )
 
 var (

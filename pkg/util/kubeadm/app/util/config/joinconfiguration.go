@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
@@ -27,8 +29,6 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/config/strict"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
 )
 
 // SetJoinDynamicDefaults checks and sets configuration values for the JoinConfiguration object

@@ -25,15 +25,15 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	netutil "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/version"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	netutil "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/apimachinery/pkg/util/version"
 )
 
 // MarshalKubeadmConfigObject marshals an Object registered in the kubeadm scheme. If the object is a InitConfiguration or ClusterConfiguration, some extra logic is run

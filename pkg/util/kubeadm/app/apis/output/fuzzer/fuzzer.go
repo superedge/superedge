@@ -20,10 +20,10 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
-	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	kubeadmapiv1beta2 "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm/v1beta2"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/apis/output"
 )
 
 // Funcs returns the fuzzer functions for the kubeadm apis.

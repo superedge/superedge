@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	clientsetretry "k8s.io/client-go/util/retry"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 )
 
 // ConfigMapMutator is a function that mutates the given ConfigMap and optionally returns an error

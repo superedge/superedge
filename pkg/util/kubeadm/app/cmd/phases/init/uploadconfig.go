@@ -20,6 +20,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
@@ -28,9 +31,6 @@ import (
 	kubeletphase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/kubelet"
 	patchnodephase "github.com/superedge/superedge/pkg/util/kubeadm/app/phases/patchnode"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/uploadconfig"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 var (

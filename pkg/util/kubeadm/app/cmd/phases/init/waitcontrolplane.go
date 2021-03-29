@@ -25,12 +25,12 @@ import (
 
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/apiclient"
 	dryrunutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/dryrun"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 var (

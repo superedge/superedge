@@ -19,11 +19,11 @@ package componentconfigs
 import (
 	"path/filepath"
 
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/initsystem"
 	"k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/util/initsystem"
 	utilsexec "k8s.io/utils/exec"
 	utilpointer "k8s.io/utils/pointer"
 

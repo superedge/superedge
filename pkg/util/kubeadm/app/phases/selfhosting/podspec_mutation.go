@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	v1 "k8s.io/api/core/v1"
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	kubeadmutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -85,22 +85,21 @@ func mutatePodSpec(mutators map[string][]PodSpecMutatorFunc, name string, podSpe
 // addNodeSelectorToPodSpec makes Pod require to be scheduled on a node marked with the control-plane label
 func addNodeSelectorToPodSpec(podSpec *v1.PodSpec) {
 	if podSpec.NodeSelector == nil {
-		podSpec.NodeSelector = map[string]string{kubeadmconstants.LabelNodeRoleOldControlPlane: ""}
+		podSpec.NodeSelector = map[string]string{kubeadmconstants.LabelNodeRoleMaster: ""}
 		return
 	}
 
-	podSpec.NodeSelector[kubeadmconstants.LabelNodeRoleOldControlPlane] = ""
+	podSpec.NodeSelector[kubeadmconstants.LabelNodeRoleMaster] = ""
 }
 
 // setControlPlaneTolerationOnPodSpec makes the Pod tolerate the control-plane taint
 func setControlPlaneTolerationOnPodSpec(podSpec *v1.PodSpec) {
 	if podSpec.Tolerations == nil {
-		// TODO: https://github.com/kubernetes/kubeadm/issues/2200
-		podSpec.Tolerations = []v1.Toleration{kubeadmconstants.OldControlPlaneToleration}
+		podSpec.Tolerations = []v1.Toleration{kubeadmconstants.ControlPlaneToleration}
 		return
 	}
 
-	podSpec.Tolerations = append(podSpec.Tolerations, kubeadmconstants.OldControlPlaneToleration)
+	podSpec.Tolerations = append(podSpec.Tolerations, kubeadmconstants.ControlPlaneToleration)
 }
 
 // setHostIPOnPodSpec sets the environment variable HOST_IP using downward API

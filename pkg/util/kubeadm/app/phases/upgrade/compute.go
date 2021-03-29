@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"strings"
 
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/addons/dns"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	"github.com/superedge/superedge/pkg/util/kubeadm/app/phases/addons/dns"
 )
 
 // Upgrade defines an upgrade possibility to upgrade from a current version to a new one
