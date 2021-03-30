@@ -47,7 +47,7 @@ func ReadYaml(intputPath, defaults string) string {
 	return yaml
 }
 
-func CreateByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
+func CreateByYamlFile(clientSet kubernetes.Interface, yamlFile string) error {
 	err := kubeclient.CreateResourceWithFile(clientSet, yamlFile, nil)
 	if err != nil {
 		klog.Errorf("Apply yaml: %s, error: %v", yamlFile, err)
@@ -56,7 +56,7 @@ func CreateByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
 	return nil
 }
 
-func DeleteByYamlFile(clientSet *kubernetes.Clientset, yamlFile string) error {
+func DeleteByYamlFile(clientSet kubernetes.Interface, yamlFile string) error {
 	err := kubeclient.DeleteResourceWithFile(clientSet, yamlFile, nil)
 	if err != nil {
 		klog.Errorf("Delete yaml: %s, error: %v", yamlFile, err)

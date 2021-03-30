@@ -20,8 +20,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"net"
 
 	"io/ioutil"
+	k8scert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -100,4 +102,47 @@ func GetRootCartAndKey(certPath, keyPath string) ([]byte, []byte, error) {
 	}
 
 	return ca, key, nil
+}
+
+func GetServiceCert(commonName, caCertFile, caKeyFile string, dns []string, ips []string) ([]byte, []byte, error) {
+	caCert, caKey, err := GetCertAndKey(caCertFile, caKeyFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	certIps := []net.IP{net.ParseIP("127.0.0.1")}
+	for _, ip := range ips {
+		certIps = append(certIps, net.ParseIP(ip))
+	}
+	serverCert, serverKey, err := util.GenerateCertAndKeyConfig(caCert, caKey, &k8scert.Config{
+		CommonName:   commonName,
+		Organization: []string{"superedge"},
+		AltNames: k8scert.AltNames{
+			DNSNames: dns,
+			IPs:      certIps,
+		},
+		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+	})
+
+	serverCertData := util.EncodeCertPEM(serverCert)
+	serverKeyData, err := keyutil.MarshalPrivateKeyToPEM(serverKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return serverCertData, serverKeyData, err
+}
+
+func GetCertAndKey(caCertFile, caKeyFile string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	caCert, caKey, err := GetRootCartAndKey(caCertFile, caKeyFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, key, err := ParseCertAndKey(caCert, caKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, key, nil
 }
