@@ -33,6 +33,7 @@ const (
 
 const (
 	EDGE_NODE_KEY                 = "superedge.io/edge"
+	EDGE_CHANGE_NODE_KEY          = "superedge.io/change"
 	KUBERNETES_DEFAULT_ROLE_LABEL = "node-role.kubernetes.io/master"
 )
 
