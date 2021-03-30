@@ -19,7 +19,7 @@ package app
 import (
 	"flag"
 	"github.com/spf13/pflag"
-	edgeApps "github.com/superedge/superedge/pkg/edgeadm/cmd/edge-apps"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/addon-edge"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"io"
 	"os"
@@ -71,7 +71,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
 	cmds.AddCommand(initCmd.NewCmdInit(os.Stdout, &edgeadmConf))
-	cmds.AddCommand(edgeApps.NewEdgeApps(os.Stdout, &edgeadmConf))
+	cmds.AddCommand(addon.NewAddonEdgeCMD()) //todo
 	cmds.AddCommand(joinCmd.NewJoinCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
