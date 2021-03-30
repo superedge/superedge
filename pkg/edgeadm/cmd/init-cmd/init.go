@@ -90,11 +90,12 @@ var (
 		`)))
 )
 
-type edgeadmInitOptions struct {
-	isEnableEdge   bool
-	workerPath     string
-	installPkgPath string
-}
+//type EdgeadmInitOptions struct {
+//	//isEnableEdge   bool
+//	//workerPath     string
+//	InstallPkgPath string
+//	ManifestsPath  string
+//}
 
 // initOptions defines all the init options exposed via flags by kubeadm init.
 // Please note that this structure includes the public kubeadm config API, but only a subset of the options
@@ -116,7 +117,7 @@ type initOptions struct {
 	patchesDir              string
 
 	// edgeadm add flags
-	edgaadm *edgeadmInitOptions
+	edgeadmConf *cmd.EdgeadmConfig
 }
 
 // compile-time assert that the local data object satisfies the phases data interface.
@@ -140,6 +141,7 @@ type initData struct {
 	skipCertificateKeyPrint bool
 	kustomizeDir            string
 	patchesDir              string
+	edgeadmConf             *cmd.EdgeadmConfig
 }
 
 // NewCmdInit returns "kubeadm init" command.
@@ -148,7 +150,6 @@ type initData struct {
 func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initOptions := newInitOptions()
 	initRunner := workflow.NewRunner()
-	initOptions.edgaadm = new(edgeadmInitOptions)
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -189,22 +190,23 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	})
 
 	if edgeConfig.IsEnableEdge {
-		addEdgeConfigFlags(cmd.Flags(), initOptions.edgaadm)
-		edgaadm := initOptions.edgaadm
-		edgaadm.workerPath = edgeConfig.WorkerPath
-		edgaadm.isEnableEdge = edgeConfig.IsEnableEdge
+		addEdgeConfigFlags(cmd.Flags(), edgeConfig)
+		//edgaadm := initOptions.edgaadm
+		//edgaadm.workerPath = edgeConfig.WorkerPath
 	}
 
 	// edgeadm default config
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if edgeConfig.IsEnableEdge {
-			edgaadmOption := initOptions.edgaadm
+			//edgaadmOption := initOptions.edgeadm
 			if err := edgeadmConfigUpdate(initOptions, edgeConfig); err != nil {
 				klog.Errorf("Init edgeadm config error: %v", err)
 				return err
 			}
-			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
-				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+
+			initOptions.edgeadmConf = edgeConfig
+			if err := common.UnzipPackage(edgeConfig.InstallPkgPath, edgeConfig.WorkerPath); err != nil {
+				klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 				return err
 			}
 		}
@@ -212,10 +214,10 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	}
 
 	//edgeadm add
-	if initOptions.edgaadm.isEnableEdge { //todo yifan
-		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
-		initRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
-		initRunner.AppendPhase(steps.NewKubeletPhase())   // todo: install kubelet
+	if edgeConfig.IsEnableEdge { //todo
+		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo yifan: init node
+		initRunner.AppendPhase(steps.NewContainerPhase()) // todo shubiao: install container runtime
+		initRunner.AppendPhase(steps.NewKubeletPhase())   // todo shubiao: install kubelet
 	}
 	// initialize the workflow runner with the list of phases
 	initRunner.AppendPhase(phases.NewPreflightPhase())
@@ -233,8 +235,8 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initRunner.AppendPhase(phases.NewAddonPhase())
 
 	// deploy edge apps
-	if initOptions.edgaadm.isEnableEdge { //todo shubiao
-		//initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
+	if edgeConfig.IsEnableEdge { //todo shubiao
+		initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
 	}
 
 	// sets the data builder function, that will be used by the runner
@@ -250,11 +252,15 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	return cmd
 }
 
-func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmInitOptions) {
+func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 	flagSet.StringVar(
-		&edgeadmOptions.installPkgPath, constant.InstallPkgPath,
+		&edgeConfig.InstallPkgPath, constant.InstallPkgPath,
 		"https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
 		"Install static package path of edge kubernetes cluster.",
+	)
+	kskk := ""
+	flagSet.StringVar(
+		&kskk, constant.ManifestsDir, "", "Manifests document of edge kubernetes cluster.",
 	)
 }
 
@@ -266,7 +272,7 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 
 	clusterConfig := initOptions.externalClusterCfg
 	serviceCIDR := clusterConfig.Networking.ServiceSubnet
-	clusterIP, err := common.GetIndexedIP(serviceCIDR, 10)
+	clusterIP, err := common.GetIndexedIP(serviceCIDR, constant.TunnelCoreDNSCIDRIndex)
 	if err != nil {
 		klog.Errorf("Get tunnel-coreDNS ClusterIP, error: %v", err)
 		return err
@@ -289,6 +295,9 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		klog.Errorf("Write file: %s, error: %v", constant.KubeAPIServerPatch, err)
 		return err
 	}
+
+	edgeadmConfig.TunnelCloudToken = util.GetRandToken(32)
+	edgeadmConfig.TunnelCoreDNSClusterIP = string(clusterIP)
 
 	return nil
 }
@@ -510,6 +519,7 @@ func newInitData(cmd *cobra.Command, args []string, options *initOptions, out io
 		skipCertificateKeyPrint: options.skipCertificateKeyPrint,
 		kustomizeDir:            options.kustomizeDir,
 		patchesDir:              options.patchesDir,
+		edgeadmConf:             options.edgeadmConf,
 	}, nil
 }
 
@@ -650,6 +660,11 @@ func (d *initData) KustomizeDir() string {
 // PatchesDir returns the folder where patches for components are stored
 func (d *initData) PatchesDir() string {
 	return d.patchesDir
+}
+
+// PatchesDir returns the folder where patches for components are stored
+func (d *initData) EdgeadmConf() *cmd.EdgeadmConfig {
+	return d.edgeadmConf
 }
 
 func printJoinCommand(out io.Writer, adminKubeConfigPath, token string, i *initData) error {

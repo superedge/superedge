@@ -136,6 +136,7 @@ const (
 	ISEnableEdge   = "enable-edge"
 	InstallPkgPath = "install-pkg-path"
 	K8sVersion     = "kubernetes-version"
+	ManifestsDir   = "manifests-dir"
 
 	// kube config
 	VIP         = "vip"

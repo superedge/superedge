@@ -72,7 +72,7 @@ const (
 	PostInstallHook      = HooksDir + "post-install"
 )
 
-const(
+const (
 	PatchDir = "/patch/"
 )
 
@@ -95,7 +95,11 @@ const (
 	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
 )
 
-const KubeAPIServerPatch = "kube-apiserver0+merge.yaml"
+const (
+	TunnelCoreDNSCIDRIndex = 12
+	KubeAPIServerPatch     = "kube-apiserver0+merge.yaml"
+)
+
 const KubeAPIServerPatchYaml = `
 apiVersion: v1
 kind: Pod

@@ -19,6 +19,7 @@ package app
 import (
 	"flag"
 	"github.com/spf13/pflag"
+	edgeApps "github.com/superedge/superedge/pkg/edgeadm/cmd/edge-apps"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"io"
 	"os"
@@ -39,9 +40,11 @@ import (
 
 var (
 	edgeadmConf = cmd.EdgeadmConfig{
-		IsEnableEdge: true,
-		WorkerPath:   "/tmp",
-		Kubeconfig:   "~/.kube/config",
+		IsEnableEdge:   true,
+		WorkerPath:     "/tmp",
+		Kubeconfig:     "~/.kube/config",
+		ManifestsDir:   "/tmp/edge-manifests",
+		InstallPkgPath: "https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
 	}
 )
 
@@ -68,6 +71,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(check.NewCheckCMD())
 	cmds.AddCommand(install.NewInstallCMD())
 	cmds.AddCommand(initCmd.NewCmdInit(os.Stdout, &edgeadmConf))
+	cmds.AddCommand(edgeApps.NewEdgeApps(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(joinCmd.NewJoinCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
@@ -81,7 +85,7 @@ func globalFlagSet(flagset *flag.FlagSet) {
 	}
 
 	flagset.StringVar(&edgeadmConf.WorkerPath, "worker-path", "/tmp", "Worker path of install edge kubernetes cluster.")
-	flagset.BoolVar(&edgeadmConf.IsEnableEdge, constant.ISEnableEdge, true, "id Install edge kubernetes cluster.")
+	flagset.BoolVar(&edgeadmConf.IsEnableEdge, constant.ISEnableEdge, true, "Enable of install edge kubernetes cluster.")
 	flagset.StringVar(&edgeadmConf.Kubeconfig, "kubeconfig", "~/.kube/config", "The path to the kubeconfig file.")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
