@@ -49,7 +49,7 @@ func newLabel() labelAction {
 func newLabelCMD() *cobra.Command {
 	action := newLabel()
 	cmd := &cobra.Command{
-		Use:   "label NODE",
+		Use:   "label [NODENAME]",
 		Short: "Label the node to be change.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := action.complete(cmd, args); err != nil {
@@ -66,7 +66,7 @@ func newLabelCMD() *cobra.Command {
 
 	action.flags = cmd.Flags()
 	cmd.Flags().BoolVarP(&action.all, "all", "a", action.all, "Select all nodes")
-	cmd.Flags().StringVarP(&action.selector, "selector", "l", action.selector, "Selector (label query) to filter on")
+	cmd.Flags().StringVarP(&action.selector, "selector", "l", action.selector, "Use label to select the node that needs to be changed")
 
 	return cmd
 }
