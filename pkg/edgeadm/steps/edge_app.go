@@ -30,7 +30,7 @@ import (
 	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"path/filepath"
 )
 

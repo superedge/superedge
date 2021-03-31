@@ -21,7 +21,7 @@ func DeployServiceGroup(clientSet kubernetes.Interface, manifestsDir, advertiseA
 	klog.V(4).Infof("Deploy %s success!", manifests.APP_APPLICATION_GRID_WRAPPER)
 
 	userGridController := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_CONTROLLER)
-	gridController := ReadYaml(userGridController, manifests.ApplicationGridWrapperYaml)
+	gridController := ReadYaml(userGridController, manifests.ApplicationGridControllerYaml)
 	if err := CreateByYamlFile(clientSet, gridController); err != nil {
 		klog.Errorf("Deploy %s error: %s", manifests.APP_APPLICATION_GRID_CONTROLLER, err)
 		return err
