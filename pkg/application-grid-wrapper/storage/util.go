@@ -18,6 +18,7 @@ package storage
 
 import (
 	"encoding/json"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"net"
 	"strconv"
 
@@ -114,7 +115,7 @@ func genLocalEndpoints(eps *v1.Endpoints) *v1.Endpoints {
 func pruneEndpoints(hostName string,
 	nodes map[types.NamespacedName]*nodeContainer,
 	services map[types.NamespacedName]*serviceContainer,
-	eps *v1.Endpoints, wrapperInCluster bool) *v1.Endpoints {
+	eps *v1.Endpoints, localNodeInfo map[string]data.ResultDetail, wrapperInCluster, serviceAutonomyEnhancementEnabled bool) *v1.Endpoints {
 
 	epsKey := types.NamespacedName{Namespace: eps.Namespace, Name: eps.Name}
 
@@ -132,6 +133,19 @@ func pruneEndpoints(hostName string,
 	// normal service
 	if len(svc.keys) == 0 {
 		klog.V(4).Infof("Normal endpoints %s, %+#v", eps.Name, eps.Subsets)
+		if eps.Namespace == metav1.NamespaceDefault && eps.Name == MasterEndpointName {
+			return eps
+		}
+		if serviceAutonomyEnhancementEnabled {
+			newEps := eps.DeepCopy()
+			for si := range newEps.Subsets {
+				subnet := &newEps.Subsets[si]
+				subnet.Addresses = filterLocalNodeInfoConcernedAddresses(nodes, subnet.Addresses, localNodeInfo)
+				subnet.NotReadyAddresses = filterLocalNodeInfoConcernedAddresses(nodes, subnet.NotReadyAddresses, localNodeInfo)
+			}
+			klog.V(4).Infof("Normal endpoints after LocalNodeInfo filter %s: subnets from %+#v to %+#v", eps.Name, eps.Subsets, newEps.Subsets)
+			return newEps
+		}
 		return eps
 	}
 
@@ -139,8 +153,8 @@ func pruneEndpoints(hostName string,
 	newEps := eps.DeepCopy()
 	for si := range newEps.Subsets {
 		subnet := &newEps.Subsets[si]
-		subnet.Addresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.Addresses)
-		subnet.NotReadyAddresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.NotReadyAddresses)
+		subnet.Addresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.Addresses, localNodeInfo, serviceAutonomyEnhancementEnabled)
+		subnet.NotReadyAddresses = filterConcernedAddresses(svc.keys, hostName, nodes, subnet.NotReadyAddresses, localNodeInfo, serviceAutonomyEnhancementEnabled)
 	}
 	klog.V(4).Infof("Topology endpoints %s: subnets from %+#v to %+#v", eps.Name, eps.Subsets, newEps.Subsets)
 
@@ -149,7 +163,7 @@ func pruneEndpoints(hostName string,
 
 // filterConcernedAddresses aims to filter out endpoints addresses within the same node unit
 func filterConcernedAddresses(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
-	addresses []v1.EndpointAddress) []v1.EndpointAddress {
+	addresses []v1.EndpointAddress, localNodeInfo map[string]data.ResultDetail, getLocalNodeInfo bool) []v1.EndpointAddress {
 	hostNode, found := nodes[types.NamespacedName{Name: hostName}]
 	if !found {
 		return nil
@@ -163,7 +177,38 @@ func filterConcernedAddresses(topologyKeys []string, hostName string, nodes map[
 			if !found {
 				continue
 			}
+			_, found = localNodeInfo[epsNode.node.Name]
 			if hasIntersectionLabel(topologyKeys, hostNode.labels, epsNode.labels) {
+				/*
+				1.getLocalNodeInfo is enabled, we can find the node from neighbor's nodes status and node is health
+				2.getLocalNodeInfo is enabled, but can't find the node from neighbor's nodes status. Failing get status from neighbor will cause this
+				3.getLocalNodeInfo is not enabled
+				*/
+				if (getLocalNodeInfo && found && localNodeInfo[epsNode.node.Name].Normal) ||
+					(getLocalNodeInfo && !found) || !getLocalNodeInfo {
+					filteredEndpointAddresses = append(filteredEndpointAddresses, addr)
+				}
+			}
+		}
+	}
+
+	return filteredEndpointAddresses
+}
+
+// filterLocalNodeInfoConcernedAddresses aims to filter out endpoints addresses according to LocalNodeInfo
+func filterLocalNodeInfoConcernedAddresses(nodes map[types.NamespacedName]*nodeContainer,
+	addresses []v1.EndpointAddress, localNodeInfo map[string]data.ResultDetail) []v1.EndpointAddress {
+
+	filteredEndpointAddresses := make([]v1.EndpointAddress, 0)
+	for i := range addresses {
+		addr := addresses[i]
+		if nodeName := addr.NodeName; nodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: *nodeName}]
+			if !found {
+				continue
+			}
+			_, found = localNodeInfo[epsNode.node.Name]
+			if !found || (found && localNodeInfo[epsNode.node.Name].Normal) {
 				filteredEndpointAddresses = append(filteredEndpointAddresses, addr)
 			}
 		}

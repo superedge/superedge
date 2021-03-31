@@ -35,7 +35,7 @@ func (eh *endpointsHandler) add(endpoints *v1.Endpoints) {
 
 	endpointsKey := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
 	klog.Infof("Adding endpoints %v", endpointsKey)
-	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.wrapperInCluster)
+	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
 	sc.endpointsMap[endpointsKey] = &endpointsContainer{
 		endpoints: endpoints,
 		modified:  newEps,
@@ -63,7 +63,7 @@ func (eh *endpointsHandler) update(endpoints *v1.Endpoints) {
 		return
 	}
 	endpointsContainer.endpoints = endpoints
-	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.wrapperInCluster)
+	newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpoints, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
 	changed := !apiequality.Semantic.DeepEqual(endpointsContainer.modified, newEps)
 	if changed {
 		endpointsContainer.modified = newEps

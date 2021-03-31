@@ -99,6 +99,18 @@ func (c CommunicateEdge) Server(ctx context.Context, wg *sync.WaitGroup) {
 
 	http.HandleFunc("/debug/flags/v", pkgutil.UpdateLogLevel)
 
+	http.HandleFunc("/localinfo", func(w http.ResponseWriter, r *http.Request) {
+		localInfoData := data.Result.CopyLocalResultData(common.LocalIp)
+		NodeInfo := make(map[string]data.ResultDetail)
+		for ip, detail := range localInfoData {
+			NodeInfo[util.GetNodeNameByIp(data.NodeList.NodeList.Items, ip)] = detail
+		}
+		if err := json.NewEncoder(w).Encode(NodeInfo); err != nil {
+			log.Errorf("Get Local Info: NodeInfo err: %v", err)
+			return
+		}
+	})
+
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf("Server: exit with error: %v", err)
