@@ -80,6 +80,13 @@ func NewEdgeAppsPhase() workflow.Phase { //todo 独立成一个独立的函数�
 				Run:          runSerivceGroupAddon,
 			},
 			{
+				Name:         "lite-apiserver",
+				Short:        "Config the lite-apiserver configmap into edge Kubernetes cluster",
+				Long:         coreDNSAddonLongDesc, //todo
+				InheritFlags: getAddonPhaseFlags("lite-apiserver"),
+				Run:          configLiteAPIServer,
+			},
+			{
 				Name:         "update-config",
 				Short:        "Update Kubernetes cluster config support marginal autonomy",
 				Long:         coreDNSAddonLongDesc, //todo
@@ -106,6 +113,11 @@ func getAddonPhaseFlags(name string) []string {
 		//)
 	}
 	if name == "all" || name == "service-group" {
+		//flags = append(flags,
+		//	options.CertificatesDir,
+		//)
+	}
+	if name == "all" || name == "lite-apiserver" {
 		//flags = append(flags,
 		//	options.CertificatesDir,
 		//)
@@ -142,6 +154,7 @@ func runTunnelAddon(c workflow.RunData) error {
 	option := map[string]interface{}{
 		"TunnelCoreDNSClusterIP": edgeadmConf.TunnelCoreDNSClusterIP,
 	}
+	klog.Infof("TunnelCoreDNSClusterIP: %s", edgeadmConf.TunnelCoreDNSClusterIP)
 	userManifests := filepath.Join(edgeadmConf.ManifestsDir, manifests.APP_TUNNEL_CORDDNS)
 	TunnelCoredns := common.ReadYaml(userManifests, manifests.TunnelCorednsYaml)
 	err = kubeclient.CreateResourceWithFile(client, TunnelCoredns, option)
@@ -229,6 +242,25 @@ func updateKubeConfig(c workflow.RunData) error {
 	}
 
 	klog.Infof("Update Kubernetes cluster config support marginal autonomy success")
+
+	return err
+}
+
+// runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
+func configLiteAPIServer(c workflow.RunData) error {
+	cfg, edgeadmConf, client, err := getInitData(c)
+	if err != nil {
+		return err
+	}
+
+	caKeyFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName)
+	caCertFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName)
+	if err := common.CreateLiteApiServerCert(client, edgeadmConf.ManifestsDir, caCertFile, caKeyFile); err != nil {
+		klog.Errorf("Config lite-apiserver, error: %s", err)
+		return err
+	}
+
+	klog.Infof("Config lite-apiserver configMap success")
 
 	return err
 }

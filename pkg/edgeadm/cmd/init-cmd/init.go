@@ -205,6 +205,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 			}
 
 			initOptions.edgeadmConf = edgeConfig
+			klog.V(4).Infof("Get edgeadm config: %s", util.ToJson(initOptions.edgeadmConf))
 			if err := common.UnzipPackage(edgeConfig.InstallPkgPath, edgeConfig.WorkerPath); err != nil {
 				klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 				return err
@@ -297,7 +298,7 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	edgeadmConfig.TunnelCloudToken = util.GetRandToken(32)
-	edgeadmConfig.TunnelCoreDNSClusterIP = string(clusterIP)
+	edgeadmConfig.TunnelCoreDNSClusterIP = clusterIP.String()
 
 	return nil
 }
