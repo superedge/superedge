@@ -18,6 +18,7 @@ package kubeclient
 
 import (
 	"bytes"
+	"fmt"
 	"k8s.io/klog"
 	"reflect"
 	"regexp"
@@ -325,7 +326,8 @@ func CreateResourceWithFile(client kubernetes.Interface, yamlStr string, option 
 		return err
 	}
 
-	klog.V(8).Infof("Create yaml: %s", string(data))
+	fmt.Printf("Create yaml: %s", string(data))
+	klog.V(5).Infof("Create klog output yaml: %s", string(data))
 
 	reg := regexp.MustCompile(`(?m)^-{3,}$`)
 	items := reg.Split(string(data), -1)
