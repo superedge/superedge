@@ -1,8 +1,9 @@
 package constant
 
 const (
-	LiteApiserverConfPath = SystemServiceDir + "lite-apiserver/lite-apiserver.service"
+	LiteApiserverConfFile = SystemServiceDir + "lite-apiserver.service"
 	LiteApiserverBinPath  = InstallBin + "lite-apiserver"
+	KubeConfigPath        = "/root/.kube/config"
 )
 
 const LiteApiserverTemplate = `
@@ -12,7 +13,7 @@ Description=lite-apiserver
 [Service]
 Environment=QCLOUD_NORM_URL=
 ExecStart=/usr/local/bin/lite-apiserver \
---ca-file=/etc/kubernetes/pki/ca.crt \
+--ca-file=/etc/kubernetes/pki/lite-apiserver-ca.crt \
 --tls-cert-file=/etc/kubernetes/edge/lite-apiserver.crt \
 --tls-private-key-file=/etc/kubernetes/edge/lite-apiserver.key \
 --kube-apiserver-url=${MASTER_IP} \

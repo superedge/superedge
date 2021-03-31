@@ -3,6 +3,8 @@ package steps
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
+	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/join"
 	"io/ioutil"
 	"time"
 
@@ -36,6 +38,14 @@ func NewEdgeKubeletPhase() workflow.Phase {
 
 // runPreflight executes preflight checks logic.
 func installEdgeKubelet(c workflow.RunData) error {
+	data, ok := c.(phases.JoinData)
+	if !ok {
+		return errors.New("installEdgeKubelet phase invoked with an invalid data struct")
+	}
+
+	if data.Cfg().ControlPlane != nil {
+		return nil
+	}
 	// Deploy edge kubelet
 	klog.Infof("Node: %s Start deploy edge kubelet", options.NodeName)
 	if err := deployKubelet(options.NodeName); err != nil {

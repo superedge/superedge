@@ -52,7 +52,7 @@ const (
 	EdgeClusterFile    = DataDir + "edgeadm.json"
 	EdgeClusterLogFile = DataDir + "edgeadm.log"
 
-	InstallDir = EdgeamdDir + "edge-install/"
+	InstallDir = "/edge-install/"
 
 	InstallBin = InstallDir + "bin/"
 
