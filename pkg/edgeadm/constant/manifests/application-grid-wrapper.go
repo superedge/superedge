@@ -172,6 +172,36 @@ spec:
             type: Directory
           name: host-var-tmp
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: application-grid-wrapper-master
+  name: application-grid-wrapper-master
+  namespace: kube-system
+data:
+  kubeconfig.conf: |
+    apiVersion: v1
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://{{.AdvertiseAddress}}:{{.BindPort}}
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    kind: Config
+    preferences: {}
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -210,6 +240,7 @@ spec:
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-wrapper
+            - --kubeconfig=/var/lib/application-grid-wrapper/kubeconfig.conf
             - --bind-address=127.0.0.1:51006
             - --hostname=$(NODE_NAME)
             - --wrapper-in-cluster=false
@@ -229,7 +260,14 @@ spec:
               memory: 20Mi
           securityContext:
             privileged: true
+          volumeMounts:
+            - mountPath: /var/lib/application-grid-wrapper
+              name: application-grid-wrapper-master
       volumes:
+        - configMap:
+            defaultMode: 420
+            name: application-grid-wrapper-master
+          name: application-grid-wrapper-master
         - hostPath:
             path: /var/tmp
             type: Directory
