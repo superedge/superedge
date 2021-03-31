@@ -67,6 +67,7 @@ const (
 
 const (
 	EDGE_CERT_CM            = "edge-cert"
+	KUBE_API_CA_CRT         = "kube-api-ca.crt"
 	LITE_API_SERVER_CRT     = "lite-apiserver.crt"
 	LITE_API_SERVER_KEY     = "lite-apiserver.key"
 	LITE_API_SERVER_TLS_CFG = "tls.json"

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,12 +31,17 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		return err
 	}
 
+	caCertStr, err := util.ReadFile(caCertFile)
+	if err != nil {
+		return err
+	}
 	userLiteAPIServer := filepath.Join(manifestsDir, manifests.APP_lITE_APISERVER)
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.EDGE_CERT_CM,
 		},
 		Data: map[string]string{
+			constant.KUBE_API_CA_CRT:         string(caCertStr),
 			constant.LITE_API_SERVER_CRT:     string(liteApiServerCrt),
 			constant.LITE_API_SERVER_KEY:     string(liteApiServerKey),
 			constant.LITE_API_SERVER_TLS_CFG: constant.LiteApiServerTlsCfg,
