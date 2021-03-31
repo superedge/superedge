@@ -209,12 +209,14 @@ func runEdgeHealthAddon(c workflow.RunData) error {
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
 func runSerivceGroupAddon(c workflow.RunData) error {
-	_, edgeadmConf, client, err := getInitData(c)
+	cfg, edgeadmConf, client, err := getInitData(c)
 	if err != nil {
 		return err
 	}
 
-	if err := common.DeploySerivceGroup(client, edgeadmConf.ManifestsDir); err != nil {
+	bindPort := cfg.LocalAPIEndpoint.BindPort
+	advertiseAddress := cfg.LocalAPIEndpoint.AdvertiseAddress
+	if err := common.DeployServiceGroup(client, edgeadmConf.ManifestsDir, advertiseAddress, bindPort); err != nil {
 		klog.Errorf("Deploy serivce group, error: %s", err)
 		return err
 	}

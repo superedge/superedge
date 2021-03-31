@@ -141,7 +141,7 @@ spec:
           command:
             - /usr/local/bin/application-grid-wrapper
             - --kubeconfig=/var/lib/application-grid-wrapper/kubeconfig.conf
-            - --bind-address=127.0.0.1:51006
+            - --bind-address={{.AdvertiseAddress}}:{{.BindPort}}
             - --hostname=$(NODE_NAME)
             - --notify-channel-size=10000
           env:
