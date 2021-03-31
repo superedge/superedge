@@ -131,7 +131,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 	return nil
 }
 
-func GetMasterIps(clientSet *kubernetes.Clientset) ([]string, error) {
+func GetMasterIps(clientSet kubernetes.Interface) ([]string, error) {
 	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
