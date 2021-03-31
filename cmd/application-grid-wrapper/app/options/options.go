@@ -21,16 +21,17 @@ import (
 )
 
 type Options struct {
-	CAFile            string
-	KeyFile           string
-	CertFile          string
-	KubeConfig        string
-	BindAddress       string
-	InsecureMode      bool
-	HostName          string
-	WrapperInCluster  bool
-	NotifyChannelSize int
-	Debug             bool
+	CAFile                           string
+	KeyFile                          string
+	CertFile                         string
+	KubeConfig                       string
+	BindAddress                      string
+	InsecureMode                     bool
+	HostName                         string
+	WrapperInCluster                 bool
+	NotifyChannelSize                int
+	Debug                            bool
+	ServiceAutonomyEnhancementOption ServiceAutonomyEnhancementOptions
 }
 
 func NewGridWrapperOptions() *Options {
@@ -39,6 +40,11 @@ func NewGridWrapperOptions() *Options {
 		InsecureMode:      true,
 		NotifyChannelSize: 100,
 		WrapperInCluster:  true,
+		ServiceAutonomyEnhancementOption: ServiceAutonomyEnhancementOptions{
+			Enabled:           false,
+			UpdateInterval:    30,
+			NeighborStatusSvc: "http://localhost:51005/localinfo",
+		},
 	}
 }
 
@@ -56,4 +62,5 @@ func (sc *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&sc.NotifyChannelSize, "notify-channel-size", sc.NotifyChannelSize,
 		"channel size for service and endpoints sent")
 	fs.BoolVar(&sc.Debug, "debug", sc.Debug, "enable pprof handler")
+	fs.Var(&sc.ServiceAutonomyEnhancementOption, "service-autonomy-enhancement", "service-autonomy-enhancement")
 }
