@@ -45,11 +45,12 @@ const (
 )
 
 const (
-	KubeCfgPath   = "/etc/kubernetes/"
-	KubeEdgePath  = KubeCfgPath + "edge/"
-	KubeadmKey    = KubeCfgPath + "pki/ca.key"
-	KubeadmCert   = KubeCfgPath + "pki/ca.crt"
-	EdgeManifests = KubeEdgePath + "manifests/"
+	KubeCfgPath         = "/etc/kubernetes/"
+	KubeEdgePath        = KubeCfgPath + "edge/"
+	KubeadmKey          = KubeCfgPath + "pki/ca.key"
+	KubeadmCert         = KubeCfgPath + "pki/ca.crt"
+	LiteApiServerCACert = KubeCfgPath + "pki/lite-apiserver-ca.crt"
+	EdgeManifests       = KubeEdgePath + "manifests/"
 )
 
 const (
@@ -82,7 +83,7 @@ const (
 	KUBELET_STATUS_CMD         = "systemctl status kubelet.service"
 	KUBELET_RESTART_CMD        = "systemctl restart kubelet.service"
 	LITE_APISERVER_STATUS_CMD  = "systemctl status lite-apiserver.service"
-	LITE_APISERVER_RESTART_CMD = "systemctl restart lite-apiserver.service"
+	LITE_APISERVER_RESTART_CMD = "systemctl daemon-reload && systemctl restart lite-apiserver.service"
 )
 
 const (

@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-
 	"io"
 	"os"
 	"strings"
@@ -29,7 +28,6 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
-	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
@@ -227,33 +225,29 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	}
 
 	// edgeadm default config
-	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		if edgeConfig.IsEnableEdge {
-			edgaadmOption := joinOptions.edgaadm
-			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
-				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
-				return err
+	/*	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+			if edgeConfig.IsEnableEdge {
+				edgaadmOption := joinOptions.edgaadm
+				if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
+					klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+					return err
+				}
 			}
+			return nil
 		}
-		return nil
-	}
-
+	*/
 	//edgeadm add
-	if joinOptions.edgaadm.isEnableEdge { //todo yifan
+	if edgeConfig.IsEnableEdge { //todo yifan
 		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
 		joinRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
-		if !joinOptions.controlPlane {
-			joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(joinOptions.joinControlPlane.LocalAPIEndpoint.AdvertiseAddress, joinOptions.edgaadm.workerPath))
-			joinRunner.AppendPhase(steps.NewEdgeKubeletPhase())
-		} else {
-			joinRunner.AppendPhase(steps.NewKubeletPhase()) // todo: install kubelet
-		}
+		joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(joinOptions.edgaadm.workerPath))
+		//joinRunner.AppendPhase(steps.NewKubeletStartPhase())
 	}
 
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
-	joinRunner.AppendPhase(phases.NewKubeletStartPhase())
+	joinRunner.AppendPhase(steps.NewKubeletStartPhase())
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
 
 	// sets the data builder function, that will be used by the runner
