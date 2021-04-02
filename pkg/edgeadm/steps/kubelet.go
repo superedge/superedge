@@ -19,6 +19,8 @@ package steps
 import (
 	"context"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
 	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/join"
 	"os"
 
@@ -170,7 +172,6 @@ func runKubeletStartJoinPhase(c workflow.RunData) (returnErr error) {
 	// Try to start the kubelet service in case it's inactive
 	fmt.Println("[kubelet-start] Starting the kubelet")
 	kubeletphase.TryStartKubelet()
-	deployKubelet(node.Name)
 	// Now the kubelet will perform the TLS Bootstrap, transforming /etc/kubernetes/bootstrap-kubelet.conf to /etc/kubernetes/kubelet.conf
 	// Wait for the kubelet to create the /etc/kubernetes/kubelet.conf kubeconfig file. If this process
 	// times out, display a somewhat user-friendly message.
@@ -179,7 +180,17 @@ func runKubeletStartJoinPhase(c workflow.RunData) (returnErr error) {
 		fmt.Printf(kubeadmJoinFailMsg, err)
 		return err
 	}
+	if err := updateKubeletConfig(constant.KubeadmKubeletConfig, constant.EdgeadmKubeletConfig); err != nil {
+		klog.Errorf("Update kubelet config error: %v", err)
+		return err
+	}
 
+	if err := util.WriteWithBufio(constant.KubeletStartEnvFile, constant.CHANGE_KUBELET_KUBECONFIG_ARGS); err != nil {
+		klog.Errorf("Write kubelet start env file: %s error: %v", constant.KubeletStartEnvFile, err)
+		return err
+	}
+	klog.Infof("Node: %s update kubelet config success.", nodeName)
+	kubeletphase.TryRestartKubelet()
 	// When we know the /etc/kubernetes/kubelet.conf file is available, get the client
 	client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetKubeletKubeConfigPath())
 	if err != nil {
