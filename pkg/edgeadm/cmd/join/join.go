@@ -239,7 +239,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	//edgeadm add
 	if edgeConfig.IsEnableEdge { //todo yifan
 		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
-		joinRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
+		joinRunner.AppendPhase(steps.NewContainerPhase(edgeConfig))
 		joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(joinOptions.edgaadm.workerPath))
 		//joinRunner.AppendPhase(steps.NewKubeletStartPhase())
 	}
