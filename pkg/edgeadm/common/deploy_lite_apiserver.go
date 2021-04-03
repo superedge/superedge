@@ -7,12 +7,47 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"path/filepath"
 )
 
 func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string) error {
+	role := rbacv1.Role{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "lite-apiserver",
+		},
+		Rules: nil,
+	}
+	role.Rules = append(role.Rules, rbacv1.PolicyRule{
+		APIGroups: []string{""},
+		Resources: []string{"configmaps"},
+		Verbs:     []string{"get", "list", "watch"},
+	})
+	roleBinding := rbacv1.RoleBinding{
+		TypeMeta:   metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{},
+		RoleRef: rbacv1.RoleRef{
+			Name:     "lite-apiserver",
+			Kind:     "Role",
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+		Subjects: nil,
+	}
+	roleBinding.Subjects = append(roleBinding.Subjects, rbacv1.Subject{
+		APIGroup: "rbac.authorization.k8s.io",
+		Kind:     "Group",
+		Name:     "system:bootstrappers:kubeadm:default-node-token",
+	})
+
+	if _, err := clientSet.RbacV1().Roles("kube-system").Create(context.TODO(), &role, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	if _, err := clientSet.RbacV1().RoleBindings("kube-system").Create(context.TODO(), &roleBinding, metav1.CreateOptions{}); err != nil {
+		return err
+	}
 	clientSet.CoreV1().ConfigMaps("kube-system").Delete(
 		context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{})
 
