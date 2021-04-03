@@ -146,28 +146,42 @@ func initKubeClient(data phases.JoinData) (*kubernetes.Clientset, error) {
 }
 
 func deployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) error {
-	kubeService, err := kubeClient.CoreV1().Services(constant.NAMESPACE_DEFAULT).Get(context.TODO(), constant.SERVICE_KUBERNETES, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	if kubeService.Spec.ClusterIP == "" {
-		return errors.New("Get kubernetes service clusterIP nil\n")
-	}
-
-	generateLiteApiserverCert(kubeClient)
-	createLiteApiserverConfig()
-	startLiteApiserver()
-	return nil
-}
-
-func generateLiteApiserverCert(kubeClient *kubernetes.Clientset) error {
 	liteApiServerConfigMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), constant.EDGE_CERT_CM, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	key := liteApiServerConfigMap.Data[constant.LITE_API_SERVER_KEY]
-	crt := liteApiServerConfigMap.Data[constant.LITE_API_SERVER_CRT]
-	tls := liteApiServerConfigMap.Data[constant.LITE_API_SERVER_TLS_CFG]
+
+	if err := generateLiteAPIServerCert(kubeClient, liteApiServerConfigMap.Data); err != nil {
+		klog.Errorf("Generate lite-apiserver cert, error: %v", err)
+		return err
+	}
+	if err := createLiteAPIServerConfig(liteApiServerConfigMap.Data); err != nil {
+		klog.Errorf("Create lite-apiserver config, error: %v", err)
+		return err
+	}
+
+	if err := startLiteAPIServer(); err != nil {
+		klog.Errorf("Start lite-apiserver, error: %v", err)
+		return err
+	}
+	klog.Infof("Deploy lite-apiserver success!")
+	return nil
+}
+
+func generateLiteAPIServerCert(kubeClient *kubernetes.Clientset, liteApiServerConfigMap map[string]string) error {
+	key, ok := liteApiServerConfigMap[constant.LITE_API_SERVER_KEY]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LITE_API_SERVER_KEY)
+	}
+	crt, ok := liteApiServerConfigMap[constant.LITE_API_SERVER_CRT]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LITE_API_SERVER_CRT)
+	}
+	tls, ok := liteApiServerConfigMap[constant.LITE_API_SERVER_TLS_CFG]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LITE_API_SERVER_TLS_CFG)
+	}
+
 	cmds := []string{
 		fmt.Sprintf("mkdir -p /etc/kubernetes/edge/"),
 		fmt.Sprintf("cat << EOF >/etc/kubernetes/edge/lite-apiserver.key\n%s\nEOF", key),
@@ -183,7 +197,12 @@ func generateLiteApiserverCert(kubeClient *kubernetes.Clientset) error {
 	return nil
 }
 
-func createLiteApiserverConfig() error {
+func createLiteAPIServerConfig(liteApiServerConfigMap map[string]string) error {
+	masterIP, ok := liteApiServerConfigMap[constant.KUBE_API_CLUSTER_IP]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.KUBE_API_CLUSTER_IP)
+	}
+
 	liteApiserverConfigTemplate := constant.LiteApiserverTemplate
 	liteApiserverConfigTemplate = strings.ReplaceAll(liteApiserverConfigTemplate, "${MASTER_IP}", masterIP)
 	cmds := []string{
@@ -198,7 +217,7 @@ func createLiteApiserverConfig() error {
 	return nil
 }
 
-func startLiteApiserver() error {
+func startLiteAPIServer() error {
 	cmds := []string{
 		fmt.Sprintf(`cp %s %s`, workPath+constant.LiteApiserverBinPath, constant.UsrLocalBinDir),
 		fmt.Sprintf(constant.LITE_APISERVER_RESTART_CMD),

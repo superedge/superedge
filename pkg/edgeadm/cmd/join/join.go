@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
@@ -225,17 +226,16 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	}
 
 	// edgeadm default config
-	/*	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-			if edgeConfig.IsEnableEdge {
-				edgaadmOption := joinOptions.edgaadm
-				if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
-					klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
-					return err
-				}
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if edgeConfig.IsEnableEdge {
+			edgaadmOption := joinOptions.edgaadm
+			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
+				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+				return err
 			}
-			return nil
 		}
-	*/
+		return nil
+	}
 	//edgeadm add
 	if edgeConfig.IsEnableEdge { //todo yifan
 		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
