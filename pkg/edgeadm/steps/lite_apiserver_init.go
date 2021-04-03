@@ -3,13 +3,6 @@ package steps
 import (
 	"context"
 	"fmt"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
-	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/join"
-	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
-	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	certutil "k8s.io/client-go/util/cert"
 	"net"
 	"os"
 	"strings"
@@ -17,10 +10,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
+	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
+	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/join"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
+	kubeadmconstants "github.com/superedge/superedge/pkg/util/kubeadm/app/constants"
+	kubeconfigutil "github.com/superedge/superedge/pkg/util/kubeadm/app/util/kubeconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/klog/v2"
 )
 
@@ -138,22 +137,11 @@ func initKubeClient(data phases.JoinData) (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, errors.Errorf("couldn't create client from kubeconfig file %q", kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
 	}
-
-	// Make sure to exit before TLS bootstrap if a Node with the same name exist in the cluster
-	// and it has the "Ready" status.
-	// A new Node with the same name as an existing control-plane Node can cause undefined
-	// behavior and ultimately control-plane failure.
-	/*klog.V(1).Infof("[kubelet-start] Checking for an existing Node in the cluster and status %q", v1.NodeReady)
-	node, err := bootstrapClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return nil, errors.Wrapf(err, "cannot get Node")
-	}
-	klog.V(1).Info(node)*/
-	bootstrapClient, err = kubeclient.GetClientSet("")
+	/*bootstrapClient, err = kubeclient.GetClientSet("")
 	if err != nil {
 		klog.Errorf("Get kube client error: %v", err)
 		return nil, err
-	}
+	}*/
 	return bootstrapClient, nil
 }
 
