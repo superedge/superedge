@@ -31,6 +31,7 @@ const (
 )
 
 const (
+	NAMESPACE_EDGE        = "edge"
 	NAMESPACE_DEFAULT     = "default"
 	NAMESPACE_KUBE_SYSTEM = "kube-system"
 )
@@ -68,6 +69,7 @@ const (
 
 const (
 	EDGE_CERT_CM            = "edge-cert"
+	KUBE_API_CLUSTER_IP     = "kube-api-cluster-ip"
 	KUBE_API_CA_CRT         = "kube-api-ca.crt"
 	LITE_API_SERVER_CRT     = "lite-apiserver.crt"
 	LITE_API_SERVER_KEY     = "lite-apiserver.key"

@@ -235,7 +235,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initRunner.AppendPhase(phases.NewAddonPhase())
 
 	// deploy edge apps
-	if edgeConfig.IsEnableEdge { //todo shubiao
+	if edgeConfig.IsEnableEdge {
 		initRunner.AppendPhase(steps.NewEdgeAppsPhase()) // todo: deploy edge apps
 	}
 

@@ -17,12 +17,13 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 	role := rbacv1.Role{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "lite-apiserver",
+			Name:      "lite-apiserver",
+			Namespace: constant.NAMESPACE_KUBE_SYSTEM,
 		},
 		Rules: nil,
 	}
 	role.Rules = append(role.Rules, rbacv1.PolicyRule{
-		APIGroups: []string{""},
+		APIGroups: []string{"*"},
 		Resources: []string{"configmaps"},
 		Verbs:     []string{"get", "list", "watch"},
 	})
@@ -42,12 +43,15 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		Name:     "system:bootstrappers:kubeadm:default-node-token",
 	})
 
-	if _, err := clientSet.RbacV1().Roles("kube-system").Create(context.TODO(), &role, metav1.CreateOptions{}); err != nil {
+	if _, err := clientSet.RbacV1().Roles("kube-system").Create(
+		context.TODO(), &role, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := clientSet.RbacV1().RoleBindings("kube-system").Create(context.TODO(), &roleBinding, metav1.CreateOptions{}); err != nil {
+	if _, err := clientSet.RbacV1().RoleBindings("kube-system").Create(
+		context.TODO(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
+
 	clientSet.CoreV1().ConfigMaps("kube-system").Delete(
 		context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{})
 
@@ -59,9 +63,10 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 	if kubeService.Spec.ClusterIP == "" {
 		return errors.New("Get kubernetes service clusterIP nil\n")
 	}
+	kubeAPIClusterIP := kubeService.Spec.ClusterIP
 
 	liteApiServerCrt, liteApiServerKey, err :=
-		GetServiceCert("LiteApiServer", caCertFile, caKeyFile, []string{"127.0.0.1"}, []string{kubeService.Spec.ClusterIP})
+		GetServiceCert("LiteApiServer", caCertFile, caKeyFile, []string{"127.0.0.1"}, []string{kubeAPIClusterIP})
 	if err != nil {
 		return err
 	}
@@ -77,6 +82,7 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		},
 		Data: map[string]string{
 			constant.KUBE_API_CA_CRT:         string(caCertStr),
+			constant.KUBE_API_CLUSTER_IP:     kubeAPIClusterIP,
 			constant.LITE_API_SERVER_CRT:     string(liteApiServerCrt),
 			constant.LITE_API_SERVER_KEY:     string(liteApiServerKey),
 			constant.LITE_API_SERVER_TLS_CFG: constant.LiteApiServerTlsCfg,
