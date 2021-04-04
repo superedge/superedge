@@ -59,9 +59,7 @@ const (
 	InstallConf = InstallDir + "conf/"
 	SysctlConf  = InstallConf + "sysctl.conf"
 
-	UnZipContainerDstPath = InstallDir + "containerd"
-	ZipContainerPath      = UnZipContainerDstPath + "/docker-18.06-install-1.4.tgz"
-	DockerInstallShell    = UnZipContainerDstPath + "/docker-18.06/install"
+	InstallContainer = InstallDir + "container/"
 
 	InstallImages = InstallDir + "images/"
 

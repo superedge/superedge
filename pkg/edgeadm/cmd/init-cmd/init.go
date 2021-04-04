@@ -217,7 +217,7 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	//edgeadm add
 	if edgeConfig.IsEnableEdge { //todo
 		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo yifan: init node
-		initRunner.AppendPhase(steps.NewContainerPhase(edgeConfig))
+		initRunner.AppendPhase(steps.NewContainerPhase()) // todo shubiao: install container runtime
 	}
 	// initialize the workflow runner with the list of phases
 	initRunner.AppendPhase(phases.NewPreflightPhase())

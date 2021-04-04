@@ -17,79 +17,18 @@ limitations under the License.
 package token
 
 import (
-	"errors"
-	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/superedge/superedge/pkg/util"
+
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 )
 
 func NewTokenCMD() *cobra.Command {
-	tokenCmd := &cobra.Command{
-		Use:   "token",
-		Short: "Manage bootstrap tokens",
+	cmds := &cobra.Command{
+		Use:   "version",
+		Short: "Output edgeadm build info",
 	}
 
-	createCmd := &cobra.Command{
-		Use:                   "create [token]",
-		DisableFlagsInUseLine: true,
-		Short:                 "Create bootstrap tokens on the server",
-		Long: `
-			This command will create a bootstrap token for you.
-			You can specify the usages for this token, the "time to live" and an optional human friendly description.
+	cmds.AddCommand(cmd.NewVersionCMD()) // example，Please implement specific command logic
 
-			The [token] is the actual token to write.
-			This should be a securely generated random token of the form "[a-z0-9]{6}.[a-z0-9]{16}".
-			If no [token] is given, kubeadm will generate a random token instead.
-		`,
-		RunE: func(tokenCmd *cobra.Command, args []string) error {
-			//调用kubeadm创建token命令，创建一个bootstrap token
-			createTokenCmd := fmt.Sprintf("kebeadm create token")
-			outVal, _, err := util.RunLinuxCommand(createTokenCmd)
-			if err != nil {
-				return err
-			}
-			fmt.Println(outVal)
-			return nil
-		},
-	}
-	deleteCmd := &cobra.Command{
-		Use:                   "delete [token-value] ...",
-		DisableFlagsInUseLine: true,
-		Short:                 "Delete bootstrap tokens on the server",
-		Long: `
-			This command will delete a list of bootstrap tokens for you.
-
-			The [token-value] is the full Token of the form "[a-z0-9]{6}.[a-z0-9]{16}" or the
-			Token ID of the form "[a-z0-9]{6}" to delete.
-		`,
-		RunE: func(tokenCmd *cobra.Command, args []string) error {
-			if args[0] == "" {
-				return errors.New("Please enter what you want to delete token")
-			}
-
-			deleteTokenCmd := fmt.Sprintf("kebeadm create delete %s", args[0])
-			if _, _, err := util.RunLinuxCommand(deleteTokenCmd); err != nil {
-				return err
-			}
-			return nil
-		},
-	}
-
-	listCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List bootstrap tokens on the server",
-		RunE: func(tokenCmd *cobra.Command, args []string) error {
-			tokenListCmd := fmt.Sprintf("kebeadm create delete %s", "test_token")
-			outVal, _, err := util.RunLinuxCommand(tokenListCmd)
-			if err != nil {
-				return err
-			}
-			fmt.Println(outVal)
-			return nil
-		},
-		Args: cobra.NoArgs,
-	}
-
-	tokenCmd.AddCommand(createCmd, deleteCmd, listCmd)
-	return tokenCmd
+	return cmds
 }

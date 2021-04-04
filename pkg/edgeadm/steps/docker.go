@@ -2,10 +2,6 @@ package steps
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd"
-	"github.com/superedge/superedge/pkg/edgeadm/common"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/util"
 	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/init"
 	"k8s.io/klog"
 
@@ -65,22 +61,21 @@ func runPreflight(c workflow.RunData) error {
 	return nil
 }
 
+////////////////
 var (
-	edgeConfig    *cmd.EdgeadmConfig
 	dockerExample = cmdutil.Examples(`
 		# Install docker container runtime.
 		kubeadm init phase docker -docker-config docker.json
 		`)
 )
 
-func NewContainerPhase(config *cmd.EdgeadmConfig) workflow.Phase {
-	edgeConfig = config
+func NewContainerPhase() workflow.Phase {
 	return workflow.Phase{
 		Name:    "container",
 		Short:   "Install container runtime",
 		Long:    "Install container runtime",
 		Example: dockerExample,
-		Run:     installContainer,
+		Run:     installDocker,
 		InheritFlags: []string{
 			options.CfgPath,               //todo
 			options.IgnorePreflightErrors, //todo
@@ -88,32 +83,8 @@ func NewContainerPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 	}
 }
 
-//install container runtime (docker | containerd | CRI-O)
-func installContainer(c workflow.RunData) error {
-
-	err := installDocker()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Has been successfully installed edge container")
-	return nil
-}
-
-func installDocker() error {
-	klog.V(5).Infof("====Start install docker container runtime====")
-
-	//unzip Docker Package
-	if err := common.UnzipPackage(edgeConfig.WorkerPath+constant.ZipContainerPath, edgeConfig.WorkerPath+constant.UnZipContainerDstPath); err != nil {
-		klog.Errorf("Unzip Docker container runtime Package: %s, error: %v", edgeConfig.WorkerPath+constant.UnZipContainerDstPath, err)
-		return err
-	}
-
-	if _, _, err := util.RunLinuxCommand(fmt.Sprintf(`sh %s`, edgeConfig.WorkerPath+constant.DockerInstallShell)); err != nil {
-		klog.Errorf("Run Docker install shell: %s, error: %v", edgeConfig.WorkerPath+constant.UnZipContainerDstPath, err)
-		return err
-	}
-
-	klog.V(5).Infof("====Stop install docker container runtime====")
+// runPreflight executes preflight checks logic.
+func installDocker(c workflow.RunData) error { //todo
+	klog.V(5).Infof("Start install docker container runtime")
 	return nil
 }
