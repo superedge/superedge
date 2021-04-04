@@ -143,7 +143,7 @@ type joinOptions struct {
 	patchesDir            string
 
 	// edgeadm add flags
-	edgaadm *edgeadmJoinOptions
+	edgeadmConf *cmd.EdgeadmConfig
 }
 
 // compile-time assert that the local data object satisfies the phases data interface.
@@ -160,6 +160,7 @@ type joinData struct {
 	outputWriter          io.Writer
 	kustomizeDir          string
 	patchesDir            string
+	edgeadmConf           *cmd.EdgeadmConfig
 }
 
 // newCmdJoin returns "kubeadm join" command.
@@ -168,7 +169,6 @@ type joinData struct {
 func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinOptions := newJoinOptions()
 	joinRunner := workflow.NewRunner()
-	joinOptions.edgaadm = new(edgeadmJoinOptions)
 
 	cmd := &cobra.Command{
 		Use:   "join [api-server-endpoint]",
@@ -219,35 +219,31 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	addJoinOtherFlags(cmd.Flags(), joinOptions)
 
 	if edgeConfig.IsEnableEdge {
-		addEdgeConfigFlags(cmd.Flags(), joinOptions.edgaadm)
-		edgaadm := joinOptions.edgaadm
-		edgaadm.workerPath = edgeConfig.WorkerPath
-		edgaadm.isEnableEdge = edgeConfig.IsEnableEdge
+		addEdgeConfigFlags(cmd.Flags(), edgeConfig)
 	}
 
 	// edgeadm default config
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if edgeConfig.IsEnableEdge {
-			edgaadmOption := joinOptions.edgaadm
-			if err := common.UnzipPackage(edgaadmOption.installPkgPath, edgaadmOption.workerPath); err != nil {
-				klog.Errorf("Unzip package: %s, error: %v", edgaadmOption.installPkgPath, err)
+			joinOptions.edgeadmConf = edgeConfig
+			if err := common.UnzipPackage(edgeConfig.InstallPkgPath, edgeConfig.WorkerPath); err != nil {
+				klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 				return err
 			}
 		}
 		return nil
 	}
 	//edgeadm add
-	if edgeConfig.IsEnableEdge { //todo yifan
-		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
-		joinRunner.AppendPhase(steps.NewContainerPhase()) // todo: install container runtime
-		joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(joinOptions.edgaadm.workerPath))
-		//joinRunner.AppendPhase(steps.NewKubeletStartPhase())
+	if edgeConfig.IsEnableEdge {
+		joinRunner.AppendPhase(steps.NewInitNodePhase())
+		joinRunner.AppendPhase(steps.NewContainerPhase())
+		joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(edgeConfig.WorkerPath))
 	}
 
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
-	joinRunner.AppendPhase(steps.NewKubeletStartPhase())
+	joinRunner.AppendPhase(phases.NewKubeletStartPhase())
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
 
 	// sets the data builder function, that will be used by the runner
@@ -263,9 +259,9 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	return cmd
 }
 
-func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeadmOptions *edgeadmJoinOptions) {
+func addEdgeConfigFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 	flagSet.StringVar(
-		&edgeadmOptions.installPkgPath, constant.InstallPkgPath,
+		&edgeConfig.InstallPkgPath, constant.InstallPkgPath,
 		"https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edge-v0.3.0-kube-v1.18.2-install-pkg.tar.gz",
 		"Install static package path of edge kubernetes cluster.",
 	)
@@ -491,6 +487,7 @@ func newJoinData(cmd *cobra.Command, args []string, opt *joinOptions, out io.Wri
 		outputWriter:          out,
 		kustomizeDir:          opt.kustomizeDir,
 		patchesDir:            opt.patchesDir,
+		edgeadmConf:           opt.edgeadmConf,
 	}, nil
 }
 
@@ -515,6 +512,11 @@ func (j *joinData) TLSBootstrapCfg() (*clientcmdapi.Config, error) {
 	klog.V(1).Infoln("[preflight] Discovering cluster-info")
 	tlsBootstrapCfg, err := discovery.For(j.cfg)
 	j.tlsBootstrapCfg = tlsBootstrapCfg
+	if j.cfg.ControlPlane == nil {
+		for _, cluster := range tlsBootstrapCfg.Clusters {
+			cluster.Server = constant.LiteAPIServerAddr
+		}
+	}
 	return tlsBootstrapCfg, err
 }
 

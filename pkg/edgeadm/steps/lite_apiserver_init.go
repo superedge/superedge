@@ -155,7 +155,7 @@ func deployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) erro
 		klog.Errorf("Generate lite-apiserver cert, error: %v", err)
 		return err
 	}
-	if err := createLiteAPIServerConfig(liteApiServerConfigMap.Data); err != nil {
+	if err := createLiteAPIServerConfig(); err != nil {
 		klog.Errorf("Create lite-apiserver config, error: %v", err)
 		return err
 	}
@@ -197,12 +197,7 @@ func generateLiteAPIServerCert(kubeClient *kubernetes.Clientset, liteApiServerCo
 	return nil
 }
 
-func createLiteAPIServerConfig(liteApiServerConfigMap map[string]string) error {
-	masterIP, ok := liteApiServerConfigMap[constant.KUBE_API_CLUSTER_IP]
-	if !ok {
-		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.KUBE_API_CLUSTER_IP)
-	}
-
+func createLiteAPIServerConfig() error {
 	liteApiserverConfigTemplate := constant.LiteApiserverTemplate
 	liteApiserverConfigTemplate = strings.ReplaceAll(liteApiserverConfigTemplate, "${MASTER_IP}", masterIP)
 	cmds := []string{
