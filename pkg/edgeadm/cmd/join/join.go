@@ -228,10 +228,11 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		return nil
 	}
 	//edgeadm add
-	if edgeConfig.IsEnableEdge {
-		joinRunner.AppendPhase(steps.NewInitNodePhase())
-		joinRunner.AppendPhase(steps.NewContainerPhase())
+	if edgeConfig.IsEnableEdge { //todo yifan
+		joinRunner.AppendPhase(steps.NewInitNodePhase())  // todo: init node
+		joinRunner.AppendPhase(steps.NewContainerPhase(edgeConfig))
 		joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(edgeConfig.WorkerPath))
+		//joinRunner.AppendPhase(steps.NewKubeletStartPhase())
 	}
 
 	joinRunner.AppendPhase(phases.NewPreflightPhase())

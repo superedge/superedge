@@ -11,10 +11,14 @@ func NewInitNodePhase() workflow.Phase {
 		Short:   "Init node",
 		Long:    "Init node",
 		Example: dockerExample,
-		Run:     installDocker,
+		Run:     installDocker1,
 		InheritFlags: []string{
 			options.CfgPath,               //todo
 			options.IgnorePreflightErrors, //todo
 		},
 	}
+}
+
+func installDocker1(c workflow.RunData) error {
+	return nil
 }
