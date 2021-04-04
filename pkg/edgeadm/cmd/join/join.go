@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The SuperEdge Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"io"
 	"os"
 	"strings"
@@ -28,7 +29,6 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
-	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
@@ -122,12 +122,6 @@ var (
 		--token flag can be used instead of specifying each token individually.
 		`)
 )
-
-type edgeadmJoinOptions struct {
-	isEnableEdge   bool
-	workerPath     string
-	installPkgPath string
-}
 
 // joinOptions defines all the options exposed via flags by kubeadm join.
 // Please note that this structure includes the public kubeadm config API, but only a subset of the options

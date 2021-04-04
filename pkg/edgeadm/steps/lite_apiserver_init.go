@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
-	kubeadmapi "github.com/superedge/superedge/pkg/util/kubeadm/app/apis/kubeadm"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/options"
 	phases "github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/join"
 	"github.com/superedge/superedge/pkg/util/kubeadm/app/cmd/phases/workflow"
@@ -19,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/klog/v2"
 )
 
@@ -60,14 +58,6 @@ func installLiteAPIServer(c workflow.RunData) error {
 	if data.Cfg().ControlPlane != nil {
 		return nil
 	}
-	kubeClient, err := initKubeClient(data)
-	if err != nil {
-		klog.Errorf("Get kube client error: %v", err)
-		return err
-	}
-	// Deletes the bootstrapKubeConfigFile, so the credential used for TLS bootstrap is removed from disk
-	defer os.Remove(kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
-	defer os.Remove(constant.KubeadmCert)
 
 	// Deploy LiteAPIServer
 	klog.Infof("Node: %s Start deploy LiteAPIServer", options.NodeName)
@@ -75,6 +65,18 @@ func installLiteAPIServer(c workflow.RunData) error {
 	if isDeploy || err != nil {
 		return err
 	}
+
+	kubeClient, err := initKubeClient(data)
+	if err != nil {
+		klog.Errorf("Get kube client error: %v", err)
+		return err
+	}
+	// Deletes the bootstrapKubeConfigFile, so the credential used for TLS bootstrap is removed from disk
+	defer func() {
+		os.Remove(kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
+		os.Remove(constant.KubeadmCert)
+	}()
+
 	if err := deployLiteAPIServer(kubeClient, options.NodeName); err != nil {
 		klog.Errorf("Deploy LiteAPIServer error: %v", err)
 		return err
@@ -92,15 +94,10 @@ func isRunningLiteAPIServer() (bool, error) {
 	return true, nil
 }
 
-func getLiteAPIServerStartJoinData(data phases.JoinData) (*kubeadmapi.JoinConfiguration, *kubeadmapi.InitConfiguration, *clientcmdapi.Config, error) {
-	cfg := data.Cfg()
-	initCfg, err := data.InitCfg()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	klog.Info("%v", cfg.Discovery.BootstrapToken)
-	if cfg.Discovery.BootstrapToken != nil {
-		ipstr, _, err := net.SplitHostPort(cfg.Discovery.BootstrapToken.APIServerEndpoint)
+func getLiteAPIServerStartJoinData(data phases.JoinData) (*clientcmdapi.Config, error) {
+	klog.Info("%v", data.Cfg().Discovery.BootstrapToken)
+	if data.Cfg().Discovery.BootstrapToken != nil {
+		ipstr, _, err := net.SplitHostPort(data.Cfg().Discovery.BootstrapToken.APIServerEndpoint)
 		if err == nil {
 			klog.Info("%v", ipstr)
 			masterIP = ipstr
@@ -108,26 +105,21 @@ func getLiteAPIServerStartJoinData(data phases.JoinData) (*kubeadmapi.JoinConfig
 	}
 	tlsBootstrapCfg, err := data.TLSBootstrapCfg()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	return cfg, initCfg, tlsBootstrapCfg, nil
+	return tlsBootstrapCfg, nil
 }
 
 func initKubeClient(data phases.JoinData) (*kubernetes.Clientset, error) {
-	_, _, tlsBootstrapCfg, err := getLiteAPIServerStartJoinData(data)
+	tlsBootstrapCfg, err := getLiteAPIServerStartJoinData(data)
 	if err != nil {
 		return nil, err
 	}
-
-	// Write the ca certificate to disk so kubelet can use it for authentication
-	cluster := tlsBootstrapCfg.Contexts[tlsBootstrapCfg.CurrentContext].Cluster
-	if _, err := os.Stat(constant.LiteApiServerCACert); os.IsNotExist(err) {
-		klog.V(1).Infof("[kubelet-start] writing CA certificate at %s", constant.LiteApiServerCACert)
-		if err := certutil.WriteCert(constant.LiteApiServerCACert, tlsBootstrapCfg.Clusters[cluster].CertificateAuthorityData); err != nil {
-			return nil, errors.Wrap(err, "couldn't save the CA certificate to disk")
+	defer func() {
+		for _, cluster := range tlsBootstrapCfg.Clusters {
+			cluster.Server = constant.LiteAPIServerAddr
 		}
-	}
-
+	}()
 	// Write the bootstrap kubelet config file or the TLS-Bootstrapped kubelet config file down to disk
 	klog.V(1).Infof("[kubelet-start] writing bootstrap kubelet config file at %s", kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
 	if err := kubeconfigutil.WriteToDisk(kubeadmconstants.GetBootstrapKubeletKubeConfigPath(), tlsBootstrapCfg); err != nil {
@@ -137,11 +129,6 @@ func initKubeClient(data phases.JoinData) (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, errors.Errorf("couldn't create client from kubeconfig file %q", kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
 	}
-	/*bootstrapClient, err = kubeclient.GetClientSet("")
-	if err != nil {
-		klog.Errorf("Get kube client error: %v", err)
-		return nil, err
-	}*/
 	return bootstrapClient, nil
 }
 
@@ -151,7 +138,7 @@ func deployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) erro
 		return err
 	}
 
-	if err := generateLiteAPIServerCert(kubeClient, liteApiServerConfigMap.Data); err != nil {
+	if err := generateLiteAPIServerCert(liteApiServerConfigMap.Data); err != nil {
 		klog.Errorf("Generate lite-apiserver cert, error: %v", err)
 		return err
 	}
@@ -168,7 +155,11 @@ func deployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) erro
 	return nil
 }
 
-func generateLiteAPIServerCert(kubeClient *kubernetes.Clientset, liteApiServerConfigMap map[string]string) error {
+func generateLiteAPIServerCert(liteApiServerConfigMap map[string]string) error {
+	ca, ok := liteApiServerConfigMap[constant.KUBE_API_CA_CRT]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.KUBE_API_CA_CRT)
+	}
 	key, ok := liteApiServerConfigMap[constant.LITE_API_SERVER_KEY]
 	if !ok {
 		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LITE_API_SERVER_KEY)
@@ -183,10 +174,11 @@ func generateLiteAPIServerCert(kubeClient *kubernetes.Clientset, liteApiServerCo
 	}
 
 	cmds := []string{
-		fmt.Sprintf("mkdir -p /etc/kubernetes/edge/"),
-		fmt.Sprintf("cat << EOF >/etc/kubernetes/edge/lite-apiserver.key\n%s\nEOF", key),
-		fmt.Sprintf("cat << EOF >/etc/kubernetes/edge/lite-apiserver.crt\n%s\nEOF", crt),
-		fmt.Sprintf("cat << EOF >/etc/kubernetes/edge/tls.json \n%s\nEOF", tls),
+		fmt.Sprintf("mkdir -p %s", constant.KubeEdgePath),
+		fmt.Sprintf("cat << EOF >%s \n%s\nEOF", constant.LiteApiServerCACert, ca),
+		fmt.Sprintf("cat << EOF >%s \n%s\nEOF", constant.LiteApiserverKey, key),
+		fmt.Sprintf("cat << EOF >%s \n%s\nEOF", constant.LiteApiserverCrt, crt),
+		fmt.Sprintf("cat << EOF >%s \n%s\nEOF", constant.LiteApiserverTLS, tls),
 	}
 	for _, cmd := range cmds {
 		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
