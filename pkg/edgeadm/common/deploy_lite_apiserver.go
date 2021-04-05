@@ -28,8 +28,11 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		Verbs:     []string{"get", "list", "watch"},
 	})
 	roleBinding := rbacv1.RoleBinding{
-		TypeMeta:   metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{},
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "lite-apiserver",
+			Namespace: constant.NAMESPACE_KUBE_SYSTEM,
+		},
 		RoleRef: rbacv1.RoleRef{
 			Name:     "lite-apiserver",
 			Kind:     "Role",

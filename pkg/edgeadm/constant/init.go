@@ -89,11 +89,6 @@ const (
 const (
 	TMPPackgePath = "/tmp/edgeadm-install.tar.gz"
 )
-const (
-	SysctlFile       = "/etc/sysctl.conf"
-	ModuleFile       = "/etc/modules-load.d/edgeadm.conf"
-	SysctlCustomFile = "/etc/sysctl.d/99-edgeadm.conf"
-)
 
 const (
 	TunnelCoreDNSCIDRIndex = 12

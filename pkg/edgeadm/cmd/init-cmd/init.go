@@ -214,10 +214,16 @@ func NewCmdInit(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		return nil
 	}
 
+	/*
+		第二阶段：一键化离线安装
+		- 一键化
+		- 离线安装
+		- 使用 && 方案 && 公众号
+	*/
 	//edgeadm add
 	if edgeConfig.IsEnableEdge { //todo
-		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo yifan: init node
-		initRunner.AppendPhase(steps.NewContainerPhase()) // todo shubiao: install container runtime
+		initRunner.AppendPhase(steps.NewInitNodePhase())  // todo attlee: init node
+		initRunner.AppendPhase(steps.NewContainerPhase()) // todo shubiao: install container runtime| docker 1. CentOS Ubuntu 2. 安装包不能大
 	}
 	// initialize the workflow runner with the list of phases
 	initRunner.AppendPhase(phases.NewPreflightPhase())

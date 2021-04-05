@@ -165,7 +165,7 @@ type joinData struct {
 // newCmdJoin returns "kubeadm join" command.
 // NB. joinOptions is exposed as parameter for allowing unit testing of
 //     the newJoinData method, that implements all the command options validation logic
-func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
+func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command { // 2.todo: join master && vip （&& sealos NodePort && 证书）
 	joinOptions := newJoinOptions()
 	joinRunner := workflow.NewRunner()
 	joinOptions.edgaadm = new(edgeadmJoinOptions)
@@ -247,7 +247,10 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
-	joinRunner.AppendPhase(steps.NewKubeletStartPhase())
+	if edgeConfig.IsEnableEdge {
+		// cfg = lite-apis
+	}
+	joinRunner.AppendPhase(steps.NewKubeletStartPhase()) // todo 1. 不用改
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
 
 	// sets the data builder function, that will be used by the runner
