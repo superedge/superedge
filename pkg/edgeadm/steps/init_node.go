@@ -180,5 +180,7 @@ func loadKernelModule(c workflow.RunData) error {
 	if _, _, err := util.RunLinuxCommand(constant.KERNEL_MODULE); err != nil {
 		return err
 	}
+
 	return nil
 }
+

@@ -51,6 +51,9 @@ const (
 	KubeadmKey          = KubeCfgPath + "pki/ca.key"
 	KubeadmCert         = KubeCfgPath + "pki/ca.crt"
 	LiteApiServerCACert = KubeCfgPath + "pki/lite-apiserver-ca.crt"
+	LiteApiserverCrt    = KubeEdgePath + "lite-apiserver.crt"
+	LiteApiserverKey    = KubeEdgePath + "lite-apiserver.key"
+	LiteApiserverTLS    = KubeEdgePath + "tls.json"
 	EdgeManifests       = KubeEdgePath + "manifests/"
 )
 

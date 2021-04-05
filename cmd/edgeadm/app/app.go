@@ -31,6 +31,7 @@ import (
 	initCmd "github.com/superedge/superedge/pkg/edgeadm/cmd/init-cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/install"
 	joinCmd "github.com/superedge/superedge/pkg/edgeadm/cmd/join"
+	reset "github.com/superedge/superedge/pkg/edgeadm/cmd/reset"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/token"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
@@ -75,6 +76,7 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(joinCmd.NewJoinCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(clean.NewCleanCMD())
 	cmds.AddCommand(token.NewTokenCMD())
+	cmds.AddCommand(reset.NewCmdReset(os.Stdin, os.Stdout, &edgeadmConf))
 
 	return cmds
 }
