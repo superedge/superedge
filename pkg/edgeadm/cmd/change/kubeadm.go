@@ -153,6 +153,9 @@ func (c *changeAction) createLiteApiServerCert() error {
 }
 
 func (c *changeAction) deployTunnelCloud() (string, error) {
+	c.clientSet.AppsV1().Deployments(constant.NAMESPACE_KUBE_SYSTEM).Delete(
+		context.TODO(), constant.SERVICE_TUNNEL_CLOUD, metav1.DeleteOptions{})
+
 	nodes, err := c.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return "", err
