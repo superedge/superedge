@@ -32,15 +32,12 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
-		dgc.deleteDeployment(node)
+		dgc.deleteNode(node)
 		return
 	}
 	dgs := dgc.getGridForNode(node)
-	if len(dgs) == 0 {
-		return
-	}
-	klog.V(4).Infof("Node %s added.", node.Name)
 	for _, dg := range dgs {
+		klog.V(4).Infof("Node %s(its relevant DeploymentGrid %s) added.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }
@@ -48,15 +45,17 @@ func (dgc *DeploymentGridController) addNode(obj interface{}) {
 func (dgc *DeploymentGridController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
+	if curNode.ResourceVersion == oldNode.ResourceVersion {
+		// Periodic resync will send update events for all known Nodes.
+		// Two different versions of the same Node will always have different RVs.
+		return
+	}
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		dgs := dgc.getGridForNode(curNode)
-		if len(dgs) == 0 {
-			return
-		}
-		klog.V(4).Infof("Node %s updated.", curNode.Name)
+		dgs := dgc.getGridForNode(oldNode, curNode)
 		for _, dg := range dgs {
+			klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) updated.", curNode.Name, dg.Name)
 			dgc.enqueueDeploymentGrid(dg)
 		}
 	}
@@ -77,32 +76,39 @@ func (dgc *DeploymentGridController) deleteNode(obj interface{}) {
 		}
 	}
 	dgs := dgc.getGridForNode(node)
-	if len(dgs) == 0 {
-		return
-	}
-	klog.V(4).Infof("Node %s deleted.", node.Name)
 	for _, dg := range dgs {
+		klog.V(4).Infof("Node %s(its relevant StatefulSetGrid %s) deleted.", node.Name, dg.Name)
 		dgc.enqueueDeploymentGrid(dg)
 	}
 }
 
-// getGridForNode get deploymentGrids those gridUniqKey exists in node labels.
-func (dgc *DeploymentGridController) getGridForNode(node *corev1.Node) []*crdv1.DeploymentGrid {
-	if len(node.Labels) == 0 {
+// getGridForNode filters deploymentGrids those gridUniqKey exists in node labels.
+func (dgc *DeploymentGridController) getGridForNode(nodes ...*corev1.Node) []*crdv1.DeploymentGrid {
+	// Return directly when there is no labels at all
+	needCheck := false
+	for _, node := range nodes {
+		if len(node.Labels) == 0 {
+			continue
+		} else {
+			needCheck = true
+			break
+		}
+	}
+	if !needCheck {
 		return nil
 	}
-	dgList, err := dgc.dpGridLister.DeploymentGrids("").List(labels.Everything())
+	// Filter relevant grids of nodes by labels
+	dgs, err := dgc.dpGridLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-	var deploymentGrids []*crdv1.DeploymentGrid
-	for _, dg := range dgList {
-		if _, exist := node.Labels[dg.Spec.GridUniqKey]; exist {
-			deploymentGrids = append(deploymentGrids, dg)
+	var targetDgs []*crdv1.DeploymentGrid
+	for _, dg := range dgs {
+		for _, node := range nodes {
+			if _, exist := node.Labels[dg.Spec.GridUniqKey]; exist {
+				targetDgs = append(targetDgs, dg)
+			}
 		}
 	}
-	if len(deploymentGrids) == 0 {
-		return nil
-	}
-	return deploymentGrids
+	return targetDgs
 }

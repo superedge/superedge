@@ -4,11 +4,11 @@ package v1
 
 import (
 	"context"
-	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	time "time"
 
 	superedgeiov1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	versioned "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	internalinterfaces "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"

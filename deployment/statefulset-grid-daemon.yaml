@@ -1,0 +1,141 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: statefulset-grid-daemon
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: statefulset-grid-daemon
+  namespace: kube-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - services
+      - pods
+    verbs:
+      - "*"
+  - apiGroups:
+      - extensions
+      - apps
+    resources:
+      - statefulsets
+    verbs:
+      - "*"
+  - apiGroups:
+      - superedge.io
+    resources:
+      - statefulsetgrids
+    verbs:
+      - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: statefulset-grid-daemon
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: statefulset-grid-daemon
+subjects:
+  - kind: ServiceAccount
+    name: statefulset-grid-daemon
+    namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statefulset-grid-daemon
+  namespace: kube-system
+data:
+  kubeconfig.conf: |
+    apiVersion: v1
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://127.0.0.1:51003
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    kind: Config
+    preferences: {}
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    k8s-app: statefulset-grid-daemon
+    addonmanager.kubernetes.io/mode: Reconcile
+  name: statefulset-grid-daemon
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: statefulset-grid-daemon
+  template:
+    metadata:
+      labels:
+        k8s-app: statefulset-grid-daemon
+    spec:
+      serviceAccount: statefulset-grid-daemon
+      serviceAccountName: statefulset-grid-daemon
+      priorityClassName: system-node-critical
+      hostNetwork: true
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/os: linux # TODO select edge node
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: statefulset-grid-daemon
+          image: superedge/statefulset-grid-daemon:v0.2.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/local/bin/statefulset-grid-daemon
+            - --hostname=$(NODE_NAME)
+            - --kubeconfig=/var/lib/statefulset-grid-daemon/kubeconfig.conf
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 50m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /data/edge
+              name: hosts
+            - mountPath: /var/lib/statefulset-grid-daemon
+              name: statefulset-grid-daemon
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: statefulset-grid-daemon
+          name: statefulset-grid-daemon
+        - hostPath:
+            path: /data/edge
+            type: DirectoryOrCreate
+          name: hosts

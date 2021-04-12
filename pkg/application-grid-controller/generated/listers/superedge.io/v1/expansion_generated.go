@@ -17,3 +17,11 @@ type ServiceGridListerExpansion interface{}
 // ServiceGridNamespaceListerExpansion allows custom methods to be added to
 // ServiceGridNamespaceLister.
 type ServiceGridNamespaceListerExpansion interface{}
+
+// StatefulSetGridListerExpansion allows custom methods to be added to
+// StatefulSetGridLister.
+type StatefulSetGridListerExpansion interface{}
+
+// StatefulSetGridNamespaceListerExpansion allows custom methods to be added to
+// StatefulSetGridNamespaceLister.
+type StatefulSetGridNamespaceListerExpansion interface{}

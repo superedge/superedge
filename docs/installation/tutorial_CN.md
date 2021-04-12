@@ -6,7 +6,7 @@
 
 - build: `make build`
 
-- build some cmd: `make build BINS="lite-apiserver edgeadm`
+- build some cmd: `make build BINS="lite-apiserver edgeadm"`
 
 - build multi arch cmd: `make build.multiarch BINS="lite-apiserver edgeadm" PLATFORMS="linux_amd64 linux_arm64"`
 
