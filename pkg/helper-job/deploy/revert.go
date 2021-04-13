@@ -82,7 +82,7 @@ func revertNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 		return fmt.Errorf("Node: %s iCheck kubelet status error: %v\n", nodeName, err)
 	}
 
-	if err := deleteLiteAPiServerLabel(kubeClient, nodeName); err != nil {
+	if err := deleteEdgedNodeLabel(kubeClient, nodeName); err != nil {
 		return err
 	}
 
