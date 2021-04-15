@@ -80,6 +80,8 @@ func NewChangeCMD() *cobra.Command {
 	cmd.Flags().StringVarP(&action.manifests, "manifests-dir", "m",
 		"./manifests/", "Change yaml folder of edge cluster.")
 
+	cmd.AddCommand(newLabelCMD())
+
 	return cmd
 }
 
@@ -112,6 +114,4 @@ func (c *changeAction) runChange() error {
 	default:
 		return fmt.Errorf("Not support %s change to edge cluster\n", c.deployName)
 	}
-
-	return nil
 }

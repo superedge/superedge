@@ -71,6 +71,9 @@ func NewServerCommand() *cobra.Command {
 			}
 			return nil
 		},
+		FParseErrWhitelist: cobra.FParseErrWhitelist{
+			UnknownFlags: true,
+		},
 	}
 	fs := cmd.Flags()
 	namedFlagSets := o.Flags()

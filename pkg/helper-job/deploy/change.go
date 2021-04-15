@@ -46,14 +46,26 @@ import (
 
 func changeMasterJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 	klog.Infof("Init Master %s Start.", nodeName)
-	if err := writeKubeAPIYaml(kubeClient,
-		constant.KubeAPIServerSrcYamlPath, constant.KubeAPIServerBackUPYamlPath); err != nil {
-		return err
-	}
-
 	if err := addMasterHosts(kubeClient); err != nil {
 		klog.Errorf("Add master hosts error: %v", err)
 		return err
+	}
+
+	isLabel, err := checkEdgedNodeLabel(kubeClient, nodeName)
+	if err != nil {
+		klog.Errorf("Check master node label error: %v", err)
+		return err
+	}
+	if !isLabel {
+		if err := writeKubeAPIYaml(kubeClient,
+			constant.KubeAPIServerSrcYamlPath, constant.KubeAPIServerBackUPYamlPath); err != nil {
+			return err
+		}
+
+		if err := addEdgedNodeLabel(kubeClient, nodeName); err != nil {
+			klog.Errorf("Add edged master node label error: %v", err)
+			return err
+		}
 	}
 
 	klog.Infof("Init Master %s Success.", nodeName)
@@ -82,7 +94,7 @@ func changeNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 }
 
 func isDeployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) (bool, error) {
-	isLabel, err := checkLiteAPiServerLabel(kubeClient, nodeName)
+	isLabel, err := checkEdgedNodeLabel(kubeClient, nodeName)
 	if err != nil {
 		klog.Errorf("Check is deploy LiteAPiServer error: %v", err)
 		return false, err
@@ -100,7 +112,7 @@ func isDeployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) (b
 	}
 
 	if !isRunning && isLabel {
-		if err := deleteLiteAPiServerLabel(kubeClient, nodeName); err != nil {
+		if err := deleteEdgedNodeLabel(kubeClient, nodeName); err != nil {
 			return false, err
 		}
 	}
@@ -132,7 +144,7 @@ func restartKubelet(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 	klog.Infof("Node: %s Status kubelet config success.", nodeName)
 
-	if err := checkKubletHealthz(); err != nil {
+	if err := checkKubeletHealthz(); err != nil {
 		return fmt.Errorf("Node: %s is NotReady, error: %v\n", nodeName, err)
 	}
 
@@ -151,7 +163,7 @@ func restartKubelet(kubeClient *kubernetes.Clientset, nodeName string) error {
 		return fmt.Errorf("Node: %s is NotReady\n", nodeName)
 	}
 
-	if err := addLiteFinishLabel(kubeClient, nodeName); err != nil {
+	if err := addEdgedNodeLabel(kubeClient, nodeName); err != nil {
 		klog.Errorf("Add LiteApiServer Running label error: %v", err)
 		return err
 	}
@@ -243,9 +255,7 @@ func updateKubeAPIPod(kubeClient *kubernetes.Clientset, pod *v1.Pod) error {
 			Nameservers: []string{clusterIP},
 		}
 		pod.Spec.DNSConfig = podDNS
-	}
-
-	if pod.Spec.DNSConfig != nil {
+	} else {
 		pod.Spec.DNSConfig.Nameservers = []string{clusterIP}
 	}
 	pod.Spec.DNSPolicy = "None"
@@ -396,7 +406,7 @@ func completeLiteApiServer(kubeClient *kubernetes.Clientset) error {
 	return nil
 }
 
-func checkKubletHealthz() error {
+func checkKubeletHealthz() error {
 	return wait.PollImmediate(time.Second, 3*time.Minute, func() (bool, error) {
 		resp, err := http.Get(constant.KubeletHealthzURl)
 		if err != nil {
@@ -411,7 +421,7 @@ func checkKubletHealthz() error {
 	})
 }
 
-func addLiteFinishLabel(kubeClient *kubernetes.Clientset, nodeName string) error {
+func addEdgedNodeLabel(kubeClient *kubernetes.Clientset, nodeName string) error {
 	return wait.PollImmediate(time.Second, 3*time.Minute, func() (bool, error) {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
@@ -481,7 +491,7 @@ func isRunningLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string, r
 	return false, nil
 }
 
-func checkLiteAPiServerLabel(kubeClient *kubernetes.Clientset, nodeName string) (bool, error) {
+func checkEdgedNodeLabel(kubeClient *kubernetes.Clientset, nodeName string) (bool, error) {
 	node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Get node: %s infos error: %v", nodeName, err)
@@ -498,7 +508,7 @@ func checkLiteAPiServerLabel(kubeClient *kubernetes.Clientset, nodeName string) 
 	return false, nil
 }
 
-func deleteLiteAPiServerLabel(kubeClient *kubernetes.Clientset, nodeName string) error {
+func deleteEdgedNodeLabel(kubeClient *kubernetes.Clientset, nodeName string) error {
 	node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Get node: %s infos error: %v", nodeName, err)

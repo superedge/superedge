@@ -14,6 +14,8 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
+
+	helper_constant "github.com/superedge/superedge/pkg/helper-job/constant"
 )
 
 func (r *revertAction) runKubeamdRevert() error {
@@ -70,6 +72,9 @@ func (r *revertAction) runKubeamdRevert() error {
 	//if err := r.waitingKubeAPIRevert(30); err != nil {
 	//	return err
 	//}
+	if err := r.deleteNodeLabel(); err != nil {
+		return err
+	}
 
 	util.OutSuccessMessage("Deploy Kubeadm Cluster Revert To Edge Cluster Success!")
 
@@ -123,6 +128,26 @@ func (r *revertAction) deleteEdgeHealth() error {
 
 	fmt.Println("Revert edge-health success!")
 
+	return nil
+}
+
+func (r *revertAction) deleteNodeLabel() error {
+	kubeclient := r.clientSet
+
+	nodes, err := kubeclient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.EDGE_CHANGE_NODE_KEY + "=enable"})
+	if err != nil {
+		return err
+	}
+
+	for _, node := range nodes.Items {
+		if _, ok := node.Labels[helper_constant.EDGE_CHANGE_NODE_KEY]; ok {
+			delete(node.Labels, helper_constant.EDGE_CHANGE_NODE_KEY)
+		}
+		_, err = kubeclient.CoreV1().Nodes().Update(context.TODO(), &node, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

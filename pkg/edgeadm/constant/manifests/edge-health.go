@@ -81,7 +81,7 @@ spec:
       serviceAccountName: edge-health
       containers:
         - name: edge-health
-          image: superedge/edge-health:v0.1.0
+          image: superedge/edge-health:v0.2.0
           imagePullPolicy: IfNotPresent
           resources:
             limits: 
@@ -105,6 +105,8 @@ spec:
             procMount: Default
       dnsPolicy: ClusterFirst
       hostNetwork: true
+      nodeSelector:
+        superedge.io/change: enable
       restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30

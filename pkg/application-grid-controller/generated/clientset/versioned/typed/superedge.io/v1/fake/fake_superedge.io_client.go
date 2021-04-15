@@ -20,6 +20,10 @@ func (c *FakeSuperedgeV1) ServiceGrids(namespace string) v1.ServiceGridInterface
 	return &FakeServiceGrids{c, namespace}
 }
 
+func (c *FakeSuperedgeV1) StatefulSetGrids(namespace string) v1.StatefulSetGridInterface {
+	return &FakeStatefulSetGrids{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSuperedgeV1) RESTClient() rest.Interface {

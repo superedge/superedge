@@ -219,3 +219,8 @@ func GetRandToken(n int) string {
 	}
 	return string(b)
 }
+
+func CertHasExpired(cert *x509.Certificate) bool {
+	now := time.Now()
+	return now.Before(cert.NotBefore) || now.After(cert.NotAfter)
+}
