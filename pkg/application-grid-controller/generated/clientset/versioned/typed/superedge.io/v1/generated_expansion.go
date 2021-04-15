@@ -5,3 +5,5 @@ package v1
 type DeploymentGridExpansion interface{}
 
 type ServiceGridExpansion interface{}
+
+type StatefulSetGridExpansion interface{}

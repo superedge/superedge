@@ -56,7 +56,7 @@ the body of the commit should describe the why.
 ```
 tunnel: add grpc interceptor to log info on incoming requests
 
-To improve debuggability of superedge v0.1.0. Added a grpc interceptor to log
+To improve debuggability of superedge. Added a grpc interceptor to log
 info on incoming requests to tunnel server. The log output includes
 remote client info, request content (with value field redacted), request
 handling latency, response size, etc. Uses zap logger if available,

@@ -43,7 +43,12 @@ func NewTcpConn(uuid, addr, node string) *TcpConn {
 		stopChan: make(chan struct{}, 1),
 		C:        context.GetContext().AddConn(uuid),
 		Addr:     addr,
-		n:        context.GetContext().AddNode(node),
+	}
+
+	if nd := context.GetContext().GetNode(node); nd != nil {
+		tcp.n = nd
+	} else {
+		tcp.n = context.GetContext().AddNode(node)
 	}
 	tcp.n.BindNode(uuid)
 	return tcp

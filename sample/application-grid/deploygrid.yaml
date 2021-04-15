@@ -6,16 +6,38 @@ metadata:
 spec:
   gridUniqKey: zone
   template:
+    replicas: 2
     selector:
       matchLabels:
-        appGrid: nginx
+        appGrid: echo
+    strategy: {}
     template:
       metadata:
+        creationTimestamp: null
         labels:
-          appGrid: nginx
+          appGrid: echo
       spec:
         containers:
-          - name: nginx
-            image: nginx:1.7.9
+          - image: superedge/echoserver:2.2
+            name: echo
             ports:
-              - containerPort: 80
+              - containerPort: 8080
+                protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}

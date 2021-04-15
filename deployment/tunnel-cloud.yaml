@@ -1,4 +1,4 @@
-
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -41,7 +41,7 @@ metadata:
   name: tunnel-cloud-conf
   namespace: kube-system
 data:
-  mode.toml: |
+  tunnel_cloud.toml: |
     [mode]
         [mode.cloud]
             [mode.cloud.stream]
@@ -120,7 +120,7 @@ spec:
       serviceAccountName: tunnel-cloud
       containers:
         - name: tunnel-cloud
-          image: superedge/tunnel:v0.1.0
+          image: superedge/tunnel:v0.2.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -135,7 +135,7 @@ spec:
             - /usr/local/bin/tunnel
           args:
             - --m=cloud
-            - --c=/etc/superedge/tunnel/conf/mode.toml
+            - --c=/etc/superedge/tunnel/conf/tunnel_cloud.toml
             - --log-dir=/var/log/tunnel
             - --alsologtostderr
           env:

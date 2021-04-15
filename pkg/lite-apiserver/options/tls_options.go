@@ -21,10 +21,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
-
 	"github.com/spf13/pflag"
+
 	"k8s.io/klog"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 type TLSOptions struct {

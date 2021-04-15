@@ -14,6 +14,7 @@ SuperEdge项目由以下公司共同发起：腾讯、Intel、VMware、虎牙直
 
 
 ## 项目特性
+
 SuperEdge具有如下特性:
 
 - **Kubernetes 原生**：SuperEdge 以无侵入的方式将 Kubernetes 强大的容器编排、调度能力拓展到边缘端，其原生支持 Kubernetes，完全兼容 Kubernetes 所有 API 及资源，无额外学习成本
@@ -24,25 +25,30 @@ SuperEdge具有如下特性:
 
 
 ## 体系架构
+
 <div align="center">
   <img src="docs/img/superedge_arch.png" width=80% title="SuperEdge Architecture">
 </div>
 
 云端组件：
+
 - [**tunnel-cloud**](docs/components/tunnel_CN.md): 云端tunnel服务组件，用于建立云边长连接隧道，支持代理tcp/http/https流量
-- [**application-grid controller**](docs/components/service-group_CN.md): 应用网络（serviceGroup）控制器
+- [**application-grid controller**](docs/components/service-group_CN.md): 应用网络（ServiceGroup）控制器
 - [**edge-health admission**](docs/components/edge-health_CN.md): 分布式节点健康检查机制云端组件，辅助Kubernetes控制器工作
 
 边端组件:
+
 - [**lite-apiserver**](docs/components/lite-apiserver_CN.md): 节点侧轻量版apiserver shadow，代理节点组件到云端apiserver的请求，缓存关键数据以用于边缘自治
 - [**edge-health**](docs/components/edge-health_CN.md): 分布式节点健康检查，用于感知边缘节点状态，支持对节点分区域检查能力
 - [**tunnel-edge**](docs/components/tunnel_CN.md): 边缘tunnel服务组件，主动与tunnel-cloud建立长连接，将云端请求代理到对应的边缘服务，如：kubelet、业务pod等
 - [**application-grid wrapper**](docs/components/service-group_CN.md): 应用网格流量控制组件，可将svc之间的流量闭环在同一个应用网格之中，避免跨网格访问
 
 ## 快速入门指南
+
 关于安装、部署和管理，请参见[**教程**](docs/installation/tutorial_CN.md)。
 
 ## 联系
+
 如果您有任何疑问或需要支持，请随时与我们联系：
 - [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
 - [网上论坛](https://groups.google.com/g/superedge)
@@ -52,8 +58,8 @@ SuperEdge具有如下特性:
   <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
 </div>
 
-
 ## 参与项目
+
 欢迎您[参与](./CONTRIBUTING.md)完善项目
 
 ## 开源许可

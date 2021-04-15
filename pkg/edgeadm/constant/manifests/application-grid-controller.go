@@ -48,6 +48,7 @@ rules:
     - apps
     resources:
       - deployments
+      - statefulsets
     verbs:
       - "*"
   - apiGroups:
@@ -55,9 +56,9 @@ rules:
     resources:
       - deploymentgrids
       - servicegrids
+      - statefulsetgrids
       - deploymentgrids/status
-      - deploymentgridlists
-      - servicegridlists
+      - statefulsetgrids/status
     verbs:
       - "*"
 ---
@@ -98,7 +99,7 @@ spec:
       serviceAccountName: application-grid-controller
       containers:
         - name: application-grid-controller
-          image: superedge/application-grid-controller:v0.1.0
+          image: superedge/application-grid-controller:v0.2.0
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-controller
