@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
@@ -24,6 +25,7 @@ import (
 type Cache interface {
 	CacheList
 	CacheEventHandler
+	LocalNodeInfoHandler
 }
 
 type CacheList interface {
@@ -36,4 +38,10 @@ type CacheEventHandler interface {
 	NodeEventHandler() cache.ResourceEventHandler
 	ServiceEventHandler() cache.ResourceEventHandler
 	EndpointsEventHandler() cache.ResourceEventHandler
+}
+
+type LocalNodeInfoHandler interface {
+	GetLocalNodeInfo() map[string]data.ResultDetail
+	SetLocalNodeInfo(map[string]data.ResultDetail)
+	ClearLocalNodeInfo()
 }

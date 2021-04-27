@@ -85,7 +85,7 @@ func (plugin KubeletAuthCheckPlugin) CheckExecute(wg *sync.WaitGroup) {
 	execwg.Add(len(data.CheckInfoResult.CheckInfo))
 	for k := range data.CheckInfoResult.CopyCheckInfo() {
 		temp := k
-		go func(execwg *sync.WaitGroup) {
+		go func() {
 			checkOk, err := authping(plugin.HealthCheckoutTimeOut, plugin.HealthCheckRetryTime, temp, plugin.Port)
 			if checkOk {
 				klog.V(4).Infof("%s use %s plugin check %s successd", common.LocalIp, plugin.Name(), temp)
@@ -95,7 +95,7 @@ func (plugin KubeletAuthCheckPlugin) CheckExecute(wg *sync.WaitGroup) {
 				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 0)
 			}
 			execwg.Done()
-		}(&execwg)
+		}()
 	}
 	execwg.Wait()
 	wg.Done()

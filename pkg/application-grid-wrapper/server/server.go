@@ -20,8 +20,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"time"
 
@@ -44,14 +48,15 @@ import (
 )
 
 type interceptorServer struct {
-	restConfig       *rest.Config
-	cache            storage.Cache
-	serviceWatchCh   <-chan watch.Event
-	endpointsWatchCh <-chan watch.Event
-	mediaSerializer  []runtime.SerializerInfo
+	restConfig                        *rest.Config
+	cache                             storage.Cache
+	serviceWatchCh                    <-chan watch.Event
+	endpointsWatchCh                  <-chan watch.Event
+	mediaSerializer                   []runtime.SerializerInfo
+	serviceAutonomyEnhancementAddress string
 }
 
-func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int) *interceptorServer {
+func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions) *interceptorServer {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		klog.Errorf("can't build rest config, %v", err)
@@ -62,17 +67,18 @@ func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster b
 	endpointsCh := make(chan watch.Event, channelSize)
 
 	server := &interceptorServer{
-		restConfig:       restConfig,
-		cache:            storage.NewStorageCache(hostName, wrapperInCluster, serviceCh, endpointsCh),
-		serviceWatchCh:   serviceCh,
-		endpointsWatchCh: endpointsCh,
-		mediaSerializer:  scheme.Codecs.SupportedMediaTypes(),
+		restConfig:                        restConfig,
+		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh),
+		serviceWatchCh:                    serviceCh,
+		endpointsWatchCh:                  endpointsCh,
+		mediaSerializer:                   scheme.Codecs.SupportedMediaTypes(),
+		serviceAutonomyEnhancementAddress: serviceAutonomyEnhancement.NeighborStatusSvc,
 	}
 
 	return server
 }
 
-func (s *interceptorServer) Run(debug bool, bindAddress string, insecure bool, caFile, certFile, keyFile string) error {
+func (s *interceptorServer) Run(debug bool, bindAddress string, insecure bool, caFile, certFile, keyFile string, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -80,6 +86,12 @@ func (s *interceptorServer) Run(debug bool, bindAddress string, insecure bool, c
 	 */
 	if err := s.setupInformers(ctx.Done()); err != nil {
 		return err
+	}
+
+	klog.Infof("Start to run GetLocalInfo client")
+
+	if serviceAutonomyEnhancement.Enabled {
+		go wait.Until(s.NodeStatusAcquisition, time.Duration(serviceAutonomyEnhancement.UpdateInterval)*time.Second, ctx.Done())
 	}
 
 	klog.Infof("Start to run interceptor server")
@@ -177,4 +189,43 @@ func (s *interceptorServer) buildFilterChains(debug bool) http.Handler {
 	}
 
 	return handler
+}
+
+func (s *interceptorServer) NodeStatusAcquisition() {
+	client := http.Client{Timeout: 5 * time.Second}
+	klog.V(4).Infof("serviceAutonomyEnhancementAddress is %s", s.serviceAutonomyEnhancementAddress)
+	req, err := http.NewRequest("GET", s.serviceAutonomyEnhancementAddress, nil)
+	if err != nil {
+		s.cache.ClearLocalNodeInfo()
+		klog.Errorf("Get local node info: new request err: %v", err)
+		return
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		s.cache.ClearLocalNodeInfo()
+		klog.Errorf("Get local node info: do request err: %v", err)
+		return
+	}
+	defer func() {
+		if res != nil {
+			res.Body.Close()
+		}
+	}()
+
+	if res.StatusCode != http.StatusOK {
+		klog.Errorf("Get local node info: httpResponse.StatusCode!=200, is %d", res.StatusCode)
+		s.cache.ClearLocalNodeInfo()
+		return
+	}
+
+	var localNodeInfo map[string]data.ResultDetail
+	if err := json.NewDecoder(res.Body).Decode(&localNodeInfo); err != nil {
+		klog.Errorf("Get local node info: Decode err: %v", err)
+		s.cache.ClearLocalNodeInfo()
+		return
+	} else {
+		s.cache.SetLocalNodeInfo(localNodeInfo)
+	}
+	return
 }
