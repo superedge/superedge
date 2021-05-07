@@ -1,5 +1,6 @@
 /*
-Copyright 2020 The SuperEdge Authors.
+Copyright 2019 The Kubernetes Authors.
+Copyright 2020 Authors of SuperEdge - file modified.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +20,6 @@ package kubeadm
 import (
 	"fmt"
 	"io"
-	"k8s.io/klog/v2"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,6 +32,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
@@ -668,8 +669,16 @@ func printJoinCommand(out io.Writer, adminKubeConfigPath, token string, i *initD
 		joinControlPlaneCommand = fmt.Sprintf("%s --%s=false", joinControlPlaneCommand, constant.ISEnableEdge)
 	}
 
-	joinWorkerCommand = fmt.Sprintf("%s \\\n%s--%s <%s>", joinWorkerCommand, constant.ControlFormat, constant.InstallPkgPath, constant.InstallPkgPathNote)
-	joinControlPlaneCommand = fmt.Sprintf("%s \\\n%s--%s <%s>", joinControlPlaneCommand, constant.ControlFormat, constant.InstallPkgPath, constant.InstallPkgPathNote)
+	if steps.EdgeadmConf.IsEnableEdge {
+		joinAddr := strings.TrimSpace(util.GetStringInBetween(joinWorkerCommand, "kubeadm join", "--token"))
+		joinAddr = joinAddr[:strings.Index(joinAddr, ":")]
+		if len(i.Cfg().APIServer.CertSANs) > 0 {
+			joinWorkerCommand = strings.Replace(joinWorkerCommand, joinAddr, i.Cfg().APIServer.CertSANs[0], -1)
+		}
+	}
+
+	joinWorkerCommand = fmt.Sprintf("%s \\\n%s--%s <%s>\n", joinWorkerCommand, constant.ControlFormat, constant.InstallPkgPath, constant.InstallPkgPathNote)
+	joinControlPlaneCommand = fmt.Sprintf("%s \\\n%s--%s <%s>\n", joinControlPlaneCommand, constant.ControlFormat, constant.InstallPkgPath, constant.InstallPkgPathNote)
 
 	ctx := map[string]interface{}{
 		"KubeConfigPath":          adminKubeConfigPath,

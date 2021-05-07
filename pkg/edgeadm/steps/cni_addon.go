@@ -17,14 +17,16 @@ limitations under the License.
 package steps
 
 import (
-	"github.com/superedge/superedge/pkg/edgeadm/common"
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
+	"path/filepath"
+
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
-	"path/filepath"
+
+	"github.com/superedge/superedge/pkg/edgeadm/common"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 var (

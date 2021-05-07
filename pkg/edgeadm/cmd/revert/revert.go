@@ -104,11 +104,10 @@ func (r *revertAction) complete() error {
 
 func (r *revertAction) validate() error {
 	masterLabel, _ := labels.NewRequirement(constant.KubernetesDefaultRoleLabel, selection.NotIn, []string{""})
-	nodeLabel, _ := labels.NewRequirement(constant.EdgeNodeLabelKey, selection.Equals, []string{constant.EdgeNodeLabelValueEnable})
 	changeLabel, _ := labels.NewRequirement(constant.EdgeChangeLabelKey, selection.Equals, []string{constant.EdgeChangeLabelValueEnable})
 
 	var labelsNode = labels.NewSelector()
-	labelsNode = labelsNode.Add(*masterLabel, *changeLabel, *nodeLabel)
+	labelsNode = labelsNode.Add(*masterLabel, *changeLabel)
 	labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
 	nodes, err := r.clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
 	if err != nil {

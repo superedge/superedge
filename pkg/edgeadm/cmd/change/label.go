@@ -20,19 +20,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	//"github.com/superedge/superedge/pkg/helper-job/constant"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 type labelAction struct {

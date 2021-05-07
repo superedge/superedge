@@ -97,7 +97,7 @@ spec:
         superedge.io/edge-node: enable
       containers:
         - name: tunnel-edge
-          image: superedge/tunnel:v0.2.0
+          image: superedge/tunnel:v0.3.0-beta.1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

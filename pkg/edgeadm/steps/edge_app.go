@@ -17,9 +17,9 @@ limitations under the License.
 package steps
 
 import (
+	"errors"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
@@ -214,19 +214,27 @@ func runSerivceGroupAddon(c workflow.RunData) error {
 }
 
 func updateKubeConfig(c workflow.RunData) error {
-	_, _, client, err := getInitData(c)
+	initConfiguration, _, client, err := getInitData(c)
 	if err != nil {
 		return err
 	}
 
 	if err := common.UpdateKubeProxyKubeconfig(client); err != nil {
-		klog.Errorf("Deploy serivce group, error: %s", err)
+		klog.Errorf("Update kube-proxy config, error: %s", err)
 		return err
 	}
 
 	if err := common.UpdateKubernetesEndpoint(client); err != nil {
-		klog.Errorf("Deploy serivce group, error: %s", err)
+		klog.Errorf("Update kubernetes endpoint, error: %s", err)
 		return err
+	}
+
+	if len(initConfiguration.APIServer.CertSANs) > 0 {
+		certSANs := initConfiguration.APIServer.CertSANs
+		if err := common.UpdateClusterInfoKubeconfig(client, certSANs); err != nil {
+			klog.Errorf("Update cluster-info config, error: %s", err)
+			return err
+		}
 	}
 
 	klog.Infof("Update Kubernetes cluster config support marginal autonomy success")

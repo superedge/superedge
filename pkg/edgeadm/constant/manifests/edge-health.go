@@ -81,7 +81,7 @@ spec:
       serviceAccountName: edge-health
       containers:
         - name: edge-health
-          image: superedge/edge-health:v0.2.0
+          image: superedge/edge-health:v0.3.0-beta.1
           imagePullPolicy: IfNotPresent
           resources:
             limits: 
