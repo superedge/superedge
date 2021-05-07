@@ -20,14 +20,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"net"
+	"strconv"
+	"strings"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/v2"
-	"strconv"
-	"time"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
@@ -92,6 +97,58 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
 		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateClusterInfoKubeconfig(kubeClient kubernetes.Interface, certSANs []string) error {
+	if len(certSANs) <= 0 {
+		return nil
+	}
+	clusterInfoCM, err := kubeClient.CoreV1().ConfigMaps(
+		metav1.NamespacePublic).Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	kubeconfig, ok := clusterInfoCM.Data[bootstrapapi.KubeConfigKey]
+	if !ok {
+		return errors.New("Get cluster-info kubeconfig nil\n")
+	}
+
+	config, err := clientcmd.Load([]byte(kubeconfig))
+	if err != nil {
+		return err
+	}
+
+	kubeAPIServerPublicAddr := certSANs[0]
+	for _, certSAN := range certSANs {
+		address := net.ParseIP(certSAN)
+		if address != nil {
+			kubeAPIServerPublicAddr = address.String()
+			break
+		}
+	}
+
+	for key := range config.Clusters {
+		srcKubeAPIServerAddr := config.Clusters[key].Server
+		kubeAPIServerAddr := strings.TrimPrefix(srcKubeAPIServerAddr, "https://")
+		index := strings.Index(kubeAPIServerAddr, ":")
+		kubeAPIServerAddr = kubeAPIServerAddr[:index]
+		dstKubeAPIServerAddr := strings.Replace(srcKubeAPIServerAddr, kubeAPIServerAddr, kubeAPIServerPublicAddr, -1)
+		config.Clusters[key].Server = dstKubeAPIServerAddr
+	}
+
+	content, err := clientcmd.Write(*config)
+	if err != nil {
+		return err
+	}
+	clusterInfoCM.Data[bootstrapapi.KubeConfigKey] = string(content)
+
+	if _, err := kubeClient.CoreV1().ConfigMaps(
+		metav1.NamespacePublic).Update(context.TODO(), clusterInfoCM, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 

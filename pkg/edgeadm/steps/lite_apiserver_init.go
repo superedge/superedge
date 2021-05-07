@@ -25,10 +25,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -37,6 +33,11 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func NewLiteApiServerInitPhase(config *cmd.EdgeadmConfig) workflow.Phase {
@@ -120,7 +121,7 @@ func initKubeClient(data phases.JoinData, tlsBootstrapCfg *clientcmdapi.Config) 
 }
 
 func deployLiteAPIServer(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
-	liteApiServerConfigMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	liteApiServerConfigMap, err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

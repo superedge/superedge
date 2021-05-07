@@ -17,12 +17,13 @@ limitations under the License.
 package common
 
 import (
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"path/filepath"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func DeployEdgeHealth(clientSet kubernetes.Interface, manifestsDir string) error {

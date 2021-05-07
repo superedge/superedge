@@ -5,17 +5,18 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/superedge/superedge/pkg/util"
 	"k8s.io/klog/v2"
 	"path/filepath"
 	"time"
 
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster

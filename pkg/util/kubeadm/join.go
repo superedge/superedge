@@ -1,5 +1,6 @@
 /*
-Copyright 2020 The SuperEdge Authors.
+Copyright 2019 The Kubernetes Authors.
+Copyright 2020 Authors of SuperEdge - file modified.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,10 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
-	"github.com/superedge/superedge/pkg/edgeadm/cmd"
-	"github.com/superedge/superedge/pkg/edgeadm/common"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -48,6 +45,11 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/discovery"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+
+	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/common"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/steps"
 )
 
 var (
@@ -502,11 +504,6 @@ func (j *joinData) TLSBootstrapCfg() (*clientcmdapi.Config, error) {
 	klog.V(1).Infoln("[preflight] Discovering cluster-info")
 	tlsBootstrapCfg, err := discovery.For(j.cfg)
 	j.tlsBootstrapCfg = tlsBootstrapCfg
-	//if j.cfg.ControlPlane == nil {
-	//	for _, cluster := range tlsBootstrapCfg.Clusters {
-	//		cluster.Server = constant.LiteAPIServerAddr
-	//	}
-	//}
 	return tlsBootstrapCfg, err
 }
 

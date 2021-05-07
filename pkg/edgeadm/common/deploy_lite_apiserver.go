@@ -19,35 +19,47 @@ package common
 import (
 	"context"
 	"errors"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
-	"github.com/superedge/superedge/pkg/util"
+	"path/filepath"
+
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"path/filepath"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string) error {
+	if err := kubeclient.CreateOrUpdateNamespace(clientSet, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.NamespaceEdgeSystem,
+		},
+	}); err != nil {
+		return err
+	}
+
 	role := rbacv1.Role{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "lite-apiserver",
-			Namespace: constant.NamespcaeKubeSystem,
+			Namespace: constant.NamespaceEdgeSystem,
 		},
 		Rules: nil,
 	}
 	role.Rules = append(role.Rules, rbacv1.PolicyRule{
-		APIGroups: []string{"*"},
-		Resources: []string{"configmaps"},
-		Verbs:     []string{"get", "list", "watch"},
+		APIGroups:     []string{"*"},
+		Resources:     []string{"configmaps"},
+		ResourceNames: []string{constant.EdgeCertCM},
+		Verbs:         []string{"get", "list", "watch"},
 	})
 	roleBinding := rbacv1.RoleBinding{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "lite-apiserver",
-			Namespace: constant.NamespcaeKubeSystem,
+			Namespace: constant.NamespaceEdgeSystem,
 		},
 		RoleRef: rbacv1.RoleRef{
 			Name:     "lite-apiserver",
@@ -62,16 +74,16 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		Name:     "system:bootstrappers:kubeadm:default-node-token",
 	})
 
-	if _, err := clientSet.RbacV1().Roles("kube-system").Create(
+	if _, err := clientSet.RbacV1().Roles(constant.NamespaceEdgeSystem).Create(
 		context.TODO(), &role, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := clientSet.RbacV1().RoleBindings("kube-system").Create(
+	if _, err := clientSet.RbacV1().RoleBindings(constant.NamespaceEdgeSystem).Create(
 		context.TODO(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
-	clientSet.CoreV1().ConfigMaps("kube-system").Delete(
+	clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(
 		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 
 	kubeService, err := clientSet.CoreV1().Services(
@@ -109,7 +121,7 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 		},
 	}
 
-	if _, err := clientSet.CoreV1().ConfigMaps("kube-system").
+	if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
 		Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
 		return err
 	}

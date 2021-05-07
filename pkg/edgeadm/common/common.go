@@ -20,20 +20,20 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
 	"os"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 )
 
 func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string) error {

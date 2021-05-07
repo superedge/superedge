@@ -1,32 +1,16 @@
 package constant
 
-/*
-edgeadm-init/
-.
+/* edgeadm kube-linux-*.tar.gz Directory Structure
+edge-install/
 ├── bin
-│   ├── kubectl
-│   ├── kubelet
-│   └── lite-apiserver
+│   ├── conntrack
+│   ├── kubectl
+│   ├── kubelet
+│   └── lite-apiserver
 ├── cni
-│   └── cni-plugins-linux-v0.8.3.tar.gz
-├── conf
-│   ├── docker
-│   │   ├── daemon.josn
-│   │   └── docker.service
-│   ├── kubeadm
-│   │   ├── 10-kubeadm.conf
-│   │   └── kubeadm.yaml
-│   ├── kubelet
-│   │   └── kubelet.service
-│   ├── lite-apiserver
-│   │   ├── lite-apiserver
-│   │   └── lite-apiserver.service
-│   └── node
-│       └── sysctl.conf
-├── container
-│   └── docker-18.06-linux-amd64.tar.gz
-└── shell
-    └── init.sh
+│   └── cni-plugins-linux-v0.8.3.tar.gz
+└── container
+    └── docker-19.03-linux-arm64.tar.gz
 */
 const (
 	EdgeamdDir         = "edgeadm/"

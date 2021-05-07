@@ -19,16 +19,18 @@ package common
 import (
 	"context"
 	"errors"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
+	"path/filepath"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"path/filepath"
-	"strings"
+
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func DeployServiceGroup(clientSet kubernetes.Interface, manifestsDir string) error {

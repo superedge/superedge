@@ -23,14 +23,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	k8scert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
-	"net"
-	"strconv"
-	"time"
 
 	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
