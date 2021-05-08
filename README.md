@@ -34,7 +34,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 * [**lite-apiserver**](docs/components/lite-apiserver.md): Lightweight kube-apiserver for edge autonomy. It caches and proxies edge components' requests and critical events to cloud kube-apiserver.
 * [**edge-health**](docs/components/edge-health.md): Monitors the health status of edge nodes in the same edge region.
 * [**tunnel-edge**](docs/components/tunnel.md): Maintains persistent connection to `tunnel-cloud` to retrieve API requests to the controllers on the edge.
-* [**application-grid wrapper**](docs/components/service-group.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
+* [**application-grid wrapper**](docs/components/serviceGroup.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
 
