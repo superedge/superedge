@@ -73,6 +73,7 @@ spec:
   selector:
     k8s-app: tunnel-coredns
   type: ClusterIP
+  clusterIP: {{.TunnelCoreDNSClusterIP}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -93,7 +94,7 @@ spec:
         - args:
             - -conf
             - /etc/coredns/Corefile
-          image: coredns/coredns:1.6.5
+          image: superedge.tencentcloudcr.com/superedge/coredns:1.6.5
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 5
