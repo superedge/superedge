@@ -20,9 +20,9 @@ import (
 	"errors"
 	"os"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
-	"github.com/superedge/superedge/pkg/helper-job/constant"
+	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
@@ -51,30 +51,30 @@ func Run() error {
 	klog.Infof("Node: %s Start Running %s", nodeName, action)
 
 	switch nodeRole {
-	case constant.NODE_ROLE_MASTER:
+	case edgeadmConstant.NodeRoleMaster:
 		switch action {
-		case constant.ACTION_CHANGE:
+		case edgeadmConstant.ActionChange:
 			if err := changeMasterJob(kubeClient, nodeName); err != nil {
 				klog.Errorf("Change master: %s job running error: %v", nodeName, err)
 				return err
 			}
 
-		case constant.ACTION_REVERT:
+		case edgeadmConstant.ActionRevert:
 			if err := revertMasterJob(kubeClient, nodeName); err != nil {
 				klog.Errorf("Revert master: %s job running error: %v", nodeName, err)
 				return err
 			}
 		}
 
-	case constant.NODE_ROLE_NODE:
+	case edgeadmConstant.NodeRoleNode:
 		switch action {
-		case constant.ACTION_CHANGE:
+		case edgeadmConstant.ActionChange:
 			if err := changeNodeJob(kubeClient, nodeName); err != nil {
 				klog.Errorf("Change node: %s job running error: %v", nodeName, err)
 				return err
 			}
 
-		case constant.ACTION_REVERT:
+		case edgeadmConstant.ActionRevert:
 			if err := revertNodeJob(kubeClient, nodeName); err != nil {
 				klog.Errorf("Revert node: %s job running error: %v", nodeName, err)
 				return err

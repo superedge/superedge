@@ -18,7 +18,7 @@ package kubeclient
 
 import (
 	"bytes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
 	"text/template"
@@ -56,6 +56,7 @@ func init() {
 	handlers["RoleBinding"] = createOrUpdateRoleBinding
 	handlers["ClusterRole"] = createOrUpdateClusterRole
 	handlers["ServiceAccount"] = createOrUpdateServiceAccount
+	handlers["PodSecurityPolicy"] = createOrUpdatePodSecurityPolicy
 	handlers["ClusterRoleBinding"] = createOrUpdateClusterRoleBinding
 	handlers["MutatingWebhookConfiguration"] = createOrUpdateMutatingWebhookConfiguration
 	handlers["ValidatingWebhookConfiguration"] = createOrUpdateValidatingWebhookConfiguration
@@ -205,6 +206,18 @@ func createOrUpdateIngress(client kubernetes.Interface, data []byte) error {
 	return nil
 }
 
+func createOrUpdatePodSecurityPolicy(client kubernetes.Interface, data []byte) error {
+	obj := new(extensionsv1beta1.PodSecurityPolicy)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := CreateOrUpdatePodSecurityPolicy(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func createOrUpdateRole(client kubernetes.Interface, data []byte) error {
 	obj := new(rbacv1.Role)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
@@ -325,7 +338,7 @@ func CreateResourceWithFile(client kubernetes.Interface, yamlStr string, option 
 		return err
 	}
 
-	klog.V(8).Infof("Create yaml: %s", string(data))
+	klog.V(6).Infof("Create kubernetes resource output yaml: %s", string(data))
 
 	reg := regexp.MustCompile(`(?m)^-{3,}$`)
 	items := reg.Split(string(data), -1)
