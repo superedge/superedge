@@ -17,27 +17,72 @@ limitations under the License.
 package app
 
 import (
+	"flag"
+	"io"
+	"os"
+	"path"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/change"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util/kubeadm"
 )
 
-func NewEdgeAdmCommand() *cobra.Command {
+var (
+	edgeadmConf = cmd.EdgeadmConfig{
+		IsEnableEdge:   true,
+		WorkerPath:     "/tmp/",
+		Kubeconfig:     "~/.kube/config",
+		ManifestsDir:   "/tmp/edge-manifests",
+		InstallPkgPath: "",
+	}
+)
+
+func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "edgeadm COMMAND [arg...]",
-		Short: "edgeadm use to manage edge cluster",
+		Short: "edgeadm use to manage edge kubernetes cluster",
 		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Help()
 		},
 	}
 
 	// add kubeconfig to persistent flags
-	cmds.PersistentFlags().String("kubeconfig", "", "The path to the kubeconfig file")
+	globalFlagSet(nil)
+	cmds.ResetFlags()
+
+	// edgeadm about change cluster
+	cmds.AddCommand(cmd.NewVersionCMD())
 	cmds.AddCommand(cmd.NewManifestsCMD())
 	cmds.AddCommand(change.NewChangeCMD())
 	cmds.AddCommand(revert.NewRevertCMD())
-	cmds.AddCommand(cmd.NewVersionCMD())
+
+	// edgeadm create edge cluster
+	cmds.AddCommand(kubeadm.NewInitCMD(os.Stdout, &edgeadmConf))
+	cmds.AddCommand(kubeadm.NewJoinCMD(os.Stdout, &edgeadmConf))
+	cmds.AddCommand(kubeadm.NewCmdToken(os.Stdout, os.Stdout))
+	cmds.AddCommand(kubeadm.NewResetCMD(os.Stdin, os.Stdout, &edgeadmConf))
+
 	return cmds
+}
+
+func globalFlagSet(flagset *flag.FlagSet) {
+	if flagset == nil {
+		flagset = flag.CommandLine
+	}
+
+	flagset.BoolVar(&edgeadmConf.IsEnableEdge, constant.ISEnableEdge, true, "Enable of install edge kubernetes cluster.")
+	flagset.StringVar(&edgeadmConf.WorkerPath, "worker-path", "/tmp/", "Worker path of install edge kubernetes cluster.")
+	flagset.StringVar(&edgeadmConf.Kubeconfig, "kubeconfig", "~/.kube/config", "The path to the kubeconfig file. [necessary]")
+
+	pflag.CommandLine.AddGoFlagSet(flagset)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	os.MkdirAll(path.Dir(edgeadmConf.WorkerPath+constant.EdgeClusterLogFile), 0755)
+	pflag.Set("log_file", edgeadmConf.WorkerPath+constant.EdgeClusterLogFile)
+	flag.Parse()
 }

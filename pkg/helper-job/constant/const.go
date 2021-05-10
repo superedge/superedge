@@ -17,24 +17,8 @@ limitations under the License.
 package constant
 
 const (
-	ACTION_CHANGE = "change"
-	ACTION_REVERT = "revert"
-)
-
-const (
-	NODE_ROLE_NODE   = "node"
-	NODE_ROLE_MASTER = "master"
-)
-
-const (
 	KUBELET_STATUS_CMD  = "systemctl status kubelet.service"
 	KUBELET_RESTART_CMD = "systemctl restart kubelet.service"
-)
-
-const (
-	EDGE_NODE_KEY                 = "superedge.io/edge"
-	EDGE_CHANGE_NODE_KEY          = "superedge.io/change"
-	KUBERNETES_DEFAULT_ROLE_LABEL = "node-role.kubernetes.io/master"
 )
 
 const (
@@ -52,6 +36,7 @@ const (
 	MasterHostsFilePath         = "/etc/hosts"
 	KubeletStartEnvFile         = "/etc/sysconfig/kubelet"
 	KubeadmKubeletEdgeCert      = "/etc/kubernetes/edge/"
+	KubeadmKubeletManifests     = "/etc/kubernetes/manifests/"
 	KubeadmKubeletConfig        = "/etc/kubernetes/kubelet.conf"
 	EdgeadmKubeletConfig        = "/etc/kubernetes/edge/kubelet.config"
 	LiteAPIServerTemplatePath   = "/etc/kubernetes/edge/lite-apiserver.yaml"

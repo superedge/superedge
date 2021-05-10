@@ -27,6 +27,7 @@ import (
 )
 
 var yamlMap = map[string]string{
+	manifests.KUBE_FlANNEl:                    manifests.KubeFlannelYaml,
 	manifests.APP_HELPER_JOB:                  manifests.HelperJobYaml,
 	manifests.APP_EDGE_HEALTH:                 manifests.EdgeHealthYaml,
 	manifests.APP_TUNNEL_EDGE:                 manifests.TunnelEdgeYaml,
@@ -42,7 +43,7 @@ var yamlMap = map[string]string{
 func NewManifestsCMD() *cobra.Command {
 	var yamlDir string
 	cmd := &cobra.Command{
-		Use:   "manifest",
+		Use:   "manifests",
 		Short: "Output edge cluster manifest yaml files",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := outputYamlFile(yamlDir); err != nil {
@@ -52,7 +53,7 @@ func NewManifestsCMD() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&yamlDir, "manifest-dir", "m", "./manifest/",
+	cmd.Flags().StringVarP(&yamlDir, "manifest-dir", "m", "./manifests/",
 		"Folder for edge cluster yaml files output.")
 
 	return cmd
