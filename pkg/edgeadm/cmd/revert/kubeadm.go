@@ -1,3 +1,19 @@
+/*
+Copyright 2020 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package revert
 
 import (
@@ -14,13 +30,11 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
-
-	helper_constant "github.com/superedge/superedge/pkg/helper-job/constant"
 )
 
 func (r *revertAction) runKubeamdRevert() error {
 	if err := common.DeployHelperJob(r.clientSet,
-		manifests.HelperJobYaml, constant.ACTION_REVERT, constant.NODE_ROLE_NODE); err != nil {
+		manifests.HelperJobYaml, constant.ActionRevert, constant.NodeRoleNode); err != nil {
 		return err
 	}
 
@@ -66,12 +80,10 @@ func (r *revertAction) runKubeamdRevert() error {
 	}
 
 	if err := common.DeployHelperJob(r.clientSet,
-		manifests.HelperJobYaml, constant.ACTION_REVERT, constant.NODE_ROLE_MASTER); err != nil {
+		manifests.HelperJobYaml, constant.ActionRevert, constant.NodeRoleMaster); err != nil {
 		return err
 	}
-	//if err := r.waitingKubeAPIRevert(30); err != nil {
-	//	return err
-	//}
+
 	if err := r.deleteNodeLabel(); err != nil {
 		return err
 	}
@@ -83,7 +95,7 @@ func (r *revertAction) runKubeamdRevert() error {
 
 func (r *revertAction) deleteLiteApiServerCert() error {
 	return r.clientSet.CoreV1().ConfigMaps("kube-system").
-		Delete(context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{})
+		Delete(context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 }
 
 func (r *revertAction) deleteTunnelCloud() error {
@@ -134,14 +146,15 @@ func (r *revertAction) deleteEdgeHealth() error {
 func (r *revertAction) deleteNodeLabel() error {
 	kubeclient := r.clientSet
 
-	nodes, err := kubeclient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: helper_constant.EDGE_CHANGE_NODE_KEY + "=enable"})
+	labelSelector := fmt.Sprintf("%s=%s", constant.EdgeChangeLabelKey, constant.EdgeChangeLabelValueEnable)
+	nodes, err := kubeclient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return err
 	}
 
 	for _, node := range nodes.Items {
-		if _, ok := node.Labels[helper_constant.EDGE_CHANGE_NODE_KEY]; ok {
-			delete(node.Labels, helper_constant.EDGE_CHANGE_NODE_KEY)
+		if _, ok := node.Labels[constant.EdgeChangeLabelKey]; ok {
+			delete(node.Labels, constant.EdgeChangeLabelKey)
 		}
 		_, err = kubeclient.CoreV1().Nodes().Update(context.TODO(), &node, metav1.UpdateOptions{})
 		if err != nil {
