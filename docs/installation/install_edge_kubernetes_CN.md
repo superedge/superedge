@@ -84,7 +84,9 @@
 
 我们研究了Kubeadm的源码，发现可以借用Kubeadm创建原生Kubernetes集群、join节点、workflow思想来一键部署边缘 Kubernetes集群，并且可以分步去执行安装步骤。这正是我们想要的简单、灵活、低学习成本的部署方案。于是我们站在巨人的肩膀上，利用Kubedam的思想，复用Kubeadm的源码，设计出了如下的解决方案。
 
-<img src="https://raw.githubusercontent.com/attlee-wang/myimage/master/image/20210419101917.png" alt="image-20210419101917603" style="zoom:50%;" />
+<div align="center">
+  <img src="../img/edgeadm-init-arch.png" width=50% title="edgeadm-init-arch Architecture">
+</div>
 
 >   其中 `Kubeadm init cluster/join node`部分完全复用了kubadm的源码，所有逻辑和Kubeadm完全相同。
 
@@ -123,9 +125,9 @@
 #### <2>.下载edgeadm静态安装包，并拷贝到所有master && node节点
 
 ```shell
-# 注意修改 `arch=amd64`参数，下载自己机器对应的体系结构，其他参数不变
+# 注意修改"arch=amd64"参数，下载自己机器对应的体系结构，其他参数不变
 [root@centos ~] arch=amd64 version=v0.3.0-beta.1 && rm -rf edgeadm-linux-* && \
-wget -k https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edgeadm-linux-$arch-$version.tgz && \
+wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
 tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。

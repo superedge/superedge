@@ -76,7 +76,9 @@ In response to the above problems, in order to lower the threshold for users to 
 
 We studied the source code of Kubeadm and found that we can borrow Kubeadm to create native Kubernetes clusters, join nodes, and workflow ideas to deploy edge Kubernetes clusters with one click, and perform the installation steps step by step. This is exactly what we want for a simple, flexible, and low learning cost deployment solution. So we stood on the shoulders of giants, used Kubedam's ideas, reused Kubeadm's source code, and designed the following solution.
 
-<img src="https://raw.githubusercontent.com/attlee-wang/myimage/master/image/20210419101917.png" alt="image-20210419101917603" style="zoom:50%;" />
+<div align="center">
+  <img src="../img/edgeadm-init-arch.png" width=50% title="edgeadm-init-arch Architecture">
+</div>
 
 >   Among them, the part of `Kubeadm init cluster/join node` completely reuses the source code of kubadm, and all the logic is exactly the same as Kubeadm.
 
@@ -117,7 +119,7 @@ This program has the following advantages:
 ```shell
 # Choose installation package according to your installation node CPU architecture [amd64, amd64]
 [root@centos ~] arch=amd64 version=v0.3.0-beta.1 && rm -rf edgeadm-linux-* && \
-wget -k https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edgeadm-linux-$arch-$version.tgz && \
+wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
 tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 The installation package is about 200M. For detailed information about the installation package, please refer to **5. Custom Kubernetes static installation package**.
