@@ -8,22 +8,21 @@
       * [2.3 原则](#23-原则)
       * [2.4 设计与实现](#24-设计与实现)
    * [3. 用 edgeadm 安装边缘 Kubernetes 集群](#3-用-edgeadm-安装边缘-kubernetes-集群)
-         * [&lt;1&gt;.  安装条件](#1--安装条件)
-         * [&lt;2&gt;. 下载edgeadm静态安装包，并拷贝到所有master &amp;&amp; node节点](#2-下载edgeadm静态安装包并拷贝到所有master--node节点)
-         * [&lt;3&gt;. 安装边缘 Kubernetes master 节点](#3-安装边缘-kubernetes-master-节点)
-         * [&lt;4&gt;. 设置master kube-config 文件](#4-设置master-kube-config-文件)
-         * [&lt;5&gt;.  join 边缘节点](#5--join-边缘节点)
-   * [4. 用 edgeadm 安装边缘高可用 Kubernetes 集群](#4-用-edgeadm-安装边缘高可用-kubernetes-集群)
-         * [&lt;1&gt;.  安装前提](#1--安装前提)
-         * [&lt;2&gt;.  安装 Haproxy](#2--安装-haproxy)
-         * [&lt;3&gt;.  安装 Keepalived](#3--安装-keepalived)
-         * [&lt;4&gt;.  安装高可用边缘 Kubernetes master](#4--安装高可用边缘-kubernetes-master)
-         * [&lt;5&gt;.  join master 节点](#5--join-master-节点)
-         * [&lt;6&gt;.  join node 边缘节点](#6--join-node-边缘节点)
+        * [&lt;1&gt;. 安装条件](#1-安装条件)
+        * [&lt;2&gt;.下载edgeadm静态安装包，并拷贝到所有master &amp;&amp; node节点](#2下载edgeadm静态安装包并拷贝到所有master--node节点)
+        * [&lt;3&gt;.安装边缘 Kubernetes master 节点](#3安装边缘-kubernetes-master-节点)
+        * [&lt;4&gt;.设置master kube-config 文件](#4设置master-kube-config-文件)
+        * [&lt;5&gt;. join 边缘节点](#5-join-边缘节点)
+   * [4.用 edgeadm 安装边缘高可用 Kubernetes 集群](#4用-edgeadm-安装边缘高可用-kubernetes-集群)
+        * [&lt;1&gt;. 安装前提](#1-安装前提)
+        * [&lt;2&gt;.安装 Haproxy](#2安装-haproxy)
+        * [&lt;3&gt;.安装 Keepalived](#3安装-keepalived)
+        * [&lt;4&gt;.安装高可用边缘 Kubernetes master](#4安装高可用边缘-kubernetes-master)
+        * [&lt;5&gt;.join master 节点](#5join-master-节点)
+        * [&lt;6&gt;.join node 边缘节点](#6join-node-边缘节点)
    * [5. 自定义Kubernetes静态安装包](#5-自定义kubernetes静态安装包)
-        * [&lt;1&gt;.  自定义其他Kubernetes 版本](#1--自定义其他kubernetes-版本)
-        * [&lt;2&gt;.  自定义其他体系Kubernetes静态安装包](#2--自定义其他体系kubernetes静态安装包)
-
+        * [&lt;1&gt;. 自定义其他Kubernetes 版本](#1-自定义其他kubernetes-版本)
+        * [&lt;2&gt;. 自定义其他体系Kubernetes静态安装包](#2-自定义其他体系kubernetes静态安装包)
 
 ## 1. 背景
 
@@ -109,7 +108,7 @@
 
 ## 3. 用 edgeadm 安装边缘 Kubernetes 集群
 
-#### <1>.  安装条件
+#### <1>. 安装条件
 
 -   遵循 [kubeadm的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) ，master && node 最低2C2G，磁盘空间不小于1G；
 
@@ -121,7 +120,7 @@
 
     >   其他Kubernetes 版本可参考 **5. 自定义Kubernetes静态安装包**，自行制作。
 
-#### <2>. 下载edgeadm静态安装包，并拷贝到所有master && node节点
+#### <2>.下载edgeadm静态安装包，并拷贝到所有master && node节点
 
 ```shell
 # 注意修改 `arch=amd64`参数，下载自己机器对应的体系结构，其他参数不变
@@ -131,7 +130,7 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
 
-#### <3>. 安装边缘 Kubernetes master 节点
+#### <3>.安装边缘 Kubernetes master 节点
 
 ```shell
 [root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<master节点公网IP> --apiserver-advertise-address=<master节点内网IP> --enable-edge=true -v=6
@@ -183,7 +182,7 @@ edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx \
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，可使用`./edgeadm reset`命令回滚集群的初始化操作。
 
-#### <4>. 设置master kube-config 文件
+#### <4>.设置master kube-config 文件
 
 要使非 root 用户可以运行 kubectl，请运行以下命令，它们也是 edgeadm init 输出的一部分：
 
@@ -208,7 +207,7 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 [root@centos ~] openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
 ```
 
-#### <5>.  join 边缘节点
+#### <5>. join 边缘节点
 
 在边缘节点上执行 `<2>.下载edgeadm静态安装包`，或者通过其他方式把edgeadm静态安装包上传到边缘节点，然后执行如下命令：
 
@@ -242,15 +241,15 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 >
 >   原生Kubernetes节点和kubeadm的join一样，不会做任何操作。
 
-## 4. 用 edgeadm 安装边缘高可用 Kubernetes 集群
+## 4.用 edgeadm 安装边缘高可用 Kubernetes 集群
 
-#### <1>.  安装前提
+#### <1>. 安装前提
 
 -   准备一个Master VIP，做为可用负载均衡统一入口；
 -   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器作为master节点；
 -   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器做worker节点；
 
-#### <2>.  安装 Haproxy
+#### <2>.安装 Haproxy
 
 在Master上安装 Haproxy 作为集群总入口
 > 注意：替换配置文件中的 < master VIP >
@@ -311,7 +310,7 @@ backend app
     server  app4 127.0.0.1:5004 check
 EOF
 ```
-#### <3>.  安装 Keepalived
+#### <3>.安装 Keepalived
 
 在所有Master安装 Keepalived，执行同样操作：
 > 注意：
@@ -366,7 +365,7 @@ garp_master_refresh 5
 }
 EOF
 ```
-#### <4>.  安装高可用边缘 Kubernetes master
+#### <4>.安装高可用边缘 Kubernetes master
 
 在其中一台 Master中执行集群初始化操作
 ```shell
@@ -421,7 +420,7 @@ edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
 ```
 记录`./edgeadm init`输出的`./edgeadm join`命令，你需要此命令将添加Master节点和边缘节点。
 
-#### <5>.  join master 节点
+#### <5>.join master 节点
 
 在另一台 master 执行`./edgeadm join`命令
 ```shell
@@ -450,7 +449,7 @@ Run 'kubectl get nodes' to see this node join the cluster.
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`./edgeadm reset`命令回滚集群的初始化操作。
 
-#### <6>.  join node 边缘节点
+#### <6>.join node 边缘节点
 
 ```shell
 [root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
@@ -484,14 +483,14 @@ kube-linux-arm64-v1.18.2.tar.gz ## kube-v1.18.2 arm64的Kubernetes静态安装�
     └── docker-19.03-linux-arm64.tar.gz ## docker 19.03 arm64体系的安装脚本和安装包
 ```
 
-#### <1>.  自定义其他Kubernetes 版本
+#### <1>. 自定义其他Kubernetes 版本
 
 自定义其他Kubernetes版本需要做的有两件事：
 
 -   替换`二进制目录`中的kubectl和kubelet文件，版本需要大于等于Kubernetes v1.18.0；
 -   确保init使用的镜像仓库中有相应Kubernetes版本的基础镜像；
 
-#### <2>.  自定义其他体系Kubernetes静态安装包
+#### <2>. 自定义其他体系Kubernetes静态安装包
 
 自定义Kubernetes静态安装包其他体系需要做三件事：
 
