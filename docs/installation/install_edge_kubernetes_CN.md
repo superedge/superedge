@@ -1,0 +1,501 @@
+# 一键安装边缘独立Kubernetes 集群
+
+* [一键安装边缘独立Kubernetes 集群](#一键安装边缘独立kubernetes-集群)
+   * [1. 背景](#1-背景)
+   * [2. 架构设计](#2-架构设计)
+      * [2.1 初衷](#21-初衷)
+      * [2.2 目标](#22-目标)
+      * [2.3 原则](#23-原则)
+      * [2.4 设计与实现](#24-设计与实现)
+   * [3. 用 edgeadm 安装边缘 Kubernetes 集群](#3-用-edgeadm-安装边缘-kubernetes-集群)
+         * [&lt;1&gt;.  安装条件](#1--安装条件)
+         * [&lt;2&gt;. 下载edgeadm静态安装包，并拷贝到所有master &amp;&amp; node节点](#2-下载edgeadm静态安装包并拷贝到所有master--node节点)
+         * [&lt;3&gt;. 安装边缘 Kubernetes master 节点](#3-安装边缘-kubernetes-master-节点)
+         * [&lt;4&gt;. 设置master kube-config 文件](#4-设置master-kube-config-文件)
+         * [&lt;5&gt;.  join 边缘节点](#5--join-边缘节点)
+   * [4. 用 edgeadm 安装边缘高可用 Kubernetes 集群](#4-用-edgeadm-安装边缘高可用-kubernetes-集群)
+         * [&lt;1&gt;.  安装前提](#1--安装前提)
+         * [&lt;2&gt;.  安装 Haproxy](#2--安装-haproxy)
+         * [&lt;3&gt;.  安装 Keepalived](#3--安装-keepalived)
+         * [&lt;4&gt;.  安装高可用边缘 Kubernetes master](#4--安装高可用边缘-kubernetes-master)
+         * [&lt;5&gt;.  join master 节点](#5--join-master-节点)
+         * [&lt;6&gt;.  join node 边缘节点](#6--join-node-边缘节点)
+   * [5. 自定义Kubernetes静态安装包](#5-自定义kubernetes静态安装包)
+        * [&lt;1&gt;.  自定义其他Kubernetes 版本](#1--自定义其他kubernetes-版本)
+        * [&lt;2&gt;.  自定义其他体系Kubernetes静态安装包](#2--自定义其他体系kubernetes静态安装包)
+
+
+## 1. 背景
+
+目前，很多边缘计算容器开源项目在使用上均存在一个默认的前提：用户需要提前准备一个标准的或者特定工具搭建的Kubernetes集群，然后再通过特定工具或者其他方式在集群中[部署](https://github.com/superedge/superedge/blob/main/docs/installation/install_via_edgeadm_CN.md)相应组件来体验边缘能力。这无疑提高了用户体验边缘能力的门槛，而且使用上有众多的限制，让用户很难上手。 简单整理，大概会有如下问题：
+
+-   门槛太高
+    -   用户需要提前准备一个Kubernetes集群，对于很多用户来说门槛太高，搭建的流程比较复杂，容易失败，把很多想使用边缘能力的人群拒之门外；
+-   限制性太大
+    -   往往要求特定工具搭建的特定版本的Kubernetes集群，通用性太差，用户在想在实际生产环境上使用限制性太大；
+-   添加边缘节点比较麻烦
+    -   添加边缘节点需要依靠搭建Kubernetes集群本身的工具添加Kubernetes原生的节点再进行转化，对第三方工具依赖性较强，并且操作流程比较麻烦，容易出错；
+-   自动化能力较差
+    -   无论Kubernetes集群的搭建，还是添加边缘节点都很难在生产环境自动化起来，相关流程还需要自己的团队进行二次开发，集成难度较大；
+
+为了降低用户体验边缘能力的门槛，云原生社区的同学打算开发一个可以一键部署边缘Kubernetes集群的方法，让用户可以更容易、更简单的体验边缘Kubernetes集群。
+
+---
+
+## 2. 架构设计
+
+针对上述问题，为了降低用户使用边缘 Kubernetes 集群的门槛，让边缘 Kubernetes 集群具备生产能力，我们设计了一键就可以部署出来一个边缘 Kubernetes 集群的方案，完全屏蔽安装细节，让用户可以零门槛的体验边缘能力。
+
+### 2.1 初衷
+
+-   让用户很简单，无门槛的使用边缘 Kubernetes 集群，并能在生产环境真正把边缘能力用起来；
+
+### 2.2 目标
+
+-   一键化使用
+
+    -   能够一键搭建起一个边缘 Kubernetes 集群
+    -   能够一键很简单、很灵活的添加边缘节点；
+
+-   两种安装创景
+
+    -   支持在线安装
+    -   支持离线安装，让私有化环境也能很简单；
+
+-   可生产使用
+
+    -   不要封装太多，可以让想使用边缘 Kubernetes 集群的团队能在内部系统进行简单的集成，就生成可用；
+
+-   零学习成本
+
+    -   尽可能的和 kubeadm 的使用方式保持一致，让用户无额外的学习成本，会用kubeadm就会用edgeadm；
+
+### 2.3 原则
+
+-   不修改 kubeadm 源码
+    -   尽量引用和复用 kubeadm 的源码，尽量不修改 kubeadm 的源码，避免后面升级的隐患；
+    -   基于kubeadm但又高于 kubeadm，不必被 kubeadm 的设计所局限，只要能让用户更简单都可以被允许；
+-   允许用户选择是否部署边缘能力组件;
+    
+- 允许用户自定义边缘能力组件的配置；
+
+### 2.4 设计与实现
+
+---
+
+我们研究了Kubeadm的源码，发现可以借用Kubeadm创建原生Kubernetes集群、join节点、workflow思想来一键部署边缘 Kubernetes集群，并且可以分步去执行安装步骤。这正是我们想要的简单、灵活、低学习成本的部署方案。于是我们站在巨人的肩膀上，利用Kubedam的思想，复用Kubeadm的源码，设计出了如下的解决方案。
+
+<img src="https://raw.githubusercontent.com/attlee-wang/myimage/master/image/20210419101917.png" alt="image-20210419101917603" style="zoom:50%;" />
+
+>   其中 `Kubeadm init cluster/join node`部分完全复用了kubadm的源码，所有逻辑和Kubeadm完全相同。
+
+这个方案有如下几个优点：
+
+-   完全兼容Kubeadm
+
+    我们只是站在Kubeadm的肩膀上，在Kubeadm init/join之前设置了一些边缘集群需要的配置参数，将初始化Master或Node节点自动化，安装了容器运行时。在Kubeadm init/join完成之后，安装了CNI网络插件和部署了相应的边缘能力组件。
+
+    我们以Go Mod方式引用了Kubeadm源码，整个过程中并未对Kubeadm的源码修改过一行，完全的原生，为后面升级更高版本的Kubeadm做好了准备。
+
+-   一键化，用起来简单、灵活、自动化
+
+    edgeadm init集群和join节点完全保留了Kubeadm init/join原有的参数和流程，只是自动了初始化节点和安装容器运行时，可以用`edgeadm --enable-edge=fasle`参数来一键化安装原生Kubernetes集群， 也可以用`edgeadm --enable-edge=true`参数一键化来安装边缘Kubernetes集群。
+
+    可以Join任何只要能够访问到Kube-apiserver位于任何位置的节点, 也可以join master。Join master也延续了Kubeadm的的方式，搭建高可用的节点可以在需要的时候，直接用join master去扩容Master节点，实现高可用。
+
+-   无学习成本，和kubeadm的使用完全相同
+
+    因为`Kubeadm init cluster/join node`部分完全复用了kubadm的源码，所有逻辑和Kubeadm完全相同，完全保留了kubeadm的使用习惯和所有flag参数，用法和kubeadm使用完全一样，没有任何新的学习成本，用户可以按Kubeadm的参数或者使用kubeadm.config去自定义边缘 Kubernetes 集群。
+
+## 3. 用 edgeadm 安装边缘 Kubernetes 集群
+
+#### <1>.  安装条件
+
+-   遵循 [kubeadm的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) ，master && node 最低2C2G，磁盘空间不小于1G；
+
+-   目前支持amd64、arm64两个体系；
+
+    >    其他体系可自行编译edgeadm和制作相应体系安装包，可参考 **5. 自定义Kubernetes静态安装包**
+
+-   支持的Kubernetes版本：大于等于v1.18，提供的安装包仅提供Kubernetes v1.18.2版本；
+
+    >   其他Kubernetes 版本可参考 **5. 自定义Kubernetes静态安装包**，自行制作。
+
+#### <2>. 下载edgeadm静态安装包，并拷贝到所有master && node节点
+
+```shell
+# 注意修改 `arch=amd64`参数，下载自己机器对应的体系结构，其他参数不变
+[root@centos ~] arch=amd64 version=v0.3.0-beta.1 && rm -rf edgeadm-linux-* && \
+wget -k https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.3.0/edgeadm-linux-$arch-$version.tgz && \
+tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
+
+#### <3>. 安装边缘 Kubernetes master 节点
+
+```shell
+[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<master节点公网IP> --apiserver-advertise-address=<master节点内网IP> --enable-edge=true -v=6
+```
+其中：
+
+-   --enable-edge=true: 是否部署边缘能力组件，默认true
+
+    >   --enable-edge=false 表示安装原生Kubernetes集群，和kubeadm搭建的集群完全一样；
+
+-   --install-pkg-path: Kubernetes静态安装包的地址
+
+>   --install-pkg-path的值可以为机器上的路径，也可以为FTP上的网络地址，注意用和机器体系匹配的Kubernetes静态安装包；
+
+-   --apiserver-cert-extra-sans： kube-apiserver的证书扩展地址
+
+    -   一定要签订Master节点公网IP或者域名，自定义域名的话可自行在所Matser和Node节点配置hosts；
+
+    -   签订公网IP和域名，是因为边缘节点一般和Master节点不在同一局域网，需要通过公网来加入和访问Master;
+
+-   --image-repository：镜像仓库地址
+
+    >   要是superedge.tencentcloudcr.com/superedge 比较慢，可换成其他加速镜像仓库，只要能Pull下来kube-apiserver，kube-controller-manager，kube-scheduler，kube-proxy，etcd， pause……镜像就可以。
+
+其他参数和Kubeadm含义完全相同，可按kubeadm的要求进行配置。
+
+>    也可用kubeadm.config配置kubeadm的原参数，通过`edgeadm init --config kubeadm.config --install-pkg-path ./kube-linux-*.tar.gz `来创建边缘Kubernetes集群。
+
+要是执行过程中没有问题，集群成功初始化，会输出如下内容：
+
+```shell
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxx
+    --install-pkg-path <Path of edgeadm kube-* install package>
+```
+执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，可使用`./edgeadm reset`命令回滚集群的初始化操作。
+
+#### <4>. 设置master kube-config 文件
+
+要使非 root 用户可以运行 kubectl，请运行以下命令，它们也是 edgeadm init 输出的一部分：
+
+```shell
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+或者，如果你是 root 用户，则可以运行：
+```shell
+export KUBECONFIG=/etc/kubernetes/admin.conf
+```
+
+注意保存`./edgeadm init`输出的`./edgeadm join`命令，你需要此命令将节点加入集群。
+
+其中token的有效期和kubeadm一样`24h`，过期之后可以用`./edgeadm token create`创建新的token。
+
+ --discovery-token-ca-cert-hash的值生成也同kubeadm，可在master节点执行下面命令生成。
+
+```shell
+[root@centos ~] openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+```
+
+#### <5>.  join 边缘节点
+
+在边缘节点上执行 `<2>.下载edgeadm静态安装包`，或者通过其他方式把edgeadm静态安装包上传到边缘节点，然后执行如下命令：
+
+```shell
+[root@centos ~] ./edgeadm join <master节点公网IP/master节点内网IP/域名>:Port --token xxxx \
+     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
+     --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> --enable-edge=true
+```
+其中：
+
+-   <master节点公网IP/master节点内网IP/域名>:Port 是节点访问Kube-apiserver服务的地址
+
+>   可以把`edgeadm init`加入节点提示的Kube-apiserver服务的地址视情况换成`Master节点公网IP/Master节点内网IP/域名`，主要取决于想让节点通过外网还是内网访问Kube-apiserver服务。
+
+-   --enable-edge=true:  加入的节点是否作为边缘节点（是否部署边缘能力组件），默认true
+
+>   --enable-edge=false 表示join原生Kubernetes集群节点，和kubeadm join的节点完全一样；
+
+要是执行过程中没有问题，新的node 成功加入集群，会输出如下内容：
+
+```shell
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，可使用`./edgeadm reset`命令回滚加入节点的操作，重新join。
+
+>    提示：要是join的边缘节点，边缘节点join成功后都会给边缘节点打一个label: `superedge.io/edge-node=enable`，方便后续应用用nodeSelector选择应用调度到边缘节点；
+>
+>   原生Kubernetes节点和kubeadm的join一样，不会做任何操作。
+
+## 4. 用 edgeadm 安装边缘高可用 Kubernetes 集群
+
+#### <1>.  安装前提
+
+-   准备一个Master VIP，做为可用负载均衡统一入口；
+-   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器作为master节点；
+-   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器做worker节点；
+
+#### <2>.  安装 Haproxy
+
+在Master上安装 Haproxy 作为集群总入口
+> 注意：替换配置文件中的 < master VIP >
+```shell
+# yum install -y haproxy
+# cat << EOF >/etc/haproxy/haproxy.cfg
+global
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+    stats socket /var/lib/haproxy/stats
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+frontend  main *:5000
+    acl url_static       path_beg       -i /static /images /javascript /stylesheets
+    acl url_static       path_end       -i .jpg .gif .png .css .js
+
+    use_backend static          if url_static
+    default_backend             app
+
+frontend kubernetes-apiserver
+    mode                 tcp
+    bind                 *:16443
+    option               tcplog
+    default_backend      kubernetes-apiserver
+backend kubernetes-apiserver
+    mode        tcp
+    balance     roundrobin
+    server  master-0  <master VIP>:6443 check # 这里替换 master VIP 为用户自己的 VIP
+backend static
+    balance     roundrobin
+    server      static 127.0.0.1:4331 check
+backend app
+    balance     roundrobin
+    server  app1 127.0.0.1:5001 check
+    server  app2 127.0.0.1:5002 check
+    server  app3 127.0.0.1:5003 check
+    server  app4 127.0.0.1:5004 check
+EOF
+```
+#### <3>.  安装 Keepalived
+
+在所有Master安装 Keepalived，执行同样操作：
+> 注意：
+>
+> 1.  替换配置文件中的 < Master VIP >
+>
+> 2.  下面的 keepalived.conf 配置文件中 < master 本机公网 IP > 和 < 其他 master 公网 IP > 在不同 master 的配置需要调换位置，不要填错。
+```shell
+# yum install -y keepalived
+# cat << EOF >/etc/keepalived/keepalived.conf 
+! Configuration File for keepalived
+
+global_defs {
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL_EDGE_1
+}
+vrrp_script checkhaproxy{
+script "/etc/keepalived/do_sth.sh"
+interval 5
+}
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    nopreempt
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass aaa
+    }
+    virtual_ipaddress {
+        <master VIP> # 这里替换 master VIP 为用户自己的 VIP
+    }
+    unicast_src_ip <master 本机公网 IP>
+    unicast_peer {
+      <其他 master 公网 IP>
+      <其他 master 公网 IP>
+    }
+notify_master "/etc/keepalived/notify_action.sh MASTER"
+notify_backup "/etc/keepalived/notify_action.sh BACKUP"
+notify_fault "/etc/keepalived/notify_action.sh FAULT"
+notify_stop "/etc/keepalived/notify_action.sh STOP"
+garp_master_delay 1
+garp_master_refresh 5
+   track_interface {
+     eth0
+   }
+   track_script {
+     checkhaproxy 
+   }
+}
+EOF
+```
+#### <4>.  安装高可用边缘 Kubernetes master
+
+在其中一台 Master中执行集群初始化操作
+```shell
+[root@centos ~] ./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点公网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
+```
+>   参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
+
+要是执行过程中没有问题，集群成功初始化，会输出如下内容：
+
+```shell
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
+    --control-plane --certificate-key xxxxxxxxxx
+    --install-pkg-path <Path of edgeadm kube-* install package>
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"edgeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxx  
+    --install-pkg-path <Path of edgeadm kube-* install package>
+```
+执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，使用`./edgeadm reset`命令回滚集群的初始化操作。
+
+要使非 root 用户可以运行 kubectl，请运行以下命令，它们也是 edgeadm init 输出的一部分：
+```shell
+# mkdir -p $HOME/.kube
+# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+或者，如果你是root 用户，则可以运行：
+```shell
+# export KUBECONFIG=/etc/kubernetes/admin.conf
+```
+记录`./edgeadm init`输出的`./edgeadm join`命令，你需要此命令将添加Master节点和边缘节点。
+
+#### <5>.  join master 节点
+
+在另一台 master 执行`./edgeadm join`命令
+```shell
+[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
+    --control-plane --certificate-key xxxxxxxxxx     \
+    --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> 
+```
+要是执行过程中没有问题，新的 master 成功加入集群，会输出如下内容：
+```shell
+This node has joined the cluster and a new control plane instance was created:
+
+* Certificate signing request was sent to apiserver and approval was received.
+* The Kubelet was informed of the new secure connection details.
+* Control plane (master) label and taint were applied to the new node.
+* The Kubernetes control plane instances scaled up.
+* A new etcd member was added to the local/stacked etcd cluster.
+
+To start administering your cluster from this node, you need to run the following as a regular user:
+
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Run 'kubectl get nodes' to see this node join the cluster.
+```
+执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`./edgeadm reset`命令回滚集群的初始化操作。
+
+#### <6>.  join node 边缘节点
+
+```shell
+[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
+    --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径>
+```
+要是执行过程中没有问题，新的 node 成功加入集群，会输出如下内容：
+```shell
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`./edgeadm reset`命令回滚集群的初始化操作。
+
+## 5. 自定义Kubernetes静态安装包
+
+Kubernetes静态安装包的目录结构如下：
+
+```bash
+kube-linux-arm64-v1.18.2.tar.gz ## kube-v1.18.2 arm64的Kubernetes静态安装包
+├── bin                         ## 二进制目录
+│   ├── conntrack               ## 连接跟踪的二进制文件
+│   ├── kubectl                 ## kube-v1.18.2的kubectl
+│   ├── kubelet                 ## kube-v1.18.2的kubelet
+│   └── lite-apiserver          ## 相应版本的lite-apiserver，可编译SuperEdge的lite-apiserver生成
+├── cni                         ## cin的配置
+│   └── cni-plugins-linux-v0.8.3.tar.gz ## v0.8.3的CNI插件二进制压缩包
+└── container                   ## 容器运行时目录
+    └── docker-19.03-linux-arm64.tar.gz ## docker 19.03 arm64体系的安装脚本和安装包
+```
+
+#### <1>.  自定义其他Kubernetes 版本
+
+自定义其他Kubernetes版本需要做的有两件事：
+
+-   替换`二进制目录`中的kubectl和kubelet文件，版本需要大于等于Kubernetes v1.18.0；
+-   确保init使用的镜像仓库中有相应Kubernetes版本的基础镜像；
+
+#### <2>.  自定义其他体系Kubernetes静态安装包
+
+自定义Kubernetes静态安装包其他体系需要做三件事：
+
+-   将Kubernetes静态安装包的所有二进制换成目标体系，包括cni和container相应安装包中的二进制；
+-   确保init使用的镜像仓库中有相应体系的Kubernetes版本的基础镜像，推荐使用[多体系镜像](https://docs.docker.com/buildx/working-with-buildx/)；
+-   充分测试，确保没有什么兼容问题。要有相关问题，也可以在SuperEdge社区提Issues一块来修复。
+
