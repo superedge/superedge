@@ -222,7 +222,7 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 
 -   <master节点外网IP/master节点内网IP/域名>:Port 是节点访问Kube-apiserver服务的地址
 
->   外网IP/Master节点内网IP/域名`，主要取决于想让节点通过外网还是内网访问Kube-apiserver服务。
+>   可以把`edgeadm init`加入节点提示的Kube-apiserver服务的地址视情况换成`Master节点外网IP/Master节点内网IP/域名`，主要取决于想让节点通过外网还是内网访问Kube-apiserver服务。
 
 -   --enable-edge=true:  加入的节点是否作为边缘节点（是否部署边缘能力组件），默认true
 
