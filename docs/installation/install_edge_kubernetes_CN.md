@@ -126,7 +126,7 @@
 
 ```shell
 # 注意修改"arch=amd64"参数，下载自己机器对应的体系结构，其他参数不变
-[root@centos ~] arch=amd64 version=v0.3.0-beta.1 && rm -rf edgeadm-linux-* && \
+[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && \
 wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
 tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
@@ -135,7 +135,7 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 #### <3>.安装边缘 Kubernetes master 节点
 
 ```shell
-[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<master节点公网IP> --apiserver-advertise-address=<master节点内网IP> --enable-edge=true -v=6
+[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<master节点外网IP> --apiserver-advertise-address=<master节点内网IP> --enable-edge=true -v=6
 ```
 其中：
 
@@ -149,9 +149,9 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 
 -   --apiserver-cert-extra-sans： kube-apiserver的证书扩展地址
 
-    -   一定要签订Master节点公网IP或者域名，只要签订的Master节点公网IP或者域名能被边缘节点访问到就可以，自定义域名的话可自行在所Matser和Node节点配置hosts；
+    -   推荐签订Master节点外网IP或者域名，只要**签订的Master节点的IP或者域名能被边缘节点访问到**就可以，当然内网IP也被允许，前提是边缘节点可以通过此IP访问Kube-apiserver。自定义域名的话可自行在所Matser和Node节点配置hosts；
 
-    -   签订公网IP和域名，是因为边缘节点一般和Master节点不在同一局域网，需要通过公网来加入和访问Master;
+    -   签订外网IP和域名，是因为边缘节点一般和Master节点不在同一局域网，需要通过外网来加入和访问Master;
 
 -   --image-repository：镜像仓库地址
 
@@ -214,15 +214,15 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 在边缘节点上执行 `<2>.下载edgeadm静态安装包`，或者通过其他方式把edgeadm静态安装包上传到边缘节点，然后执行如下命令：
 
 ```shell
-[root@centos ~] ./edgeadm join <master节点公网IP/master节点内网IP/域名>:Port --token xxxx \
+[root@centos ~] ./edgeadm join <master节点外网IP/master节点内网IP/域名>:Port --token xxxx \
      --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
      --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> --enable-edge=true
 ```
 其中：
 
--   <master节点公网IP/master节点内网IP/域名>:Port 是节点访问Kube-apiserver服务的地址
+-   <master节点外网IP/master节点内网IP/域名>:Port 是节点访问Kube-apiserver服务的地址
 
->   可以把`edgeadm init`加入节点提示的Kube-apiserver服务的地址视情况换成`Master节点公网IP/Master节点内网IP/域名`，主要取决于想让节点通过外网还是内网访问Kube-apiserver服务。
+>   外网IP/Master节点内网IP/域名`，主要取决于想让节点通过外网还是内网访问Kube-apiserver服务。
 
 -   --enable-edge=true:  加入的节点是否作为边缘节点（是否部署边缘能力组件），默认true
 
@@ -319,7 +319,7 @@ EOF
 >
 > 1.  替换配置文件中的 < Master VIP >
 >
-> 2.  下面的 keepalived.conf 配置文件中 < master 本机公网 IP > 和 < 其他 master 公网 IP > 在不同 master 的配置需要调换位置，不要填错。
+> 2.  下面的 keepalived.conf 配置文件中 < master 本机外网 IP > 和 < 其他 master 外网 IP > 在不同 master 的配置需要调换位置，不要填错。
 ```shell
 # yum install -y keepalived
 # cat << EOF >/etc/keepalived/keepalived.conf 
@@ -347,10 +347,10 @@ vrrp_instance VI_1 {
     virtual_ipaddress {
         <master VIP> # 这里替换 master VIP 为用户自己的 VIP
     }
-    unicast_src_ip <master 本机公网 IP>
+    unicast_src_ip <master 本机外网 IP>
     unicast_peer {
-      <其他 master 公网 IP>
-      <其他 master 公网 IP>
+      <其他 master 外网 IP>
+      <其他 master 外网 IP>
     }
 notify_master "/etc/keepalived/notify_action.sh MASTER"
 notify_backup "/etc/keepalived/notify_action.sh BACKUP"
@@ -371,7 +371,7 @@ EOF
 
 在其中一台 Master中执行集群初始化操作
 ```shell
-[root@centos ~] ./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点公网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
+[root@centos ~] ./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
 ```
 >   参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
 
