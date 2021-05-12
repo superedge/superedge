@@ -120,7 +120,7 @@ This program has the following advantages:
 
 ```shell
 # Choose installation package according to your installation node CPU architecture [amd64, amd64]
-[root@centos ~] arch=amd64 version=v0.3.0-beta.1 && rm -rf edgeadm-linux-* && \
+[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && \
 wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
 tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
@@ -143,7 +143,7 @@ On：
 
 -   --apiserver-cert-extra-sans: kube-apiserver certificate extension address
 
-    -   You must sign the master node public network IP or domain name, as long as the signed Master node public network IP or domain name can be accessed by edge nodes, you can configure hosts on all Matser and Node nodes if you customize the domain name;
+    -   It is recommended to sign the master node’s external network IP or domain name, as long as the signed Master node’s IP or domain name can be accessed by the edge node**. Of course, the internal network IP is also allowed, provided that the edge node can access kube-apiserver through this IP. If you customize the domain name, you can configure hosts on all Matser and Node nodes by yourself;
     -   Sign the public network IP and domain name, because the edge node and the Master node are generally not in the same local area network, and need to join and access the Master through the public network;
 
 -   --image-repository: image repository address
