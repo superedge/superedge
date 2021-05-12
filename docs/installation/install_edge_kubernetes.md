@@ -53,11 +53,13 @@ In response to the above problems, in order to lower the threshold for users to 
      - Able to build an edge Kubernetes cluster with one click;
      - It is very simple and flexible to add edge nodes with one key;
 - Two kinds of installation creation
+     -   Support online installation；
+     -   Support offline installation, so that the privatization environment can also be very simple;
 - Support online installation；
      - Support offline installation, so that the privatization environment can also be very simple;
 - Can be used in production
 
-     - Don't encapsulate too much, so that the team who wants to use the edge Kubernetes cluster can perform simple integration in the internal system, and it will be available;
+     - Don't encapsulate too much, so that teams who want to use the edge Kubernetes cluster can perform simple integration in the internal system, and then it is available for production;
 - Zero learning cost
 
      - Try to be consistent with the use of kubeadm as much as possible, so that users will use kubeadm and edgeadm without additional learning costs;
@@ -66,7 +68,7 @@ In response to the above problems, in order to lower the threshold for users to 
 
 - Don't modify kubeadm source code
   - Try to quote and reuse the source code of kubeadm, and try not to modify the source code of kubeadm to avoid hidden dangers of subsequent upgrades;
-  - Based on kubeadm but higher than kubeadm, it does not need to be limited by the design of kubeadm, as long as it can be simpler for users, it can be allowed;
+  - Based on kubeadm but higher than kubeadm, it does not have to be limited by the design of kubeadm, it can be allowed as long as it makes it easier for users to use;
 - Allow users to choose whether to deploy edge capability components;
 - Allow users to customize the configuration of edge capability components;
 
@@ -137,11 +139,11 @@ On：
 
 -   --install-pkg-path: The address of the Kubernetes static installation package
 
-    >   The value of --install-pkg-path can be the path on the machine or the network address on FTP. Pay attention to use the Kubernetes static installation package that matches the machine system;
+    >   The value of --install-pkg-path can be the path on the machine or the network address (for example: http://xxx/xxx/kube-linux-arm64/amd64-*.tar.gz, which can be encrypted without wget You can), pay attention to use the Kubernetes static installation package that matches the machine system;
 
 -   --apiserver-cert-extra-sans: kube-apiserver certificate extension address
 
-    -   Be sure to sign the public IP or domain name of the Master node. If you customize the domain name, you can configure hosts on all Matser and Node nodes by yourself;
+    -   You must sign the master node public network IP or domain name, as long as the signed Master node public network IP or domain name can be accessed by edge nodes, you can configure hosts on all Matser and Node nodes if you customize the domain name;
     -   Sign the public network IP and domain name, because the edge node and the Master node are generally not in the same local area network, and need to join and access the Master through the public network;
 
 -   --image-repository: image repository address
@@ -188,7 +190,7 @@ If you are the root user, you can run:
 ```shell
 # export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
-Pay attention to save the output of `./edgeadm init` `./edgeadm join` command, you need this command to join the node to the cluster.
+Note that the `./edgeadm join` command that saves the output of `./edgeadm init` will be used when adding node nodes later.
 
 The validity period of the token is the same as kubeadm `24h`, after expiration, you can use `./edgeadm token create` to create a new token.
 
@@ -410,7 +412,7 @@ If you are the root user, you can run:
 ```shell
 # export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
-Record the `./edgeadm join` command output by `./edgeadm init`. You need this command to join the node to the cluster.
+Pay attention to the `./edgeadm join` command that saves the output of `./edgeadm init`, which is needed to add Master node and edge node later.
 
 Record the `./edgeadm join` command output by `./edgeadm init`. You need this command to add the Master node and the edge node.
 

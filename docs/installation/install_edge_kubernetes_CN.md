@@ -63,7 +63,7 @@
 
 -   可生产使用
 
-    -   不要封装太多，可以让想使用边缘 Kubernetes 集群的团队能在内部系统进行简单的集成，就生成可用；
+    -   不要封装太多，可以让想使用边缘 Kubernetes 集群的团队能在内部系统进行简单的集成，就生产可用；
 
 -   零学习成本
 
@@ -73,7 +73,7 @@
 
 -   不修改 kubeadm 源码
     -   尽量引用和复用 kubeadm 的源码，尽量不修改 kubeadm 的源码，避免后面升级的隐患；
-    -   基于kubeadm但又高于 kubeadm，不必被 kubeadm 的设计所局限，只要能让用户更简单都可以被允许；
+    -   基于kubeadm但又高于 kubeadm，不必被 kubeadm 的设计所局限，只要能让用户使用起来更简单就可以被允许；
 -   允许用户选择是否部署边缘能力组件;
     
 - 允许用户自定义边缘能力组件的配置；
@@ -145,11 +145,11 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 
 -   --install-pkg-path: Kubernetes静态安装包的地址
 
->   --install-pkg-path的值可以为机器上的路径，也可以为FTP上的网络地址，注意用和机器体系匹配的Kubernetes静态安装包；
+>   --install-pkg-path的值可以为机器上的路径，也可以为网络地址（比如：http://xxx/xxx/kube-linux-arm64/amd64-*.tar.gz, 能免密wget到就可以），注意用和机器体系匹配的Kubernetes静态安装包；
 
 -   --apiserver-cert-extra-sans： kube-apiserver的证书扩展地址
 
-    -   一定要签订Master节点公网IP或者域名，自定义域名的话可自行在所Matser和Node节点配置hosts；
+    -   一定要签订Master节点公网IP或者域名，只要签订的Master节点公网IP或者域名能被边缘节点访问到就可以，自定义域名的话可自行在所Matser和Node节点配置hosts；
 
     -   签订公网IP和域名，是因为边缘节点一般和Master节点不在同一局域网，需要通过公网来加入和访问Master;
 
@@ -199,7 +199,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 
-注意保存`./edgeadm init`输出的`./edgeadm join`命令，你需要此命令将节点加入集群。
+注意保存`./edgeadm init`输出的`./edgeadm join`命令，后面添加node节点时会用到。
 
 其中token的有效期和kubeadm一样`24h`，过期之后可以用`./edgeadm token create`创建新的token。
 
@@ -420,7 +420,7 @@ edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
 ```shell
 # export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
-记录`./edgeadm init`输出的`./edgeadm join`命令，你需要此命令将添加Master节点和边缘节点。
+注意保存`./edgeadm init`输出的`./edgeadm join`命令，后面添加Master节点和边缘节点需要用到。
 
 #### <5>.join master 节点
 
