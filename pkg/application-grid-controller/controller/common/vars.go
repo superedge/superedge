@@ -29,4 +29,9 @@ const (
 	ServiceGridKind     = "ServiceGrid"
 
 	DefaultTemplateName = "default"
+
+	EdgeSystemNamespace     = "edge-system"
+	ParentClusterSecretName = "parent-cluster"
+
+	ParentURLKey            = "parent-url"
 )

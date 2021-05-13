@@ -25,25 +25,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
-	crdFactory "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions"
+	crdFactoryset "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
 )
 
 type ControllerConfig struct {
-	ServiceGridInformer     crdv1.ServiceGridInformer
-	DeploymentGridInformer  crdv1.DeploymentGridInformer
-	StatefulSetGridInformer crdv1.StatefulSetGridInformer
-	ServiceInformer         corev1.ServiceInformer
-	DeploymentInformer      appsv1.DeploymentInformer
-	StatefulSetInformer     appsv1.StatefulSetInformer
-	NodeInformer            corev1.NodeInformer
+	ServiceGridInformer       crdv1.ServiceGridInformer
+	DeploymentGridInformer    crdv1.DeploymentGridInformer
+	StatefulSetGridInformer   crdv1.StatefulSetGridInformer
+	ServiceInformer           corev1.ServiceInformer
+	DeploymentInformer        appsv1.DeploymentInformer
+	StatefulSetInformer       appsv1.StatefulSetInformer
+	NodeInformer              corev1.NodeInformer
+	NameSpaceInformer         corev1.NamespaceInformer
+	FedDeploymentGridInformer crdv1.DeploymentGridInformer
+	FedServiceGridInformer    crdv1.ServiceGridInformer
 }
 
-func NewControllerConfig(crdClient *crdClientset.Clientset, k8sClient *kubernetes.Clientset, resyncTime time.Duration) *ControllerConfig {
-	crdFactory := crdFactory.NewSharedInformerFactory(crdClient, resyncTime)
+func NewControllerConfig(crdClient, fedCrdClient *crdClientset.Clientset, k8sClient *kubernetes.Clientset,
+	resyncTime time.Duration, dedicatedNameSpace string) *ControllerConfig {
+	crdFactory := crdFactoryset.NewSharedInformerFactory(crdClient, resyncTime)
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, resyncTime)
 
-	return &ControllerConfig{
+	conf := &ControllerConfig{
 		ServiceGridInformer:     crdFactory.Superedge().V1().ServiceGrids(),
 		DeploymentGridInformer:  crdFactory.Superedge().V1().DeploymentGrids(),
 		StatefulSetGridInformer: crdFactory.Superedge().V1().StatefulSetGrids(),
@@ -51,7 +55,15 @@ func NewControllerConfig(crdClient *crdClientset.Clientset, k8sClient *kubernete
 		DeploymentInformer:      k8sFactory.Apps().V1().Deployments(),
 		StatefulSetInformer:     k8sFactory.Apps().V1().StatefulSets(),
 		NodeInformer:            k8sFactory.Core().V1().Nodes(),
+		NameSpaceInformer:       k8sFactory.Core().V1().Namespaces(),
 	}
+
+	if fedCrdClient != nil {
+		fedCrdFactory := crdFactoryset.NewSharedInformerFactoryWithOptions(fedCrdClient, resyncTime, crdFactoryset.WithNamespace(dedicatedNameSpace))
+		conf.FedDeploymentGridInformer = fedCrdFactory.Superedge().V1().DeploymentGrids()
+		conf.FedServiceGridInformer = fedCrdFactory.Superedge().V1().ServiceGrids()
+	}
+	return conf
 }
 
 func (c *ControllerConfig) Run(stop <-chan struct{}) {
@@ -62,4 +74,9 @@ func (c *ControllerConfig) Run(stop <-chan struct{}) {
 	go c.DeploymentInformer.Informer().Run(stop)
 	go c.StatefulSetInformer.Informer().Run(stop)
 	go c.NodeInformer.Informer().Run(stop)
+	go c.NameSpaceInformer.Informer().Run(stop)
+	if c.FedDeploymentGridInformer != nil {
+		go c.FedDeploymentGridInformer.Informer().Run(stop)
+		go c.FedServiceGridInformer.Informer().Run(stop)
+	}
 }
