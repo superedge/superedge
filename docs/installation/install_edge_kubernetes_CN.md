@@ -112,10 +112,8 @@
 ## 3. 用 edgeadm 安装边缘 Kubernetes 集群
 
 以下流程社区已经录制了详细教程视频，可结合文档进行安装：
-<video id="video" controls="" preload="none" poster="img/superedge_arch.png">
-    <source id="mp4" src="https://github.com/superedge/superedge/releases/download/v0.3.0-beta.0/video-edgeadm-install-edge-kubernetes_CN.mp4" type="video/mp4">
-    <p>Your user agent does not support the HTML5 Video element.</p>
-</video>
+
+[![video-edgeadm-install-edge-kubernetes_CN](../img/video-edgeadm-install-edge-kubernetes_CN.png)](https://www.bilibili.com/video/BV1kA411G73i)
 
 #### <1>. 安装条件
 
