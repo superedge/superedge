@@ -1,3 +1,4 @@
+简体中文 | [English](./install_edge_kubernetes.md)
 # 一键安装边缘独立Kubernetes 集群
 
 * [一键安装边缘独立Kubernetes 集群](#一键安装边缘独立kubernetes-集群)
@@ -131,7 +132,9 @@ wget -k https://github.com/superedge/superedge/releases/download/$version/edgead
 tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
-
+>   要是下载安装包比较慢，可直接查看相应[SuperEdge相应版本](https://github.com/superedge/superedge/tags), 下载`edgeadm-linux-amd64/arm64-*.0.tgz`，并解压也是一样的。
+>
+>   一键安装边缘独立Kubernetes 集群功能从SuperEdge-v0.3.0-beta.0开始支持，注意下载v0.3.0-beta.0及以后版本。
 #### <3>.安装边缘 Kubernetes master 节点
 
 ```shell

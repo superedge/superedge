@@ -1,3 +1,4 @@
+English | [简体中文](./install_edge_kubernetes_CN.md)
 # One-click install of edge Kubernetes cluster
 
 * [One-click install of edge Kubernetes cluster](#one-click-install-of-edge-kubernetes-cluster)
@@ -126,6 +127,9 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 The installation package is about 200M. For detailed information about the installation package, please refer to **5. Custom Kubernetes static installation package**.
 
+>   If downloading the installation package is slow, you can directly check the corresponding [SuperEdge version](https://github.com/superedge/superedge/tags), download `edgeadm-linux-amd64/arm64-*.0.tgz`, and Decompression is the same.
+>
+>   One-click installation of the edge independent Kubernetes cluster function is supported starting from SuperEdge-v0.3.0-beta.0, pay attention to 
 #### <3>. Install edge Kubernetes master node
 
 ```shell
