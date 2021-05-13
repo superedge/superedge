@@ -81,7 +81,7 @@ spec:
     spec:
       containers:
         - name: edge-health-admission
-          image: superedge/edge-health-admission:v0.3.0-beta.1
+          image: superedge/edge-health-admission:v0.3.0-beta.0
           imagePullPolicy: Always
           command:
             - edge-health-admission
