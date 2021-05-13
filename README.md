@@ -37,8 +37,27 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 * [**application-grid wrapper**](docs/components/serviceGroup.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
+[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
 
-For installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
+-   Download the installation package
+```shell
+# Choose installation package according to your installation node CPU architecture [amd64, amd64]
+[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+
+-   Install edge Kubernetes master node
+```shell
+[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master public IP> --apiserver-advertise-address=<master Intranet IP> --enable-edge=true -v=6
+```
+
+-   Join edge node
+```bash
+[root@centos ~] ./edgeadm join <Master public/Intranet IP or domain>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> --enable-edge=true
+```
+
+See the detailed process[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
+
+Other installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
 
 ## Contact
 
