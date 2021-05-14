@@ -138,7 +138,7 @@ The installation package is about 200M. For detailed information about the insta
 #### <3>. Install edge Kubernetes master node
 
 ```shell
-./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master public IP> --apiserver-advertise-address=<master Intranet IP> --enable-edge=true -v=6
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master public IP> --apiserver-advertise-address=<master Intranet IP> --enable-edge=true -v=6
 ```
 On：
 
@@ -372,7 +372,7 @@ EOF
 
 Perform cluster initialization operations in one of the masters
 ```shell
-./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
+./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
 ```
 >   The meaning of the parameters is the same as `3. Use edgeadm to install edge Kubernetes cluster`, and others are the same as kubeadm, so I won't explain it here;
 

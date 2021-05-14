@@ -147,7 +147,7 @@ arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://super
 #### <3>.安装边缘 Kubernetes Master 节点
 
 ```shell
-./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true -v=6
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true -v=6
 ```
 其中：
 
@@ -385,7 +385,7 @@ EOF
 
 在其中一台 Master中执行集群初始化操作
 ```shell
-./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
+./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
 ```
 >   参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
 
