@@ -42,7 +42,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 -   Download the installation package
 > Choose installation package according to your installation node CPU architecture [amd64, amd64]
 ```shell
-arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
 -   Install edge Kubernetes master node

@@ -102,6 +102,12 @@ This program has the following advantages:
 -   No learning cost, exactly the same as using kubeadm
 
     Because the `Kubeadm init cluster/join node` part completely reuses the source code of kubadm, all logic is exactly the same as Kubeadm, completely retaining the usage habits of kubeadm and all flag parameters, and the usage is exactly the same as that of kubeadm, without any new learning cost , The user can customize the edge Kubernetes cluster according to the parameters of Kubeadm or use kubeadm.config.
+    
+-   Edge node security enhancement
+
+    With the help of Kubernetes [Node Authentication](https://kubernetes.io/docs/reference/access-authn-authz/node/) mechanism, we have enabled [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) access plugin to ensure that each node has a unique identity and only has a minimal set of permissions. Even if an edge node is compromised, other edge nodes cannot be operated.
+
+    For Kubelet, we also enable the [Kubelet configuration certificate rotation](https://kubernetes.io/docs/tasks/tls/certificate-rotation/) mechanism by default. When the Kubelet certificate is about to expire, a new secret key will be automatically generated , And apply for a new certificate from the Kubernetes API. Once the new certificate is available, it will be used to authenticate the connection with the Kubernetes API.
 
 ## 3. Install edge Kubernetes cluster with edgeadm
 
@@ -121,9 +127,7 @@ This program has the following advantages:
 
 ```shell
 # Choose installation package according to your installation node CPU architecture [amd64, amd64]
-[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && \
-wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
-tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 The installation package is about 200M. For detailed information about the installation package, please refer to **5. Custom Kubernetes static installation package**.
 

@@ -108,6 +108,12 @@
 -   无学习成本，和kubeadm的使用完全相同
 
     因为`kubeadm init cluster/join node`部分完全复用了kubadm的源码，所有逻辑和kubeadm完全相同，完全保留了kubeadm的使用习惯和所有flag参数，用法和kubeadm使用完全一样，没有任何新的学习成本，用户可以按kubeadm的参数或者使用kubeadm.config去自定义边缘 Kubernetes 集群。
+    
+-   边缘节点安全增强
+
+    借助Kubernetes [Node鉴权](https://kubernetes.io/zh/docs/reference/access-authn-authz/node/)机制，我们默认开启了[NodeRestriction](https://kubernetes.io/zh/docs/reference/access-authn-authz/admission-controllers#NodeRestriction)准入插件，确保每个节点身份都唯一，只具有最小权限集，即使某个边缘节点被攻破也无法操作其他边缘节点。
+
+    Kubelet我们也默认开启了[Kubelet配置证书轮换](https://kubernetes.io/zh/docs/tasks/tls/certificate-rotation/)机制，在Kubelet证书即将过期时， 将自动生成新的秘钥，并从 Kubernetes API 申请新的证书。 一旦新的证书可用，它将被用于与 Kubernetes API 间的连接认证。
 
 ## 3. 用 edgeadm 安装边缘 Kubernetes 集群
 
@@ -130,10 +136,8 @@
 #### <2>.下载edgeadm静态安装包，并拷贝到所有Master && Node节点
 
 ```shell
-# 注意修改"arch=amd64"参数，下载自己机器对应的体系结构，其他参数不变
-[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && \
-wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
-tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+# 注意修改"arch=amd64"参数，目前支持[amd64, amd64], 下载自己机器对应的体系结构，其他参数不变
+[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
 >   要是下载安装包比较慢，可直接查看相应[SuperEdge相应版本](https://github.com/superedge/superedge/tags), 下载`edgeadm-linux-amd64/arm64-*.0.tgz`，并解压也是一样的。
@@ -156,7 +160,7 @@ tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 
 -   --apiserver-cert-extra-sans： kube-apiserver的证书扩展地址
 
-    -   推荐签订Master节点外网IP或者域名，只要**签订的Master节点的IP或者域名能被边缘节点访问到**就可以，当然内网IP也被允许，前提是边缘节点可以通过此IP访问Kube-apiserver。自定义域名的话可自行在所Matser和Node节点配置hosts；
+    -   推荐签订Master节点外网IP或者域名，只要**签订的Master节点的IP或者域名能被边缘节点访问到**就可以，当然内网IP也被允许，前提是边缘节点可以通过此IP访问Kube-apiserver。自定义域名的话可自行在所有Matser和Node节点配置hosts；
 
     -   签订外网IP和域名，是因为边缘节点一般和Master节点不在同一局域网，需要通过外网来加入和访问Master;
 
