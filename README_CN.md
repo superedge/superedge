@@ -48,19 +48,19 @@ SuperEdge具有如下特性:
 [一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)
 
 -   下载安装包
+> 注意修改"arch=amd64"参数，目前支持[amd64, amd64], 下载自己机器对应的体系结构，其他参数不变
 ```shell
-# 注意修改"arch=amd64"参数，下载自己机器对应的体系结构，其他参数不变
-[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
 -   安装边缘 Kubernetes master 节点
 ```shell
-[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<master节点外网IP> --apiserver-advertise-address=<master节点内网IP> 
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true
 ```
 
 -   Join 边缘节点
 ```shell
-[root@centos ~] ./edgeadm join <master节点外网IP/master节点内网IP/域名>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> 
+./edgeadm join <Master节点外网IP/Master节点内网IP/域名>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-*静态安装包地址> --enable-edge=true 
 ```
 
 详细流程见[一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)

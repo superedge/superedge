@@ -27,7 +27,7 @@ English | [简体中文](./install_edge_kubernetes_CN.md)
 
 ## 1. Background
 
-At present, many edge computing container open source projects have a default prerequisite for use: users need to prepare a standard or specific tool to build a Kubernetes cluster in advance, and then use specific tools or other methods to deploy in the cluster [Deployment](https: //github.com/superedge/superedge/blob/main/docs/installation/install_via_edgeadm_CN.md) corresponding components to experience edge capabilities. This undoubtedly raises the threshold of user experience edge capabilities, and there are many restrictions on use, making it difficult for users to get started. Simply organize, there will probably be the following problems:
+At present, many edge computing container open source projects have a default prerequisite for use: users need to prepare a standard or specific tool to build a Kubernetes cluster in advance, and then use specific tools or other methods to deploy in the cluster deployment corresponding components to experience edge capabilities. This undoubtedly raises the threshold of user experience edge capabilities, and there are many restrictions on use, making it difficult for users to get started. Simply organize, there will probably be the following problems:
 
 -   The threshold is too high
     -   Users need to prepare a Kubernetes cluster in advance. For many users, the threshold is too high, the construction process is more complicated and easy to fail, and many people who want to use edge capabilities are shut out;
