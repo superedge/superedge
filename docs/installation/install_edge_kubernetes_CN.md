@@ -13,14 +13,14 @@
         * [&lt;2&gt;.下载edgeadm静态安装包，并拷贝到所有Master &amp;&amp; node节点](#2下载edgeadm静态安装包并拷贝到所有Master--node节点)
         * [&lt;3&gt;.安装边缘 Kubernetes Master 节点](#3安装边缘-kubernetes-Master-节点)
         * [&lt;4&gt;.设置Master kube-config 文件](#4设置Master-kube-config-文件)
-        * [&lt;5&gt;. join 边缘节点](#5-join-边缘节点)
+        * [&lt;5&gt;. Join 边缘节点](#5-join-边缘节点)
    * [4.用 edgeadm 安装边缘高可用 Kubernetes 集群](#4用-edgeadm-安装边缘高可用-kubernetes-集群)
         * [&lt;1&gt;. 安装前提](#1-安装前提)
         * [&lt;2&gt;.安装 Haproxy](#2安装-haproxy)
         * [&lt;3&gt;.安装 Keepalived](#3安装-keepalived)
         * [&lt;4&gt;.安装高可用边缘 Kubernetes Master](#4安装高可用边缘-kubernetes-Master)
-        * [&lt;5&gt;.join Master 节点](#5join-Master-节点)
-        * [&lt;6&gt;.join node 边缘节点](#6join-node-边缘节点)
+        * [&lt;5&gt;.Join Master 节点](#5join-Master-节点)
+        * [&lt;6&gt;.Join node 边缘节点](#6join-node-边缘节点)
    * [5. 自定义Kubernetes静态安装包](#5-自定义kubernetes静态安装包)
         * [&lt;1&gt;. 自定义其他Kubernetes 版本](#1-自定义其他kubernetes-版本)
         * [&lt;2&gt;. 自定义其他体系Kubernetes静态安装包](#2-自定义其他体系kubernetes静态安装包)
@@ -135,9 +135,10 @@
 
 #### <2>.下载edgeadm静态安装包，并拷贝到所有Master && Node节点
 
+>   注意修改"arch=amd64"参数，目前支持[amd64, amd64], 下载自己机器对应的体系结构，其他参数不变
+
 ```shell
-# 注意修改"arch=amd64"参数，目前支持[amd64, amd64], 下载自己机器对应的体系结构，其他参数不变
-[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
 >   要是下载安装包比较慢，可直接查看相应[SuperEdge相应版本](https://github.com/superedge/superedge/tags), 下载`edgeadm-linux-amd64/arm64-*.0.tgz`，并解压也是一样的。
@@ -146,7 +147,7 @@
 #### <3>.安装边缘 Kubernetes Master 节点
 
 ```shell
-[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true -v=6
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true -v=6
 ```
 其中：
 
@@ -217,15 +218,15 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
  --discovery-token-ca-cert-hash的值生成也同kubeadm，可在Master节点执行下面命令生成。
 
 ```shell
-[root@centos ~] openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
 ```
 
-#### <5>. join 边缘节点
+#### <5>. Join 边缘节点
 
 在边缘节点上执行 `<2>.下载edgeadm静态安装包`，或者通过其他方式把edgeadm静态安装包上传到边缘节点，然后执行如下命令：
 
 ```shell
-[root@centos ~] ./edgeadm join <Master节点外网IP/Master节点内网IP/域名>:Port --token xxxx \
+./edgeadm join <Master节点外网IP/Master节点内网IP/域名>:Port --token xxxx \
      --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
      --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> --enable-edge=true
 ```
@@ -332,8 +333,10 @@ EOF
 >
 > 2.  下面的 keepalived.conf 配置文件中 < Master 本机外网 IP > 和 < 其他 Master 外网 IP > 在不同 Master 的配置需要调换位置，不要填错。
 ```shell
-# yum install -y keepalived
-# cat << EOF >/etc/keepalived/keepalived.conf 
+## 安装keepalived
+yum install -y keepalived
+
+cat << EOF >/etc/keepalived/keepalived.conf 
 ! Configuration File for keepalived
 
 global_defs {
@@ -382,7 +385,7 @@ EOF
 
 在其中一台 Master中执行集群初始化操作
 ```shell
-[root@centos ~] ./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
+./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
 ```
 >   参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
 
@@ -422,22 +425,22 @@ edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
 
 要使非 root 用户可以运行 kubectl，请运行以下命令，它们也是 edgeadm init 输出的一部分：
 ```shell
-# mkdir -p $HOME/.kube
-# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 或者，如果你是root 用户，则可以运行：
 ```shell
-# export KUBECONFIG=/etc/kubernetes/admin.conf
+export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 注意保存`./edgeadm init`输出的`./edgeadm join`命令，后面添加Master节点和边缘节点需要用到。
 
-#### <5>.join Master 节点
+#### <5>. Join Master 节点
 
 在另一台 Master 执行`./edgeadm join`命令
 ```shell
-[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
+./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
     --control-plane --certificate-key xxxxxxxxxx     \
     --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> 
@@ -462,10 +465,10 @@ Run 'kubectl get nodes' to see this node join the cluster.
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`./edgeadm reset`命令回滚集群的初始化操作。
 
-#### <6>.join node 边缘节点
+#### <6>. Join node 边缘节点
 
 ```shell
-[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
+./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
     --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径>
 ```
