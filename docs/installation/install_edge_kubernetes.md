@@ -1,3 +1,4 @@
+English | [简体中文](./install_edge_kubernetes_CN.md)
 # One-click install of edge Kubernetes cluster
 
 * [One-click install of edge Kubernetes cluster](#one-click-install-of-edge-kubernetes-cluster)
@@ -26,7 +27,7 @@
 
 ## 1. Background
 
-At present, many edge computing container open source projects have a default prerequisite for use: users need to prepare a standard or specific tool to build a Kubernetes cluster in advance, and then use specific tools or other methods to deploy in the cluster [Deployment](https: //github.com/superedge/superedge/blob/main/docs/installation/install_via_edgeadm_CN.md) corresponding components to experience edge capabilities. This undoubtedly raises the threshold of user experience edge capabilities, and there are many restrictions on use, making it difficult for users to get started. Simply organize, there will probably be the following problems:
+At present, many edge computing container open source projects have a default prerequisite for use: users need to prepare a standard or specific tool to build a Kubernetes cluster in advance, and then use specific tools or other methods to deploy in the cluster deployment corresponding components to experience edge capabilities. This undoubtedly raises the threshold of user experience edge capabilities, and there are many restrictions on use, making it difficult for users to get started. Simply organize, there will probably be the following problems:
 
 -   The threshold is too high
     -   Users need to prepare a Kubernetes cluster in advance. For many users, the threshold is too high, the construction process is more complicated and easy to fail, and many people who want to use edge capabilities are shut out;
@@ -101,6 +102,12 @@ This program has the following advantages:
 -   No learning cost, exactly the same as using kubeadm
 
     Because the `Kubeadm init cluster/join node` part completely reuses the source code of kubadm, all logic is exactly the same as Kubeadm, completely retaining the usage habits of kubeadm and all flag parameters, and the usage is exactly the same as that of kubeadm, without any new learning cost , The user can customize the edge Kubernetes cluster according to the parameters of Kubeadm or use kubeadm.config.
+    
+-   Edge node security enhancement
+
+    With the help of Kubernetes [Node Authentication](https://kubernetes.io/docs/reference/access-authn-authz/node/) mechanism, we have enabled [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) access plugin to ensure that each node has a unique identity and only has a minimal set of permissions. Even if an edge node is compromised, other edge nodes cannot be operated.
+
+    For Kubelet, we also enable the [Kubelet configuration certificate rotation](https://kubernetes.io/docs/tasks/tls/certificate-rotation/) mechanism by default. When the Kubelet certificate is about to expire, a new secret key will be automatically generated , And apply for a new certificate from the Kubernetes API. Once the new certificate is available, it will be used to authenticate the connection with the Kubernetes API.
 
 ## 3. Install edge Kubernetes cluster with edgeadm
 
@@ -118,18 +125,20 @@ This program has the following advantages:
 
 #### <2>. Download the edgeadm static installation package and copy it to all master && node nodes
 
+>   Choose installation package according to your installation node CPU architecture [amd64, amd64]
+
 ```shell
-# Choose installation package according to your installation node CPU architecture [amd64, amd64]
-[root@centos ~] arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && \
-wget -k https://github.com/superedge/superedge/releases/download/$version/edgeadm-linux-$arch-$version.tgz && \
-tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 The installation package is about 200M. For detailed information about the installation package, please refer to **5. Custom Kubernetes static installation package**.
 
+>   If downloading the installation package is slow, you can directly check the corresponding [SuperEdge version](https://github.com/superedge/superedge/tags), download `edgeadm-linux-amd64/arm64-*.0.tgz`, and Decompression is the same.
+>
+>   One-click installation of the edge independent Kubernetes cluster function is supported starting from SuperEdge-v0.3.0-beta.0, pay attention to 
 #### <3>. Install edge Kubernetes master node
 
 ```shell
-[root@centos ~] ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master public IP> --apiserver-advertise-address=<master Intranet IP> --enable-edge=true -v=6
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master public IP> --apiserver-advertise-address=<master Intranet IP> --enable-edge=true -v=6
 ```
 On：
 
@@ -181,14 +190,14 @@ If there is a problem during the execution, the corresponding error message will
 
 To enable non-root users to run kubectl, run the following commands, which are also part of the edgeadm init output:
 ```shell
-# mkdir -p $HOME/.kube
-# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 If you are the root user, you can run:
 ```shell
-# export KUBECONFIG=/etc/kubernetes/admin.conf
+export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 Note that the `./edgeadm join` command that saves the output of `./edgeadm init` will be used when adding node nodes later.
 
@@ -197,7 +206,7 @@ The validity period of the token is the same as kubeadm `24h`, after expiration,
 The value generation of --discovery-token-ca-cert-hash is also the same as kubeadm, which can be generated by executing the following command on the master node.
 
 ```shell
-[root@centos ~] openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
 ```
 
 #### <5>. Join edge nodes
@@ -205,7 +214,7 @@ The value generation of --discovery-token-ca-cert-hash is also the same as kubea
 Execute `<2>. Download the edgeadm static installation package` on the edge node, or upload the edgeadm static installation package to the edge node by other means, and then execute the following command:
 
 ```bash
-[root@centos ~] ./edgeadm join <Master public/Intranet IP or domain>:Port --token xxxx \
+./edgeadm join <Master public/Intranet IP or domain>:Port --token xxxx \
      --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
      --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> 
      --enable-edge=true
@@ -363,7 +372,7 @@ EOF
 
 Perform cluster initialization operations in one of the masters
 ```shell
-[root@centos ~] ./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=192.168.11.0/16 --pod-network-cidr=172.22.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
+./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
 ```
 >   The meaning of the parameters is the same as `3. Use edgeadm to install edge Kubernetes cluster`, and others are the same as kubeadm, so I won't explain it here;
 
@@ -403,14 +412,14 @@ If there is a problem during the execution, the corresponding error message will
 
 To enable non-root users to run kubectl, run the following commands, which are also part of the edgeadm init output:
 ```shell
-# mkdir -p $HOME/.kube
-# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 If you are the root user, you can run:
 ```shell
-# export KUBECONFIG=/etc/kubernetes/admin.conf
+export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 Pay attention to the `./edgeadm join` command that saves the output of `./edgeadm init`, which is needed to add Master node and edge node later.
 
@@ -420,7 +429,7 @@ Record the `./edgeadm join` command output by `./edgeadm init`. You need this co
 
 Execute the `./edgeadm join` command on another master
 ```shell
-[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
+./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
     --control-plane --certificate-key xxxxxxxxxx     \
     --install-pkg-path <Path of edgeadm kube-* install package> 
@@ -445,10 +454,10 @@ Run 'kubectl get nodes' to see this node join the cluster.
 ```
 If there is a problem during the execution, the corresponding error message will be directly returned, and the addition of the node will be interrupted. Use the `./edgeadm reset` command to roll back the initialization of the cluster.
 
-#### <6>. join node edge node
+#### <6>. Join edge node
 
 ```shell
-[root@centos ~] ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
+./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx 
     --install-pkg-path <Path of edgeadm kube-* install package> 
 ```
