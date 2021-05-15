@@ -128,3 +128,19 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 
 	return nil
 }
+
+func DeleteLiteApiServerCert(clientSet kubernetes.Interface) error {
+	if err := clientSet.RbacV1().Roles(constant.NamespaceEdgeSystem).Delete(
+		context.TODO(), "lite-apiserver", metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+	if err := clientSet.RbacV1().RoleBindings(constant.NamespaceEdgeSystem).Delete(
+		context.TODO(), "lite-apiserver", metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
+	clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(
+		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
+
+	return nil
+}
