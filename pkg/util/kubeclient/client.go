@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -76,6 +77,24 @@ func GetClientSet(kubeconfigFile string) (*kubernetes.Clientset, error) {
 	}
 
 	return kubeClient, nil
+}
+
+func GetKubeConfig(kubeConfigPath string) (*restclient.Config, error) {
+	if len(kubeConfigPath) == 0 {
+		// use in-cluster config
+		return restclient.InClusterConfig()
+	}
+
+	clientConfig, err := clientcmd.LoadFromFile(kubeConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("error while loading kubeconfig from file %v: %v", kubeConfigPath, err)
+	}
+	config, err := clientcmd.NewDefaultClientConfig(*clientConfig, &clientcmd.ConfigOverrides{}).ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error while creating kubeconfig: %v", err)
+	}
+
+	return config, nil
 }
 
 func CustomConfig() string {
