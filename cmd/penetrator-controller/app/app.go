@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
+	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -103,7 +104,11 @@ func NewOperatorCommand() *cobra.Command {
 			eventBroadcaster := record.NewBroadcaster()
 			eventBroadcaster.StartLogging(klog.Infof)
 			eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventKubeclient.CoreV1().Events("")})
-			record := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "panetrator-controller"})
+			err = scheme.AddToScheme(kubescheme.Scheme)
+			if err != nil {
+				klog.Fatalf("failed to add penetrator scheme, error: %v", err)
+			}
+			record := eventBroadcaster.NewRecorder(kubescheme.Scheme, corev1.EventSource{Component: "penetrator-controller"})
 
 			// webhook
 			if o.EnableAdmissionControl {
