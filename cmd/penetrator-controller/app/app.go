@@ -103,7 +103,7 @@ func NewOperatorCommand() *cobra.Command {
 			eventBroadcaster := record.NewBroadcaster()
 			eventBroadcaster.StartLogging(klog.Infof)
 			eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventKubeclient.CoreV1().Events("")})
-			record := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "nodesTask-controller"})
+			record := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "panetrator-controller"})
 
 			// webhook
 			if o.EnableAdmissionControl {
@@ -142,7 +142,7 @@ func NewOperatorCommand() *cobra.Command {
 			if os.Getenv(constants.EnvOperatorPodName) != "" {
 				id = id + "-" + os.Getenv(constants.EnvOperatorPodName)
 			}
-			rl, err := resourcelock.New(resourcelock.EndpointsResourceLock, os.Getenv(constants.EnvOperatorNamespace), "nodetask", rlkubeclient.CoreV1(), rlkubeclient.CoordinationV1(), resourcelock.ResourceLockConfig{
+			rl, err := resourcelock.New(resourcelock.EndpointsResourceLock, os.Getenv(constants.EnvOperatorNamespace), "penetrator-controller", rlkubeclient.CoreV1(), rlkubeclient.CoordinationV1(), resourcelock.ResourceLockConfig{
 				Identity:      id,
 				EventRecorder: record,
 			})

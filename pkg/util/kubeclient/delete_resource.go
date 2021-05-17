@@ -79,3 +79,12 @@ func DeleteMutatingMutatingWebhookConfigurations(client clientset.Interface, obj
 func DeleteJob(client clientset.Interface, job *batchv1.Job) error {
 	return client.BatchV1().Jobs(job.ObjectMeta.Namespace).Delete(context.TODO(), job.Name, metav1.DeleteOptions{})
 }
+
+func IsJobFinished(j *batchv1.Job) bool {
+	for _, c := range j.Status.Conditions {
+		if (c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed) && c.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
