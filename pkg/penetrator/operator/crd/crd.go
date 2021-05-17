@@ -111,6 +111,9 @@ var (
 							},
 						},
 					},
+					Subresources: &apiextensionsv1.CustomResourceSubresources{
+						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+					},
 				},
 			},
 			Scope: apiextensionsv1.ClusterScoped,

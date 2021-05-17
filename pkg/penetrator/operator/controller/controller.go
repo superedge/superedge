@@ -25,6 +25,7 @@ import (
 	"github.com/superedge/superedge/pkg/penetrator/constants"
 	"github.com/superedge/superedge/pkg/penetrator/job/conf"
 	"github.com/superedge/superedge/pkg/penetrator/operator/context"
+	"github.com/superedge/superedge/pkg/util"
 	kubecli "github.com/superedge/superedge/pkg/util/kubeclient"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +48,6 @@ import (
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	pubkey "k8s.io/kubernetes/cmd/kubeadm/app/util/pubkeypin"
 	coresv1 "k8s.io/kubernetes/pkg/apis/core"
-	kubejob "k8s.io/kubernetes/pkg/controller/job"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -190,7 +190,6 @@ func (ntController *NodeTaskController) syncHandler(key string) error {
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			ntCopy := nt.DeepCopy()
-
 			err = ntController.prepareJob(ntCopy)
 			if err != nil {
 				klog.Errorf("error in preparation before job creation, error: %v", err)
@@ -204,9 +203,17 @@ func (ntController *NodeTaskController) syncHandler(key string) error {
 					return err
 				}
 			}
+
+			if !reflect.DeepEqual(nt.Status, ntCopy.Status) {
+				_, err = ntController.nodeTaskClientset.NodestaskV1beta1().NodeTasks().UpdateStatus(ntController.ctx, ntCopy, metav1.UpdateOptions{})
+				if err != nil {
+					klog.Errorf("failed to update NodeTaskStatus, error: %v", err)
+					return err
+				}
+			}
 		}
 	} else {
-		if kubejob.IsJobFinished(nodeJob) {
+		if kubecli.IsJobFinished(nodeJob) {
 			err = ntController.kubeClient.BatchV1().Jobs(constants.NameSpaceEdge).Delete(ntController.ctx, nt.Annotations[constants.AnnotationAddNodeJobName], metav1.DeleteOptions{})
 			if err != nil {
 				klog.Errorf("failed to delete NodeJob, error: %v", err)
@@ -366,7 +373,12 @@ func createNodeJob(kubeclient kubernetes.Interface, nt *v1beta1.NodeTask) error 
 			"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
 			"Uid":          nt.UID,
 		}
-		err := kubecli.CreateResourceWithFile(kubeclient, constants.DirectAddNodeJob, options)
+		secretTmep, err := util.ReadFile(constants.DirectAddNodeJob)
+		if err != nil {
+			klog.Errorf("Failed to read file:%s, error: %v", constants.DirectAddNodeJob, err)
+			return err
+		}
+		err = kubecli.CreateResourceWithFile(kubeclient, string(secretTmep), options)
 		if err != nil {
 			klog.Errorf("Failed to create a job that directly connects to add nodes, error: %v", err)
 			return err
@@ -382,7 +394,12 @@ func createNodeJob(kubeclient kubernetes.Interface, nt *v1beta1.NodeTask) error 
 			"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
 			"Uid":          nt.UID,
 		}
-		err := kubecli.CreateResourceWithFile(kubeclient, constants.SpringboardAddNodeJob, options)
+		secretTmep, err := util.ReadFile(constants.SpringboardAddNodeJob)
+		if err != nil {
+			klog.Errorf("Failed to read file:%s, error: %v", constants.SpringboardAddNodeJob, err)
+			return err
+		}
+		err = kubecli.CreateResourceWithFile(kubeclient, string(secretTmep), options)
 		if err != nil {
 			klog.Errorf("Failed to create a job that adds nodes through nodes in the cluster, error: %v", err)
 			return err
@@ -417,7 +434,12 @@ func getBootStrapToken(ctx *context.NodeTaskContext, kubeclient kubernetes.Inter
 			"TokenId":           tokens[0],
 			"Base64Expiration":  base64Expiration,
 		}
-		err = kubecli.CreateResourceWithFile(kubeclient, constants.BootStrapTokenSecert, options)
+		secretTmep, err := util.ReadFile(constants.BootStrapTokenSecert)
+		if err != nil {
+			klog.Errorf("Failed to read file:%s, error: %v", constants.BootStrapTokenSecert, err)
+			return token, err
+		}
+		err = kubecli.CreateResourceWithFile(kubeclient, string(secretTmep), options)
 		if err != nil {
 			klog.Errorf("Failed to create bootstraptoken, error: %v", err)
 			return token, err
