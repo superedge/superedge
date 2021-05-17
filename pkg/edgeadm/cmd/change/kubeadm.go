@@ -41,6 +41,10 @@ import (
 )
 
 func (c *changeAction) runKubeamdChange() error {
+	if err := common.EnsureEdgeSystemNamespace(c.clientSet); err != nil {
+		return err
+	}
+
 	// Create APPs that do not affect the use of the original cluster
 	if err := c.deployTunnelCoreDNS(); err != nil {
 		return err
@@ -76,8 +80,23 @@ func (c *changeAction) runKubeamdChange() error {
 		manifests.APP_EDGE_HEALTH_ADMISSION: common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_ADMISSION, manifests.EdgeHealthAdmissionYaml),
 		manifests.APP_EDGE_HEALTH_WEBHOOK:   common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_WEBHOOK, manifests.EdgeHealthWebhookConfigYaml),
 	}
+	caBundle, ca, caKey, err := common.GenerateEdgeWebhookCA()
+	if err != nil {
+		return err
+	}
+	serverCrt, serverKey, err := common.GenEdgeWebhookCertAndKey(ca, caKey)
+	if err != nil {
+		return err
+	}
+
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgeSystem,
+		"CABundle":  caBundle,
+		"ServerCrt": serverCrt,
+		"ServerKey": serverKey,
+	}
 	for appName, yamlFile := range yamlMap {
-		if err := common.CreateByYamlFile(c.clientSet, yamlFile); err != nil {
+		if err := kubeclient.CreateResourceWithFile(c.clientSet, yamlFile, option); err != nil {
 			return err
 		}
 		fmt.Printf("Create %s success!\n", appName)
@@ -111,6 +130,7 @@ func (c *changeAction) runKubeamdChange() error {
 
 func (c *changeAction) deployTunnelCoreDNS() error {
 	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
 		"TunnelCoreDNSClusterIP": "",
 	}
 	tunnelCoreDNSYaml := common.ReadYaml(c.manifests+"/"+manifests.APP_TUNNEL_CORDDNS, manifests.TunnelCorednsYaml)
@@ -125,7 +145,7 @@ func (c *changeAction) deployTunnelCoreDNS() error {
 }
 
 func (c *changeAction) createLiteApiServerCert() error {
-	c.clientSet.CoreV1().ConfigMaps("kube-system").Delete(
+	c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(
 		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 
 	kubeService, err := c.clientSet.CoreV1().Services(
@@ -143,6 +163,12 @@ func (c *changeAction) createLiteApiServerCert() error {
 		return err
 	}
 
+	yamlLiteAPISerer, err := kubeclient.ParseString(
+		common.ReadYaml(c.manifests+"/"+manifests.APP_LITE_APISERVER, manifests.LiteApiServerYaml),
+		map[string]interface{}{
+			"Namespace": constant.NamespaceEdgeSystem,
+		})
+
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.EdgeCertCM,
@@ -151,11 +177,11 @@ func (c *changeAction) createLiteApiServerCert() error {
 			constant.LiteAPIServerCrt:     string(liteApiServerCrt),
 			constant.LiteAPIServerKey:     string(liteApiServerKey),
 			constant.LiteAPIServerTLSJSON: constant.LiteAPIServerTLSCfg,
-			manifests.APP_lITE_APISERVER:  common.ReadYaml(c.manifests+"/"+manifests.APP_lITE_APISERVER, manifests.LiteApiServerYaml),
+			manifests.APP_LITE_APISERVER:  string(yamlLiteAPISerer),
 		},
 	}
 
-	if _, err := c.clientSet.CoreV1().ConfigMaps("kube-system").
+	if _, err := c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
 		Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -164,7 +190,7 @@ func (c *changeAction) createLiteApiServerCert() error {
 }
 
 func (c *changeAction) deployTunnelCloud() (string, error) {
-	c.clientSet.AppsV1().Deployments(constant.NamespcaeKubeSystem).Delete(
+	c.clientSet.AppsV1().Deployments(constant.NamespaceKubeSystem).Delete(
 		context.TODO(), constant.ServiceTunnelCloud, metav1.DeleteOptions{})
 
 	nodes, err := c.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -199,6 +225,7 @@ func (c *changeAction) deployTunnelCloud() (string, error) {
 
 	tunnelCloudToken := util.GetRandToken(32)
 	option := map[string]interface{}{
+		"Namespace":                           constant.NamespaceEdgeSystem,
 		"TunnelCloudEdgeToken":                tunnelCloudToken,
 		"TunnelProxyServerKey":                base64.StdEncoding.EncodeToString(kubeletKey),
 		"TunnelProxyServerCrt":                base64.StdEncoding.EncodeToString(kubeletCert),
@@ -221,7 +248,7 @@ func (c *changeAction) waitTunnelCloudReady() (int32, error) {
 	var tunnelCloudNodePort int32 = 0
 	for { //Make sure tunnel-cloud success created
 		coredns, err := c.clientSet.CoreV1().Services(
-			"kube-system").Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
+			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
 		if err == nil {
 			for _, port := range coredns.Spec.Ports {
 				tunnelCloudNodePort = port.NodePort
@@ -256,6 +283,7 @@ func (c *changeAction) deployTunnelEdge(tunnelCloudNodePort int32, tunnelCloudTo
 	}
 
 	option := map[string]interface{}{
+		"Namespace":                      constant.NamespaceEdgeSystem,
 		"MasterIP":                       masterIps[0],
 		"KubernetesCaCert":               base64.StdEncoding.EncodeToString(caCert),
 		"KubeletClientKey":               base64.StdEncoding.EncodeToString(caClientKey),
@@ -277,7 +305,8 @@ func (c *changeAction) deployTunnelEdge(tunnelCloudNodePort int32, tunnelCloudTo
 
 func (c *changeAction) deployEdgeHealth() error {
 	option := map[string]interface{}{
-		"HmacKey": util.GetRandToken(16),
+		"Namespace": constant.NamespaceEdgeSystem,
+		"HmacKey":   util.GetRandToken(16),
 	}
 
 	edgeHealthYaml := common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH, manifests.EdgeHealthYaml)
@@ -336,7 +365,7 @@ func (c *changeAction) getCertAndKey() (*x509.Certificate, *rsa.PrivateKey, erro
 func (c *changeAction) updateKubeProxyKubeconfig() error {
 	kubeClient := c.clientSet
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -362,12 +391,12 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	kubeProxyCM.Data[constant.CMKubeConfig] = string(content)
 
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -378,7 +407,7 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	daemonSets.Spec.Template.Annotations[constant.UpdateKubeProxyTime] = strconv.FormatInt(time.Now().Unix(), 10)
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 

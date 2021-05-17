@@ -117,7 +117,7 @@ Base64加密同TunnelPersistentConnectionServerKey和TunnelPersistentConnectionS
 
 ```bash
 #获取tunnel-coredns的Cluster IP
-$ kubectl get service tunnel-coredns -n kube-system
+$ kubectl get service tunnel-coredns -n edge-system
 NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                  AGE
 tunnel-coredns   ClusterIP   10.10.47.74   <none>        53/UDP,53/TCP,9153/TCP   140m
 #修改kube-apierver的DNS，使用tunnel-coredns

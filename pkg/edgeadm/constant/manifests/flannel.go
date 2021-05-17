@@ -16,7 +16,7 @@ limitations under the License.
 
 package manifests
 
-const KUBE_FlANNEl = "kube-flannel.yaml"
+const KUBE_FLANNEL = "kube-flannel.yaml"
 
 const KubeFlannelYaml = `
 ---

@@ -71,7 +71,7 @@ func (c CheckEdge) GetNodeList() {
 		return
 	}
 
-	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps("kube-system").Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
+	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(NamespaceEdgeSystem).Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
 		if apierrors.IsNotFound(err) {
 			if NodeList, err := NodeManager.NodeLister.List(masterSelector); err != nil {
 				klog.Errorf("config not exist, get nodes err: %v", err)
