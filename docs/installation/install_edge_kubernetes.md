@@ -115,6 +115,7 @@ This program has the following advantages:
 
 -   Follow [kubeadm's minimum requirements](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin), master && node minimum 2C2G, disk space Not less than 1G;
 
+    >   Warning: Provide clean machines as much as possible to avoid installation errors caused by other factors. `If there is a container service on the machine, it may be cleaned up during the installation process, please confirm carefully before executing it`
 -   Currently supports amd64 and arm64 two systems;
 
     >   Other systems can compile edgeadm and make corresponding system installation packages by themselves, please refer to **5. Customize Kubernetes static installation package**
@@ -125,10 +126,10 @@ This program has the following advantages:
 
 #### <2>. Download the edgeadm static installation package and copy it to all master && node nodes
 
->   Choose installation package according to your installation node CPU architecture [amd64, amd64]
+>   Choose installation package according to your installation node CPU architecture [amd64, arm64]
 
 ```shell
-arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 The installation package is about 200M. For detailed information about the installation package, please refer to **5. Custom Kubernetes static installation package**.
 
