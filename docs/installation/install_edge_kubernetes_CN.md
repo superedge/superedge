@@ -125,6 +125,8 @@
 
 -   遵循 [kubeadm的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) ，Master && Node 最低2C2G，磁盘空间不小于1G；
 
+    > ⚠️注意：尽可能提供干净的机器，避免其他因素引起安装错误。`要有机器上有容器服务在安装过程中可能会被清理，请在执行之前细心确认`。
+                                                                                                                                                                                                                                                                                                                                            
 -   目前支持amd64、arm64两个体系；
 
     >    其他体系可自行编译edgeadm和制作相应体系安装包，可参考 **5. 自定义Kubernetes静态安装包**
@@ -135,10 +137,10 @@
 
 #### <2>.下载edgeadm静态安装包，并拷贝到所有Master && Node节点
 
->   注意修改"arch=amd64"参数，目前支持[amd64, amd64], 下载自己机器对应的体系结构，其他参数不变
+>   注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
 
 ```shell
-arch=amd64 version=v0.3.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.3.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
 >   要是下载安装包比较慢，可直接查看相应[SuperEdge相应版本](https://github.com/superedge/superedge/tags), 下载`edgeadm-linux-amd64/arm64-*.0.tgz`，并解压也是一样的。
