@@ -57,6 +57,7 @@ func SetPackagePath(workerPath string) error {
 	}
 	klog.V(4).Infof("Install cni plugins success")
 
+	os.MkdirAll(path.Dir(constant.KubeletServiceFile), 0755)
 	if err := util.WriteWithBufio(constant.KubeletServiceFile, constant.KubeletService); err != nil {
 		return err
 	}

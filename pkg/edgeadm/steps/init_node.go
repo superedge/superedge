@@ -18,7 +18,10 @@ package steps
 
 import (
 	"fmt"
+	"os"
+	"path"
 
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
@@ -45,16 +48,16 @@ func NewInitNodePhase() workflow.Phase {
 				RunAllSiblings: true,
 			},
 			{
+				Name:         "clear",
+				Short:        "clear node of init Kubernetes",
+				InheritFlags: getInitNodePhaseFlags("clear"),
+				Run:          runClearNode,
+			},
+			{
 				Name:         "off-swap",
 				Short:        "Off swap of init Kubernetes node",
 				InheritFlags: getInitNodePhaseFlags("off-swap"),
 				Run:          runOffSwap,
-			},
-			{
-				Name:         "stop-firewall",
-				Short:        "Stop firewall of init Kubernetes node",
-				InheritFlags: getInitNodePhaseFlags("stop-firewall"),
-				Run:          stopFirewall,
 			},
 			{
 				Name:         "set-sysctl",
@@ -77,6 +80,8 @@ func getInitNodePhaseFlags(name string) []string {
 	flags := []string{
 		options.KubeconfigPath,
 	}
+	if name == "all" || name == "clear" {
+	}
 	if name == "all" || name == "off-swap" {
 	}
 	if name == "all" || name == "set-sysctl" {
@@ -84,8 +89,6 @@ func getInitNodePhaseFlags(name string) []string {
 	if name == "all" || name == "load-kernel" {
 	}
 	if name == "all" || name == "set-hostname" {
-	}
-	if name == "all" || name == "stop-firewall" {
 	}
 	return flags
 }
@@ -103,10 +106,18 @@ func setHostname(c workflow.RunData) error {
 	return err
 }
 
+// clear node
+func runClearNode(c workflow.RunData) error {
+	if _, _, err := util.RunLinuxCommand(constant.ClearNode); err != nil {
+		klog.Warningf("Clear node error: %v", err)
+	}
+	return nil
+}
+
 // set off swap
 func runOffSwap(c workflow.RunData) error {
 	if _, _, err := util.RunLinuxCommand(constant.SwapOff); err != nil {
-		return err
+		klog.Warningf("Run off swap error: %v", err)
 	}
 	return nil
 }
@@ -114,7 +125,7 @@ func runOffSwap(c workflow.RunData) error {
 // stop firewalld
 func stopFirewall(c workflow.RunData) error {
 	if _, _, err := util.RunLinuxCommand(constant.StopFireWall); err != nil {
-		return err
+		klog.Errorf("Run off stop firewall: %v", err)
 	}
 	return nil
 }
@@ -161,6 +172,7 @@ func loadKernelModule(c workflow.RunData) error {
 		kernelModule += fmt.Sprintf("modprobe -- %s\n", module)
 	}
 
+	os.MkdirAll(path.Dir(constant.IPvsModulesFile), 0755)
 	setKernelModule := fmt.Sprintf("cat <<EOF >%s \n%s\nEOF", constant.IPvsModulesFile, kernelModule)
 	if _, _, err := util.RunLinuxCommand(setKernelModule); err != nil {
 		return err
