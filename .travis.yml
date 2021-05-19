@@ -3,4 +3,8 @@ language: go
 go:
 - 1.14
 
-script: go build -o edgeadm cmd/edgeadm/edgeadm.go 
+script: go build -o edgeadm cmd/edgeadm/edgeadm.go
+
+notifications:
+  slack:
+    on_success: always 
