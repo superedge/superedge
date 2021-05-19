@@ -22,7 +22,7 @@ const (
 	AnnotationAddNodeConfigmapName = "app.superedge.io/configmap-name"
 	SshKey                         = "sshkey"
 	PassWd                         = "passwd"
-	Expiration                     = 1 * time.Hour
+	Expiration                     = 24 * time.Hour
 )
 
 // job
@@ -30,8 +30,8 @@ const (
 	JobConf        = "job.toml"
 	JobName        = "JOB_NAME"
 	BufferSize     = 1e9
-	InstallPackage = "/etc/superedge/node-job/install/edgeadm-"
-	AddNodeScript  = "/etc/superedge/node-job/script/addnode.sh"
+	InstallPackage = "/etc/superedge/penetrator/job/install/edgeadm-"
+	AddNodeScript  = "/etc/superedge/penetrator/job/script/addnode.sh"
 )
 
 // operator

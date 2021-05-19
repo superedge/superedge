@@ -26,8 +26,8 @@ type Options struct {
 
 func NewJobOptions() *Options {
 	return &Options{
-		SecretPath:  "/etc/superedge/penetrator-job/secret/",
-		JobConfPath: "/etc/superedge/penetrator-job/conf/",
+		SecretPath:  "/etc/superedge/penetrator/job/secret/",
+		JobConfPath: "/etc/superedge/penetrator/job/conf/",
 		Nodes:       5,
 	}
 }
