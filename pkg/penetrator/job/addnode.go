@@ -14,6 +14,7 @@ limitations under the License.
 package job
 
 import (
+	"context"
 	"fmt"
 	"github.com/superedge/superedge/pkg/penetrator/constants"
 	"github.com/superedge/superedge/pkg/penetrator/job/conf"
@@ -22,10 +23,14 @@ import (
 	kubeutil "github.com/superedge/superedge/pkg/util/kubeclient"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+
+	//"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"os"
@@ -101,9 +106,31 @@ func AddNodes(nodes int) {
 
 func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNodech chan string, kubeclient kubernetes.Interface) error {
 	defer func() {
-		errNodech <- nodeIp
 		// Decrease the count of concurrently added nodes by one
 		<-nodesch
+	}()
+
+	node, err := kubeclient.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			klog.Errorf("failed to get node:%s, error: %v", nodeName, err)
+			return err
+		}
+	} else {
+		if node.Labels[constants.NodeLabel] == conf.JobConf.NodeLabel {
+			return nil
+		} else {
+			err = kubeclient.CoreV1().Nodes().Delete(context.Background(), node.Name, metav1.DeleteOptions{})
+			if err != nil {
+				errNodech <- nodeIp
+				klog.Errorf("failed to delete node:%s, error: %v", nodeName, err)
+				return err
+			}
+		}
+	}
+
+	defer func() {
+		errNodech <- nodeIp
 	}()
 
 	client, err := penetratorutil.SShConnectNode(nodeIp, conf.JobConf.SshPort, conf.JobConf.Secret)

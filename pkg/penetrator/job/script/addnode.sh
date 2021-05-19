@@ -8,4 +8,6 @@ cd edgeadm-install
 
 chmod +x edgeadm
 
+./edgeadm reset -f
+
 ./edgeadm join {{.AdvertiseAddress}}:{{.BindPort}} --token {{.AdmToken}} --discovery-token-ca-cert-hash {{.CaHash}} --node-name {{.NodeName}} --install-pkg-path ./kube-linux-{{.Arch}}-{{.K8sVersion}}.tar.gz
