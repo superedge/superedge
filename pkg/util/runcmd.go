@@ -33,7 +33,7 @@ func SetFileContent(file, pattern, content string) string {
 
 func RunLinuxCommand(command string) (string, string, error) {
 	var outBuff, errBuff bytes.Buffer
-	cmd := exec.Command("/bin/sh", "-c", command)
+	cmd := exec.Command("/bin/bash", "-c", command)
 	cmd.Stdout, cmd.Stderr = &outBuff, &errBuff
 
 	defer func() {
