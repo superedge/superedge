@@ -43,13 +43,13 @@ func RunLinuxCommand(command string) (string, string, error) {
 
 	//Run cmd
 	if err := cmd.Start(); err != nil {
-		klog.Errorf("Exec command: %s, error: %v", command, err)
+		klog.Warningf("Exec command: %s, error: %v", command, err)
 		return "", "", err
 	}
 
 	//Wait cmd run finish
 	if err := cmd.Wait(); err != nil {
-		klog.Errorf("Wait command: %s exec finish error: %v", command, err)
+		klog.Warningf("Wait command: %s exec finish error: %v", command, err)
 		return "", "", err
 	}
 

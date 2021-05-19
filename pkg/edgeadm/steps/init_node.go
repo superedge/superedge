@@ -156,11 +156,11 @@ func setSysctl(c workflow.RunData) error {
 // load kernel module require of install Kubernetes
 func loadKernelModule(c workflow.RunData) error {
 	modules := []string{
+		"iptable_nat", //The order cannot be changed, the unsuccessful loading of ip_vs degenerates into iptables
 		"ip_vs",
 		"ip_vs_sh",
 		"ip_vs_rr",
 		"ip_vs_wrr",
-		"iptable_nat",
 		"nf_conntrack_ipv4",
 	}
 	if _, _, err := util.RunLinuxCommand("modinfo br_netfilter"); err == nil {
@@ -179,7 +179,8 @@ func loadKernelModule(c workflow.RunData) error {
 	}
 
 	if _, _, err := util.RunLinuxCommand(constant.KernelModule); err != nil {
-		return err
+		klog.Warningf("Load ip_vs kernel module, error: %v", err)
+		return nil
 	}
 
 	return nil
