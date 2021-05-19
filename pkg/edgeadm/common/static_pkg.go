@@ -72,7 +72,8 @@ func SetPackagePath(workerPath string) error {
 		return err
 	}
 
-	kubectlBash := "kubectl completion bash > /etc/bash_completion.d/kubectl"
+	os.MkdirAll(path.Dir(constant.KubectlBashCompletion), 0755)
+	kubectlBash := fmt.Sprintf("kubectl completion bash > %s", constant.KubectlBashCompletion)
 	if _, _, err := util.RunLinuxCommand(kubectlBash); err != nil {
 		return err
 	}
