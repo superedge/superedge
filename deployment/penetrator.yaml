@@ -1,0 +1,329 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: penetrator
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - '*'
+  - apiGroups:
+      - nodetask.apps.superedge.io
+    resources:
+      - nodetasks
+    verbs: [ "create","delete","list","watch" ]
+  - apiGroups:
+      - nodetask.apps.superedge.io
+    resources:
+      - nodetasks
+      - nodetasks/status
+    verbs: [ "create","update","delete" ]
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - configmaps
+      - events
+      - endpoints
+      - nodes
+    verbs:
+      - '*'
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: penetrator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: penetrator
+subjects:
+  - kind: ServiceAccount
+    name: penetrator
+    namespace: edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: penetrator
+  namespace: edge
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mutating-penetrator
+webhooks:
+  - clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwd1pXNWwKZEhKaGRHOXlNQjRYRFRJeE1EUXlPVEE1TVRZeE9Wb1hEVE14TURReU56QTVNVFl4T1Zvd0ZURVRNQkVHQTFVRQpBeE1LY0dWdVpYUnlZWFJ2Y2pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBSzV4CndoTDBrQW9BcitOaURMMjVLRjlGUXB0VHdXZGxTWGc4cUxxYVdlRnpFbFNjUmNSQ0lLMjUyNFg4NzQ2UFV1bVAKcW1zcHJuVzhVQTJBVk45a3dua1pDeEMwdGpJWVF0RmRsd1NMclVYdzJEWlVNSzNDbkpjb2JYcUxlcmpCZG83ZgpVOGJBbjJyOEFUZXpJSkdGM1gyenI3bkRFN2FnNDFCZTgzYTl4WVVEWXhBZ1Bjek55TEJtOVNxNnAwR2VRUzJ6Ck9Edm95V0grbVloN2U1MVgxejNKR29LWm5mN2lyWHpqTDN2eGNUQlVJc2w0cjQydEgwSHhqVkI0NXZOcjh3ODgKUjB4R1MzekpuNHMwUjBha2d4cDVOMWc2TWNWZlhBS1lqNDcrQ0M5Z3ZWZU9RR0R6WnE5cGNpLzF2RmRuQnFuMwpPalVKMEgrakRCb29rK3I2QXVFQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZOalpoNU9VTi9BZTlsRFBRVUxja00ySDlCUFBNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFCZHR5MGhiWDVwS1RMSjRqOXlkd3g1U3BDcG9CSXMyV2FtOFE5YWVPM0ZTNGtrNnpTdQppKzYxS1dKMXdvOWdsT3NGWkI4b3ZuRENWZ3JZcUU3M1M5Tlh6U0pWSXhISjl1ZnN6b04wcFRnMjVRbU56ZjErCnFDd2M2ZjZ4Zk5ZRXRPR2c5bnluOG5oTGxTcDJOR1VscUF1SkZ1dE1SMFlLakQ2YnJDSmhHY2huZkpTMjhuc2wKTko4cktOemtLaGg5czUyd29kRFVRRmcwai9vUy9DZDZnZTU1WG9nL3pEb05qZkVWNWVWTTZBU2QwYWxadkkwNQozanc1d0VRZEdBOHdmVjdIZXhlWVZIdGZzUDRlbHhQYXh6VUg4UDlvaUpMVkpTYWlaTlYzVWoraDhHaUc0YkVPCnpZMVl5M3NvcTk3K1NDbHN4SSs5c2YvRWc4aUxNVFB1WC9ESwotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+      service:
+        name: penetrator
+        namespace: edge
+    failurePolicy: Fail
+    name: nodetask.apps.superedge.io
+    admissionReviewVersions: [ "v1" ]
+    sideEffects: None
+    rules:
+      - apiGroups:
+          - nodetask.apps.superedge.io
+        apiVersions:
+          - v1beta1
+        operations:
+          - CREATE
+          - DELETE
+          - UPDATE
+        resources:
+          - nodetasks
+---
+apiVersion: v1
+data:
+  server.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURLekNDQWhPZ0F3SUJBZ0lJVXo3b1dwVmpSdVF3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2NHVnVaWFJ5WVhSdmNqQWVGdzB5TVRBME1qa3dPVEUyTVRsYUZ3MHlNakEwTWprd09URTJNVGxhTUJVeApFekFSQmdOVkJBTVRDbkJsYm1WMGNtRjBiM0l3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURoUjZURW9xNUFoa0tyVGxkUDdMVVFzZ3ZJbVNNZ0RvWE5jcHpPN05Dbk84eWhzZVFkRnpYcmxpTGIKMzZRN2ZwbmxRUDRyOE5BUks1UHdKYzFySU9TaVBiMi9sc1AxTkQzRnNZWVphSFEya1gxbTJzRGFtdkliQ2JDaAoxT2pQaGU0RlQ1MGpYOWQ5MmkzczN4M21rTW5mY01DTHRhSWhPY3QrdWdRSVhYNkk0b3U0M3B6Ykt0NXAxajFPCmdRRGNqS0tQOXZCSnNxeU05SnJ6ZndvV0g4c09oamoweENCQVB5TThCSGFNOFg0TlBUMDRjTEhJRVFHeVpMWFEKTUt0MTQveUpDaGppMHJ1Q2RMYmtKSU40ZE5rWkRnQmwyNUphVjVPakdSRzJhTjZPaFROQk12Z1JkQmZZUGlzTgozOTVZeCtoOXFGTXA1bUxyODVJeUdUM3hjRTVSQWdNQkFBR2pmekI5TUE0R0ExVWREd0VCL3dRRUF3SUZvREFUCkJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREFUQldCZ05WSFJFRVR6Qk5naE53Wlc1bGRISmhkRzl5TG1Wa1oyVXUKYzNaamdocHdaVzVsZEhKaGRHOXlMbVZrWjJVdGMzbHpkR1Z0TG5OMlk0SWFjR1Z1WlhSeVlYUnZjaTVyZFdKbApMWE41YzNSbGJTNXpkbU13RFFZSktvWklodmNOQVFFTEJRQURnZ0VCQUc4SUxkaWNGZEpycGF4ODI4WE1FamViClc3UXdqUGEzK0dQdmlFSjBCZldLVGF0RVprRWZJYmQ2bXFPL0xDNU9IV3doNitrTDZYamFMWlluNFh4RlFMa1MKS05Fa2QrZm1CT0Y3Y3J5SVRac2dFbk1EWkZnNW9Jd0JXTHo3TXJULytLckVuRkdWV2FiUmNKalkyT3Q1Y0dZaApxUmlwUThVTzE5NllhMDNLZG55bkljV2YxU3JoTHk1OGJoNFkyTmtNUVhqL05hNTlJV0dsaW5Ca3pwNnlVSUE2Ck9JQWNZT0QwSVpBeHJJeThySW15YXorVERxcklsYm5XamZkVXdsM21sTlRHNFc2c09sSG9SdmxCYlJDektGM0sKSXUzczRkOTltdFFmcDJvSWFlUVBxYUtLMDRxdldFb3hSSVBDZWhPMjBWL3ZVRTY0dXdzanpJZG85NGh1OGg0PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+  server.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBNFVla3hLS3VRSVpDcTA1WFQreTFFTElMeUpraklBNkZ6WEtjenV6UXB6dk1vYkhrCkhSYzE2NVlpMjkra08zNlo1VUQrSy9EUUVTdVQ4Q1hOYXlEa29qMjl2NWJEOVRROXhiR0dHV2gwTnBGOVp0ckEKMnByeUd3bXdvZFRvejRYdUJVK2RJMS9YZmRvdDdOOGQ1cERKMzNEQWk3V2lJVG5MZnJvRUNGMStpT0tMdU42YwoyeXJlYWRZOVRvRUEzSXlpai9id1NiS3NqUFNhODM4S0ZoL0xEb1k0OU1RZ1FEOGpQQVIyalBGK0RUMDlPSEN4CnlCRUJzbVMxMERDcmRlUDhpUW9ZNHRLN2duUzI1Q1NEZUhUWkdRNEFaZHVTV2xlVG94a1J0bWplam9VelFUTDQKRVhRWDJENHJEZC9lV01mb2ZhaFRLZVppNi9PU01oazk4WEJPVVFJREFRQUJBb0lCQUJZeTh4K1ZVRXAzY0haawovK0dXVjdsUGNpM1FPVS9kWG40Q1AwVjh2SXJlTDZuM1Y1MHVQbGY2c1hDdE53Zk56K2h4WVJwL1htRnl3OTgwCk9tdkdFQUdVeCsvck1XQW1SN2dGYUV0MHFZNy9Belp4Yy9PV3RTakk2YWpvekJBM0NGOXBtdmh6WjA2MWd6VUcKUDNJSzdubWdLTGticXVCUFM2Z3ZPRnFDckFkYzdFVlJseGk4d25RNnNBZ2FaeEJjWjJBQ3EvVHdYa0hEL0lIcgpRcFR0NGVlS281d09URktPeGMzYmVNcXphbmFXK0tpcWVDc0lOZ294ZDBoVFB4YlVwQ21sbVhhbXREaDZMcFJ3CkpDNzY1NzM0ei91S25mTDJ0WXRWUUU1bExBWkthVGlBbC9qZ0ROaDBmVXJSSFE1a3pIVEN4aGRjeFFvcDJIVW8KV216aUFBRUNnWUVBNjZCMVByYkU5aEkrVnZTMUFBbSswN3lXbVVjZnoyT25sUUcwR24vN1l6cHhPeEZZRVlIVwp6UXQyRFd0WWJZeFU0OFpiMUZXYVorMGlRMkVZRTJWOUVFamtJUE5xbnZIZnVlbU1BaFU2R1hCeGswZmFVUnZrClNNTmhzSlFpc1hRcm5ydjEyTWRwNk1vSW9UWjNCZ2ovaG1hRU4waElXalNCc0MxcmJ6alltQUVDZ1lFQTlNSW8KcUZZeFMvVzI5OExvTG1GTFBlSDJWNEJOSU1oOURwY0dURUpTd0pFNTVDeHhxK3pTdDlicTZBM1pQSUVxK2NScApCMmdrUTVOVThMelpxdTRWZGh3VnEvazdIOWtIZ2hGbWRFTC9meXNCMUQrWXMrYlJkWEpHdkJWemdqRjduSDNmCmVOR3dod20zYVYwUDVXbWlYNlp1NnJpc2h0RUVoM0JqN3dUWU5sRUNnWUE2VFVHMWV0UFJiMEl0a2U4WFMxSUUKWWkyQlQ2LzNTTmsyYlcxN0FSL2F0YU0rMGxQUVFTZzlKQkRaMFMzWUxWano0eWpscVNqRGZsRjBDcHBDY21JMwpuVkdWTmFXMEhuVVZNMHlKVjJkQTFDbkdINGxOZUhGTDc4eEVQT000dFYzMXNOeHIveXVkaGlBTWc4Vi9vTXBaCkh4U24rU0t0NzBBSHI3VmRsOXRBQVFLQmdRQzVRZ0RPTWJkTWZHYUtNQS9Ya3pNRld2US9sTkJNUVJSUEo4YlAKajkvYys4OXF3cTBqYWJTeEM4NXY2Sk9HTldxVzlMQmV0OWZEQWxCbml6bmlKQ1ZBYWMrSmhMTFl6MGZjamxrVApKT2NJbFQva0xHTGp3SkRJS2NBYWVzNGNQR0lJdUVtZXhIQ3VOWStMQTdLVmZaZzJkOTQ2Y1orOHg1WjdBWG5TCm44TWJrUUtCZ1FDTi95bStlajd0Z3U0SnM4bE42VVRFYXh3ZE9COC9HeVBEbnRRMzU4Y0kvS2MzcktlSjlxRzgKMjR5VmVrU2FLUTBxbU1tblowUnpPUm5FazdIWG9NZXZleDRZcWY3cmhEbVF2TlhVcGVnY3Bla2tNNU13OVAzdApQaHdsTDM4VVZlVmVWSm00ZWVubUo3YVhtUGpZYnM0T20rTDJuMXh1NE0rQU5OK3pRcmdrUEE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQ==
+kind: Secret
+metadata:
+  name: penetrator-admission-control-server-certs
+  namespace: edge
+type: Opaque
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: penetrator
+  namespace: edge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: penetrator
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        k8s-app: penetrator
+    spec:
+      containers:
+        - command:
+            - penetrator-controller
+            - --admission-control-server-cert=/etc/superedge/penetrator/cert/server.crt
+            - --admission-control-server-key=/etc/superedge/penetrator/cert/server.key
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          image: ccr.ccs.tencentyun.com/superedge/penetrator-controller:v0.0.2
+          imagePullPolicy: IfNotPresent
+          name: penetrator
+          ports:
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            privileged: false
+          volumeMounts:
+            - name: webhook
+              mountPath: /etc/superedge/penetrator/cert
+            - name: manifests
+              mountPath: /etc/superedge/penetrator/manifests
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccount: penetrator
+      serviceAccountName: penetrator
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
+      volumes:
+        - name: webhook
+          secret:
+            defaultMode: 420
+            secretName: penetrator-admission-control-server-certs
+        - name: manifests
+          configMap:
+            defaultMode: 420
+            name: node-job-manifests
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: penetrator
+  namespace: edge
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9000
+      name: penetrator
+  selector:
+    k8s-app: penetrator
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-job-manifests
+  namespace: edge
+data:
+  direct-addnode-job.yaml: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: {{.JobName}}
+      namespace: {{.NameSpace}}
+      owerReferences:
+      - apiVersion: nodetask.apps.superedge.io/v1beta1
+        blockOwerDeletion: true
+        controller: true
+        kind: NodeTask
+        name: {{.NodeTaskName}}
+        uid: {{.Uid}}
+    spec:
+      ttlSecondsAfterFinished: 0
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+            - command:
+              - penetrator-job
+              - --secret-path=/etc/superedge/penetrator/job/secret/
+              - --jobconf-path=/etc/superedge/penetrator/job/conf/
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.0.3
+              imagePullPolicy: IfNotPresent
+              name: job
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+              volumeMounts:
+                - name: ssh
+                  mountPath: /etc/superedge/penetrator/job/secret
+                - name: conf
+                  mountPath: /etc/superedge/penetrator/job/conf
+          serviceAccount: penetrator
+          serviceAccountName: penetrator
+          restartPolicy: OnFailure
+          volumes:
+            - name: ssh
+              secret:
+                defaultMode: 420
+                secretName: {{.SecretName}}
+            - name: conf
+              configMap:
+                defaultMode: 420
+                name: {{.JobConfig}}
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+          tolerations:
+            - key: "node-role.kubernetes.io/master"
+              operator: "Exists"
+              effect: "NoSchedule"
+  springboard-addnode-job.yaml: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: {{.JobName}}
+      namespace: {{.NameSpace}}
+      owerReferences:
+      - apiVersion: nodetask.apps.superedge.io/v1beta1
+        blockOwerDeletion: true
+        controller: true
+        kind: NodeTask
+        name: {{.NodeTaskName}}
+        uid: {{.Uid}}
+    spec:
+      ttlSecondsAfterFinished: 0
+      backoffLimit: 1
+      completions: 1
+      parallelism: 1
+      template:
+        spec:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - {{.NodeName}}
+          containers:
+            - command:
+              - penetrator-job
+              - --secret-path=/etc/superedge/penetrator/job/secret/
+              - --jobconf-path=/etc/superedge/penetrator/job/conf/
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.0.3
+              imagePullPolicy: IfNotPresent
+              name: job
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+              volumeMounts:
+                - name: ssh
+                  mountPath: /etc/superedge/penetrator/job/secret
+                - name: conf
+                  mountPath: /etc/superedge/penetrator/job/conf
+          serviceAccount: penetrator
+          serviceAccountName: penetrator
+          restartPolicy: OnFailure
+          volumes:
+            - name: ssh
+              secret:
+                defaultMode: 420
+                secretName: {{.SecretName}}
+            - name: conf
+              configMap:
+                defaultMode: 420
+                name: {{.JobConfig}}
+  bootstraper-token-secret.yaml: |
+    apiVersion: v1
+    type: bootstrap.kubernetes.io/token
+    kind: Secret
+    metadata:
+      name: bootstrap-token-{{.TokenId}}
+      namespace: kube-system
+    data:
+      auth-extra-groups: c3lzdGVtOmJvb3RzdHJhcHBlcnM6a3ViZWFkbTpkZWZhdWx0LW5vZGUtdG9rZW4=
+      expiration: {{.Base64Expiration}}
+      token-id: {{.Base64TokenId}}
+      token-secret: {{.Base64TokenSecret}}
+      usage-bootstrap-authentication: dHJ1ZQ==
+      usage-bootstrap-signing: dHJ1ZQ==

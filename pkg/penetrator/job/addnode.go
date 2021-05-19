@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/penetrator/constants"
 	"github.com/superedge/superedge/pkg/penetrator/job/conf"
-	panetratorutil "github.com/superedge/superedge/pkg/penetrator/util"
+	penetratorutil "github.com/superedge/superedge/pkg/penetrator/util"
 	"github.com/superedge/superedge/pkg/util"
 	kubeutil "github.com/superedge/superedge/pkg/util/kubeclient"
 	batchv1 "k8s.io/api/batch/v1"
@@ -106,7 +106,7 @@ func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNode
 		<-nodesch
 	}()
 
-	client, err := panetratorutil.SShConnectNode(nodeIp, conf.JobConf.SshPort, conf.JobConf.Secret)
+	client, err := penetratorutil.SShConnectNode(nodeIp, conf.JobConf.SshPort, conf.JobConf.Secret)
 	if err != nil {
 		klog.Errorf("failed to get ssh client, error: %v", err)
 		return err
@@ -131,7 +131,7 @@ func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNode
 		return err
 	}
 
-	err = panetratorutil.ScpFile(nodeIp, fmt.Sprintf(constants.InstallPackage+"%s-%s.tar.gz", simpleArch, version), conf.JobConf.SshPort, conf.JobConf.Secret)
+	err = penetratorutil.ScpFile(nodeIp, fmt.Sprintf(constants.InstallPackage+"%s-%s.tar.gz", simpleArch, version), conf.JobConf.SshPort, conf.JobConf.Secret)
 	if err != nil {
 		klog.Errorf("Failed to copy installation package, error: %v", err)
 		return err
@@ -177,7 +177,7 @@ func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNode
 		return err
 	}
 
-	klog.Infof("Add node: %s successfully, info: %s", nodeName, string(stdout))
+	klog.Infof("Add node: %s successfully", nodeName)
 	return nil
 }
 

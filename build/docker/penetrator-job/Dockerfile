@@ -12,11 +12,11 @@ RUN echo 'UseDNS no' >> /etc/ssh/sshd_config
 
 RUN apk add sshpass
 
-ADD node-job /usr/local/bin
+ADD penetrator-job /usr/local/bin
 RUN chmod +x /usr/local/bin/penetrator-job
 
-COPY script  /etc/superedge/penetrator-job/script
-COPY edgeadm-amd64-v1.18.2.tar.gz /etc/superedge/penetrator-job/install/
-COPY edgeadm-arm64-v1.18.2.tar.gz /etc/superedge/penetrator-job/install/
+COPY script  /etc/superedge/penetrator/job/script
+COPY edgeadm-amd64-v1.18.2.tar.gz /etc/superedge/penetrator/job/install/
+COPY edgeadm-arm64-v1.18.2.tar.gz /etc/superedge/penetrator/job/install/
 
 ENTRYPOINT ["/usr/local/bin/penetrator-job"]
