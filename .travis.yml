@@ -6,5 +6,7 @@ go:
 script: go build -o edgeadm cmd/edgeadm/edgeadm.go
 
 notifications:
-  slack:
+  email:
+    recipients:
+    - 836696016@qq.com
     on_success: always 
