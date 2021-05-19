@@ -1,2 +1,6 @@
 language: go
-script: true
+
+go:
+- 1.14
+
+script: go build -o edgeadm cmd/edgeadm/edgeadm.go 
