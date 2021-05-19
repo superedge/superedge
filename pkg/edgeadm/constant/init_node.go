@@ -10,6 +10,17 @@ const (
 	KubeadmConfFile    = "/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf"
 )
 
+const ClearNode = `
+rm -rf /var/lib/cni/
+rm -rf /etc/cni/
+ifconfig cni0 down
+ifconfig flannel.1 down
+ifconfig docker0 down
+ip link delete cni0
+ip link delete flannel.1
+ip link delete docker0
+`
+
 const SwapOff = `swapoff -a && sed -i "s/^[^#]*swap/#&/" /etc/fstab`
 
 const StopFireWall = `systemctl stop firewalld && systemctl disable firewalld`
