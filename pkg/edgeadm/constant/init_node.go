@@ -1,13 +1,14 @@
 package constant
 
 const (
-	CNIDir             = "/opt/cni/bin/"
-	SysctlFile         = "/etc/sysctl.conf"
-	SysctlK8sConf      = "/etc/sysctl.d/k8s.conf"
-	KubeletSysConf     = "/etc/sysconfig/kubelet"
-	IPvsModulesFile    = "/etc/sysconfig/modules/ipvs.modules"
-	KubeletServiceFile = "/usr/lib/systemd/system/kubelet.service"
-	KubeadmConfFile    = "/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf"
+	CNIDir                = "/opt/cni/bin/"
+	SysctlFile            = "/etc/sysctl.conf"
+	SysctlK8sConf         = "/etc/sysctl.d/k8s.conf"
+	KubeletSysConf        = "/etc/sysconfig/kubelet"
+	KubectlBashCompletion = "/etc/bash_completion.d/kubectl"
+	IPvsModulesFile       = "/etc/sysconfig/modules/ipvs.modules"
+	KubeletServiceFile    = "/usr/lib/systemd/system/kubelet.service"
+	KubeadmConfFile       = "/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf"
 )
 
 const ClearNode = `
