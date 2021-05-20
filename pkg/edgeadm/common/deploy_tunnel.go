@@ -20,7 +20,7 @@ import (
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
-func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string) error {
+func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
 		"TunnelCoreDNSClusterIP": "",
@@ -36,7 +36,7 @@ func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, c
 	// Deploy tunnel-cloud
 	tunnelCloudToken := util.GetRandToken(32)
 	if err = DeployTunnelCloud(client, manifestsDir,
-		caCertFile, caKeyFile, tunnelCloudToken); err != nil {
+		caCertFile, caKeyFile, tunnelCloudToken, certSANs); err != nil {
 		klog.Errorf("Deploy tunnel-cloud, error: %v", err)
 		return err
 	}
@@ -51,7 +51,7 @@ func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, c
 
 	// Deploy tunnel-edge
 	if err = DeployTunnelEdge(client, manifestsDir,
-		caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudNodePort); err != nil {
+		caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudPublicAddr, tunnelCloudNodePort); err != nil {
 		klog.Errorf("Deploy tunnel-edge, error: %v", err)
 		return err
 	}
@@ -61,7 +61,7 @@ func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, c
 	return err
 }
 
-func DeployTunnelCloud(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, tunnelCloudToken string) error {
+func DeployTunnelCloud(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, tunnelCloudToken string, certSANs []string) error {
 	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -82,6 +82,7 @@ func DeployTunnelCloud(clientSet kubernetes.Interface, manifestsDir, caCertFile,
 		"tunnel.cloud.io",
 		"tunnelcloud.superedge.io",
 	}
+	dns = append(dns, certSANs...)
 	serviceCert, serviceKey, err := GetServiceCert("TunnelCloudService", caCertFile, caKeyFile, dns, masterIPs)
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func GetTunnelCloudPort(clientSet kubernetes.Interface) (int32, error) {
 }
 
 func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
-	caCertFile, caKeyFile, tunnelCloudToken string, tunnelCloudNodePort int32) error {
+	caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudNodeAddr string, tunnelCloudNodePort int32) error {
 
 	caCert, _, err := GetRootCartAndKey(caCertFile, caKeyFile)
 	if err != nil {
@@ -151,9 +152,12 @@ func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
 	if err != nil {
 		return err
 	}
+	if tunnelCloudNodeAddr == "" && len(masterIps) > 0 {
+		tunnelCloudNodeAddr = masterIps[0]
+	}
 
 	option := map[string]interface{}{
-		"MasterIP":                       masterIps[0],
+		"MasterIP":                       tunnelCloudNodeAddr,
 		"KubernetesCaCert":               base64.StdEncoding.EncodeToString(caCert),
 		"KubeletClientKey":               base64.StdEncoding.EncodeToString(caClientKey),
 		"KubeletClientCrt":               base64.StdEncoding.EncodeToString(caClientCert),
