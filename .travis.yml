@@ -4,9 +4,8 @@ go:
 - 1.14
 
 script: 
-#- go get github.com/golang/lint && go install github.com/golang/lint && golint ./...
+- go get github.com/golang/lint && go install github.com/golang/lint && golint ./...
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
-- true
 
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
