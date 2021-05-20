@@ -1,4 +1,5 @@
 #!/bin/bash
+
 export OLDPATH=`pwd`
 mkdir -p $GOPATH/src/golang.org/x/ && \
 cd $GOPATH/src/golang.org/x/ && \
