@@ -7,5 +7,6 @@ script:
 - go get -u github.com/golang/lint/golint && golint ./...
 - go build -o edgeadm cmd/edgeadm/edgeadm.go
 
+
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
