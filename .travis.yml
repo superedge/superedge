@@ -8,5 +8,6 @@ script:
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
 - true
 
+
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
