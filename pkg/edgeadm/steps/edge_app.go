@@ -156,15 +156,20 @@ func runTunnelAddon(c workflow.RunData) error {
 	klog.Infof("Deploy %s success!", manifests.APP_TUNNEL_CORDDNS)
 
 	// Deploy tunnel-cloud
+	certSANs := cfg.APIServer.CertSANs
 	caKeyFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName)
 	caCertFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName)
 	if err = common.DeployTunnelCloud(client, edgeadmConf.ManifestsDir,
-		caCertFile, caKeyFile, edgeadmConf.TunnelCloudToken); err != nil {
+		caCertFile, caKeyFile, edgeadmConf.TunnelCloudToken, certSANs); err != nil {
 		klog.Errorf("Deploy tunnel-cloud, error: %v", err)
 		return err
 	}
 	klog.Infof("Deploy %s success!", manifests.APP_TUNNEL_CLOUD)
 
+	tunnelCloudNodeAddr := cfg.ControlPlaneEndpoint
+	if len(certSANs) > 0 {
+		tunnelCloudNodeAddr = certSANs[0]
+	}
 	// GetTunnelCloudPort
 	tunnelCloudNodePort, err := common.GetTunnelCloudPort(client)
 	if err != nil {
@@ -173,8 +178,8 @@ func runTunnelAddon(c workflow.RunData) error {
 	}
 
 	// Deploy tunnel-edge
-	if err = common.DeployTunnelEdge(client, edgeadmConf.ManifestsDir,
-		caCertFile, caKeyFile, edgeadmConf.TunnelCloudToken, tunnelCloudNodePort); err != nil {
+	if err = common.DeployTunnelEdge(client, edgeadmConf.ManifestsDir, caCertFile, caKeyFile,
+		edgeadmConf.TunnelCloudToken, tunnelCloudNodeAddr, tunnelCloudNodePort); err != nil {
 		klog.Errorf("Deploy tunnel-edge, error: %v", err)
 		return err
 	}

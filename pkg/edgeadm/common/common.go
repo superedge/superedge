@@ -36,9 +36,9 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string) error {
+func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string) error {
 	// Deploy tunnel
-	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile); err != nil {
+	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
 		return err
 	}
 	klog.Infof("Deploy %s success!", manifests.APP_TUNNEL_EDGE)
