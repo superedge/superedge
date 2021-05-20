@@ -4,7 +4,7 @@ go:
 - 1.14
 
 script: 
-- go get github.com/golang/lint && go install github.com/golang/lint && golint ./...
+- pwd && go get github.com/golang/lint && go install github.com/golang/lint && golint ./...
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
 
 notifications:
