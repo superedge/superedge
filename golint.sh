@@ -1,9 +1,9 @@
 #!/bin/bash
 export OLDPATH=`pwd`
-mkdir -p $GOPATH/src/golang.org/x/
-cd $GOPATH/src/golang.org/x/ 
-git clone https://github.com/golang/lint.git
-cd $GOPATH/src/golang.org/x/lint/golint
+mkdir -p $GOPATH/src/golang.org/x/ && \
+cd $GOPATH/src/golang.org/x/ && \
+git clone https://github.com/golang/lint.git && \
+cd $GOPATH/src/golang.org/x/lint/golint && \
 go install
 cd $OLDPATH
 golint ./... > golint.result
