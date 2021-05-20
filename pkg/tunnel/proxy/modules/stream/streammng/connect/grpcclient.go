@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/stream"
+	stream2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -94,7 +94,7 @@ func StartSendClient() {
 	for running {
 		if conn.GetState() == connectivity.Ready {
 			cli := proto.NewStreamClient(conn)
-			stream.Send(cli, clictx)
+			stream2.Send(cli, clictx)
 			count = 0
 		}
 		count += 1

@@ -20,9 +20,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/model"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmng"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmsg"
+	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp/tcpmng"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp/tcpmsg"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"net"
@@ -83,6 +83,6 @@ func (tcp *TcpProxy) CleanUp() {
 }
 
 func InitTcp() {
-	model.Register(&TcpProxy{})
+	module.Register(&TcpProxy{})
 	klog.Infof("init module: %s success !", util.TCP)
 }

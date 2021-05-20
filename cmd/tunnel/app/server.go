@@ -20,10 +20,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/tunnel/app/options"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	. "github.com/superedge/superedge/pkg/tunnel/model"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/https"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp"
+	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
@@ -45,12 +45,12 @@ func NewTunnelCommand() *cobra.Command {
 				klog.Info("tunnel failed to load configuration file !")
 				return
 			}
-			InitModules(*option.TunnelMode)
+			module.InitModules(*option.TunnelMode)
 			stream.InitStream(*option.TunnelMode)
 			tcp.InitTcp()
 			https.InitHttps()
-			LoadModules(*option.TunnelMode)
-			ShutDown()
+			module.LoadModules(*option.TunnelMode)
+			module.ShutDown()
 		},
 	}
 	fs := cmd.Flags()

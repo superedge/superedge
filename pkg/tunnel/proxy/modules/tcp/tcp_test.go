@@ -2,8 +2,8 @@ package tcp
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/model"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream"
+	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"os"
 	"testing"
@@ -15,11 +15,11 @@ func Test_TcpServer(t *testing.T) {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
 	}
-	model.InitModules(util.CLOUD)
+	module.InitModules(util.CLOUD)
 	InitTcp()
 	stream.InitStream(util.CLOUD)
-	model.LoadModules(util.CLOUD)
-	model.ShutDown()
+	module.LoadModules(util.CLOUD)
+	module.ShutDown()
 }
 
 func Test_TcpClient(t *testing.T) {
@@ -29,9 +29,9 @@ func Test_TcpClient(t *testing.T) {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
 	}
-	model.InitModules(util.EDGE)
+	module.InitModules(util.EDGE)
 	InitTcp()
 	stream.InitStream(util.EDGE)
-	model.LoadModules(util.EDGE)
-	model.ShutDown()
+	module.LoadModules(util.EDGE)
+	module.ShutDown()
 }

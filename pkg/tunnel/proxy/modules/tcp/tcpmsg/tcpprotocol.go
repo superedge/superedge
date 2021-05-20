@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmng"
+	tcpmng2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp/tcpmng"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"net"
@@ -42,7 +42,7 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 		c.Send2Conn(msg)
 		return nil
 	}
-	tp := tcpmng.NewTcpConn(msg.Topic, msg.Addr, msg.Node)
+	tp := tcpmng2.NewTcpConn(msg.Topic, msg.Addr, msg.Node)
 	tp.Type = util.TCP_BACKEND
 	tp.C.Send2Conn(msg)
 	tcpAddr, err := net.ResolveTCPAddr("tcp", tp.Addr)

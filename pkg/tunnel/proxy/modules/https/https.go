@@ -18,9 +18,9 @@ package https
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/model"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/https/httpsmng"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/https/httpsmsg"
+	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmng"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmsg"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 )
@@ -47,6 +47,6 @@ func (https *Https) CleanUp() {
 }
 
 func InitHttps() {
-	model.Register(&Https{})
+	module.Register(&Https{})
 	klog.Infof("init module: %s success !", util.HTTPS)
 }
