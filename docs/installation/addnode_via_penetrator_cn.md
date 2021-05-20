@@ -22,6 +22,9 @@ spec:
 * prefixName: 节点名前缀，节点名的格式: prefixName-随机字符串(6位)
 * secretName：存储SSH登录待添加的节点的密码(passwd)和私钥的secret(sshkey),密码文件的key值必须为passwd，私钥文件的key值必须为sshkey
 * ips: 待安装的节点的ip列表
+```shell
+kubectl -n edge create secret generic login-secret --from-file=passwd=./passwd 
+```
 
 ### 通过work节点安装节点
 

@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -129,7 +134,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-          image: ccr.ccs.tencentyun.com/superedge/penetrator-controller:v0.0.2
+          image: ccr.ccs.tencentyun.com/superedge/penetrator-controller:v0.1.2
           imagePullPolicy: IfNotPresent
           name: penetrator
           ports:
@@ -219,7 +224,7 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.0.3
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.1.2
               imagePullPolicy: IfNotPresent
               name: job
               resources:
@@ -286,7 +291,7 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.0.3
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.1.2
               imagePullPolicy: IfNotPresent
               name: job
               resources:
