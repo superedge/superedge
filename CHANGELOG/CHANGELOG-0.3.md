@@ -1,9 +1,9 @@
-- [Release v0.3.0 / 2021-05-20](#release-v030--2021-05-20)
+- [v0.3.0 / 2021-05-20](#v030--2021-05-20)
   - [Features and Enhancements](#features-and-enhancements)
   - [Bug Fixes](#bug-fixes)
   - [Documentation](#documentation)
 
-# Release v0.3.0 / 2021-05-20
+# v0.3.0 / 2021-05-20
 
 ## Features and Enhancements
 
@@ -20,6 +20,4 @@
 
 ## Documentation
 
-* Updated roadmap([roadmap](https://github.com/superedge/superedge/blob/main/docs/roadmap.md), [@ruyingzhe](https://github.com/ruyingzhe))
 * Added quickstart guide to create edge Kubernetes cluster using Edgeadm.
-* Fixed wrrong information in install_manually docs([#73](https://github.com/superedge/superedge/pull/73), [@huweihuang](https://github.com/huweihuang)).
