@@ -3,8 +3,8 @@ language: go
 go:
 - 1.14
 
-script: 
-# - export OLDPATH=`pwd` && mkdir -p $GOPATH/src/golang.org/x/ && cd $GOPATH/src/golang.org/x/ && git clone https://github.com/golang/lint.git && cd $GOPATH/src/golang.org/x/lint/golint && go install && cd $OLDPATH  && golint ./...
+script:
+- gofmt -s 
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
 - chmod +x golint.sh 
 - bash golint.sh
