@@ -4,7 +4,7 @@ go:
 - 1.14
 
 script:
-- gofmt -s 
+- gofmt -s cmd/ 
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
 - chmod +x golint.sh 
 - bash golint.sh
