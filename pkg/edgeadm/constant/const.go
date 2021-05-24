@@ -43,7 +43,12 @@ const (
 )
 
 const (
-	CMKubeConfig = "kubeconfig.conf"
+	CMKubeConfig               = "kubeconfig.conf"
+	CMKubeProxy                = "kube-proxy"
+	CMKubeProxyNoEdge          = "kube-proxy-no-edge"
+	KubernetesEndpoint         = "kubernetes"
+	KubernetesEndpointNoEdge   = "kubernetes-no-edge"
+	ConfigMapClusterInfoNoEdge = "cluster-info-no-edge"
 )
 
 const (
