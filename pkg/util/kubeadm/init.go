@@ -20,6 +20,7 @@ package kubeadm
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -442,6 +443,11 @@ func newInitData(cmd *cobra.Command, args []string, options *initOptions, out io
 	}
 	if options.externalInitCfg.NodeRegistration.CRISocket != "" {
 		cfg.NodeRegistration.CRISocket = options.externalInitCfg.NodeRegistration.CRISocket
+	}
+
+	// check node name parameter, the IPv4 format is not supported.
+	if ret := net.ParseIP(cfg.NodeRegistration.Name); ret != nil {
+		return nil, errors.New("invalid node name, the IPv4 format is not supported")
 	}
 
 	if err := configutil.VerifyAPIServerBindAddress(cfg.LocalAPIEndpoint.AdvertiseAddress); err != nil {
