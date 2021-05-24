@@ -14,31 +14,18 @@ limitations under the License.
 package handlers
 
 import (
-	uuid "github.com/satori/go.uuid"
+	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
-	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
-	"net"
 )
 
-func FrontendHandler(msg *proto.StreamMsg) error {
+func DirectHandler(msg *proto.StreamMsg) error {
 	chConn := context.GetContext().GetConn(msg.Topic)
-	if chConn != nil {
-		chConn.Send2Conn(msg)
-		return nil
+	if chConn == nil {
+		klog.Errorf("%s connection has been disconnected", msg.Category)
+		return fmt.Errorf("Failed to get %s connection", msg.Category)
 	}
-	conn, err := net.Dial("tcp", msg.Addr)
-	if err != nil {
-		klog.Errorf("The Edge TCP client failed to establish a TCP connection with the Edge Server, error: %v", err)
-		return err
-	}
-	node := context.GetContext().GetNode(msg.Node)
-	uid := uuid.NewV4().String()
-	ch := context.GetContext().AddConn(uid)
-	node.BindNode(uid)
-	go common.Read(conn, node, util.TCP_BACKEND, uid, msg.Addr)
-	go common.Write(conn, ch)
+	chConn.Send2Conn(msg)
 	return nil
 }

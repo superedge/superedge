@@ -21,8 +21,8 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp/tcpmng"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp/tcpmsg"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
 	"net"
@@ -40,9 +40,9 @@ func (tcp *TcpProxy) Name() string {
 }
 
 func (tcp *TcpProxy) Start(mode string) {
-	context.GetContext().RegisterHandler(util.TCP_BACKEND, tcp.Name(), tcpmsg.BackendHandler)
-	context.GetContext().RegisterHandler(util.TCP_FRONTEND, tcp.Name(), tcpmsg.FrontendHandler)
-	context.GetContext().RegisterHandler(util.TCP_CONTROL, tcp.Name(), tcpmsg.ControlHandler)
+	context.GetContext().RegisterHandler(util.TCP_BACKEND, tcp.Name(), handlers.DirectHandler)
+	context.GetContext().RegisterHandler(util.TCP_FRONTEND, tcp.Name(), handlers.FrontendHandler)
+	context.GetContext().RegisterHandler(util.TCP_CONTROL, tcp.Name(), handlers.DirectHandler)
 	if mode == util.CLOUD {
 		for front, backend := range conf.TunnelConf.TunnlMode.Cloud.Tcp {
 			go func(front, backend string) {
@@ -67,11 +67,11 @@ func (tcp *TcpProxy) Start(mode string) {
 					}
 					uuid := uuid.NewV4().String()
 					node := nodes[0]
-					fp := tcpmng.NewTcpConn(uuid, backend, node)
-					fp.Conn = rawConn
-					fp.Type = util.TCP_FRONTEND
-					go fp.Write()
-					go fp.Read()
+					tcpConn := context.GetContext().AddConn(uuid)
+					nodeConn := context.GetContext().GetNode(node)
+					nodeConn.BindNode(uuid)
+					go common.Read(rawConn, nodeConn, util.TCP_FRONTEND, uuid, backend)
+					go common.Write(rawConn, tcpConn)
 				}
 			}(front, backend)
 		}

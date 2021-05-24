@@ -25,7 +25,7 @@ const (
 	BuferSize = 1 * 1024
 )
 
-func Read(conn net.Conn, node context.Node, handleType, uuid string) {
+func Read(conn net.Conn, node context.Node, handleType, uuid, addr string) {
 	defer func() {
 		node.UnbindNode(uuid)
 		context.GetContext().RemoveConn(uuid)
@@ -53,6 +53,7 @@ func Read(conn net.Conn, node context.Node, handleType, uuid string) {
 			Type:     handleType,
 			Topic:    uuid,
 			Data:     rb[:n],
+			Addr:     addr,
 		})
 
 	}

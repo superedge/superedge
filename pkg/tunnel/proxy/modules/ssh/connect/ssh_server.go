@@ -83,7 +83,7 @@ func HandleServerConn(proxyConn net.Conn) {
 		} else {
 			uid := uuid.NewV4().String()
 			ch := context.GetContext().AddConn(uid)
-			go common.Read(proxyConn, node, util.TCP_FRONTEND, uid)
+			go common.Read(proxyConn, node, util.TCP_FRONTEND, uid, request.Host)
 			common.Write(proxyConn, ch)
 		}
 	}
