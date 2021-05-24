@@ -64,6 +64,7 @@ const (
 )
 
 const (
-	ConnectMsg = "HTTP/1.1 200 Connection established\r\n\r\n"
-	BadGateway = "HTTP/1.1 502 Tunnel not established\r\n\r\n"
+	ConnectMsg          = "HTTP/1.1 200 Connection established\r\n\r\n"
+	BadGateway          = "HTTP/1.1 502 Tunnel not established\r\n\r\n"
+	InternalServerError = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
 )

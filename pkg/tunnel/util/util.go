@@ -16,7 +16,9 @@ limitations under the License.
 
 package util
 
-import "strings"
+import (
+	"strings"
+)
 
 func ReplaceString(line string) string {
 	line = strings.Replace(line, " ", "", -1)

@@ -14,6 +14,8 @@ limitations under the License.
 package ssh
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog"
@@ -23,11 +25,13 @@ import (
 type SSH struct {
 }
 
-func (S SSH) Name() string {
+func (s SSH) Name() string {
 	return util.SSH
 }
 
-func (S SSH) Start(mode string) {
+func (s SSH) Start(mode string) {
+	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.SSH, handlers.FrontendHandler)
+	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.SSH, handlers.BackendHandler)
 	if mode == util.CLOUD {
 		listener, err := net.Listen("tcp", "0.0.0.0:22")
 		if err != nil {
@@ -45,6 +49,6 @@ func (S SSH) Start(mode string) {
 	}
 }
 
-func (S SSH) CleanUp() {
-	panic("implement me")
+func (s SSH) CleanUp() {
+	context.GetContext().RemoveModule(s.Name())
 }
