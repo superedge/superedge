@@ -3,11 +3,18 @@ language: go
 go:
 - 1.14
 
-script:
-- gofmt -s cmd/ 
+jobs:
+    include:
+        - stage: go format
+          script: gofmt -s cmd/
+        - stage: go lint
+          script: chmod +x golint.sh && bash golint.sh
+
+#script:
+#- gofmt -s cmd/ 
 #- go build -o edgeadm cmd/edgeadm/edgeadm.go
-- chmod +x golint.sh 
-- bash golint.sh
+#- chmod +x golint.sh 
+#- bash golint.sh
 
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
