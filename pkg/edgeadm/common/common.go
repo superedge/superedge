@@ -74,6 +74,44 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	return nil
 }
 
+func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string) error {
+	// Deploy tunnel
+	if err := DeleteTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.APP_TUNNEL_EDGE)
+
+	// Delete edge-health
+	if err := DeleteEdgeHealth(client, manifestsDir); err != nil {
+		klog.Errorf("Delete edge health, error: %s", err)
+		return err
+	}
+	klog.Infof("Delete edge-health success!")
+
+	// Delete service-group
+	if err := DeleteServiceGroup(client, manifestsDir); err != nil {
+		klog.Errorf("Delete serivce group, error: %s", err)
+		return err
+	}
+	klog.Infof("Delete service-group success!")
+
+	// Recover Kube-* Config
+	if err := RecoverKubeConfig(client); err != nil {
+		klog.Errorf("Delete serivce group, error: %s", err)
+		return err
+	}
+	klog.Infof("Recover Kubernetes cluster config support marginal autonomy success")
+
+	// Delete lite-api-server Cert
+	if err := DeleteLiteApiServerCert(client); err != nil {
+		klog.Errorf("Recover lite-apiserver, error: %s", err)
+		return err
+	}
+	klog.Infof("Recover lite-apiserver configMap success")
+
+	return nil
+}
+
 func ReadYaml(intputPath, defaults string) string {
 	var yaml string = defaults
 	if util.IsFileExist(intputPath) {
@@ -250,4 +288,21 @@ func ClearJob(clientSet *kubernetes.Clientset, label string) error {
 	time.Sleep(time.Duration(3) * time.Second)
 
 	return nil
+}
+
+func CheckIfEdgeAppDeletable(clientSet kubernetes.Interface) bool {
+	nodeLabel, _ := labels.NewRequirement(constant.EdgeNodeLabelKey, selection.Equals, []string{constant.EdgeNodeLabelValueEnable})
+	var labelsNode = labels.NewSelector()
+	labelsNode = labelsNode.Add(*nodeLabel)
+	labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
+	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
+	if err != nil {
+		klog.Error(err)
+		return false
+	}
+
+	if 0 == len(nodes.Items) {
+		return true
+	}
+	return false
 }

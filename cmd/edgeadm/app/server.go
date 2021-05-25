@@ -27,6 +27,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
+	"github.com/superedge/superedge/pkg/edgeadm/cmd/addon"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/change"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd/revert"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -67,6 +68,8 @@ func NewEdgeadmCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(kubeadm.NewJoinCMD(os.Stdout, &edgeadmConf))
 	cmds.AddCommand(kubeadm.NewCmdToken(os.Stdout, os.Stdout))
 	cmds.AddCommand(kubeadm.NewResetCMD(os.Stdin, os.Stdout, &edgeadmConf))
+	cmds.AddCommand(addon.NewAddonCMD())
+	cmds.AddCommand(addon.NewDetachCMD())
 
 	return cmds
 }

@@ -27,17 +27,49 @@ import (
 )
 
 func DeployEdgeHealth(clientSet kubernetes.Interface, manifestsDir string) error {
-	userEdgeHealthWebhook := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_WEBHOOK)
-	userEdgeHealthAdmission := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_ADMISSION)
-	yamlMap := map[string]string{
-		manifests.APP_EDGE_HEALTH_ADMISSION: ReadYaml(userEdgeHealthAdmission, manifests.EdgeHealthAdmissionYaml),
-		manifests.APP_EDGE_HEALTH_WEBHOOK:   ReadYaml(userEdgeHealthWebhook, manifests.EdgeHealthWebhookConfigYaml),
+	yamlMap, edgeHealthYaml, option, err := getEdgeHealthResource(clientSet, manifestsDir)
+	if err != nil {
+		return err
 	}
 	for appName, yamlFile := range yamlMap {
 		if err := CreateByYamlFile(clientSet, yamlFile); err != nil {
 			return err
 		}
 		klog.Infof("Create %s success!\n", appName)
+	}
+	if err := kubeclient.CreateResourceWithFile(clientSet, edgeHealthYaml, option); err != nil {
+		return err
+	}
+	klog.Infof("Create %s success!\n", manifests.APP_EDGE_HEALTH)
+
+	return nil
+}
+
+func DeleteEdgeHealth(clientSet kubernetes.Interface, manifestsDir string) error {
+	yamlMap, edgeHealthYaml, option, err := getEdgeHealthResource(clientSet, manifestsDir)
+	if err != nil {
+		return err
+	}
+	for appName, yamlFile := range yamlMap {
+		if err := DeleteByYamlFile(clientSet, yamlFile); err != nil {
+			return err
+		}
+		klog.Infof("Delete %s success!\n", appName)
+	}
+	if err := kubeclient.DeleteResourceWithFile(clientSet, edgeHealthYaml, option); err != nil {
+		return err
+	}
+	klog.Infof("Delete %s success!\n", manifests.APP_EDGE_HEALTH)
+
+	return nil
+}
+
+func getEdgeHealthResource(clientSet kubernetes.Interface, manifestsDir string) (map[string]string, string, interface{}, error) {
+	userEdgeHealthWebhook := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_WEBHOOK)
+	userEdgeHealthAdmission := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_ADMISSION)
+	yamlMap := map[string]string{
+		manifests.APP_EDGE_HEALTH_ADMISSION: ReadYaml(userEdgeHealthAdmission, manifests.EdgeHealthAdmissionYaml),
+		manifests.APP_EDGE_HEALTH_WEBHOOK:   ReadYaml(userEdgeHealthWebhook, manifests.EdgeHealthWebhookConfigYaml),
 	}
 
 	option := map[string]interface{}{
@@ -46,10 +78,5 @@ func DeployEdgeHealth(clientSet kubernetes.Interface, manifestsDir string) error
 
 	userManifests := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH)
 	edgeHealthYaml := ReadYaml(userManifests, manifests.EdgeHealthYaml)
-	if err := kubeclient.CreateResourceWithFile(clientSet, edgeHealthYaml, option); err != nil {
-		return err
-	}
-	klog.Infof("Create %s success!\n", manifests.APP_EDGE_HEALTH)
-
-	return nil
+	return yamlMap, edgeHealthYaml, option, nil
 }
