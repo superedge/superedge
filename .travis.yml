@@ -10,7 +10,7 @@ jobs:
         - stage: go lint
           script: chmod +x golint.sh && bash golint.sh
 	- stage: go test
-	  script: true
+	  script: skip
 	- stage: go build
 	  script: go build -o edgeadm cmd/edgeadm/edgeadm.go
 
