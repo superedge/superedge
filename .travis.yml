@@ -9,10 +9,10 @@ jobs:
           script: gofmt -s cmd/
         - stage: go lint
           script: chmod +x golint.sh && bash golint.sh
-	- stage: go test
-	  script: skip
-	- stage: go build
-	  script: go build -o edgeadm cmd/edgeadm/edgeadm.go
+        - stage: go test
+          script: skip
+        - stage: go build
+          script: go build -o edgeadm cmd/edgeadm/edgeadm.go
 
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
