@@ -16,8 +16,6 @@ limitations under the License.
 
 package config
 
-import "time"
-
 type LiteServerConfig struct {
 	// lite-server default ca path for kubernetes apiserver
 	// CAFile defines the certificate authority
@@ -45,7 +43,7 @@ type LiteServerConfig struct {
 
 	TLSConfig []TLSKeyPair
 
-	SyncDuration time.Duration
+	ModifyRequestAccept bool
 
 	CacheType       string
 	FileCachePath   string
