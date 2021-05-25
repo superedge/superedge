@@ -8,8 +8,7 @@ jobs:
         - stage: go format
           script: gofmt -s cmd/
         - stage: go lint
-          script: chmod +x golint.sh
-          script: bash golint.sh
+          script: chmod +x golint.sh && bash golint.sh
 	- stage: go test
 	  script: true
 	- stage: go build
