@@ -15,6 +15,7 @@ package ssh
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
@@ -52,4 +53,9 @@ func (s SSH) Start(mode string) {
 
 func (s SSH) CleanUp() {
 	context.GetContext().RemoveModule(s.Name())
+}
+
+func InitSSH() {
+	module.Register(&SSH{})
+	klog.Infof("init module: %s success !", util.SSH)
 }

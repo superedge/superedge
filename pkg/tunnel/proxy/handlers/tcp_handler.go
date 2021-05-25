@@ -14,7 +14,6 @@ limitations under the License.
 package handlers
 
 import (
-	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
@@ -35,10 +34,10 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 		return err
 	}
 	node := context.GetContext().GetNode(msg.Node)
-	uid := uuid.NewV4().String()
-	ch := context.GetContext().AddConn(uid)
-	node.BindNode(uid)
-	go common.Read(conn, node, util.TCP_BACKEND, uid, msg.Addr)
+	ch := context.GetContext().AddConn(msg.Topic)
+	node.BindNode(msg.Topic)
+	ch.Send2Conn(msg)
+	go common.Read(conn, node, util.TCP_BACKEND, msg.Topic, msg.Addr)
 	go common.Write(conn, ch)
 	return nil
 }

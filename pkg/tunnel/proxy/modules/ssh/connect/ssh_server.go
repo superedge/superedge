@@ -47,6 +47,10 @@ func HandleServerConn(proxyConn net.Conn) {
 			addrs, err := net.LookupHost(nodeinfo[0])
 			if err != nil {
 				klog.Errorf("DNS parsing error: %v", err)
+				_, err = proxyConn.Write([]byte(util.InternalServerError))
+				if err != nil {
+					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+				}
 				return
 			}
 
@@ -55,8 +59,8 @@ func HandleServerConn(proxyConn net.Conn) {
 				_, err = proxyConn.Write([]byte(util.BadGateway))
 				if err != nil {
 					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-					return
 				}
+				return
 			}
 
 			remoteConn, err := net.Dial("tcp", addrs[0]+":22")
@@ -78,12 +82,18 @@ func HandleServerConn(proxyConn net.Conn) {
 			_, err = io.Copy(proxyConn, remoteConn)
 			if err != nil {
 				klog.Errorf("Failed to read data from remoteConn, error: %v", err)
-				return
 			}
 		} else {
 			uid := uuid.NewV4().String()
 			ch := context.GetContext().AddConn(uid)
-			go common.Read(proxyConn, node, util.TCP_FRONTEND, uid, request.Host)
+			node.BindNode(uid)
+			_, err = proxyConn.Write([]byte(util.ConnectMsg))
+			if err != nil {
+				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+				return
+			}
+
+			go common.Read(proxyConn, node, util.TCP_FRONTEND, uid, "127.0.0.1:"+nodeinfo[1])
 			common.Write(proxyConn, ch)
 		}
 	}
