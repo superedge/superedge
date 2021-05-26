@@ -9,9 +9,11 @@ jobs:
           script: gofmt -s cmd/
         - stage: go lint
           script: chmod +x golint.sh
-       # - script: bash golint.sh
+        - script: bash golint.sh
         - script: echo "test"
-        - stage: go test
+        - stage: 
+              name: go test
+              if: 1=1
           script: skip
         - stage: go build
           script: go build -o edgeadm cmd/edgeadm/edgeadm.go
