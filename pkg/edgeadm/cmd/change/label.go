@@ -65,7 +65,6 @@ func newLabelCMD() *cobra.Command {
 	}
 
 	action.flags = cmd.Flags()
-	cmd.Flags().BoolVarP(&action.all, "all", "a", action.all, "Select all nodes")
 	cmd.Flags().StringVarP(&action.selector, "selector", "l", action.selector, "Use label to select the node that needs to be changed")
 
 	return cmd
@@ -75,11 +74,8 @@ func (l *labelAction) complete(cmd *cobra.Command, args []string) error {
 	if err := l.checkKubeConfig(); err != nil {
 		return err
 	}
-	if len(args) == 0 && !cmd.Flags().Changed("selector") && !cmd.Flags().Changed("all") {
-		return fmt.Errorf("Please set a nodename or --selector or --all flags!\n")
-	}
-	if len(args) > 0 && (len(l.selector) > 0 || l.all) {
-		return fmt.Errorf("Cannot specify both a nodename or --selector and --all option")
+	if len(args) > 0 && (len(l.selector) > 0) {
+		return fmt.Errorf("Cannot specify both a nodename or --selector option")
 	}
 
 	l.nodeInfos = &v1.NodeList{}
@@ -93,7 +89,7 @@ func (l *labelAction) complete(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if len(l.selector) > 0 || l.all {
+	if len(l.selector) > 0 || len(args) == 0 {
 		opts := metav1.ListOptions{
 			LabelSelector: l.selector,
 		}
