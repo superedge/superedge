@@ -36,7 +36,7 @@ jobs:
       - make build
     - name: "unit test, integration test edge"
       script:
-      - make test
+      - travis_wait 60 make test
 
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
