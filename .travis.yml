@@ -5,23 +5,23 @@ go:
 
 jobs:
     include:
-        - stage: "Test on arm64"
-          name: "go format edge code"
-          arch: arm64
-          script：
-              - gofmt -s cmd/
-        - name: "go lint edge code"
-          arch: arm64
-          script：
-              - chmod +x golint.sh
-              - bash golint.sh
-        - name: "edge build"
-          arch: arm64
-          script：
-              - make build
-        - name: "unit test, integration test edge"
-          script：
-              - make test
+    - stage: "Test on arm64"
+      name: "go format edge code"
+      arch: arm64
+      script:
+      - gofmt -s cmd/
+    - name: "go lint edge code"
+      arch: arm64
+      script:
+      - chmod +x golint.sh
+      - bash golint.sh
+    - name: "edge build"
+      arch: arm64
+      script:
+      - make build
+    - name: "unit test, integration test edge"
+      script:
+      - make test
 
 notifications:
     webhooks: http://106.55.135.32:9990/webhook
