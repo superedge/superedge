@@ -18,55 +18,89 @@ package constant
 
 const (
 	DeployModeKubeadm = "kubeadm"
+	ModeKubeProxy     = "kube-proxy"
 )
 
 const (
-	ACTION_CHANGE = "change"
-	ACTION_REVERT = "revert"
+	ActionChange = "change"
+	ActionRevert = "revert"
 )
 
 const (
-	NODE_ROLE_NODE   = "node"
-	NODE_ROLE_MASTER = "master"
+	NodeRoleNode   = "node"
+	NodeRoleMaster = "master"
 )
 
 const (
-	NAMESPACE_DEFAULT     = "default"
-	NAMESPACE_KUBE_SYSTEM = "kube-system"
+	NamespaceDefault    = "default"
+	NamespaceEdgeSystem = "edge-system"
+	NamespcaeKubeSystem = "kube-system"
 )
 
 const (
-	SERVICE_KUBERNETES   = "kubernetes"
-	SERVICE_TUNNEL_CLOUD = "tunnel-cloud"
+	ServiceKubernetes  = "kubernetes"
+	ServiceTunnelCloud = "tunnel-cloud"
 )
 
 const (
-	CM_KUBECONFIG_CONF = "kubeconfig.conf"
+	CMKubeConfig               = "kubeconfig.conf"
+	CMKubeProxy                = "kube-proxy"
+	CMKubeProxyNoEdge          = "kube-proxy-no-edge"
+	KubernetesEndpoint         = "kubernetes"
+	KubernetesEndpointNoEdge   = "kubernetes-no-edge"
+	ConfigMapClusterInfoNoEdge = "cluster-info-no-edge"
 )
 
 const (
-	KubeCfgPath   = "/etc/kubernetes/"
-	KubeEdgePath  = KubeCfgPath + "edge/"
-	KubeadmKey    = KubeCfgPath + "pki/ca.key"
-	KubeadmCert   = KubeCfgPath + "pki/ca.crt"
-	EdgeManifests = KubeEdgePath + "manifests/"
+	KubeCfgPath             = "/etc/kubernetes/"
+	KubeEdgePath            = KubeCfgPath + "edge/"
+	KubePkiPath             = KubeCfgPath + "pki/"
+	KubeadmKeyPath          = KubeCfgPath + "pki/ca.key"
+	KubeadmCertPath         = KubeCfgPath + "pki/ca.crt"
+	LiteAPIServerCACertPath = KubeCfgPath + "pki/lite-apiserver-ca.crt"
+	LiteAPIServerCrtPath    = KubeEdgePath + "lite-apiserver.crt"
+	LiteAPIServerKeyPath    = KubeEdgePath + "lite-apiserver.key"
+	LiteAPIServerTLSPath    = KubeEdgePath + "tls.json"
 )
 
 const (
-	EdgeLocalHost = "superedge.io/local-endpoint"
-	EdgeLocalPort = "superedge.io/local-port"
+	SystemServiceDir = "/etc/systemd/system/"
+)
+
+// label
+const (
+	EdgeNodeLabelKey   = "superedge.io/edge-node"
+	EdgeMasterLabelKey = "superedge.io/edge-master"
+	EdgeChangeLabelKey = "superedge.io/change"
+	EdgeLocalHost      = "superedge.io/local-endpoint"
+	EdgeLocalPort      = "superedge.io/local-port"
+
+	EdgeNodeLabelValueEnable   = "enable"
+	EdgeMasterLabelValueEnable = "enable"
+	EdgeChangeLabelValueEnable = "enable"
 
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
 )
 
 const (
-	EDGE_CERT_CM            = "edge-cert"
-	LITE_API_SERVER_CRT     = "lite-apiserver.crt"
-	LITE_API_SERVER_KEY     = "lite-apiserver.key"
-	LITE_API_SERVER_TLS_CFG = "tls.json"
+	EdgeCertCM           = "edge-cert"
+	KubeAPIClusterIP     = "kube-api-cluster-ip"
+	KubeAPICACrt         = "kube-api-ca.crt"
+	LiteAPIServerCrt     = "lite-apiserver.crt"
+	LiteAPIServerKey     = "lite-apiserver.key"
+	LiteAPIServerTLSJSON = "tls.json"
 )
 
-const APPLICAION_GRID_WRAPPER_SERVICE_ADDR = "http://127.0.0.1:51006"
+const (
+	LiteAPIServerStatusCmd  = "systemctl status lite-apiserver.service"
+	LiteAPIServerRestartCmd = "systemctl daemon-reload && systemctl restart lite-apiserver.service"
+)
 
-const LiteApiServerTlsCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-current.pem","cert":"/var/lib/kubelet/pki/kubelet-client-current.pem"}]`
+const (
+	LiteAPIServerAddr = "https://127.0.0.1:51003"
+)
+
+const ApplicationGridWrapperServiceAddr = "http://127.0.0.1:51006"
+
+const LiteAPIServerTLSCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-current.pem","cert":"/var/lib/kubelet/pki/kubelet-client-current.pem"}]`

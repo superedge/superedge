@@ -34,11 +34,30 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 * [**lite-apiserver**](docs/components/lite-apiserver.md): Lightweight kube-apiserver for edge autonomy. It caches and proxies edge components' requests and critical events to cloud kube-apiserver.
 * [**edge-health**](docs/components/edge-health.md): Monitors the health status of edge nodes in the same edge region.
 * [**tunnel-edge**](docs/components/tunnel.md): Maintains persistent connection to `tunnel-cloud` to retrieve API requests to the controllers on the edge.
-* [**application-grid wrapper**](docs/components/service-group.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
+* [**application-grid wrapper**](docs/components/serviceGroup.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
+[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
 
-For installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
+-   Download the installation package
+> Choose installation package according to your installation node CPU architecture [amd64, arm64]
+```shell
+arch=amd64 version=v0.3.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+
+-   Install edge Kubernetes master node
+```shell
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true
+```
+
+-   Join edge node
+```bash
+./edgeadm join <Master Public/Intranet IP Or Domain>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-* install package address path> --enable-edge=true
+```
+
+See the detailed process[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
+
+Other installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
 
 ## Contact
 

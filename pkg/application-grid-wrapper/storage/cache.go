@@ -17,8 +17,10 @@ limitations under the License.
 package storage
 
 import (
+	"k8s.io/klog"
 	"sync"
 
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,14 +30,16 @@ import (
 
 type storageCache struct {
 	// hostName is the nodeName of node which application-grid-wrapper deploys on
-	hostName         string
-	wrapperInCluster bool
+	hostName                          string
+	wrapperInCluster                  bool
+	serviceAutonomyEnhancementEnabled bool
 
 	// mu lock protect the following map structure
-	mu           sync.RWMutex
-	servicesMap  map[types.NamespacedName]*serviceContainer
-	endpointsMap map[types.NamespacedName]*endpointsContainer
-	nodesMap     map[types.NamespacedName]*nodeContainer
+	mu            sync.RWMutex
+	servicesMap   map[types.NamespacedName]*serviceContainer
+	endpointsMap  map[types.NamespacedName]*endpointsContainer
+	nodesMap      map[types.NamespacedName]*nodeContainer
+	localNodeInfo map[string]data.ResultDetail
 
 	// service watch channel
 	serviceChan chan<- watch.Event
@@ -63,15 +67,17 @@ type endpointsContainer struct {
 
 var _ Cache = &storageCache{}
 
-func NewStorageCache(hostName string, wrapperInCluster bool, serviceNotifier, endpointsNotifier chan watch.Event) *storageCache {
+func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event) *storageCache {
 	msc := &storageCache{
-		hostName:         hostName,
-		wrapperInCluster: wrapperInCluster,
-		servicesMap:      make(map[types.NamespacedName]*serviceContainer),
-		endpointsMap:     make(map[types.NamespacedName]*endpointsContainer),
-		nodesMap:         make(map[types.NamespacedName]*nodeContainer),
-		serviceChan:      serviceNotifier,
-		endpointsChan:    endpointsNotifier,
+		hostName:                          hostName,
+		wrapperInCluster:                  wrapperInCluster,
+		serviceAutonomyEnhancementEnabled: serviceAutonomyEnhancementEnabled,
+		servicesMap:                       make(map[types.NamespacedName]*serviceContainer),
+		endpointsMap:                      make(map[types.NamespacedName]*endpointsContainer),
+		nodesMap:                          make(map[types.NamespacedName]*nodeContainer),
+		serviceChan:                       serviceNotifier,
+		endpointsChan:                     endpointsNotifier,
+		localNodeInfo:                     make(map[string]data.ResultDetail),
 	}
 
 	return msc
@@ -135,11 +141,38 @@ func (sc *storageCache) GetNode(hostName string) *v1.Node {
 	return nil
 }
 
+func (sc *storageCache) GetLocalNodeInfo() map[string]data.ResultDetail {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	return sc.localNodeInfo
+}
+
+func (sc *storageCache) ClearLocalNodeInfo() {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	sc.localNodeInfo = make(map[string]data.ResultDetail)
+}
+
+func (sc *storageCache) SetLocalNodeInfo(info map[string]data.ResultDetail) {
+	klog.V(4).Infof("Set local node info %#v", info)
+	sc.mu.Lock()
+	sc.localNodeInfo = info
+
+	// update endpoints
+	changedEps := sc.rebuildEndpointsMap()
+
+	sc.mu.Unlock()
+
+	for _, eps := range changedEps {
+		sc.endpointsChan <- eps
+	}
+}
+
 // rebuildEndpointsMap updates all endpoints stored in storageCache.endpointsMap dynamically and constructs relevant modified events
 func (sc *storageCache) rebuildEndpointsMap() []watch.Event {
 	evts := make([]watch.Event, 0)
 	for name, endpointsContainer := range sc.endpointsMap {
-		newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpointsContainer.endpoints, sc.wrapperInCluster)
+		newEps := pruneEndpoints(sc.hostName, sc.nodesMap, sc.servicesMap, endpointsContainer.endpoints, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
 		if apiequality.Semantic.DeepEqual(newEps, endpointsContainer.modified) {
 			continue
 		}

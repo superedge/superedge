@@ -42,14 +42,8 @@ import (
 
 func (c *changeAction) runKubeamdChange() error {
 	// Create APPs that do not affect the use of the original cluster
-	affectYamls := map[string]string{
-		manifests.APP_TUNNEL_CORDDNS: common.ReadYaml(c.manifests+"/"+manifests.APP_TUNNEL_CORDDNS, manifests.TunnelCorednsYaml),
-	}
-	for appName, yamlFile := range affectYamls {
-		if err := common.CreateByYamlFile(c.clientSet, yamlFile); err != nil {
-			return err
-		}
-		fmt.Printf("Create %s success!\n", appName)
+	if err := c.deployTunnelCoreDNS(); err != nil {
+		return err
 	}
 
 	// Create tunnel-cloud
@@ -74,21 +68,23 @@ func (c *changeAction) runKubeamdChange() error {
 	}
 
 	helperJobYaml := common.ReadYaml(c.manifests+"/"+manifests.APP_HELPER_JOB, manifests.HelperJobYaml)
-	if err := common.DeployHelperJob(c.clientSet, helperJobYaml, constant.ACTION_CHANGE, constant.NODE_ROLE_NODE); err != nil {
+	if err := common.DeployHelperJob(c.clientSet, helperJobYaml, constant.ActionChange, constant.NodeRoleNode); err != nil {
 		return err
 	}
 
 	yamlMap := map[string]string{
-		manifests.APP_EDGE_HEALTH_ADMISSION:       common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_ADMISSION, manifests.EdgeHealthAdmissionYaml),
-		manifests.APP_EDGE_HEALTH_WEBHOOK:         common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_WEBHOOK, manifests.EdgeHealthWebhookConfigYaml),
-		manifests.APP_APPLICATION_GRID_WRAPPER:    common.ReadYaml(c.manifests+"/"+manifests.APP_APPLICATION_GRID_WRAPPER, manifests.ApplicationGridWrapperYaml),
-		manifests.APP_APPLICATION_GRID_CONTROLLER: common.ReadYaml(c.manifests+"/"+manifests.APP_APPLICATION_GRID_CONTROLLER, manifests.ApplicationGridControllerYaml),
+		manifests.APP_EDGE_HEALTH_ADMISSION: common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_ADMISSION, manifests.EdgeHealthAdmissionYaml),
+		manifests.APP_EDGE_HEALTH_WEBHOOK:   common.ReadYaml(c.manifests+"/"+manifests.APP_EDGE_HEALTH_WEBHOOK, manifests.EdgeHealthWebhookConfigYaml),
 	}
 	for appName, yamlFile := range yamlMap {
 		if err := common.CreateByYamlFile(c.clientSet, yamlFile); err != nil {
 			return err
 		}
 		fmt.Printf("Create %s success!\n", appName)
+	}
+
+	if err := common.DeployServiceGroup(c.clientSet, c.manifests); err != nil {
+		return err
 	}
 
 	// apply tunnel-health
@@ -104,7 +100,7 @@ func (c *changeAction) runKubeamdChange() error {
 		return err
 	}
 
-	if err := common.DeployHelperJob(c.clientSet, helperJobYaml, constant.ACTION_CHANGE, constant.NODE_ROLE_MASTER); err != nil {
+	if err := common.DeployHelperJob(c.clientSet, helperJobYaml, constant.ActionChange, constant.NodeRoleMaster); err != nil {
 		return err
 	}
 
@@ -113,12 +109,27 @@ func (c *changeAction) runKubeamdChange() error {
 	return nil
 }
 
+func (c *changeAction) deployTunnelCoreDNS() error {
+	option := map[string]interface{}{
+		"TunnelCoreDNSClusterIP": "",
+	}
+	tunnelCoreDNSYaml := common.ReadYaml(c.manifests+"/"+manifests.APP_TUNNEL_CORDDNS, manifests.TunnelCorednsYaml)
+	err := kubeclient.CreateResourceWithFile(c.clientSet, tunnelCoreDNSYaml, option)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Create tunnel-coredns.yaml success!")
+
+	return nil
+}
+
 func (c *changeAction) createLiteApiServerCert() error {
 	c.clientSet.CoreV1().ConfigMaps("kube-system").Delete(
-		context.TODO(), constant.EDGE_CERT_CM, metav1.DeleteOptions{})
+		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 
 	kubeService, err := c.clientSet.CoreV1().Services(
-		constant.NAMESPACE_DEFAULT).Get(context.TODO(), constant.SERVICE_KUBERNETES, metav1.GetOptions{})
+		constant.NamespaceDefault).Get(context.TODO(), constant.ServiceKubernetes, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -134,13 +145,13 @@ func (c *changeAction) createLiteApiServerCert() error {
 
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constant.EDGE_CERT_CM,
+			Name: constant.EdgeCertCM,
 		},
 		Data: map[string]string{
-			constant.LITE_API_SERVER_CRT:     string(liteApiServerCrt),
-			constant.LITE_API_SERVER_KEY:     string(liteApiServerKey),
-			constant.LITE_API_SERVER_TLS_CFG: constant.LiteApiServerTlsCfg,
-			manifests.APP_lITE_APISERVER:     common.ReadYaml(c.manifests+"/"+manifests.APP_lITE_APISERVER, manifests.LiteApiServerYaml),
+			constant.LiteAPIServerCrt:     string(liteApiServerCrt),
+			constant.LiteAPIServerKey:     string(liteApiServerKey),
+			constant.LiteAPIServerTLSJSON: constant.LiteAPIServerTLSCfg,
+			manifests.APP_lITE_APISERVER:  common.ReadYaml(c.manifests+"/"+manifests.APP_lITE_APISERVER, manifests.LiteApiServerYaml),
 		},
 	}
 
@@ -153,6 +164,9 @@ func (c *changeAction) createLiteApiServerCert() error {
 }
 
 func (c *changeAction) deployTunnelCloud() (string, error) {
+	c.clientSet.AppsV1().Deployments(constant.NamespcaeKubeSystem).Delete(
+		context.TODO(), constant.ServiceTunnelCloud, metav1.DeleteOptions{})
+
 	nodes, err := c.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return "", err
@@ -207,7 +221,7 @@ func (c *changeAction) waitTunnelCloudReady() (int32, error) {
 	var tunnelCloudNodePort int32 = 0
 	for { //Make sure tunnel-cloud success created
 		coredns, err := c.clientSet.CoreV1().Services(
-			"kube-system").Get(context.TODO(), constant.SERVICE_TUNNEL_CLOUD, metav1.GetOptions{})
+			"kube-system").Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
 		if err == nil {
 			for _, port := range coredns.Spec.Ports {
 				tunnelCloudNodePort = port.NodePort
@@ -322,12 +336,12 @@ func (c *changeAction) getCertAndKey() (*x509.Certificate, *rsa.PrivateKey, erro
 func (c *changeAction) updateKubeProxyKubeconfig() error {
 	kubeClient := c.clientSet
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NAMESPACE_KUBE_SYSTEM).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	proxyConfig, ok := kubeProxyCM.Data[constant.CM_KUBECONFIG_CONF]
+	proxyConfig, ok := kubeProxyCM.Data[constant.CMKubeConfig]
 	if !ok {
 		return errors.New("Get kube-proxy kubeconfig.conf nil\n")
 	}
@@ -338,22 +352,22 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	}
 
 	for key := range config.Clusters {
-		config.Clusters[key].Server = constant.APPLICAION_GRID_WRAPPER_SERVICE_ADDR
+		config.Clusters[key].Server = constant.ApplicationGridWrapperServiceAddr
 	}
 
 	content, err := clientcmd.Write(*config)
 	if err != nil {
 		return err
 	}
-	kubeProxyCM.Data[constant.CM_KUBECONFIG_CONF] = string(content)
+	kubeProxyCM.Data[constant.CMKubeConfig] = string(content)
 
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NAMESPACE_KUBE_SYSTEM).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+		constant.NamespcaeKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(
-		constant.NAMESPACE_KUBE_SYSTEM).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -364,7 +378,7 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	daemonSets.Spec.Template.Annotations[constant.UpdateKubeProxyTime] = strconv.FormatInt(time.Now().Unix(), 10)
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
-		constant.NAMESPACE_KUBE_SYSTEM).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
@@ -373,7 +387,7 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 
 func (c *changeAction) updateKubernetesEndpoint() error {
 	endpoint, err := c.clientSet.CoreV1().Endpoints(
-		constant.NAMESPACE_DEFAULT).Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+		constant.NamespaceDefault).Get(context.TODO(), "kubernetes", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -383,7 +397,7 @@ func (c *changeAction) updateKubernetesEndpoint() error {
 	annotations[constant.EdgeLocalHost] = "127.0.0.1"
 	endpoint.Annotations = annotations
 	if _, err := c.clientSet.CoreV1().Endpoints(
-		constant.NAMESPACE_DEFAULT).Update(context.TODO(), endpoint, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceDefault).Update(context.TODO(), endpoint, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 

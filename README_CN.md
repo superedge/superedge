@@ -41,11 +41,31 @@ SuperEdge具有如下特性:
 - [**lite-apiserver**](docs/components/lite-apiserver_CN.md): 节点侧轻量版apiserver shadow，代理节点组件到云端apiserver的请求，缓存关键数据以用于边缘自治
 - [**edge-health**](docs/components/edge-health_CN.md): 分布式节点健康检查，用于感知边缘节点状态，支持对节点分区域检查能力
 - [**tunnel-edge**](docs/components/tunnel_CN.md): 边缘tunnel服务组件，主动与tunnel-cloud建立长连接，将云端请求代理到对应的边缘服务，如：kubelet、业务pod等
-- [**application-grid wrapper**](docs/components/service-group_CN.md): 应用网格流量控制组件，可将svc之间的流量闭环在同一个应用网格之中，避免跨网格访问
+- [**application-grid wrapper**](docs/components/serviceGroup_CN.md): 应用网格流量控制组件，可将svc之间的流量闭环在同一个应用网格之中，避免跨网格访问
 
 ## 快速入门指南
 
-关于安装、部署和管理，请参见[**教程**](docs/installation/tutorial_CN.md)。
+[一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)
+
+-   下载安装包
+> 注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
+```shell
+arch=amd64 version=v0.3.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+
+-   安装边缘 Kubernetes master 节点
+```shell
+./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master节点外网IP> --apiserver-advertise-address=<Master节点内网IP> --enable-edge=true
+```
+
+-   Join 边缘节点
+```shell
+./edgeadm join <Master节点外网IP/Master节点内网IP/域名>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-*静态安装包地址> --enable-edge=true 
+```
+
+详细流程见[一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)
+
+其他安装、部署和管理，请参见[**教程**](docs/installation/tutorial_CN.md)。
 
 ## 联系
 
@@ -65,3 +85,4 @@ SuperEdge具有如下特性:
 ## 开源许可
 
 [**Apache License 2.0**](./LICENSE)
+

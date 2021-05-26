@@ -37,13 +37,14 @@ func NewWrapperProxyCommand() *cobra.Command {
 			verflag.PrintAndExitIfRequested()
 			util.PrintFlags(cmd.Flags())
 
-			server := server.NewInterceptorServer(o.KubeConfig, o.HostName, o.WrapperInCluster, o.NotifyChannelSize)
+			server := server.NewInterceptorServer(o.KubeConfig, o.HostName, o.WrapperInCluster,
+				o.NotifyChannelSize, o.ServiceAutonomyEnhancementOption)
 			if server == nil {
 				return
 			}
 
 			if err := server.Run(o.Debug, o.BindAddress, o.InsecureMode,
-				o.CAFile, o.CertFile, o.KeyFile); err != nil {
+				o.CAFile, o.CertFile, o.KeyFile, o.ServiceAutonomyEnhancementOption); err != nil {
 				klog.Errorf("fail to start server, %v", err)
 				return
 			}

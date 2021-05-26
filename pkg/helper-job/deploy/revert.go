@@ -25,8 +25,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
+	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/helper-job/constant"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
@@ -40,6 +41,14 @@ func revertMasterJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 
 	if err := isRunningMaster(); err != nil {
 		klog.Errorf("Check master is running error: %v", err)
+		return err
+	}
+
+	nodeLabel := map[string]string{
+		edgeadmConstant.EdgeMasterLabelKey: edgeadmConstant.EdgeMasterLabelValueEnable,
+		edgeadmConstant.EdgeChangeLabelKey: edgeadmConstant.EdgeChangeLabelValueEnable,
+	}
+	if err := kubeclient.DeleteNodeLabel(kubeClient, nodeName, nodeLabel); err != nil {
 		return err
 	}
 	return nil
@@ -82,11 +91,15 @@ func revertNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 		return fmt.Errorf("Node: %s iCheck kubelet status error: %v\n", nodeName, err)
 	}
 
-	if err := deleteLiteAPiServerLabel(kubeClient, nodeName); err != nil {
+	if err := util.RemoveFile(constant.LiteAPIServerYamlPath); err != nil {
 		return err
 	}
 
-	if err := util.RemoveFile(constant.LiteAPIServerYamlPath); err != nil {
+	nodeLabel := map[string]string{
+		edgeadmConstant.EdgeNodeLabelKey:   edgeadmConstant.EdgeNodeLabelValueEnable,
+		edgeadmConstant.EdgeChangeLabelKey: edgeadmConstant.EdgeChangeLabelValueEnable,
+	}
+	if err := kubeclient.DeleteNodeLabel(kubeClient, nodeName, nodeLabel); err != nil {
 		return err
 	}
 
