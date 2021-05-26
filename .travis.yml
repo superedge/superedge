@@ -10,7 +10,7 @@ jobs:
         - stage: go lint
           script: chmod +x golint.sh
        # - script: bash golint.sh
-        - stage: echo "test"
+        - script: echo "test"
         - stage: go test
           script: skip
         - stage: go build
