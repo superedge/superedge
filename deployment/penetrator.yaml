@@ -245,7 +245,7 @@ data:
           volumes:
             - name: ssh
               secret:
-                defaultMode: 420
+                defaultMode: 384
                 secretName: {{.SecretName}}
             - name: conf
               configMap:
@@ -312,7 +312,7 @@ data:
           volumes:
             - name: ssh
               secret:
-                defaultMode: 420
+                defaultMode: 384
                 secretName: {{.SecretName}}
             - name: conf
               configMap:
