@@ -92,10 +92,14 @@ metadata:
   namespace: kube-system
 spec:
   ports:
-    - name: proxycloud
+    - name: grpc
       port: 9000
       protocol: TCP
       targetPort: 9000
+    - name: ssh
+      port: 22
+      protocol: 22
+      targetPort: 22
   selector:
     app: tunnel-cloud
   type: NodePort
@@ -160,10 +164,10 @@ spec:
               mountPath: /etc/superedge/tunnel/conf
           ports:
             - containerPort: 9000
-              name: tunnel
+              name: grpc
               protocol: TCP
-            - containerPort: 7000
-              name: gateway
+            - containerPort: 22
+              name: ssh
               protocol: TCP
             - containerPort: 10250
               name: kubelet
