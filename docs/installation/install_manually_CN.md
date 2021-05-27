@@ -279,6 +279,12 @@ $ kubectl apply -f deployment/edge-health-admission.yaml
 $ kubectl apply -f deployment/edge-health-webhook.yaml
 ```
 
+> 目前webhook中的证书是预先生成的，用户可以替换成自己生成的证书。
+>
+> `deployment/edge-health-webhook.yaml`中的`caBundle`填写CA证书。
+>
+> `deployment/edge-health-admission.yaml`中`validate-admission-control-server-certs Secret`的`server.crt`和`server.key`分别填写CA颁发的证书和私钥。
+
 ### 4.2 部署Edge Health
 
 需要填充的参数：

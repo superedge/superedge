@@ -264,6 +264,12 @@ $ kubectl apply -f deployment/edge-health-admission.yaml
 $ kubectl apply -f deployment/edge-health-webhook.yaml
 ```
 
+> Currently the certificates in the webhook is pre-populated, you can replace them with your certificates.
+> 
+> The `caBundle` in `deployment/edge-health-webhook.yaml` can be replaced with your CA certificate.
+> 
+> The `server.crt` and `server.key` in `validate-admission-control-server-certs Secret` of `deployment/edge-health-admission.yaml` can be replaced with your signed certificate and key.
+
 ### 4.3 Configure edge-health
 Set the following parameters in the `deployment/edge-health.yaml`
 ```bash
