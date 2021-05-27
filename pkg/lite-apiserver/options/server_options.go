@@ -24,18 +24,19 @@ import (
 )
 
 type RunServerOptions struct {
-	KubeApiserverUrl  string
-	KubeApiserverPort int
-	Port              int
-	BackendTimeout    int
-	CAFile            string
-	CertFile          string
-	KeyFile           string
-	ApiserverCAFile   string
-	CacheType         string
-	FileCachePath     string
-	BadgerCachePath   string
-	BoltCacheFile     string
+	KubeApiserverUrl    string
+	KubeApiserverPort   int
+	Port                int
+	BackendTimeout      int
+	CAFile              string
+	CertFile            string
+	KeyFile             string
+	ApiserverCAFile     string
+	ModifyRequestAccept bool
+	CacheType           string
+	FileCachePath       string
+	BadgerCachePath     string
+	BoltCacheFile       string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -51,6 +52,8 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.KubeApiserverPort = s.KubeApiserverPort
 	c.Port = s.Port
 	c.BackendTimeout = s.BackendTimeout
+
+	c.ModifyRequestAccept = s.ModifyRequestAccept
 
 	c.CacheType = s.CacheType
 	c.FileCachePath = s.FileCachePath
@@ -105,8 +108,10 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "the host of kube-apiserver")
 	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
-	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on.")
+	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on")
 	fs.IntVar(&s.BackendTimeout, "timeout", 3, "timeout for proxy to backend")
+
+	fs.BoolVar(&s.ModifyRequestAccept, "modify-request-accept", true, "whether modify client request Accept to default(application/json), default is true")
 
 	fs.StringVar(&s.CacheType, "cache-type", "file", "the type for cache storage. file(default), memory(only for test), badger, bolt")
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
