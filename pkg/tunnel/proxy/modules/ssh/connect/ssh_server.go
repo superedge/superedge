@@ -19,6 +19,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog"
@@ -32,6 +33,7 @@ const (
 )
 
 func HandleServerConn(proxyConn net.Conn) {
+	defer proxyConn.Close()
 	rawRequest := bytes.NewBuffer(make([]byte, RequestCache))
 	rawRequest.Reset()
 	reqReader := bufio.NewReader(io.TeeReader(proxyConn, rawRequest))
@@ -63,11 +65,17 @@ func HandleServerConn(proxyConn net.Conn) {
 				return
 			}
 
+			if connect.IsEndpointIp(addrs[0]) {
+				klog.Errorf("Loop forwarding")
+				return
+			}
+
 			remoteConn, err := net.Dial("tcp", addrs[0]+":22")
 			if err != nil {
 				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
 				return
 			}
+			defer remoteConn.Close()
 			_, err = remoteConn.Write(rawRequest.Bytes())
 			if err != nil {
 				klog.Errorf("Failed to write data to remoteConn, error: %v", err)

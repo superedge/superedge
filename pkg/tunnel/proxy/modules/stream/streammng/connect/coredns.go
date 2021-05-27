@@ -36,8 +36,6 @@ import (
 var coreDns *CoreDns
 
 type CoreDns struct {
-	PodIp     string
-	Namespace string
 	ClientSet *kubernetes.Clientset
 	Update    chan struct{}
 }
@@ -46,8 +44,6 @@ func InitDNS() error {
 	coreDns = &CoreDns{
 		Update: make(chan struct{}),
 	}
-	coreDns.PodIp = os.Getenv(util.POD_IP_ENV)
-	klog.Infof("endpoint of the proxycloud pod = %s ", coreDns.PodIp)
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		klog.Errorf("client-go get inclusterconfig  fail err = %v", err)
@@ -59,7 +55,6 @@ func InitDNS() error {
 		return err
 	}
 	coreDns.ClientSet = clientset
-	coreDns.Namespace = os.Getenv(util.POD_NAMESPACE_ENV)
 	return nil
 }
 
@@ -75,7 +70,7 @@ func (dns *CoreDns) checkHosts() error {
 		hostsBuffer.WriteString(k)
 		hostsBuffer.WriteString("\n")
 	}
-	cm, err := dns.ClientSet.CoreV1().ConfigMaps(dns.Namespace).Get(cctx.TODO(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Configmap, metav1.GetOptions{})
+	cm, err := dns.ClientSet.CoreV1().ConfigMaps(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.TODO(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Configmap, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("get configmap fail err = %v", err)
 		return err
@@ -85,7 +80,7 @@ func (dns *CoreDns) checkHosts() error {
 	} else {
 		cm.Data[util.COREFILE_HOSTS_FILE] = ""
 	}
-	_, err = dns.ClientSet.CoreV1().ConfigMaps(dns.Namespace).Update(cctx.TODO(), cm, metav1.UpdateOptions{})
+	_, err = dns.ClientSet.CoreV1().ConfigMaps(os.Getenv(util.POD_NAMESPACE_ENV)).Update(cctx.TODO(), cm, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("update configmap fail err = %v", err)
 		return err
@@ -112,7 +107,7 @@ func parseHosts() (map[string]string, bool) {
 		return nil, false
 	}
 	scanner := bufio.NewScanner(file)
-	eps, err := coreDns.ClientSet.CoreV1().Endpoints(coreDns.Namespace).Get(cctx.Background(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Service, metav1.GetOptions{})
+	eps, err := coreDns.ClientSet.CoreV1().Endpoints(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.Background(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Service, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get %s endpoint ip err = %v", conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Service, err)
 		return nil, false
@@ -133,7 +128,7 @@ func parseHosts() (map[string]string, bool) {
 			update = true
 			continue
 		}
-		if addr.String() == coreDns.PodIp {
+		if addr.String() == os.Getenv(util.POD_IP_ENV) {
 			if !update {
 				if context.GetContext().NodeIsExist(string(f[1])) {
 					existCount += 1
@@ -164,12 +159,12 @@ func parseHosts() (map[string]string, bool) {
 	file.Close()
 	if update {
 		for _, v := range context.GetContext().GetNodes() {
-			nodes[v] = coreDns.PodIp
+			nodes[v] = os.Getenv(util.POD_IP_ENV)
 		}
 	} else {
 		if existCount != len(context.GetContext().GetNodes()) || disconnectCount != 0 {
 			for _, v := range context.GetContext().GetNodes() {
-				nodes[v] = coreDns.PodIp
+				nodes[v] = os.Getenv(util.POD_IP_ENV)
 			}
 			update = true
 		}
@@ -182,4 +177,20 @@ func parseIP(addr string) net.IP {
 		addr = addr[0:i]
 	}
 	return net.ParseIP(addr)
+}
+
+func IsEndpointIp(addr string) bool {
+	if coreDns != nil {
+		eps, err := coreDns.ClientSet.CoreV1().Endpoints(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.Background(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Service, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("Failed to get SVC:%s endpoints, error: %v", conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Service, err)
+			return false
+		}
+		for _, ipv := range eps.Subsets[0].Addresses {
+			if ipv.IP == addr {
+				return true
+			}
+		}
+	}
+	return false
 }
