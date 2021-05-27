@@ -26,11 +26,10 @@ jobs:
     - stage: "Test on amd64"
       name: "go format edge code"
       script:
-      - gofmt -s cmd/
+      - make format
     - name: "go lint edge code"
       script:
-      - chmod +x golint.sh
-      - bash golint.sh
+      - make lint
     - name: "edge build"
       script:
       - make build
