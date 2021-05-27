@@ -65,7 +65,7 @@ func HandleServerConn(proxyConn net.Conn) {
 				return
 			}
 
-			if connect.IsEndpointIp(addrs[0]) {
+			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
 				klog.Errorf("Loop forwarding")
 				return
 			}
