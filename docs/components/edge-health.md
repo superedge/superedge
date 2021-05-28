@@ -30,13 +30,13 @@ It introduces distributed health check for the first time to achieve independent
 ### Multi-region Detection
 - Turn On
   - Label the nodes according to the region with `superedgehealth/topology-zone:<zone>`
-  - Create a configmap named `edge-health-zone-config` in the `kube-system` namespace, specify the value of `TaintZoneAdmission` as `true`, you can directly use the following yaml to create
+  - Create a configmap named `edge-health-zone-config` in the `edge-system` namespace, specify the value of `TaintZoneAdmission` as `true`, you can directly use the following yaml to create
              ```yaml
              apiVersion: v1
              kind: ConfigMap
              metadata:
                name: edge-health-zone-config
-               namespace: kube-system
+               namespace: edge-system
              data:
                TaintZoneAdmission: true
              ```

@@ -39,12 +39,16 @@ func DeployServiceGroup(clientSet kubernetes.Interface, manifestsDir string) err
 		return err
 	}
 
+	userGridWrapper := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_WRAPPER)
+	gridWrapper = ReadYaml(userGridWrapper, manifests.ApplicationGridWrapperYaml)
 	if err := kubeclient.CreateResourceWithFile(clientSet, gridWrapper, option); err != nil {
 		return err
 	}
 	klog.V(4).Infof("Deploy %s success!", manifests.APP_APPLICATION_GRID_WRAPPER)
 
-	if err := CreateByYamlFile(clientSet, gridController); err != nil {
+	userGridController := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_CONTROLLER)
+	gridController = ReadYaml(userGridController, manifests.ApplicationGridControllerYaml)
+	if err := kubeclient.CreateResourceWithFile(clientSet, gridController, option); err != nil {
 		klog.Errorf("Deploy %s error: %s", manifests.APP_APPLICATION_GRID_CONTROLLER, err)
 		return err
 	}
@@ -78,7 +82,7 @@ func DeleteServiceGroup(clientSet kubernetes.Interface, manifestsDir string) err
 func GetKubeAPIServerAddr(clientSet kubernetes.Interface) (string, error) {
 	kubeClient := clientSet
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -112,6 +116,7 @@ func getServiceGroupResource(clientSet kubernetes.Interface, manifestsDir string
 	}
 
 	option := map[string]interface{}{
+		"Namespace":        constant.NamespaceEdgeSystem,
 		"AdvertiseAddress": advertiseAddress,
 	}
 	userGridWrapper := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_WRAPPER)

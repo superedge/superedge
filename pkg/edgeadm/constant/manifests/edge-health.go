@@ -23,7 +23,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: edge-health
-  namespace: kube-system
+  namespace: {{.Namespace}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -61,14 +61,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: edge-health
-    namespace: kube-system
+    namespace: {{.Namespace}}
 
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: edge-health
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   selector:
     matchLabels:
@@ -115,7 +115,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: hmac-config
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   hmackey: {{.HmacKey}}
 `

@@ -117,7 +117,7 @@ Base64加密同TunnelPersistentConnectionServerKey和TunnelPersistentConnectionS
 
 ```bash
 #获取tunnel-coredns的Cluster IP
-$ kubectl get service tunnel-coredns -n kube-system
+$ kubectl get service tunnel-coredns -n edge-system
 NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                  AGE
 tunnel-coredns   ClusterIP   10.10.47.74   <none>        53/UDP,53/TCP,9153/TCP   140m
 #修改kube-apierver的DNS，使用tunnel-coredns
@@ -278,6 +278,12 @@ $ kubectl apply -f deployment/edge-health-admission.yaml
 ```bash
 $ kubectl apply -f deployment/edge-health-webhook.yaml
 ```
+
+> 目前webhook中的证书是预先生成的，用户可以替换成自己生成的证书。
+>
+> `deployment/edge-health-webhook.yaml`中的`caBundle`填写CA证书。
+>
+> `deployment/edge-health-admission.yaml`中`validate-admission-control-server-certs Secret`的`server.crt`和`server.key`分别填写CA颁发的证书和私钥。
 
 ### 4.2 部署Edge Health
 

@@ -23,6 +23,7 @@ import (
 func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
 		"TunnelCoreDNSClusterIP": "",
 	}
 	userManifests := filepath.Join(manifestsDir, manifests.APP_TUNNEL_CORDDNS)
@@ -80,7 +81,7 @@ func GetTunnelCloudPort(clientSet kubernetes.Interface) (int32, error) {
 	var tunnelCloudNodePort int32 = 0
 	for { //Make sure tunnel-cloud success created
 		coredns, err := clientSet.CoreV1().Services(
-			"kube-system").Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
+			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
 		if err == nil {
 			for _, port := range coredns.Spec.Ports {
 				tunnelCloudNodePort = port.NodePort
@@ -145,6 +146,7 @@ func DeleteTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, c
 
 	// Delete tunnel-coredns
 	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
 		"TunnelCoreDNSClusterIP": "",
 	}
 	userManifests := filepath.Join(manifestsDir, manifests.APP_TUNNEL_CORDDNS)
@@ -219,6 +221,7 @@ func getTunnelCloudResource(clientSet kubernetes.Interface, manifestsDir, caCert
 	}
 
 	option := map[string]interface{}{
+		"Namespace":                           constant.NamespaceEdgeSystem,
 		"TunnelCloudEdgeToken":                tunnelCloudToken,
 		"TunnelPersistentConnectionServerKey": base64.StdEncoding.EncodeToString(serviceKey),
 		"TunnelPersistentConnectionServerCrt": base64.StdEncoding.EncodeToString(serviceCert),
@@ -254,6 +257,7 @@ func getTunnelEdgeResource(clientSet kubernetes.Interface, manifestsDir,
 	}
 
 	option := map[string]interface{}{
+		"Namespace":                      constant.NamespaceEdgeSystem,
 		"MasterIP":                       tunnelCloudNodeAddr,
 		"KubernetesCaCert":               base64.StdEncoding.EncodeToString(caCert),
 		"KubeletClientKey":               base64.StdEncoding.EncodeToString(caClientKey),

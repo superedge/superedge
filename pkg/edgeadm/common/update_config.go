@@ -54,7 +54,7 @@ func UpdateKubeConfig(client *kubernetes.Clientset) error {
 
 func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), constant.CMKubeProxy, metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), constant.CMKubeProxy, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	oldKubeProxyCM.Name = constant.CMKubeProxyNoEdge
 	oldKubeProxyCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldKubeProxyCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldKubeProxyCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -89,12 +89,12 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	kubeProxyCM.Data[constant.CMKubeConfig] = string(content)
 
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	daemonSets.Spec.Template.Annotations[constant.UpdateKubeProxyTime] = strconv.FormatInt(time.Now().Unix(), 10)
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
@@ -125,9 +125,10 @@ func UpdateClusterInfoKubeconfig(kubeClient kubernetes.Interface, certSANs []str
 	// backup original ConfigMap
 	oldClusterInfoCM := clusterInfoCM.DeepCopy()
 	oldClusterInfoCM.Name = constant.ConfigMapClusterInfoNoEdge
+	oldClusterInfoCM.Namespace = constant.NamespaceKubeSystem
 	oldClusterInfoCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -203,7 +204,7 @@ func UpdateKubernetesEndpoint(clientSet kubernetes.Interface) error {
 
 func PatchKubeProxy(clientSet kubernetes.Interface) error {
 	patch := fmt.Sprintf(constant.KubeProxyPatchJson, constant.EdgeNodeLabelKey, constant.EdgeNodeLabelValueEnable)
-	if _, err := clientSet.AppsV1().DaemonSets(constant.NamespcaeKubeSystem).Patch(
+	if _, err := clientSet.AppsV1().DaemonSets(constant.NamespaceKubeSystem).Patch(
 		context.TODO(), constant.ModeKubeProxy, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}); err != nil {
 		return fmt.Errorf("Patching daemonset: %s, error: %v\n", constant.ModeKubeProxy, err)
 	}
@@ -228,26 +229,26 @@ func RecoverKubeConfig(client *kubernetes.Clientset) error {
 
 func RecoverKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), constant.CMKubeProxyNoEdge, metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), constant.CMKubeProxyNoEdge, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	// recover backup ConfigMap
 	if err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Delete(context.TODO(), constant.CMKubeProxy, metav1.DeleteOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Delete(context.TODO(), constant.CMKubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	oldKubeProxyCM := kubeProxyCM.DeepCopy()
 	oldKubeProxyCM.Name = constant.CMKubeProxy
 	oldKubeProxyCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldKubeProxyCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldKubeProxyCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
 	if err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Delete(context.TODO(), constant.CMKubeProxyNoEdge, metav1.DeleteOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Delete(context.TODO(), constant.CMKubeProxyNoEdge, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -292,14 +293,14 @@ func RecoverClusterInfoKubeconfig(kubeClient kubernetes.Interface, certSANs []st
 
 	// recover backup ConfigMap
 	if err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Delete(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.DeleteOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Delete(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	oldClusterInfoCM := clusterInfoCM.DeepCopy()
 	oldClusterInfoCM.Name = bootstrapapi.ConfigMapClusterInfo
 	oldClusterInfoCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

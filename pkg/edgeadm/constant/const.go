@@ -34,7 +34,7 @@ const (
 const (
 	NamespaceDefault    = "default"
 	NamespaceEdgeSystem = "edge-system"
-	NamespcaeKubeSystem = "kube-system"
+	NamespaceKubeSystem = "kube-system"
 )
 
 const (

@@ -27,13 +27,13 @@ import (
 )
 
 var yamlMap = map[string]string{
-	manifests.KUBE_FlANNEl:                    manifests.KubeFlannelYaml,
+	manifests.KUBE_FLANNEL:                    manifests.KubeFlannelYaml,
 	manifests.APP_HELPER_JOB:                  manifests.HelperJobYaml,
 	manifests.APP_EDGE_HEALTH:                 manifests.EdgeHealthYaml,
 	manifests.APP_TUNNEL_EDGE:                 manifests.TunnelEdgeYaml,
 	manifests.APP_TUNNEL_CLOUD:                manifests.TunnelCloudYaml,
 	manifests.APP_TUNNEL_CORDDNS:              manifests.TunnelCorednsYaml,
-	manifests.APP_lITE_APISERVER:              manifests.LiteApiServerYaml,
+	manifests.APP_LITE_APISERVER:              manifests.LiteApiServerYaml,
 	manifests.APP_EDGE_HEALTH_ADMISSION:       manifests.EdgeHealthAdmissionYaml,
 	manifests.APP_EDGE_HEALTH_WEBHOOK:         manifests.EdgeHealthWebhookConfigYaml,
 	manifests.APP_APPLICATION_GRID_WRAPPER:    manifests.ApplicationGridWrapperYaml,

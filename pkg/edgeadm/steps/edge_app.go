@@ -141,8 +141,14 @@ func runTunnelAddon(c workflow.RunData) error {
 	if err != nil {
 		return err
 	}
+
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
 		"TunnelCoreDNSClusterIP": edgeadmConf.TunnelCoreDNSClusterIP,
 	}
 	klog.V(4).Infof("TunnelCoreDNSClusterIP: %s", edgeadmConf.TunnelCoreDNSClusterIP)
@@ -194,6 +200,10 @@ func runEdgeHealthAddon(c workflow.RunData) error {
 		return err
 	}
 
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
 	if err := common.DeployEdgeHealth(client, edgeadmConf.ManifestsDir); err != nil {
 		klog.Errorf("Deploy edge health, error: %s", err)
 		return err
@@ -205,6 +215,10 @@ func runEdgeHealthAddon(c workflow.RunData) error {
 func runServiceGroupAddon(c workflow.RunData) error {
 	_, edgeadmConf, client, err := getInitData(c)
 	if err != nil {
+		return err
+	}
+
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
 		return err
 	}
 
@@ -250,6 +264,10 @@ func updateKubeConfig(c workflow.RunData) error {
 func configLiteAPIServer(c workflow.RunData) error {
 	cfg, edgeadmConf, client, err := getInitData(c)
 	if err != nil {
+		return err
+	}
+
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
 		return err
 	}
 

@@ -23,7 +23,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: {{.Namespace}}
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -39,7 +39,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: {{.Namespace}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -47,19 +47,19 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: tunnel-cloud
-    namespace: kube-system
+    namespace: {{.Namespace}}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: {{.Namespace}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-conf
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   mode.toml: |
     [mode]
@@ -88,7 +88,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-token
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   token: |
     default:{{.TunnelCloudEdgeToken}}
@@ -102,14 +102,14 @@ data:
 kind: Secret
 metadata:
   name: tunnel-cloud-cert
-  namespace: kube-system
+  namespace: {{.Namespace}}
 type: Opaque
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   ports:
     - name: proxycloud
@@ -126,7 +126,7 @@ metadata:
   labels:
     app: tunnel-cloud
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   selector:
     matchLabels:
