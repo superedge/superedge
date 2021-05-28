@@ -249,7 +249,7 @@ func updateKubeAPIPod(kubeClient *kubernetes.Clientset, pod *v1.Pod) error {
 
 	var clusterIP string
 	for { //make sure tunnel-coredns success created
-		coredns, err := kubeClient.CoreV1().Services(NamespaceEdgeSystem).Get(context.TODO(), "tunnel-coredns", metav1.GetOptions{})
+		coredns, err := kubeClient.CoreV1().Services(edgeadmConstant.NamespaceEdgeSystem).Get(context.TODO(), "tunnel-coredns", metav1.GetOptions{})
 		if err == nil {
 			clusterIP = coredns.Spec.ClusterIP
 			break
@@ -459,7 +459,7 @@ func writeStaticYaml(filePath, content string) error {
 func isRunningLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string, retry int) (bool, error) {
 	podName := constant.LiteAPIServerPodName + "-" + nodeName
 	liteAPIServerStatueFunc := func(podName string) (bool, error) {
-		pod, err := kubeClient.CoreV1().Pods(NamespaceEdgeSystem).Get(context.TODO(), podName, metav1.GetOptions{})
+		pod, err := kubeClient.CoreV1().Pods(edgeadmConstant.NamespaceEdgeSystem).Get(context.TODO(), podName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("Get pod: %s infos error: %v", podName, err)
 			return false, err
