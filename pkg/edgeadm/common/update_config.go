@@ -213,12 +213,12 @@ func PatchKubeProxy(clientSet kubernetes.Interface) error {
 
 func RecoverKubeConfig(client *kubernetes.Clientset) error {
 	if err := RecoverKubeProxyKubeconfig(client); err != nil {
-		klog.Errorf("Delete serivce group, error: %s", err)
+		klog.Errorf("Recover kube-proxy kubeconfig, error: %s", err)
 		return err
 	}
 
 	if err := RecoverKubernetesEndpoint(client); err != nil {
-		klog.Errorf("Delete serivce group, error: %s", err)
+		klog.Errorf("Recover kube-proxy endpoint, error: %s", err)
 		return err
 	}
 
