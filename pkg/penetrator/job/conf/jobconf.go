@@ -24,14 +24,15 @@ import (
 var JobConf *JobConfig
 
 type JobConfig struct {
-	NodesIps         map[string]string `toml:"nodesIps"`
-	SshPort          int               `toml:"sshPort"`
-	NodeLabel        string            `toml:"nodeLabel"`
-	AdmToken         string            `toml:"admToken"`
-	AdvertiseAddress string            `toml:"advertiseAddress"`
-	BindPort         int32             `toml:"bindPort"`
-	CaHash           string            `toml:"caHash"`
-	Secret           JobSecret
+	NodesIps        map[string]string `toml:"nodesIps"`
+	SshPort         int               `toml:"sshPort"`
+	NodeLabel       string            `toml:"nodeLabel"`
+	AdmToken        string            `toml:"admToken"`
+	ExternalAddress []string          `toml:"advertiseAddress"`
+	IntranetAddress string            `toml:"intranetAddress"`
+	BindPort        int32             `toml:"bindPort"`
+	CaHash          string            `toml:"caHash"`
+	Secret          JobSecret
 }
 
 type JobSecret struct {

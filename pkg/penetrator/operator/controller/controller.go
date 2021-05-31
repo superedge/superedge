@@ -275,12 +275,13 @@ func (ntController *NodeTaskController) prepareJob(nt *v1beta1.NodeTask) error {
 			jobConfig.NodesIps = nt.Status.NodeStatus
 			jobConfig.SshPort = nt.Spec.SshPort
 			jobConfig.AdmToken = bootStrapToken
-			apiep, err := getClusterStatus(ntController.ctx, ntController.kubeClient)
+			apiep, apiserver, err := getClusterStatus(ntController.ctx, ntController.kubeClient)
 			if err != nil {
 				klog.Errorf("Failed to get kube-apiserver address and port, error: %v", err)
 				return err
 			}
-			jobConfig.AdvertiseAddress = apiep.AdvertiseAddress
+			jobConfig.IntranetAddress = apiep.AdvertiseAddress
+			jobConfig.ExternalAddress = apiserver.CertSANs
 			jobConfig.BindPort = apiep.BindPort
 
 			caHash, err := getCaHash(ntController.ctx, ntController.kubeClient)
@@ -469,24 +470,31 @@ func getBootStrapToken(ctx *context.NodeTaskContext, kubeclient kubernetes.Inter
 	return token, nil
 }
 
-func getClusterStatus(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (kubeadm.APIEndpoint, error) {
+func getClusterStatus(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (kubeadm.APIEndpoint, kubeadm.APIServer, error) {
 	var apiep kubeadm.APIEndpoint
+	var apiserver kubeadm.APIServer
 	kubeadmConfig, err := kubeclient.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(ctx, kubeadmconstants.KubeadmConfigConfigMap, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get configmap %s, error: %v", kubeadmconstants.KubeadmConfigConfigMap, err)
-		return apiep, err
+		return apiep, apiserver, err
 	}
 	clusterStatus := &kubeadm.ClusterStatus{}
 	if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), []byte(kubeadmConfig.Data[kubeadmconstants.ClusterStatusConfigMapKey]), clusterStatus); err != nil {
 		klog.Errorf("Failed to get clusterStatus, error: %v", err)
-		return apiep, err
+		return apiep, apiserver, err
 	}
 	nodes, err := kubeclient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: kubeadmconstants.LabelNodeRoleMaster + "= "})
 	if err != nil {
 		klog.Errorf("Failed to list nodes, error: %v", err)
-		return apiep, err
+		return apiep, apiserver, err
 	}
-	return clusterStatus.APIEndpoints[nodes.Items[rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(nodes.Items))].Name], nil
+	apiep = clusterStatus.APIEndpoints[nodes.Items[rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(nodes.Items))].Name]
+	clusterConfig := &kubeadm.ClusterConfiguration{}
+	if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), []byte(kubeadmConfig.Data[kubeadmconstants.ClusterConfigurationKind]), clusterConfig); err != nil {
+		klog.Errorf("Failed to decode cluster configuration data")
+		return apiep, apiserver, err
+	}
+	return apiep, apiserver, nil
 }
 
 func getCaHash(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (string, error) {

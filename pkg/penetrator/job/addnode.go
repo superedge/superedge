@@ -29,6 +29,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+	"net"
+	"strconv"
 
 	//"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -75,9 +77,16 @@ func AddNodes(nodes int) {
 	userBoardcaster.StartLogging(klog.Infof)
 	userRecord := userBoardcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: os.Getenv(constants.JobName)})
 
+	//apiserver advertiseAddress
+
+	advertiseAddress := getAdvertiseAddress()
+	if advertiseAddress == "" {
+		userRecord.Event(nodejob, v1.EventTypeWarning, fmt.Sprintf("Failed to get apiserver advertiseAddress"), fmt.Sprintf("ExternalAddress: %v IntranetAddress: %s", conf.JobConf.ExternalAddress, conf.JobConf.IntranetAddress))
+	}
+
 	for node, ip := range conf.JobConf.NodesIps {
 		go func() {
-			err := addNode(node, ip, version.GitVersion, addch, errch, kubeclient)
+			err := addNode(node, ip, version.GitVersion, advertiseAddress, addch, errch, kubeclient)
 			if err != nil {
 				userRecord.Event(nodejob, v1.EventTypeWarning, fmt.Sprintf("Node:%s installation failed", node), err.Error())
 			}
@@ -104,7 +113,7 @@ func AddNodes(nodes int) {
 	klog.Infof("addnodes job complete !")
 }
 
-func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNodech chan string, kubeclient kubernetes.Interface) error {
+func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan interface{}, errNodech chan string, kubeclient kubernetes.Interface) error {
 	defer func() {
 		// Decrease the count of concurrently added nodes by one
 		<-nodesch
@@ -119,14 +128,14 @@ func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNode
 	} else {
 		if node.Labels[constants.NodeLabel] == conf.JobConf.NodeLabel {
 			return nil
-		} else {
-			err = kubeclient.CoreV1().Nodes().Delete(context.Background(), node.Name, metav1.DeleteOptions{})
-			if err != nil {
-				errNodech <- nodeIp
-				klog.Errorf("failed to delete node:%s, error: %v", nodeName, err)
-				return err
-			}
 		}
+		err = kubeclient.CoreV1().Nodes().Delete(context.Background(), node.Name, metav1.DeleteOptions{})
+		if err != nil {
+			errNodech <- nodeIp
+			klog.Errorf("failed to delete node:%s, error: %v", nodeName, err)
+			return err
+		}
+
 	}
 
 	defer func() {
@@ -168,7 +177,7 @@ func addNode(nodeName, nodeIp, version string, nodesch chan interface{}, errNode
 	option := map[string]interface{}{
 		"NodeName":         nodeName,
 		"CaHash":           conf.JobConf.CaHash,
-		"AdvertiseAddress": conf.JobConf.AdvertiseAddress,
+		"AdvertiseAddress": advertiseAddress,
 		"BindPort":         conf.JobConf.BindPort,
 		"AdmToken":         conf.JobConf.AdmToken,
 		"Arch":             simpleArch,
@@ -219,4 +228,21 @@ func getArch(arch string) string {
 		return ""
 	}
 
+}
+
+func getAdvertiseAddress() string {
+	port := strconv.FormatInt(int64(conf.JobConf.BindPort), 10)
+	conn, err := net.Dial("tcp", conf.JobConf.IntranetAddress+":"+port)
+	if err == nil {
+		conn.Close()
+		return conf.JobConf.IntranetAddress
+	}
+	for _, v := range conf.JobConf.ExternalAddress {
+		tconn, err := net.Dial("tcp", conf.JobConf.IntranetAddress+":"+port)
+		if err == nil {
+			tconn.Close()
+			return v
+		}
+	}
+	return ""
 }
