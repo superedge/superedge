@@ -195,9 +195,17 @@ func (ntController *NodeTaskController) syncHandler(key string) error {
 				klog.Errorf("error in preparation before job creation, error: %v", err)
 				return err
 			}
-
 			if ntCopy.Status.NodeTaskStatus == v1beta1.NodeTaskStatusCreating {
-				err = createNodeJob(ntController.kubeClient, nt)
+				node, err := ntController.kubeClient.CoreV1().Nodes().Get(ntController.ctx, ntCopy.Spec.NodeName, metav1.GetOptions{})
+				if err != nil {
+					klog.Errorf("Failed to get node: %s", ntCopy.Spec.NodeName)
+					return err
+				}
+				if _, hasMasterRoleLabel := node.Labels[kubeadmconstants.LabelNodeRoleMaster]; hasMasterRoleLabel {
+					err = createNodeJob(ntController.kubeClient, nt, true)
+				} else {
+					err = createNodeJob(ntController.kubeClient, nt, false)
+				}
 				if err != nil {
 					klog.Errorf("failed to create NodeJob, error: %v", err)
 					return err
@@ -363,47 +371,35 @@ func filterNodeIps(nt *v1beta1.NodeTask, kubeclient kubernetes.Interface, ctx *c
 	return nil
 }
 
-func createNodeJob(kubeclient kubernetes.Interface, nt *v1beta1.NodeTask) error {
-	if nt.Spec.NodeName == "" {
-		options := map[string]interface{}{
-			"JobName":      nt.Annotations[constants.AnnotationAddNodeJobName],
-			"NameSpace":    constants.NameSpaceEdge,
-			"SecretName":   nt.Spec.SecretName,
-			"JobConfig":    nt.Annotations[constants.AnnotationAddNodeConfigmapName],
-			"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
-			"Uid":          nt.UID,
-		}
-		secretTmep, err := util.ReadFile(constants.DirectAddNodeJob)
+func createNodeJob(kubeclient kubernetes.Interface, nt *v1beta1.NodeTask, hasMasterRoleLabel bool) error {
+	options := map[string]interface{}{
+		"JobName":      nt.Annotations[constants.AnnotationAddNodeJobName],
+		"NameSpace":    constants.NameSpaceEdge,
+		"SecretName":   nt.Spec.SecretName,
+		"JobConfig":    nt.Annotations[constants.AnnotationAddNodeConfigmapName],
+		"NodeName":     nt.Spec.NodeName,
+		"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
+		"Uid":          nt.UID,
+	}
+	var secretTemp []byte
+	var err error
+	if hasMasterRoleLabel {
+		secretTemp, err = util.ReadFile(constants.DirectAddNodeJob)
 		if err != nil {
 			klog.Errorf("Failed to read file:%s, error: %v", constants.DirectAddNodeJob, err)
 			return err
 		}
-		err = kubecli.CreateResourceWithFile(kubeclient, string(secretTmep), options)
-		if err != nil {
-			klog.Errorf("Failed to create a job that directly connects to add nodes, error: %v", err)
-			return err
-		}
-
 	} else {
-		options := map[string]interface{}{
-			"JobName":      nt.Annotations[constants.AnnotationAddNodeJobName],
-			"NameSpace":    constants.NameSpaceEdge,
-			"SecretName":   nt.Spec.SecretName,
-			"JobConfig":    nt.Annotations[constants.AnnotationAddNodeConfigmapName],
-			"NodeName":     nt.Spec.NodeName,
-			"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
-			"Uid":          nt.UID,
-		}
-		secretTmep, err := util.ReadFile(constants.SpringboardAddNodeJob)
+		secretTemp, err = util.ReadFile(constants.SpringboardAddNodeJob)
 		if err != nil {
 			klog.Errorf("Failed to read file:%s, error: %v", constants.SpringboardAddNodeJob, err)
 			return err
 		}
-		err = kubecli.CreateResourceWithFile(kubeclient, string(secretTmep), options)
-		if err != nil {
-			klog.Errorf("Failed to create a job that adds nodes through nodes in the cluster, error: %v", err)
-			return err
-		}
+	}
+	err = kubecli.CreateResourceWithFile(kubeclient, string(secretTemp), options)
+	if err != nil {
+		klog.Errorf("Failed to create a job that adds nodes through nodes in the cluster, error: %v", err)
+		return err
 	}
 	return nil
 }

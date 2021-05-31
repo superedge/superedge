@@ -84,6 +84,7 @@ var (
 									},
 									Required: []string{
 										"secretName",
+										"nodeName",
 									},
 								},
 								"status": {

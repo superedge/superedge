@@ -310,7 +310,6 @@ func (handler *mutatingHandler) getCreatePatch(nt *v1beta1.NodeTask) ([]Patch, e
 func (handler *mutatingHandler) validate(nt *v1beta1.NodeTask) []error {
 	errs := make([]error, 0)
 	fld := field.NewPath("nodetask")
-
 	if len(nt.Spec.NameIps) == 0 && len(nt.Spec.Ips) == 0 {
 		errs = append(errs, errors.New(fmt.Sprintf("%s or %s must be specified", fld.Key("spec.ips").String(), fld.Key("spec.nameIps").String())))
 	}
