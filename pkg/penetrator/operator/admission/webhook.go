@@ -229,22 +229,22 @@ func (handler *mutatingHandler) getCreatePatch(nt *v1beta1.NodeTask) ([]Patch, e
 	randomToken := nt.Name + "-" + randString(6)
 
 	// nameIps
-	if nt.Spec.NameIps == nil {
-		if nt.Spec.PrefixName == "" || nt.Spec.Ips == nil {
-			return patches, fmt.Errorf("Ips or PrefixName are empty")
+	if nt.Spec.NodeNamesOverride == nil {
+		if nt.Spec.NodeNamePrefix == "" || nt.Spec.TargetMachines == nil {
+			return patches, fmt.Errorf("targetMachines or NodeNamePrefix are empty")
 		} else {
 			// ip de-duplication
 			ipsMap := make(map[string]interface{})
-			for k, v := range nt.Spec.Ips {
+			for k, v := range nt.Spec.TargetMachines {
 				ipsMap[v] = k
 			}
 
-			if len(ipsMap) != len(nt.Spec.Ips) {
+			if len(ipsMap) != len(nt.Spec.TargetMachines) {
 				ips := []string{}
 				for k := range ipsMap {
 					ips = append(ips, k)
 				}
-				nt.Spec.Ips = ips
+				nt.Spec.TargetMachines = ips
 			}
 			nodes, err := handler.kubeclient.CoreV1().Nodes().List(handler.ctx, metav1.ListOptions{})
 			if err != nil {
@@ -261,9 +261,9 @@ func (handler *mutatingHandler) getCreatePatch(nt *v1beta1.NodeTask) ([]Patch, e
 
 			nameIps := make(map[string]string)
 			var nodeName string
-			for _, v := range nt.Spec.Ips {
+			for _, v := range nt.Spec.TargetMachines {
 				for true {
-					nodeName = nt.Spec.PrefixName + "-" + randString(6)
+					nodeName = nt.Spec.NodeNamePrefix + "-" + randString(6)
 					if _, ok := nodesMap[nodeName]; !ok {
 						break
 					}
@@ -310,17 +310,17 @@ func (handler *mutatingHandler) getCreatePatch(nt *v1beta1.NodeTask) ([]Patch, e
 func (handler *mutatingHandler) validate(nt *v1beta1.NodeTask) []error {
 	errs := make([]error, 0)
 	fld := field.NewPath("nodetask")
-	if len(nt.Spec.NameIps) == 0 && len(nt.Spec.Ips) == 0 {
+	if len(nt.Spec.NodeNamesOverride) == 0 && len(nt.Spec.TargetMachines) == 0 {
 		errs = append(errs, errors.New(fmt.Sprintf("%s or %s must be specified", fld.Key("spec.ips").String(), fld.Key("spec.nameIps").String())))
 	}
 
-	if len(nt.Spec.NameIps) != 0 && len(nt.Spec.Ips) != 0 {
+	if len(nt.Spec.NodeNamesOverride) != 0 && len(nt.Spec.TargetMachines) != 0 {
 		errs = append(errs, errors.New(fmt.Sprintf("only one of %s and %s can be selected", fld.Key("spec.ips").String(), fld.Key("spec.nameIps").String())))
 	}
 
 	// Verify the format of ip
-	if len(nt.Spec.Ips) != 0 {
-		for _, ip := range nt.Spec.Ips {
+	if len(nt.Spec.TargetMachines) != 0 {
+		for _, ip := range nt.Spec.TargetMachines {
 			addr := net.ParseIP(ip)
 			if addr == nil {
 				errs = append(errs, errors.New(fmt.Sprintf("The ip format of the %s array is err ", fld.Key("spec.Ips").String())))
@@ -329,8 +329,8 @@ func (handler *mutatingHandler) validate(nt *v1beta1.NodeTask) []error {
 		}
 	}
 
-	if len(nt.Spec.NameIps) != 0 {
-		for _, ip := range nt.Spec.NameIps {
+	if len(nt.Spec.NodeNamesOverride) != 0 {
+		for _, ip := range nt.Spec.NodeNamesOverride {
 			addr := net.ParseIP(ip)
 			if addr == nil {
 				errs = append(errs, errors.New(fmt.Sprintf("The ip format of the %s array is err", fld.Key("spec.nameIps").String())))
@@ -339,7 +339,7 @@ func (handler *mutatingHandler) validate(nt *v1beta1.NodeTask) []error {
 		}
 	}
 
-	loginSecret, err := handler.kubeclient.CoreV1().Secrets(constants.NameSpaceEdge).Get(handler.ctx, nt.Spec.SecretName, metav1.GetOptions{})
+	loginSecret, err := handler.kubeclient.CoreV1().Secrets(constants.NameSpaceEdge).Get(handler.ctx, nt.Spec.SSHCredential, metav1.GetOptions{})
 	if err != nil {
 		errs = append(errs, errors.New(fmt.Sprintf("Failed to get secret, error: %s", err.Error())))
 	} else {

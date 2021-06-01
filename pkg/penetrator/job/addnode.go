@@ -142,7 +142,7 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 		errNodech <- nodeIp
 	}()
 
-	client, err := penetratorutil.SShConnectNode(nodeIp, conf.JobConf.SshPort, conf.JobConf.Secret)
+	client, err := penetratorutil.SShConnectNode(nodeIp, conf.JobConf.SSHPort, conf.JobConf.Secret)
 	if err != nil {
 		klog.Errorf("failed to get ssh client, error: %v", err)
 		return err
@@ -167,7 +167,7 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 		return err
 	}
 
-	err = penetratorutil.ScpFile(nodeIp, fmt.Sprintf(constants.InstallPackage+"%s-%s.tar.gz", simpleArch, version), conf.JobConf.SshPort, conf.JobConf.Secret)
+	err = penetratorutil.ScpFile(nodeIp, fmt.Sprintf(constants.InstallPackage+"%s-%s.tar.gz", simpleArch, version), conf.JobConf.SSHPort, conf.JobConf.Secret)
 	if err != nil {
 		klog.Errorf("Failed to copy installation package, error: %v", err)
 		return err

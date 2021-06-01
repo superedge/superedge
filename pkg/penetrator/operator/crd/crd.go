@@ -45,11 +45,11 @@ var (
 								"spec": {
 									Type: "object",
 									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										"prefixName": {
+										"nodeNamePrefix": {
 											Type:        "string",
 											Description: "Node name prefix",
 										},
-										"ips": {
+										"targetMachines": {
 											Type: "array",
 											Items: &apiextensionsv1.JSONSchemaPropsOrArray{
 												Schema: &apiextensionsv1.JSONSchemaProps{
@@ -59,20 +59,7 @@ var (
 											},
 											Description: "Install the ip list of the node",
 										},
-										"nodeName": {
-											Type:        "string",
-											Description: "The name of the node in the cluster running the add node job",
-										},
-										"secretName": {
-											Type:        "string",
-											Description: "The name of the secret that stores the ssh password or private key",
-										},
-										"sshPort": {
-											Type:        "integer",
-											Description: "SSH login port",
-											Default:     &apiextensionsv1.JSON{[]byte("22")},
-										},
-										"nameIps": {
+										"nodeNamesOverride": {
 											Type: "object",
 											AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
 												Schema: &apiextensionsv1.JSONSchemaProps{
@@ -81,10 +68,23 @@ var (
 											},
 											Description: "Specify the node name and ip mapping",
 										},
+										"proxyNode": {
+											Type:        "string",
+											Description: "The name of the node in the cluster running the add node job",
+										},
+										"sshCredential": {
+											Type:        "string",
+											Description: "The name of the secret that stores the ssh password or private key",
+										},
+										"sshPort": {
+											Type:        "integer",
+											Description: "SSH login port",
+											Default:     &apiextensionsv1.JSON{[]byte("22")},
+										},
 									},
 									Required: []string{
-										"secretName",
-										"nodeName",
+										"sshCredential",
+										"proxyNode",
 									},
 								},
 								"status": {

@@ -25,7 +25,7 @@ var JobConf *JobConfig
 
 type JobConfig struct {
 	NodesIps        map[string]string `toml:"nodesIps"`
-	SshPort         int               `toml:"sshPort"`
+	SSHPort         int               `toml:"sshPort"`
 	NodeLabel       string            `toml:"nodeLabel"`
 	AdmToken        string            `toml:"admToken"`
 	ExternalAddress []string          `toml:"advertiseAddress"`

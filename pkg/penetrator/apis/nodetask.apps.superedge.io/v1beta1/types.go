@@ -29,12 +29,12 @@ type NodeTask struct {
 	Status NodeTaskStatus `json:"status,omitempty"`
 }
 type NodeTaskSpec struct {
-	PrefixName string            `json:"prefixName,omitempty"`
-	Ips        []string          `json:"ips,omitempty"`
-	NodeName   string            `json:"nodeName,omitempty"`
-	SecretName string            `json:"secretName,omitempty"`
-	SshPort    int               `json:"sshPort,omitempty"`
-	NameIps    map[string]string `json:"nameIps,omitempty"`
+	NodeNamePrefix    string            `json:"nodeNamePrefix,omitempty"`
+	TargetMachines    []string          `json:"targetMachines,omitempty"`
+	NodeNamesOverride map[string]string `json:"nodeNamesOverride,omitempty"`
+	ProxyNode         string            `json:"proxyNode,omitempty"`
+	SSHCredential     string            `json:"sshCredential,omitempty"`
+	SSHPort           int               `json:"sshPort,omitempty"`
 }
 
 type NodeTaskStatus struct {

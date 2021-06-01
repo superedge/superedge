@@ -196,9 +196,9 @@ func (ntController *NodeTaskController) syncHandler(key string) error {
 				return err
 			}
 			if ntCopy.Status.NodeTaskStatus == v1beta1.NodeTaskStatusCreating {
-				node, err := ntController.kubeClient.CoreV1().Nodes().Get(ntController.ctx, ntCopy.Spec.NodeName, metav1.GetOptions{})
+				node, err := ntController.kubeClient.CoreV1().Nodes().Get(ntController.ctx, ntCopy.Spec.ProxyNode, metav1.GetOptions{})
 				if err != nil {
-					klog.Errorf("Failed to get node: %s", ntCopy.Spec.NodeName)
+					klog.Errorf("Failed to get node: %s", ntCopy.Spec.ProxyNode)
 					return err
 				}
 				if _, hasMasterRoleLabel := node.Labels[kubeadmconstants.LabelNodeRoleMaster]; hasMasterRoleLabel {
@@ -273,7 +273,7 @@ func (ntController *NodeTaskController) prepareJob(nt *v1beta1.NodeTask) error {
 			jobConfig := conf.JobConfig{}
 			jobConfig.NodeLabel = nt.Labels[constants.NodeLabel]
 			jobConfig.NodesIps = nt.Status.NodeStatus
-			jobConfig.SshPort = nt.Spec.SshPort
+			jobConfig.SSHPort = nt.Spec.SSHPort
 			jobConfig.AdmToken = bootStrapToken
 			apiep, apiserver, err := getClusterStatus(ntController.ctx, ntController.kubeClient)
 			if err != nil {
@@ -346,12 +346,12 @@ func filterNodeIps(nt *v1beta1.NodeTask, kubeclient kubernetes.Interface, ctx *c
 	ipMap := make(map[string]string)
 
 	// Filter duplicate ip of node name
-	for k, v := range nt.Spec.NameIps {
+	for k, v := range nt.Spec.NodeNamesOverride {
 		ipMap[v] = k
 	}
 
-	if len(ipMap) == len(nt.Spec.NameIps) {
-		nt.Status.NodeStatus = nt.DeepCopy().Spec.NameIps
+	if len(ipMap) == len(nt.Spec.NodeNamesOverride) {
+		nt.Status.NodeStatus = nt.DeepCopy().Spec.NodeNamesOverride
 	} else {
 		nameMap := make(map[string]string)
 		for k, v := range ipMap {
@@ -376,9 +376,9 @@ func createNodeJob(kubeclient kubernetes.Interface, nt *v1beta1.NodeTask, hasMas
 	options := map[string]interface{}{
 		"JobName":      nt.Annotations[constants.AnnotationAddNodeJobName],
 		"NameSpace":    constants.NameSpaceEdge,
-		"SecretName":   nt.Spec.SecretName,
+		"SecretName":   nt.Spec.SSHCredential,
 		"JobConfig":    nt.Annotations[constants.AnnotationAddNodeConfigmapName],
-		"NodeName":     nt.Spec.NodeName,
+		"NodeName":     nt.Spec.ProxyNode,
 		"NodeTaskName": nt.Annotations[constants.AnnotationAddNodeJobName],
 		"Uid":          nt.UID,
 	}
