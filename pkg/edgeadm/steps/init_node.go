@@ -60,12 +60,6 @@ func NewInitNodePhase() workflow.Phase {
 				Run:          runOffSwap,
 			},
 			{
-				Name:         "off-firewall",
-				Short:        "Off firewall of init Kubernetes node",
-				InheritFlags: getInitNodePhaseFlags("off-firewall"),
-				Run:          stopFirewall,
-			},
-			{
 				Name:         "off-selinux",
 				Short:        "Off selinux of init Kubernetes node",
 				InheritFlags: getInitNodePhaseFlags("off-selinux"),
