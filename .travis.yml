@@ -1,7 +1,7 @@
 language: go
 
 go:
-- 1.14
+- 1.15
 
 env:
     - HOME=/home/travis
@@ -29,7 +29,6 @@ jobs:
       - make format
     - name: "go lint edge code"
       script:
-      - GO111MODULE=off go get github.com/hashicorp/hcl/hcl/printer
       - make lint
     - name: "edge build"
       script:

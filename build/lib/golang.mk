@@ -60,7 +60,7 @@ go.clean:
 go.lint.verify: go.build.verify
 ifeq (,$(shell which golangci-lint))
 	@echo "===========> Installing golangci lint"
-	@GO111MODULE=off $(GO) get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	@GO111MODULE=on $(GO) get -u github.com/golangci/golangci-lint/cmd/golangci-lint@v1.21.0
 endif
 
 .PHONY: go.lint
