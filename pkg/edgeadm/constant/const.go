@@ -94,7 +94,7 @@ const (
 
 const (
 	LiteAPIServerStatusCmd  = "systemctl status lite-apiserver.service"
-	LiteAPIServerRestartCmd = "systemctl daemon-reload && systemctl restart lite-apiserver.service"
+	LiteAPIServerRestartCmd = "systemctl daemon-reload && systemctl restart lite-apiserver.service && systemctl enable lite-apiserver.service"
 )
 
 const (

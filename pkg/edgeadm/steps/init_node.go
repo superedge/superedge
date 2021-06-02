@@ -60,6 +60,24 @@ func NewInitNodePhase() workflow.Phase {
 				Run:          runOffSwap,
 			},
 			{
+				Name:         "off-firewall",
+				Short:        "Off firewall of init Kubernetes node",
+				InheritFlags: getInitNodePhaseFlags("off-firewall"),
+				Run:          stopFirewall,
+			},
+			{
+				Name:         "off-selinux",
+				Short:        "Off selinux of init Kubernetes node",
+				InheritFlags: getInitNodePhaseFlags("off-selinux"),
+				Run:          disableSelinux,
+			},
+			{
+				Name:         "enable-kubelet",
+				Short:        "Enable kubelet of init Kubernetes node",
+				InheritFlags: getInitNodePhaseFlags("enable-kubelet"),
+				Run:          enableKubelet,
+			},
+			{
 				Name:         "set-sysctl",
 				Short:        "Set system parameters for Kubernetes nod by sysctl tools",
 				InheritFlags: getInitNodePhaseFlags("set-sysctl"),
@@ -83,6 +101,12 @@ func getInitNodePhaseFlags(name string) []string {
 	if name == "all" || name == "clear" {
 	}
 	if name == "all" || name == "off-swap" {
+	}
+	if name == "all" || name == "off-firewall" {
+	}
+	if name == "all" || name == "off-selinux" {
+	}
+	if name == "all" || name == "enable-kubelet" {
 	}
 	if name == "all" || name == "set-sysctl" {
 	}
@@ -126,6 +150,22 @@ func runOffSwap(c workflow.RunData) error {
 func stopFirewall(c workflow.RunData) error {
 	if _, _, err := util.RunLinuxCommand(constant.StopFireWall); err != nil {
 		klog.Errorf("Run off stop firewall: %v", err)
+	}
+	return nil
+}
+
+// disable selinux
+func disableSelinux(c workflow.RunData) error {
+	if _, _, err := util.RunLinuxCommand(constant.DisableSelinux); err != nil {
+		klog.Errorf("Run off selinux error: %v", err)
+	}
+	return nil
+}
+
+// enable kubelet
+func enableKubelet(c workflow.RunData) error {
+	if _, _, err := util.RunLinuxCommand(constant.EnableKubelet); err != nil {
+		klog.Errorf("Run enable kubelet error: %v", err)
 	}
 	return nil
 }
