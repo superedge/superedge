@@ -60,7 +60,7 @@ go.clean:
 go.lint.verify: go.build.verify
 ifeq (,$(shell which golangci-lint))
 	@echo "===========> Installing golangci lint"
-	@GO111MODULE=off $(GO) get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	@curl -sSfL "https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh" | sh -s -- -b $(go env GOPATH)/bin v1.40.1
 endif
 
 .PHONY: go.lint
