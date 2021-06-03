@@ -115,11 +115,6 @@ func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
 }
 
 func DeleteTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, tunnelCloudPublicAddr string, certSANs []string) error {
-	if ok := CheckIfEdgeAppDeletable(client); !ok {
-		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
-		return nil
-	}
-
 	// GetTunnelCloudPort
 	tunnelCloudNodePort, err := GetTunnelCloudPort(client)
 	if err != nil {

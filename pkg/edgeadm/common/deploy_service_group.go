@@ -38,22 +38,17 @@ func DeployServiceGroup(clientSet kubernetes.Interface, manifestsDir string) err
 	if err != nil {
 		return err
 	}
-
-	userGridWrapper := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_WRAPPER)
-	gridWrapper = ReadYaml(userGridWrapper, manifests.ApplicationGridWrapperYaml)
 	if err := kubeclient.CreateResourceWithFile(clientSet, gridWrapper, option); err != nil {
 		return err
 	}
 	klog.V(4).Infof("Deploy %s success!", manifests.APP_APPLICATION_GRID_WRAPPER)
 
-	userGridController := filepath.Join(manifestsDir, manifests.APP_APPLICATION_GRID_CONTROLLER)
-	gridController = ReadYaml(userGridController, manifests.ApplicationGridControllerYaml)
 	if err := kubeclient.CreateResourceWithFile(clientSet, gridController, option); err != nil {
 		klog.Errorf("Deploy %s error: %s", manifests.APP_APPLICATION_GRID_CONTROLLER, err)
 		return err
 	}
 
-	klog.V(4).Infof("Create %s success!", manifests.APP_APPLICATION_GRID_CONTROLLER)
+	klog.V(4).Infof("Deploy %s success!", manifests.APP_APPLICATION_GRID_CONTROLLER)
 
 	return nil
 }
@@ -69,8 +64,7 @@ func DeleteServiceGroup(clientSet kubernetes.Interface, manifestsDir string) err
 	}
 	klog.V(4).Infof("Delete %s success!", manifests.APP_APPLICATION_GRID_WRAPPER)
 
-	if err := DeleteByYamlFile(clientSet, gridController); err != nil {
-		klog.Errorf("Delete %s error: %s", manifests.APP_APPLICATION_GRID_CONTROLLER, err)
+	if err := kubeclient.DeleteResourceWithFile(clientSet, gridController, option); err != nil {
 		return err
 	}
 
