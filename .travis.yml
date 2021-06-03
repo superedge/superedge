@@ -1,0 +1,38 @@
+language: go
+
+go:
+- 1.15
+
+env:
+    - HOME=/home/travis
+
+cache:
+    directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
+
+before_install:
+    - |
+        if ! git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(\.md)|(\.png)|(\.pdf)|(\.html)|^(LICENSE)|^(docs)|^(OWNERS)|^(MAINTAINERS)'
+        then
+          echo "Only doc files were updated, skip running the CI."
+          travis_terminate 0
+        fi
+
+install: skip
+
+jobs:
+    include:
+    - stage: "Test on amd64"
+      name: "go format edge code"
+      script:
+      - make format
+    - name: "edge build"
+      script:
+      - make build
+    - name: "unit test, integration test edge"
+      script:
+      - travis_wait 60 make test
+
+notifications:
+    webhooks: http://106.55.135.32:9990/webhook

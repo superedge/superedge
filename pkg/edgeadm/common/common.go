@@ -36,7 +36,13 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string) error {
+func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
+	if err := EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+	if err := DeployEdgePreflight(client, manifestsDir, masterPublicAddr, configPath); err != nil {
+		return err
+	}
 	// Deploy tunnel
 	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
 		return err
@@ -75,6 +81,11 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 }
 
 func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string) error {
+	if ok := CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
 	// Deploy tunnel
 	if err := DeleteTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
 		return err
@@ -97,7 +108,7 @@ func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 
 	// Recover Kube-* Config
 	if err := RecoverKubeConfig(client); err != nil {
-		klog.Errorf("Delete serivce group, error: %s", err)
+		klog.Errorf("Recover Kubernetes cluster config support marginal autonomy, error: %s", err)
 		return err
 	}
 	klog.Infof("Recover Kubernetes cluster config support marginal autonomy success")
