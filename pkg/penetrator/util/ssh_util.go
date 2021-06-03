@@ -15,8 +15,6 @@ package util
 
 import (
 	"fmt"
-	"github.com/pkg/sftp"
-	"github.com/superedge/superedge/pkg/penetrator/constants"
 	"github.com/superedge/superedge/pkg/penetrator/job/conf"
 	"golang.org/x/crypto/ssh"
 	"io"
@@ -51,30 +49,6 @@ func SShConnectNode(ip string, port int, secret conf.JobSecret) (*ssh.Client, er
 	}
 
 	return ssh.Dial("tcp", ip+":"+strconv.Itoa(port), cfg)
-}
-
-func FtpUploadFile(ftpClient *sftp.Client, path, file string) error {
-	read, err := os.Open(file)
-	if err != nil {
-		klog.Errorf("failed to read file, file: %s, error: %v", file, err)
-		return err
-	}
-	return FtpUpload(ftpClient, path, read)
-}
-
-func FtpUpload(ftpClient *sftp.Client, path string, read io.Reader) error {
-
-	file, err := ftpClient.Create(path)
-	if err != nil {
-		klog.Errorf("failed to create remote ftp file, file: %s, error: %v", path, err)
-		return err
-	}
-	_, err = io.Copy(file, io.LimitReader(read, constants.BufferSize))
-	if err != nil {
-		klog.Errorf("failed to write remote ftp file, file: %s, error: %v", path, err)
-		return err
-	}
-	return nil
 }
 
 func ScpFile(ip, file string, port int, secret conf.JobSecret) error {
