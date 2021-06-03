@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: edge
+  name: edge-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -53,13 +53,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: penetrator
-    namespace: edge
+    namespace: edge-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: penetrator
-  namespace: edge
+  namespace: edge-system
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -70,7 +70,7 @@ webhooks:
       caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwd1pXNWwKZEhKaGRHOXlNQjRYRFRJeE1EUXlPVEE1TVRZeE9Wb1hEVE14TURReU56QTVNVFl4T1Zvd0ZURVRNQkVHQTFVRQpBeE1LY0dWdVpYUnlZWFJ2Y2pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBSzV4CndoTDBrQW9BcitOaURMMjVLRjlGUXB0VHdXZGxTWGc4cUxxYVdlRnpFbFNjUmNSQ0lLMjUyNFg4NzQ2UFV1bVAKcW1zcHJuVzhVQTJBVk45a3dua1pDeEMwdGpJWVF0RmRsd1NMclVYdzJEWlVNSzNDbkpjb2JYcUxlcmpCZG83ZgpVOGJBbjJyOEFUZXpJSkdGM1gyenI3bkRFN2FnNDFCZTgzYTl4WVVEWXhBZ1Bjek55TEJtOVNxNnAwR2VRUzJ6Ck9Edm95V0grbVloN2U1MVgxejNKR29LWm5mN2lyWHpqTDN2eGNUQlVJc2w0cjQydEgwSHhqVkI0NXZOcjh3ODgKUjB4R1MzekpuNHMwUjBha2d4cDVOMWc2TWNWZlhBS1lqNDcrQ0M5Z3ZWZU9RR0R6WnE5cGNpLzF2RmRuQnFuMwpPalVKMEgrakRCb29rK3I2QXVFQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZOalpoNU9VTi9BZTlsRFBRVUxja00ySDlCUFBNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFCZHR5MGhiWDVwS1RMSjRqOXlkd3g1U3BDcG9CSXMyV2FtOFE5YWVPM0ZTNGtrNnpTdQppKzYxS1dKMXdvOWdsT3NGWkI4b3ZuRENWZ3JZcUU3M1M5Tlh6U0pWSXhISjl1ZnN6b04wcFRnMjVRbU56ZjErCnFDd2M2ZjZ4Zk5ZRXRPR2c5bnluOG5oTGxTcDJOR1VscUF1SkZ1dE1SMFlLakQ2YnJDSmhHY2huZkpTMjhuc2wKTko4cktOemtLaGg5czUyd29kRFVRRmcwai9vUy9DZDZnZTU1WG9nL3pEb05qZkVWNWVWTTZBU2QwYWxadkkwNQozanc1d0VRZEdBOHdmVjdIZXhlWVZIdGZzUDRlbHhQYXh6VUg4UDlvaUpMVkpTYWlaTlYzVWoraDhHaUc0YkVPCnpZMVl5M3NvcTk3K1NDbHN4SSs5c2YvRWc4aUxNVFB1WC9ESwotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
       service:
         name: penetrator
-        namespace: edge
+        namespace: edge-system
     failurePolicy: Fail
     name: nodetask.apps.superedge.io
     admissionReviewVersions: [ "v1" ]
@@ -94,14 +94,14 @@ data:
 kind: Secret
 metadata:
   name: penetrator-admission-control-server-certs
-  namespace: edge
+  namespace: edge-system
 type: Opaque
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: penetrator
-  namespace: edge
+  namespace: edge-system
 spec:
   replicas: 1
   revisionHistoryLimit: 10
@@ -134,7 +134,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-          image: ccr.ccs.tencentyun.com/superedge/penetrator-controller:v0.1.2
+          image: ccr.ccs.tencentyun.com/superedge/penetrator-controller:v0.2.5
           imagePullPolicy: IfNotPresent
           name: penetrator
           ports:
@@ -184,7 +184,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: penetrator
-  namespace: edge
+  namespace: edge-system
 spec:
   ports:
     - port: 443
@@ -199,7 +199,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: node-job-manifests
-  namespace: edge
+  namespace: edge-system
 data:
   direct-addnode-job.yaml: |
     apiVersion: batch/v1
@@ -224,8 +224,19 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.1.2
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.2.5
               imagePullPolicy: IfNotPresent
+              env:
+                - name: JOB_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.namespace
+                - name: JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.name
               name: job
               resources:
                 limits:
@@ -252,7 +263,7 @@ data:
                 defaultMode: 420
                 name: {{.JobConfig}}
           nodeSelector:
-            node-role.kubernetes.io/master: ""
+            kubernetes.io/hostname: {{.NodeName}}
           tolerations:
             - key: "node-role.kubernetes.io/master"
               operator: "Exists"
@@ -291,8 +302,19 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.1.2
+              image: ccr.ccs.tencentyun.com/superedge/penetrator-job:v0.2.5
               imagePullPolicy: IfNotPresent
+              env:
+                - name: JOB_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.namespace
+                - name: JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.name
               name: job
               resources:
                 limits:

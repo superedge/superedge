@@ -50,7 +50,7 @@ func AddNodes(nodes int) {
 
 	// Used to report event events
 	nodejob := &batchv1.Job{}
-	nodejob.Namespace = constants.NameSpaceEdge
+	nodejob.Namespace = os.Getenv(constants.JobNameSpace)
 	nodejob.Name = os.Getenv(constants.JobName)
 
 	//Get the kubeclient of the cluster
@@ -88,6 +88,7 @@ func AddNodes(nodes int) {
 		go func() {
 			err := addNode(node, ip, version.GitVersion, advertiseAddress, addch, errch, kubeclient)
 			if err != nil {
+				klog.Error(err.Error())
 				userRecord.Event(nodejob, v1.EventTypeWarning, fmt.Sprintf("Node:%s installation failed", node), err.Error())
 			}
 		}()
@@ -122,8 +123,7 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 	node, err := kubeclient.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			klog.Errorf("failed to get node:%s, error: %v", nodeName, err)
-			return err
+			return fmt.Errorf("failed to get node:%s, error: %v", nodeName, err)
 		}
 	} else {
 		if node.Labels[constants.NodeLabel] == conf.JobConf.NodeLabel {
@@ -132,8 +132,7 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 		err = kubeclient.CoreV1().Nodes().Delete(context.Background(), node.Name, metav1.DeleteOptions{})
 		if err != nil {
 			errNodech <- nodeIp
-			klog.Errorf("failed to delete node:%s, error: %v", nodeName, err)
-			return err
+			return fmt.Errorf("failed to delete node:%s, error: %v", nodeName, err)
 		}
 
 	}
@@ -144,33 +143,28 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 
 	client, err := penetratorutil.SShConnectNode(nodeIp, conf.JobConf.SSHPort, conf.JobConf.Secret)
 	if err != nil {
-		klog.Errorf("failed to get ssh client, error: %v", err)
-		return err
+		return fmt.Errorf("failed to get ssh client, error: %v", err)
 	}
 	defer client.Close()
 
 	archSession, err := client.NewSession()
 	if err != nil {
-		klog.Errorf("failed to get ssh client session, error: %v", err)
-		return err
+		return fmt.Errorf("failed to get ssh client session, error: %v", err)
 	}
 
 	arch, err := archSession.CombinedOutput("uname -m")
 	if err != nil {
-		klog.Errorf("failed to get arch, error: %v", err)
-		return err
+		return fmt.Errorf("failed to get arch, error: %v", err)
 	}
 
 	simpleArch := getArch(string(arch))
 	if simpleArch == "" {
-		klog.Errorf("Unsupported arch %s", string(arch))
-		return err
+		return fmt.Errorf("Unsupported arch %s", string(arch))
 	}
 
 	err = penetratorutil.ScpFile(nodeIp, fmt.Sprintf(constants.InstallPackage+"%s-%s.tar.gz", simpleArch, version), conf.JobConf.SSHPort, conf.JobConf.Secret)
 	if err != nil {
-		klog.Errorf("Failed to copy installation package, error: %v", err)
-		return err
+		return fmt.Errorf("Failed to copy installation package, error: %v", err)
 	}
 
 	//Get the script for adding nodes
@@ -186,31 +180,26 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 
 	scriptTmep, err := util.ReadFile(constants.AddNodeScript)
 	if err != nil {
-		klog.Errorf("Failed to read file:%s, error: %v", constants.AddNodeScript, err)
-		return err
+		return fmt.Errorf("Failed to read file:%s, error: %v", constants.AddNodeScript, err)
 	}
 	script, err := kubeutil.CompleteTemplate(string(scriptTmep), option)
 	if err != nil {
-		klog.Errorf("Failed to get addnode.sh, error: %v", err)
-		return err
+		return fmt.Errorf("Failed to get addnode.sh, error: %v", err)
 	}
 
 	scriptSession, err := client.NewSession()
 	if err != nil {
-		klog.Errorf("Failed to get ssh client session, error: %v", err)
-		return err
+		return fmt.Errorf("Failed to get ssh client session, error: %v", err)
 	}
 
 	stdout, err := scriptSession.CombinedOutput(script)
 	if err != nil {
-		klog.Errorf("Failed to add node, info:%s, nodeName: %s error: %v", string(stdout), nodeName, err)
-		return err
+		return fmt.Errorf("Failed to add node, error: %v, script: %s, stdout: %s", err, script, string(stdout))
 	}
 
 	err = kubeutil.AddNodeLabel(kubeclient, nodeName, map[string]string{constants.NodeLabel: conf.JobConf.NodeLabel})
 	if err != nil {
-		klog.Errorf("Failed to label node %s, error: %v", nodeName, err)
-		return err
+		return fmt.Errorf("Failed to label node %s, error: %v", nodeName, err)
 	}
 
 	klog.Infof("Add node: %s successfully", nodeName)
@@ -238,7 +227,7 @@ func getAdvertiseAddress() string {
 		return conf.JobConf.IntranetAddress
 	}
 	for _, v := range conf.JobConf.ExternalAddress {
-		tconn, err := net.Dial("tcp", conf.JobConf.IntranetAddress+":"+port)
+		tconn, err := net.Dial("tcp", v+":"+port)
 		if err == nil {
 			tconn.Close()
 			return v

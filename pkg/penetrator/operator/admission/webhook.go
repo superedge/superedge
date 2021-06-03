@@ -274,7 +274,7 @@ func (handler *mutatingHandler) getCreatePatch(nt *v1beta1.NodeTask) ([]Patch, e
 			patches = append(patches,
 				Patch{
 					Op:    "add",
-					Path:  "/spec/nameIps",
+					Path:  "/spec/nodeNamesOverride",
 					Value: nameIps,
 				},
 			)

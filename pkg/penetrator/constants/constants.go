@@ -29,6 +29,7 @@ const (
 const (
 	JobConf        = "job.toml"
 	JobName        = "JOB_NAME"
+	JobNameSpace   = "JOB_NAMESPACE"
 	BufferSize     = 1e9
 	InstallPackage = "/etc/superedge/penetrator/job/install/edgeadm-"
 	AddNodeScript  = "/etc/superedge/penetrator/job/script/addnode.sh"
@@ -39,7 +40,7 @@ const (
 const (
 	EnvOperatorNamespace = "OPERATOR_NAMESPACE"
 	EnvOperatorPodName   = "OPERATOR_POD_NAME"
-	NameSpaceEdge        = "edge"
+	NameSpaceEdge        = "edge-system"
 )
 
 //yaml path

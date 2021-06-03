@@ -30,8 +30,9 @@ var (
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: v1beta1.SchemeGroupVersion.Group,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Kind:   "NodeTask",
-				Plural: "nodetasks",
+				Kind:       "NodeTask",
+				Plural:     "nodetasks",
+				ShortNames: []string{"nt"},
 			},
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{

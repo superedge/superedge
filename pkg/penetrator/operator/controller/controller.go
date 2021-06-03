@@ -494,6 +494,7 @@ func getClusterStatus(ctx *context.NodeTaskContext, kubeclient kubernetes.Interf
 		klog.Errorf("Failed to decode cluster configuration data")
 		return apiep, apiserver, err
 	}
+	apiserver = clusterConfig.APIServer
 	return apiep, apiserver, nil
 }
 
