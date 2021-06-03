@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -334,6 +333,7 @@ func (c *changeAction) getCertAndKey() (*x509.Certificate, *rsa.PrivateKey, erro
 }
 
 func (c *changeAction) updateKubeProxyKubeconfig() error {
+	// handle kube-proxy-edge configmap creation logic
 	kubeClient := c.clientSet
 	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps(
 		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
@@ -341,7 +341,11 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 		return err
 	}
 
-	proxyConfig, ok := kubeProxyCM.Data[constant.CMKubeConfig]
+	edgeKubeProxyCM := kubeProxyCM.DeepCopy()
+	edgeKubeProxyCM.Name = constant.KubeProxyEdge
+	edgeKubeProxyCM.ResourceVersion = ""
+
+	proxyConfig, ok := edgeKubeProxyCM.Data[constant.CMKubeConfig]
 	if !ok {
 		return errors.New("Get kube-proxy kubeconfig.conf nil\n")
 	}
@@ -359,26 +363,35 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	if err != nil {
 		return err
 	}
-	kubeProxyCM.Data[constant.CMKubeConfig] = string(content)
+	edgeKubeProxyCM.Data[constant.CMKubeConfig] = string(content)
 
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+		constant.NamespcaeKubeSystem).Create(context.TODO(), edgeKubeProxyCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
+	// handle kube-proxy-edge daemonset creation logic
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespcaeKubeSystem).Get(context.TODO(), constant.KubeProxy, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	if len(daemonSets.Spec.Template.Annotations) == 0 {
-		daemonSets.Spec.Template.Annotations = make(map[string]string)
+	edgeKubeProxyDS := daemonSets.DeepCopy()
+	edgeKubeProxyDS.Name = constant.KubeProxyEdge
+	edgeKubeProxyDS.ResourceVersion = ""
+	for _, v := range edgeKubeProxyDS.Spec.Template.Spec.Volumes {
+		if v.Name == constant.KubeProxy {
+			v.ConfigMap.Name = constant.KubeProxyEdge
+		}
 	}
-	daemonSets.Spec.Template.Annotations[constant.UpdateKubeProxyTime] = strconv.FormatInt(time.Now().Unix(), 10)
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		constant.NamespcaeKubeSystem).Create(context.TODO(), edgeKubeProxyDS, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	if err := common.PatchKubeProxy(kubeClient); err != nil {
 		return err
 	}
 
