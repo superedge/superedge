@@ -35,7 +35,7 @@ func NewInstallEdgeAppsCMD() *cobra.Command {
 
 	cmd.Flags().StringVar(&action.caKeyFile, "ca.key", constant.KubeadmKeyPath,
 		"The root certificate key file for cluster.")
-	cmd.Flags().StringVar(&action.masterPublicAddr, "masterPublicAddr", "",
+	cmd.Flags().StringVar(&action.masterPublicAddr, "master-public-addr", "",
 		"The public IP for control plane")
 	cmd.Flags().StringArrayVar(&action.certSANs, "certSANs", []string{""},
 		"The cert SAN")
@@ -68,7 +68,7 @@ func NewDetachEdgeAppsCMD() *cobra.Command {
 
 	cmd.Flags().StringVar(&action.caKeyFile, "ca.key", constant.KubeadmKeyPath,
 		"The root certificate key file for cluster. (default \"/etc/kubernetes/pki/ca.key\")")
-	cmd.Flags().StringVar(&action.masterPublicAddr, "masterPublicAddr", "",
+	cmd.Flags().StringVar(&action.masterPublicAddr, "master-public-addr", "",
 		"The public IP for control plane")
 	cmd.Flags().StringArrayVar(&action.certSANs, "certSANs", []string{""},
 		"The cert SAN")
@@ -78,7 +78,7 @@ func NewDetachEdgeAppsCMD() *cobra.Command {
 
 func (a *addonAction) runAddon() error {
 	klog.Info("Start install addon apps to your original cluster")
-	return common.DeployEdgeAPPS(a.clientSet, a.manifestDir, a.caCertFile, a.caKeyFile, a.masterPublicAddr, a.certSANs)
+	return common.DeployEdgeAPPS(a.clientSet, a.manifestDir, a.caCertFile, a.caKeyFile, a.masterPublicAddr, a.certSANs, a.kubeConfig)
 }
 
 func (a *addonAction) runDetach() error {

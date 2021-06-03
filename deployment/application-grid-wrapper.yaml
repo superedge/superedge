@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: application-grid-wrapper
-  namespace: kube-system
+  namespace: edge-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -54,13 +54,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: application-grid-wrapper
-    namespace: kube-system
+    namespace: edge-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: application-grid-wrapper
-  namespace: kube-system
+  namespace: edge-system
 data:
   kubeconfig.conf: |
     apiVersion: v1
@@ -91,7 +91,7 @@ metadata:
     k8s-app: application-grid-wrapper
     addonmanager.kubernetes.io/mode: Reconcile
   name: application-grid-wrapper
-  namespace: kube-system
+  namespace: edge-system
 spec:
   selector:
     matchLabels:

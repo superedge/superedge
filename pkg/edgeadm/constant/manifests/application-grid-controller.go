@@ -23,7 +23,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: application-grid-controller
-  namespace: kube-system
+  namespace: {{.Namespace}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -73,14 +73,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: application-grid-controller
-    namespace: kube-system
+    namespace: {{.Namespace}}
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: application-grid-controller
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   replicas: 1
   selector:

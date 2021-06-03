@@ -16,7 +16,7 @@ limitations under the License.
 
 package manifests
 
-const APP_lITE_APISERVER = "lite-apiserver.yaml"
+const APP_LITE_APISERVER = "lite-apiserver.yaml"
 
 const LiteApiServerYaml = `
 apiVersion: v1
@@ -25,7 +25,7 @@ metadata:
   labels:
     k8s-app: lite-apiserver
   name: lite-apiserver
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   containers:
     - command:

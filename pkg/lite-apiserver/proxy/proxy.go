@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
+	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
 	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
 )
 
@@ -91,6 +93,24 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 	if resp.StatusCode != http.StatusOK {
 		klog.V(4).Infof("resp status is %d, skip cache response", resp.StatusCode)
 		return nil
+	}
+
+	// validate watch Content-Type
+	info, ok := apirequest.RequestInfoFrom(resp.Request.Context())
+	if !ok {
+		return nil
+	}
+	if info.Verb == constant.VerbWatch {
+		contentType := resp.Header.Get(constant.ContentType)
+		mediaType, _, err := mime.ParseMediaType(contentType)
+		if err != nil {
+			klog.Warningf("Content-Type %s is not recognized: %v", contentType, err)
+			return nil
+		}
+		klog.V(8).Infof("mediaType is %s", mediaType)
+		if mediaType != "application/json" && mediaType != "application/yaml" {
+			return nil
+		}
 	}
 
 	// cache response data

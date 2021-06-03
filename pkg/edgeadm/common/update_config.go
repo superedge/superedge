@@ -87,12 +87,12 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	kubeProxyCM.Data[constant.CMKubeConfig] = string(content)
 
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
+		constant.NamespaceKubeSystem).Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 	}
 
 	if _, err := kubeClient.AppsV1().DaemonSets(
-		constant.NamespcaeKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
@@ -124,9 +124,10 @@ func UpdateClusterInfoKubeconfig(kubeClient kubernetes.Interface, certSANs []str
 	// backup original ConfigMap
 	oldClusterInfoCM := clusterInfoCM.DeepCopy()
 	oldClusterInfoCM.Name = constant.ConfigMapClusterInfoNoEdge
+	oldClusterInfoCM.Namespace = constant.NamespaceKubeSystem
 	oldClusterInfoCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -226,12 +227,12 @@ func RecoverKubeProxy(clientSet kubernetes.Interface) error {
 
 func RecoverKubeConfig(client *kubernetes.Clientset) error {
 	if err := RecoverKubeProxyKubeconfig(client); err != nil {
-		klog.Errorf("Delete serivce group, error: %s", err)
+		klog.Errorf("Recover kube-proxy kubeconfig, error: %s", err)
 		return err
 	}
 
 	if err := RecoverKubernetesEndpoint(client); err != nil {
-		klog.Errorf("Delete serivce group, error: %s", err)
+		klog.Errorf("Recover kube-proxy endpoint, error: %s", err)
 		return err
 	}
 
@@ -304,14 +305,14 @@ func RecoverClusterInfoKubeconfig(kubeClient kubernetes.Interface, certSANs []st
 
 	// recover backup ConfigMap
 	if err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Delete(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.DeleteOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Delete(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	oldClusterInfoCM := clusterInfoCM.DeepCopy()
 	oldClusterInfoCM.Name = bootstrapapi.ConfigMapClusterInfo
 	oldClusterInfoCM.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ConfigMaps(
-		constant.NamespcaeKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
+		constant.NamespaceKubeSystem).Create(context.TODO(), oldClusterInfoCM, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

@@ -22,7 +22,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: helper
-  namespace: kube-system
+  namespace: {{.Namespace}}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -36,7 +36,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: helper
-    namespace: kube-system
+    namespace: {{.Namespace}}
 `
 
 const APP_HELPER_JOB = "helper-job.yaml"
@@ -51,7 +51,7 @@ metadata:
     app: helper
     k8s-app: helper-{{.NodeName}}
     superedge.io.node: {{.NodeRole}}-helper
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   completions: 1
   parallelism: 1

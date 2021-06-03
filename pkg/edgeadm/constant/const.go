@@ -34,7 +34,8 @@ const (
 const (
 	NamespaceDefault    = "default"
 	NamespaceEdgeSystem = "edge-system"
-	NamespcaeKubeSystem = "kube-system"
+	NamespaceKubeSystem = "kube-system"
+	NamespaceKubePublic = "kube-public"
 )
 
 const (
@@ -97,7 +98,7 @@ const (
 
 const (
 	LiteAPIServerStatusCmd  = "systemctl status lite-apiserver.service"
-	LiteAPIServerRestartCmd = "systemctl daemon-reload && systemctl restart lite-apiserver.service"
+	LiteAPIServerRestartCmd = "systemctl daemon-reload && systemctl restart lite-apiserver.service && systemctl enable lite-apiserver.service"
 )
 
 const (
@@ -107,3 +108,5 @@ const (
 const ApplicationGridWrapperServiceAddr = "http://127.0.0.1:51006"
 
 const LiteAPIServerTLSCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-current.pem","cert":"/var/lib/kubelet/pki/kubelet-client-current.pem"}]`
+
+const ImageRepository = "superedge.tencentcloudcr.com/superedge"
