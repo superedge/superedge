@@ -18,7 +18,7 @@ package app
 
 import (
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/helper-job/deploy"
 	"github.com/superedge/superedge/pkg/util"

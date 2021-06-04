@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func Test_Send_Msg(t *testing.T) {

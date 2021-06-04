@@ -28,7 +28,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/channelz/grpc_channelz_v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 	"testing"
 	"time"

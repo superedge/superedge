@@ -19,7 +19,7 @@ package stream
 import (
 	ctx "context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func Send(client proto.StreamClient, clictx ctx.Context) {

@@ -17,7 +17,7 @@ limitations under the License.
 package app
 
 import (
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/server"

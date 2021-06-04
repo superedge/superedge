@@ -24,7 +24,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmng"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/tcp/tcpmsg"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 )
 

@@ -18,7 +18,7 @@ package model
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 	"os/signal"
 	"syscall"

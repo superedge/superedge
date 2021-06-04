@@ -23,7 +23,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
