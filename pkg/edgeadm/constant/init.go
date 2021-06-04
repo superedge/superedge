@@ -52,4 +52,6 @@ spec:
   dnsPolicy: None
 `
 
-const KubeProxyPatchJson string = `{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"%s","operator":"DoesNotExist","values":["%s"]}]}]}}}}}`
+const KubeProxyPatchJson string = `{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"%s","operator":"%s"}]}]}}}}}}}`
+
+const KubeProxyRecoverJson string = `[{"op": "remove", "path": "/spec/template/spec/affinity"}]`
