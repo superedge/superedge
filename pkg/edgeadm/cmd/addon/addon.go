@@ -36,6 +36,7 @@ type addonAction struct {
 	caCertFile       string
 	masterPublicAddr string
 	certSANs         []string
+	kubeConfig       string
 }
 
 func NewAddonCMD() *cobra.Command {
@@ -72,6 +73,6 @@ func (a *addonAction) complete() error {
 	if a.clientSet == nil {
 		return fmt.Errorf("Please set kubeconfig value!\n")
 	}
-
+	a.kubeConfig = configPath
 	return nil
 }

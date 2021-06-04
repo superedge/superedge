@@ -33,11 +33,7 @@ import (
 )
 
 func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string) error {
-	if err := kubeclient.CreateOrUpdateNamespace(clientSet, &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constant.NamespaceEdgeSystem,
-		},
-	}); err != nil {
+	if err := EnsureEdgeSystemNamespace(clientSet); err != nil {
 		return err
 	}
 
@@ -106,7 +102,14 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 	if err != nil {
 		return err
 	}
-	userLiteAPIServer := filepath.Join(manifestsDir, manifests.APP_lITE_APISERVER)
+	userLiteAPIServer := filepath.Join(manifestsDir, manifests.APP_LITE_APISERVER)
+	yamlLiteAPISerer, err := kubeclient.ParseString(ReadYaml(userLiteAPIServer, manifests.LiteApiServerYaml),
+		map[string]interface{}{
+			"Namespace": constant.NamespaceEdgeSystem,
+		})
+	if err != nil {
+		return err
+	}
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.EdgeCertCM,
@@ -117,7 +120,7 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 			constant.LiteAPIServerCrt:     string(liteApiServerCrt),
 			constant.LiteAPIServerKey:     string(liteApiServerKey),
 			constant.LiteAPIServerTLSJSON: constant.LiteAPIServerTLSCfg,
-			manifests.APP_lITE_APISERVER:  ReadYaml(userLiteAPIServer, manifests.LiteApiServerYaml),
+			manifests.APP_LITE_APISERVER:  string(yamlLiteAPISerer),
 		},
 	}
 

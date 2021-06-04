@@ -26,6 +26,10 @@ const SwapOff = `swapoff -a && sed -i "s/^[^#]*swap/#&/" /etc/fstab`
 
 const StopFireWall = `systemctl stop firewalld && systemctl disable firewalld`
 
+const DisableSelinux = `sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux /etc/selinux/config && setenforce 0 || true`
+
+const EnableKubelet = "systemctl enable kubelet"
+
 const SysConf = `
 kernel.sem = 250 32000 32 1024
 net.core.netdev_max_backlog = 20000

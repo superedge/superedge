@@ -72,13 +72,13 @@ func runFlannelAddon(c workflow.RunData) error {
 	}
 	klog.V(4).Infof("pod network cidr: %s", edgeadmConf.TunnelCoreDNSClusterIP)
 
-	userManifests := filepath.Join(edgeadmConf.ManifestsDir, manifests.KUBE_FlANNEl)
+	userManifests := filepath.Join(edgeadmConf.ManifestsDir, manifests.KUBE_FLANNEL)
 	flannelYaml := common.ReadYaml(userManifests, manifests.KubeFlannelYaml)
 	err = kubeclient.CreateResourceWithFile(client, flannelYaml, option)
 	if err != nil {
 		return err
 	}
 
-	klog.Infof("Deploy %s success!", manifests.KUBE_FlANNEl)
+	klog.Infof("Deploy %s success!", manifests.KUBE_FLANNEL)
 	return err
 }

@@ -134,9 +134,9 @@ func NewCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
 
 	options.AddConfigFlag(createCmd.Flags(), &cfgPath)
 	createCmd.Flags().BoolVar(&printJoinCommand,
-		"print-join-command", false, "Instead of printing only the token, print the full 'kubeadm join' flag needed to join the cluster using the token.")
+		"print-join-command", false, "Instead of printing only the token, print the full 'edgeadm join' flag needed to join the cluster using the token.")
 	createCmd.Flags().StringVar(&certificateKey,
-		options.CertificateKey, "", "When used together with '--print-join-command', print the full 'kubeadm join' flag needed to join the cluster as a control-plane. To create a new certificate key you must use 'kubeadm init phase upload-certs --upload-certs'.")
+		options.CertificateKey, "", "When used together with '--print-join-command', print the full 'edgeadm join' flag needed to join the cluster as a control-plane. To create a new certificate key you must use 'kubeadm init phase upload-certs --upload-certs'.")
 	bto.AddTTLFlagWithName(createCmd.Flags(), "ttl")
 	bto.AddUsagesFlag(createCmd.Flags())
 	bto.AddGroupsFlag(createCmd.Flags())
@@ -250,7 +250,7 @@ func RunCreateToken(out io.Writer, client clientset.Interface, cfgPath string, i
 		return err
 	}
 
-	// if --print-join-command was specified, print a machine-readable full `kubeadm join` command
+	// if --print-join-command was specified, print a machine-readable full `edgeadm join` command
 	// otherwise, just print the token
 	if printJoinCommand {
 		skipTokenPrint := false
@@ -262,6 +262,7 @@ func RunCreateToken(out io.Writer, client clientset.Interface, cfgPath string, i
 			}
 			joinCommand = strings.ReplaceAll(joinCommand, "\\\n", "")
 			joinCommand = strings.ReplaceAll(joinCommand, "\t", "")
+			joinCommand = strings.ReplaceAll(joinCommand, "kubeadm", "edgeadm")
 			fmt.Fprintln(out, joinCommand)
 		} else {
 			joinCommand, err := cmdutil.GetJoinWorkerCommand(kubeConfigFile, internalcfg.BootstrapTokens[0].Token.String(), skipTokenPrint)
@@ -270,6 +271,7 @@ func RunCreateToken(out io.Writer, client clientset.Interface, cfgPath string, i
 			}
 			joinCommand = strings.ReplaceAll(joinCommand, "\\\n", "")
 			joinCommand = strings.ReplaceAll(joinCommand, "\t", "")
+			joinCommand = strings.ReplaceAll(joinCommand, "kubeadm", "edgeadm")
 			fmt.Fprintln(out, joinCommand)
 		}
 	} else {

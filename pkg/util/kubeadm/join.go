@@ -20,6 +20,7 @@ package kubeadm
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"text/template"
@@ -465,6 +466,11 @@ func newJoinData(cmd *cobra.Command, args []string, opt *joinOptions, out io.Wri
 	}
 	if opt.externalcfg.NodeRegistration.CRISocket != "" {
 		cfg.NodeRegistration.CRISocket = opt.externalcfg.NodeRegistration.CRISocket
+	}
+
+	// check node name parameter, the IPv4 format is not supported.
+	if ret := net.ParseIP(cfg.NodeRegistration.Name); ret != nil {
+		return nil, errors.New("invalid node name, the IPv4 format is not supported")
 	}
 
 	if cfg.ControlPlane != nil {

@@ -5,7 +5,7 @@ metadata:
   labels:
     k8s-app: lite-apiserver
   name: lite-apiserver
-  namespace: kube-system
+  namespace: edge-system
 spec:
   containers:
     - command:

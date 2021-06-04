@@ -39,19 +39,19 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: tunnel-edge
-    namespace: kube-system
+    namespace: {{.Namespace}}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tunnel-edge
-  namespace: kube-system
+  namespace: {{.Namespace}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-edge-conf
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   mode.toml: |
     [mode]
@@ -75,14 +75,14 @@ data:
 kind: Secret
 metadata:
   name: tunnel-edge-cert
-  namespace: kube-system
+  namespace: {{.Namespace}}
 type: Opaque
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: tunnel-edge
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   selector:
     matchLabels:
