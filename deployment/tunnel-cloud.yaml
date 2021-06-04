@@ -98,7 +98,7 @@ spec:
       targetPort: 9000
     - name: ssh
       port: 22
-      protocol: 22
+      protocol: TCP
       targetPort: 22
   selector:
     app: tunnel-cloud
