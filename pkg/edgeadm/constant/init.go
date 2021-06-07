@@ -24,7 +24,9 @@ const (
 	UnZipContainerDstPath = InstallDir + "container/"
 	ZipContainerPath      = UnZipContainerDstPath + "docker-*.tgz"
 	DockerInstallShell    = UnZipContainerDstPath + "docker/install"
-	InitNodeShell         = UnZipContainerDstPath + "init-node.sh"
+
+	ScriptShellPath = InstallDir + "script/"
+	InitNodeShell   = ScriptShellPath + "init-node.sh"
 )
 
 const (
