@@ -223,8 +223,8 @@ func UpdateKubernetesEndpoint(clientSet kubernetes.Interface) error {
 }
 
 func PatchKubeProxy(clientSet kubernetes.Interface) error {
-	patchAntiAffinity := fmt.Sprintf(constant.KubeProxyPatchJson, constant.EdgeChangeLabelKey, constant.EdgeNodeAntiAffinityAction)
-	patchAffinity := fmt.Sprintf(constant.KubeProxyPatchJson, constant.EdgeChangeLabelKey, constant.EdgeNodeAffinityAction)
+	patchAntiAffinity := fmt.Sprintf(constant.KubeProxyPatchJson, constant.EdgeNodeLabelKey, constant.EdgeNodeAntiAffinityAction)
+	patchAffinity := fmt.Sprintf(constant.KubeProxyPatchJson, constant.EdgeNodeLabelKey, constant.EdgeNodeAffinityAction)
 
 	if _, err := clientSet.AppsV1().DaemonSets(constant.NamespaceKubeSystem).Patch(
 		context.TODO(), constant.KubeProxy, types.StrategicMergePatchType, []byte(patchAntiAffinity), metav1.PatchOptions{}); err != nil {
@@ -263,16 +263,18 @@ func RecoverKubeConfig(client *kubernetes.Clientset) error {
 }
 
 func RecoverKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
+	if err := kubeClient.AppsV1().DaemonSets(
+		constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
 	if err := kubeClient.CoreV1().ConfigMaps(
 		constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	if err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-
-	if err := kubeClient.CoreV1().ServiceAccounts(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil {
+	if err := kubeClient.CoreV1().ServiceAccounts(
+		constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
