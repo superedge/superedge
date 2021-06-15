@@ -36,7 +36,13 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string) error {
+func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
+	if err := EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+	if err := DeployEdgePreflight(client, manifestsDir, masterPublicAddr, configPath); err != nil {
+		return err
+	}
 	// Deploy tunnel
 	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
 		return err
@@ -74,12 +80,55 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	return nil
 }
 
-func ReadYaml(intputPath, defaults string) string {
+func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string) error {
+	if ok := CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
+	// Deploy tunnel
+	if err := DeleteTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.APP_TUNNEL_EDGE)
+
+	// Delete edge-health
+	if err := DeleteEdgeHealth(client, manifestsDir); err != nil {
+		klog.Errorf("Delete edge health, error: %s", err)
+		return err
+	}
+	klog.Infof("Delete edge-health success!")
+
+	// Delete service-group
+	if err := DeleteServiceGroup(client, manifestsDir); err != nil {
+		klog.Errorf("Delete serivce group, error: %s", err)
+		return err
+	}
+	klog.Infof("Delete service-group success!")
+
+	// Recover Kube-* Config
+	if err := RecoverKubeConfig(client); err != nil {
+		klog.Errorf("Recover Kubernetes cluster config support marginal autonomy, error: %s", err)
+		return err
+	}
+	klog.Infof("Recover Kubernetes cluster config support marginal autonomy success")
+
+	// Delete lite-api-server Cert
+	if err := DeleteLiteApiServerCert(client); err != nil {
+		klog.Errorf("Recover lite-apiserver, error: %s", err)
+		return err
+	}
+	klog.Infof("Recover lite-apiserver configMap success")
+
+	return nil
+}
+
+func ReadYaml(inputPath, defaults string) string {
 	var yaml string = defaults
-	if util.IsFileExist(intputPath) {
-		yamlData, err := util.ReadFile(intputPath)
+	if util.IsFileExist(inputPath) {
+		yamlData, err := util.ReadFile(inputPath)
 		if err != nil {
-			klog.Errorf("Read yaml file: %s, error: %v", intputPath, err)
+			klog.Errorf("Read yaml file: %s, error: %v", inputPath, err)
 		}
 		yaml = string(yamlData)
 	}
@@ -149,7 +198,10 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 		kubeclient.DeleteResourceWithFile(clientSet, manifests.HelperJobRbacYaml, "")
 		time.Sleep(time.Second)
 
-		if err := kubeclient.CreateResourceWithFile(clientSet, manifests.HelperJobRbacYaml, ""); err != nil {
+		option := map[string]interface{}{
+			"Namespace": constant.NamespaceEdgeSystem,
+		}
+		if err := kubeclient.CreateResourceWithFile(clientSet, manifests.HelperJobRbacYaml, option); err != nil {
 			return err
 		}
 	}
@@ -166,6 +218,7 @@ func DeployHelperJob(clientSet *kubernetes.Clientset, helperYaml, action, role s
 
 	for _, node := range nodes.Items {
 		option := map[string]interface{}{
+			"Namespace":  constant.NamespaceEdgeSystem,
 			"NodeRole":   role,
 			"Action":     action,
 			"NodeName":   node.Name,
@@ -224,12 +277,12 @@ func ClearJob(clientSet *kubernetes.Clientset, label string) error {
 	jobOpts := metav1.ListOptions{
 		LabelSelector: label,
 	}
-	jods, err := clientSet.BatchV1().Jobs("kube-system").List(context.TODO(), jobOpts)
+	jods, err := clientSet.BatchV1().Jobs(constant.NamespaceEdgeSystem).List(context.TODO(), jobOpts)
 	if err != nil {
 		return err
 	}
 	for _, job := range jods.Items {
-		clientSet.BatchV1().Jobs("kube-system").Delete(context.TODO(), job.Name, metav1.DeleteOptions{
+		clientSet.BatchV1().Jobs(constant.NamespaceEdgeSystem).Delete(context.TODO(), job.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: &gracePeriodSeconds,
 		})
 	}
@@ -237,17 +290,45 @@ func ClearJob(clientSet *kubernetes.Clientset, label string) error {
 	podOpts := metav1.ListOptions{
 		LabelSelector: label,
 	}
-	pods, err := clientSet.CoreV1().Pods("kube-system").List(context.TODO(), podOpts)
+	pods, err := clientSet.CoreV1().Pods(constant.NamespaceEdgeSystem).List(context.TODO(), podOpts)
 	if err != nil {
 		return err
 	}
 	for _, pod := range pods.Items {
-		clientSet.CoreV1().Pods("kube-system").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{
+		clientSet.CoreV1().Pods(constant.NamespaceEdgeSystem).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: &gracePeriodSeconds,
 		})
 	}
 
 	time.Sleep(time.Duration(3) * time.Second)
 
+	return nil
+}
+
+func CheckIfEdgeAppDeletable(clientSet kubernetes.Interface) bool {
+	nodeLabel, _ := labels.NewRequirement(constant.EdgeNodeLabelKey, selection.Equals, []string{constant.EdgeNodeLabelValueEnable})
+	var labelsNode = labels.NewSelector()
+	labelsNode = labelsNode.Add(*nodeLabel)
+	labelSelector := metav1.ListOptions{LabelSelector: labelsNode.String()}
+	nodes, err := clientSet.CoreV1().Nodes().List(context.TODO(), labelSelector)
+	if err != nil {
+		klog.Error(err)
+		return false
+	}
+
+	if 0 == len(nodes.Items) {
+		return true
+	}
+	return false
+}
+
+func EnsureEdgeSystemNamespace(client kubernetes.Interface) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.NamespaceEdgeSystem,
+		},
+	}); err != nil {
+		return err
+	}
 	return nil
 }

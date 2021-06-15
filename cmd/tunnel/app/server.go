@@ -28,7 +28,7 @@ import (
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func NewTunnelCommand() *cobra.Command {

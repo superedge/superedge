@@ -22,7 +22,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmng"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmsg"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type Https struct {

@@ -49,7 +49,7 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 		Phases: []workflow.Phase{
 			{
 				Name:           "all",
-				Short:          "Install all the edge-apps addons",
+				Short:          "Install all the edge-apps addons to edge Kubernetes cluster",
 				InheritFlags:   getAddonPhaseFlags("all"),
 				RunAllSiblings: true,
 			},
@@ -78,7 +78,7 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 				RunIf: func(data workflow.RunData) (bool, error) {
 					return config.IsEnableEdge, nil
 				},
-				Run: runSerivceGroupAddon,
+				Run: runServiceGroupAddon,
 			},
 			{
 				Name:         "lite-apiserver",
@@ -141,8 +141,14 @@ func runTunnelAddon(c workflow.RunData) error {
 	if err != nil {
 		return err
 	}
+
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
 		"TunnelCoreDNSClusterIP": edgeadmConf.TunnelCoreDNSClusterIP,
 	}
 	klog.V(4).Infof("TunnelCoreDNSClusterIP: %s", edgeadmConf.TunnelCoreDNSClusterIP)
@@ -194,6 +200,10 @@ func runEdgeHealthAddon(c workflow.RunData) error {
 		return err
 	}
 
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
 	if err := common.DeployEdgeHealth(client, edgeadmConf.ManifestsDir); err != nil {
 		klog.Errorf("Deploy edge health, error: %s", err)
 		return err
@@ -202,9 +212,13 @@ func runEdgeHealthAddon(c workflow.RunData) error {
 	return err
 }
 
-func runSerivceGroupAddon(c workflow.RunData) error {
+func runServiceGroupAddon(c workflow.RunData) error {
 	_, edgeadmConf, client, err := getInitData(c)
 	if err != nil {
+		return err
+	}
+
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
 		return err
 	}
 
@@ -253,6 +267,10 @@ func configLiteAPIServer(c workflow.RunData) error {
 		return err
 	}
 
+	if err := common.EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
 	caKeyFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName)
 	caCertFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName)
 	if err := common.CreateLiteApiServerCert(client, edgeadmConf.ManifestsDir, caCertFile, caKeyFile); err != nil {
@@ -261,6 +279,139 @@ func configLiteAPIServer(c workflow.RunData) error {
 	}
 
 	klog.Infof("Config lite-apiserver configMap success")
+
+	return err
+}
+
+func deleteTunnelAddon(c workflow.RunData) error {
+	cfg, edgeadmConf, client, err := getInitData(c)
+	if err != nil {
+		return err
+	}
+
+	if ok := common.CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
+	// GetTunnelCloudPort
+	tunnelCloudNodePort, err := common.GetTunnelCloudPort(client)
+	if err != nil {
+		klog.Errorf("Get tunnel-cloud port, error: %v", err)
+		return err
+	}
+
+	// Delete tunnel-edge
+	certSANs := cfg.APIServer.CertSANs
+	caKeyFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName)
+	caCertFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName)
+	tunnelCloudNodeAddr := cfg.ControlPlaneEndpoint
+	if len(certSANs) > 0 {
+		tunnelCloudNodeAddr = certSANs[0]
+	}
+	if err = common.DeleteTunnelEdge(client, edgeadmConf.ManifestsDir,
+		caCertFile, caKeyFile, edgeadmConf.TunnelCloudToken, tunnelCloudNodeAddr, tunnelCloudNodePort); err != nil {
+		klog.Errorf("Deploy tunnel-edge, error: %v", err)
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.APP_TUNNEL_EDGE)
+
+	// Delete tunnel-cloud
+	if err = common.DeleteTunnelCloud(client, edgeadmConf.ManifestsDir,
+		caCertFile, caKeyFile, edgeadmConf.TunnelCloudToken, certSANs); err != nil {
+		klog.Errorf("Delete tunnel-cloud, error: %v", err)
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.APP_TUNNEL_CLOUD)
+
+	// Delete tunnel-coredns
+	option := map[string]interface{}{
+		"TunnelCoreDNSClusterIP": edgeadmConf.TunnelCoreDNSClusterIP,
+	}
+	klog.V(4).Infof("TunnelCoreDNSClusterIP: %s", edgeadmConf.TunnelCoreDNSClusterIP)
+
+	userManifests := filepath.Join(edgeadmConf.ManifestsDir, manifests.APP_TUNNEL_CORDDNS)
+	TunnelCoredns := common.ReadYaml(userManifests, manifests.TunnelCorednsYaml)
+	err = kubeclient.DeleteResourceWithFile(client, TunnelCoredns, option)
+	if err != nil {
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.APP_TUNNEL_CORDDNS)
+
+	return err
+
+}
+
+func deleteEdgeHealthAddon(c workflow.RunData) error {
+	_, edgeadmConf, client, err := getInitData(c)
+	if err != nil {
+		return err
+	}
+
+	if ok := common.CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
+	if err := common.DeleteEdgeHealth(client, edgeadmConf.ManifestsDir); err != nil {
+		klog.Errorf("Deploy edge health, error: %s", err)
+		return err
+	}
+
+	return err
+}
+
+func deleteServiceGroupAddon(c workflow.RunData) error {
+	_, edgeadmConf, client, err := getInitData(c)
+	if err != nil {
+		return err
+	}
+
+	if ok := common.CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
+	if err := common.DeleteServiceGroup(client, edgeadmConf.ManifestsDir); err != nil {
+		klog.Errorf("Delete serivce group, error: %s", err)
+		return err
+	}
+
+	klog.Infof("Delete service-group success!")
+
+	return err
+}
+
+func recoverKubeConfig(c workflow.RunData) error {
+	initConfiguration, _, client, err := getInitData(c)
+	if err != nil {
+		return err
+	}
+
+	if ok := common.CheckIfEdgeAppDeletable(client); !ok {
+		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
+		return nil
+	}
+
+	if err := common.RecoverKubeProxyKubeconfig(client); err != nil {
+		klog.Errorf("Recover kube-proxy config, error: %s", err)
+		return err
+	}
+
+	if err := common.RecoverKubernetesEndpoint(client); err != nil {
+		klog.Errorf("Recover kubernetes endpoint, error: %s", err)
+		return err
+	}
+
+	if len(initConfiguration.APIServer.CertSANs) > 0 {
+		certSANs := initConfiguration.APIServer.CertSANs
+		if err := common.RecoverClusterInfoKubeconfig(client, certSANs); err != nil {
+			klog.Errorf("Recover cluster-info config, error: %s", err)
+			return err
+		}
+	}
+
+	klog.Infof("Recover Kubernetes cluster config support marginal autonomy success")
 
 	return err
 }

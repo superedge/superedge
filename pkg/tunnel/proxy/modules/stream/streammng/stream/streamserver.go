@@ -18,7 +18,7 @@ package stream
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type Server struct{}

@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"math"
 	"net"
 	"net/http"

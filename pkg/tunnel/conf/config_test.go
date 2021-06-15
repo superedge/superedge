@@ -30,7 +30,7 @@ import (
 	"io/ioutil"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"math"
 	"math/big"
 	"net"

@@ -105,7 +105,7 @@ Point the DNS resolution of kube-apiserver to tunnel-CoreDNS. Through DNS hijack
 
 ```bash
 #Get tunnel-coredns's Cluster IP
-$ kubectl get service tunnel-coredns -n kube-system
+$ kubectl get service tunnel-coredns -n edge-system
 NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                  AGE
 tunnel-coredns   ClusterIP   10.10.47.74   <none>        53/UDP,53/TCP,9153/TCP   140m
 #Replace kube-apierver's DNS nameservers with tunnel-coredns's Cluster IP
@@ -263,6 +263,12 @@ On *master nodes*,
 $ kubectl apply -f deployment/edge-health-admission.yaml
 $ kubectl apply -f deployment/edge-health-webhook.yaml
 ```
+
+> Currently the certificates in the webhook is pre-populated, you can replace them with your certificates.
+> 
+> The `caBundle` in `deployment/edge-health-webhook.yaml` can be replaced with your CA certificate.
+> 
+> The `server.crt` and `server.key` in `validate-admission-control-server-certs Secret` of `deployment/edge-health-admission.yaml` can be replaced with your signed certificate and key.
 
 ### 4.3 Configure edge-health
 Set the following parameters in the `deployment/edge-health.yaml`

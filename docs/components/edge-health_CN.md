@@ -46,13 +46,13 @@ edge-health运行在每个边缘节点上，用于节点存活性探测
 ### 多地域探测
 - 开启:
     - 将节点按照地域打上`superedgehealth/topology-zone:<zone>`的label
-    - 在`kube-system`命名空间创建名为`edge-health-zone-config`的configmap，`TaintZoneAdmission`的值指定为`true`,可以直接使用如下yaml进行创建
+    - 在`edge-system`命名空间创建名为`edge-health-zone-config`的configmap，`TaintZoneAdmission`的值指定为`true`,可以直接使用如下yaml进行创建
         ```yaml
         apiVersion: v1
         kind: ConfigMap
         metadata:
           name: edge-health-zone-config
-          namespace: kube-system
+          namespace: edge-system
         data:
           TaintZoneAdmission: true 
         ```

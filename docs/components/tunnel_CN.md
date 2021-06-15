@@ -33,7 +33,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_cloud.toml: |
     [mode]
@@ -69,7 +69,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-edge-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_edge.toml: |
     [mode]
@@ -100,7 +100,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_cloud.toml: |
     [mode]
@@ -128,7 +128,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_cloud.toml: |
     {{tunnel_cloud.toml}}
@@ -137,7 +137,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-token
-  namespace: kube-system
+  namespace: edge-system
 data:
   token: |
     default:{{.TunnelCloudEdgeToken}}
@@ -149,14 +149,14 @@ data:
 kind: Secret
 metadata:
   name: tunnel-cloud-cert
-  namespace: kube-system
+  namespace: edge-system
 type: Opaque
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: edge-system
 spec:
   ports:
     - name: proxycloud
@@ -173,7 +173,7 @@ metadata:
   labels:
     app: tunnel-cloud
   name: tunnel-cloud
-  namespace: kube-system
+  namespace: edge-system
 spec:
   selector:
     matchLabels:
@@ -253,7 +253,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-edge-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_edge.toml: |
     [mode]
@@ -292,19 +292,19 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: tunnel-edge
-    namespace: kube-system
+    namespace: edge-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tunnel-edge
-  namespace: kube-system
+  namespace: edge-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-edge-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   mode.toml: |
     {{tunnel-edge-conf}}
@@ -315,14 +315,14 @@ data:
 kind: Secret
 metadata:
   name: tunnel-edge-cert
-  namespace: kube-system
+  namespace: edge-system
 type: Opaque
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tunnel-edge
-  namespace: kube-system
+  namespace: edge-system
 spec:
   selector:
     matchLabels:
@@ -394,7 +394,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-cloud-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_cloud.toml: |
     [mode]
@@ -427,7 +427,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-edge-conf
-  namespace: kube-system
+  namespace: edge-system
 data:
   tunnel_edge.toml: |
     [mode]
