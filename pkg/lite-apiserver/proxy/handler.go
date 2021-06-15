@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/server"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
@@ -70,7 +70,7 @@ func NewEdgeServerHandler(config *config.LiteServerConfig, transportManager *tra
 	// start to handle new proxy
 	h.start()
 
-	return h.buildHandlerChain(h), nil
+	return h.buildHandlerChain(config, h), nil
 }
 
 func (h *EdgeServerHandler) initProxies() {
@@ -107,8 +107,10 @@ func (h *EdgeServerHandler) start() {
 	}()
 }
 
-func (h *EdgeServerHandler) buildHandlerChain(handler http.Handler) http.Handler {
-	handler = WithRequestAccept(handler)
+func (h *EdgeServerHandler) buildHandlerChain(config *config.LiteServerConfig, handler http.Handler) http.Handler {
+	if config.ModifyRequestAccept {
+		handler = WithRequestAccept(handler)
+	}
 
 	cfg := &server.Config{
 		LegacyAPIGroupPrefixes: sets.NewString(server.DefaultLegacyAPIPrefix),

@@ -23,7 +23,7 @@ import (
 
 	"github.com/dgraph-io/badger/v3"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (

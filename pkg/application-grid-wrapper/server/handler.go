@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	restclientwatch "k8s.io/client-go/rest/watch"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func (s *interceptorServer) logger(handler http.Handler) http.Handler {

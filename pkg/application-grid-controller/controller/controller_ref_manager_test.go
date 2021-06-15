@@ -21,7 +21,7 @@ import (
 	"flag"
 	"testing"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"

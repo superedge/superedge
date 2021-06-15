@@ -20,7 +20,7 @@ import (
 	"crypto/tls"
 	"flag"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Config contains the server (the webhook) cert and key.

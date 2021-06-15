@@ -23,7 +23,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-coredns
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   Corefile: |
     .:53 {
@@ -47,7 +47,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tunnel-nodes
-  namespace: kube-system
+  namespace: {{.Namespace}}
 data:
   hosts: ""
 ---
@@ -55,7 +55,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tunnel-coredns
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   ports:
     - name: dns
@@ -79,7 +79,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tunnel-coredns
-  namespace: kube-system
+  namespace: {{.Namespace}}
 spec:
   replicas: 1
   selector:

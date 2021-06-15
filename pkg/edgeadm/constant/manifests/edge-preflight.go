@@ -14,21 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package streammsg
+package manifests
 
-import (
-	"fmt"
-	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"k8s.io/klog/v2"
-)
+const ClusterInfoKubeConfig = "cluster-info-role.yaml"
 
-func HeartbeatHandler(msg *proto.StreamMsg) error {
-	node := context.GetContext().GetNode(msg.Node)
-	if node == nil {
-		klog.Errorf("failed to send heartbeat to edge node node: %s", msg.Node)
-		return fmt.Errorf("failed to send heartbeat to edge node node: %s", msg.Node)
-	}
-	node.Send2Node(msg)
-	return nil
-}
+const ClusterInfoKubeConfigYaml = `
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: {{.CAData}}
+    server: {{.Server}}
+  name: ""
+contexts: null
+current-context: ""
+kind: Config
+preferences: {}
+users: null
+`

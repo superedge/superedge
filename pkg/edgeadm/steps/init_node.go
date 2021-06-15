@@ -18,11 +18,8 @@ package steps
 
 import (
 	"fmt"
-	"os"
-	"path"
 
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 
@@ -40,57 +37,20 @@ func NewInitNodePhase() workflow.Phase {
 		Name:  "init-node",
 		Short: "Init node before install node or master of Kubernetes",
 		Long:  initNodeLongDesc,
-		Phases: []workflow.Phase{
-			{
-				Name:           "all",
-				Short:          initNodeLongDesc,
-				InheritFlags:   getInitNodePhaseFlags("all"),
-				RunAllSiblings: true,
-			},
-			{
-				Name:         "clear",
-				Short:        "clear node of init Kubernetes",
-				InheritFlags: getInitNodePhaseFlags("clear"),
-				Run:          runClearNode,
-			},
-			{
-				Name:         "off-swap",
-				Short:        "Off swap of init Kubernetes node",
-				InheritFlags: getInitNodePhaseFlags("off-swap"),
-				Run:          runOffSwap,
-			},
-			{
-				Name:         "set-sysctl",
-				Short:        "Set system parameters for Kubernetes nod by sysctl tools",
-				InheritFlags: getInitNodePhaseFlags("set-sysctl"),
-				Run:          setSysctl,
-			},
-			{
-				Name:         "load-kernel",
-				Short:        "Set kernel modules of init Kubernetes node",
-				InheritFlags: getInitNodePhaseFlags("load-kernel"),
-				Run:          loadKernelModule,
-			},
-		},
+		Run:   initNode,
 	}
 }
 
-// Init node flags
-func getInitNodePhaseFlags(name string) []string {
-	flags := []string{
-		options.KubeconfigPath,
+func initNode(c workflow.RunData) error {
+	klog.V(4).Infof("Start init node")
+	if _, _, err := util.RunLinuxCommand(EdgeadmConf.WorkerPath + constant.InitNodeShell); err != nil {
+		klog.Errorf("Run init node shell: %s, error: %v",
+			EdgeadmConf.WorkerPath+constant.InitNodeShell, err)
+		return err
 	}
-	if name == "all" || name == "clear" {
-	}
-	if name == "all" || name == "off-swap" {
-	}
-	if name == "all" || name == "set-sysctl" {
-	}
-	if name == "all" || name == "load-kernel" {
-	}
-	if name == "all" || name == "set-hostname" {
-	}
-	return flags
+
+	klog.V(4).Infof("Init node success")
+	return nil
 }
 
 // set hostname about node or master of Kubernetes
@@ -106,82 +66,10 @@ func setHostname(c workflow.RunData) error {
 	return err
 }
 
-// clear node
-func runClearNode(c workflow.RunData) error {
-	if _, _, err := util.RunLinuxCommand(constant.ClearNode); err != nil {
-		klog.Warningf("Clear node error: %v", err)
-	}
-	return nil
-}
-
-// set off swap
-func runOffSwap(c workflow.RunData) error {
-	if _, _, err := util.RunLinuxCommand(constant.SwapOff); err != nil {
-		klog.Warningf("Run off swap error: %v", err)
-	}
-	return nil
-}
-
 // stop firewalld
 func stopFirewall(c workflow.RunData) error {
 	if _, _, err := util.RunLinuxCommand(constant.StopFireWall); err != nil {
 		klog.Errorf("Run off stop firewall: %v", err)
 	}
-	return nil
-}
-
-// set system parameters by sysctl
-func setSysctl(c workflow.RunData) error {
-	setNetIPv4 := util.SetFileContent(constant.SysctlFile, "^net.ipv4.ip_forward.*", "net.ipv4.ip_forward = 1")
-	if _, _, err := util.RunLinuxCommand(setNetIPv4); err != nil {
-		return err
-	}
-	setNetBridge := util.SetFileContent(constant.SysctlFile, "^net.bridge.bridge-nf-call-iptables.*", "net.bridge.bridge-nf-call-iptables = 1")
-	if _, _, err := util.RunLinuxCommand(setNetBridge); err != nil {
-		return err
-	}
-
-	setSysctl := fmt.Sprintf("cat <<EOF >%s \n%s\nEOF", constant.SysctlK8sConf, constant.SysConf)
-	if _, _, err := util.RunLinuxCommand(setSysctl); err != nil {
-		return err
-	}
-
-	loadIPtables := fmt.Sprintf("sysctl --system")
-	if _, _, err := util.RunLinuxCommand(loadIPtables); err != nil {
-		return err
-	}
-	return nil
-}
-
-// load kernel module require of install Kubernetes
-func loadKernelModule(c workflow.RunData) error {
-	modules := []string{
-		"iptable_nat", //The order cannot be changed, the unsuccessful loading of ip_vs degenerates into iptables
-		"ip_vs",
-		"ip_vs_sh",
-		"ip_vs_rr",
-		"ip_vs_wrr",
-		"nf_conntrack_ipv4",
-	}
-	if _, _, err := util.RunLinuxCommand("modinfo br_netfilter"); err == nil {
-		modules = append(modules, "br_netfilter")
-	}
-
-	kernelModule := ""
-	for _, module := range modules {
-		kernelModule += fmt.Sprintf("modprobe -- %s\n", module)
-	}
-
-	os.MkdirAll(path.Dir(constant.IPvsModulesFile), 0755)
-	setKernelModule := fmt.Sprintf("cat <<EOF >%s \n%s\nEOF", constant.IPvsModulesFile, kernelModule)
-	if _, _, err := util.RunLinuxCommand(setKernelModule); err != nil {
-		return err
-	}
-
-	if _, _, err := util.RunLinuxCommand(constant.KernelModule); err != nil {
-		klog.Warningf("Load ip_vs kernel module, error: %v", err)
-		return nil
-	}
-
 	return nil
 }

@@ -50,8 +50,14 @@ func (r *revertAction) runKubeamdRevert() error {
 		manifests.APP_APPLICATION_GRID_WRAPPER:    manifests.ApplicationGridWrapperYaml,
 		manifests.APP_APPLICATION_GRID_CONTROLLER: manifests.ApplicationGridControllerYaml,
 	}
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgeSystem,
+		"CABundle":  "",
+		"ServerCrt": "",
+		"ServerKey": "",
+	}
 	for appName, yamlFile := range yamlMap {
-		if err := common.DeleteByYamlFile(r.clientSet, yamlFile); err != nil {
+		if err := kubeclient.DeleteResourceWithFile(r.clientSet, yamlFile, option); err != nil {
 			return err
 		}
 		fmt.Printf("Revert %s success!\n", appName)
@@ -88,18 +94,23 @@ func (r *revertAction) runKubeamdRevert() error {
 		return err
 	}
 
+	if err := r.deleteEdgeSystemNamespace(); err != nil {
+		return err
+	}
+
 	util.OutSuccessMessage("Deploy Kubeadm Cluster Revert To Edge Cluster Success!")
 
 	return nil
 }
 
 func (r *revertAction) deleteLiteApiServerCert() error {
-	return r.clientSet.CoreV1().ConfigMaps("kube-system").
+	return r.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
 		Delete(context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 }
 
 func (r *revertAction) deleteTunnelCloud() error {
 	option := map[string]interface{}{
+		"Namespace":                           constant.NamespaceEdgeSystem,
 		"TunnelCloudEdgeToken":                "tunnelCloudEdgeToken",
 		"TunnelProxyServerKey":                base64.StdEncoding.EncodeToString([]byte("tunnelProxyServerKey")),
 		"TunnelProxyServerCrt":                base64.StdEncoding.EncodeToString([]byte("tunnelProxyServerCrt")),
@@ -112,6 +123,7 @@ func (r *revertAction) deleteTunnelCloud() error {
 
 func (r *revertAction) deleteTunnelEdge() error {
 	option := map[string]interface{}{
+		"Namespace":                      constant.NamespaceEdgeSystem,
 		"MasterIP":                       "127.0.0.1",
 		"TunnelCloudEdgeToken":           "tunnelCloudEdgeToken",
 		"KubernetesCaCert":               base64.StdEncoding.EncodeToString([]byte("kubernetesCaCert")),
@@ -131,7 +143,8 @@ func (r *revertAction) deleteTunnelEdge() error {
 
 func (r *revertAction) deleteEdgeHealth() error {
 	option := map[string]interface{}{
-		"HmacKey": "token",
+		"Namespace": constant.NamespaceEdgeSystem,
+		"HmacKey":   "token",
 	}
 
 	if err := kubeclient.DeleteResourceWithFile(r.clientSet, manifests.EdgeHealthYaml, option); err != nil {
@@ -229,5 +242,12 @@ func (r *revertAction) revertKubernetesEndpoint() error {
 		return err
 	}
 
+	return nil
+}
+
+func (r *revertAction) deleteEdgeSystemNamespace() error {
+	if err := r.clientSet.CoreV1().Namespaces().Delete(context.TODO(), constant.NamespaceEdgeSystem, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
 	return nil
 }
