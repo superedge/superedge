@@ -503,3 +503,6 @@ To customize the Kubernetes static installation package and other systems, three
 -   Make sure that the mirror warehouse used by init has the basic image of the Kubernetes version of the corresponding system. It is recommended to use [Multi-System Mirror](https://docs.docker.com/buildx/working-with-buildx/);
 -   Fully test to ensure that there are no compatibility issues. If there are related problems, you can also mention Issues in the SuperEdge community to fix them.
 
+#### <3>. Custom node initialization script
+
+`script/init-node.sh` is the initialization script of the node, but the system we tested is limited and cannot be fully compatible. If the default init-node.sh cannot initialize your node, or you need to add other initialization scripts, you can edit Use `script/init-node.sh` to customize the script and type out the kube-linux-arm64-v1.18.2.tar.gz package for your own use.

@@ -73,9 +73,11 @@ func DeleteEdgeHealth(clientSet kubernetes.Interface, manifestsDir string) error
 }
 
 func getEdgeHealthResource(clientSet kubernetes.Interface, manifestsDir string) (map[string]string, interface{}, error) {
+	userEdgeHealth := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH)
 	userEdgeHealthWebhook := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_WEBHOOK)
 	userEdgeHealthAdmission := filepath.Join(manifestsDir, manifests.APP_EDGE_HEALTH_ADMISSION)
 	yamlMap := map[string]string{
+		manifests.APP_EDGE_HEALTH:           ReadYaml(userEdgeHealth, manifests.EdgeHealthYaml),
 		manifests.APP_EDGE_HEALTH_ADMISSION: ReadYaml(userEdgeHealthAdmission, manifests.EdgeHealthAdmissionYaml),
 		manifests.APP_EDGE_HEALTH_WEBHOOK:   ReadYaml(userEdgeHealthWebhook, manifests.EdgeHealthWebhookConfigYaml),
 	}

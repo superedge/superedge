@@ -10,7 +10,9 @@ edge-install/
 ├── cni
 │   └── cni-plugins-linux-v0.8.3.tar.gz
 └── container
-    └── docker-19.03-linux-arm64.tar.gz
+│   └── docker-19.03-linux-arm64.tar.gz
+└── script
+    └── init-node.sh
 */
 const (
 	EdgeamdDir         = "edgeadm/"
