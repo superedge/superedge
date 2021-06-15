@@ -27,7 +27,7 @@ import (
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
 	"github.com/superedge/superedge/pkg/lite-apiserver/server"

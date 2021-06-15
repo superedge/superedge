@@ -24,7 +24,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammsg"
 	"github.com/superedge/superedge/pkg/tunnel/token"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 )
 

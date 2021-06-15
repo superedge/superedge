@@ -29,7 +29,7 @@ import (
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"k8s.io/client-go/util/connrotation"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (

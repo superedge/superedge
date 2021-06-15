@@ -26,7 +26,7 @@ import (
 	pkgutil "github.com/superedge/superedge/pkg/util"
 	"io"
 	"io/ioutil"
-	log "k8s.io/klog"
+	log "k8s.io/klog/v2"
 	"net/http"
 	"strconv"
 	"sync"

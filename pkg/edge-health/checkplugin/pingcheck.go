@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 	"strconv"
 	"strings"
