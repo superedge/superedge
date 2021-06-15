@@ -18,13 +18,18 @@ package service
 
 import (
 	"context"
-	"k8s.io/klog/v2"
+	"encoding/json"
+	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
+	"k8s.io/apimachinery/pkg/api/errors"
+	klog "k8s.io/klog/v2"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
@@ -104,6 +109,116 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 		select {
 		case e := <-errCh:
 			err = multierror.Append(err, e)
+		default:
+		}
+	}
+
+	return err
+}
+
+func (sgc *ServiceGridController) reconcileFed(sg *crdv1.ServiceGrid, sgList []*crdv1.ServiceGrid, disNsList []string) error {
+	existedDisSgMap := make(map[string]*crdv1.ServiceGrid)
+
+	for _, fedsg := range sgList {
+		existedDisSgMap[fedsg.Namespace] = fedsg
+	}
+
+	wanted := sets.NewString()
+	for _, v := range disNsList {
+		wanted.Insert(v)
+	}
+
+	var (
+		adds    []*crdv1.ServiceGrid
+		updates []*crdv1.ServiceGrid
+		deletes []*crdv1.ServiceGrid
+	)
+
+	for _, ns := range disNsList {
+		fedsg, found := existedDisSgMap[ns]
+		if !found {
+			ServiceGridToAdd := util.CreateServiceGrid(sg, ns)
+			adds = append(adds, ServiceGridToAdd)
+			continue
+		}
+
+		ServiceGridToUpdate := util.UpdateServiceGrid(sg, fedsg)
+
+		scheme := scheme.Scheme
+		scheme.Default(ServiceGridToUpdate)
+		if !commonutil.DeepContains(fedsg.Spec, ServiceGridToUpdate.Spec) {
+			klog.Infof("serviceGrid %s template changed", fedsg.Name)
+			out, _ := json.Marshal(ServiceGridToUpdate.Spec)
+			klog.V(5).Infof("ServiceGridToUpdate is %s", string(out))
+			out, _ = json.Marshal(fedsg.Spec)
+			klog.V(5).Infof("existedServiceGrid is %s", string(out))
+			updates = append(updates, ServiceGridToUpdate)
+			continue
+		}
+	}
+
+	// If deployment's name is not matched with grid value but has the same selector, we remove it.
+	for _, sgexist := range sgList {
+		if !wanted.Has(sgexist.Namespace) {
+			deletes = append(deletes, sgexist)
+		}
+	}
+
+	if err := sgc.syncDisServiceGrid(adds, updates, deletes); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sgc *ServiceGridController) syncDisServiceGrid(adds, updates, deletes []*crdv1.ServiceGrid) error {
+	wg := sync.WaitGroup{}
+	totalSize := len(adds) + len(updates) + len(deletes)
+	wg.Add(totalSize)
+	errCh := make(chan error, totalSize)
+
+	for i := range adds {
+		go func(s *crdv1.ServiceGrid) {
+			defer wg.Done()
+			klog.V(4).Infof("Creating DisServiceGrid %s/%s by syncDisServiceGrid", s.Namespace, s.Name)
+			_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(s.Namespace).Create(context.TODO(), s, metav1.CreateOptions{})
+			if err != nil {
+				errCh <- err
+			}
+		}(adds[i])
+	}
+
+	for i := range updates {
+		go func(s *crdv1.ServiceGrid) {
+			defer wg.Done()
+			klog.V(4).Infof("Updating DisServiceGrid %s/%s by syncServiceGrid", s.Namespace, s.Name)
+			_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(s.Namespace).Update(context.TODO(), s, metav1.UpdateOptions{})
+			if err != nil {
+				errCh <- err
+			}
+		}(updates[i])
+	}
+
+	for i := range deletes {
+		go func(s *crdv1.ServiceGrid) {
+			defer wg.Done()
+			klog.V(4).Infof("Deleting DisServiceGrid %s/%s by syncDisServiceGrid", s.Namespace, s.Name)
+			err := sgc.crdClient.SuperedgeV1().ServiceGrids(s.Namespace).Delete(context.TODO(), s.Name, metav1.DeleteOptions{})
+			if err != nil {
+				errCh <- err
+			}
+		}(deletes[i])
+	}
+
+	wg.Wait()
+
+	var err error
+	for len(errCh) != 0 {
+		select {
+		case e := <-errCh:
+			if !errors.IsConflict(e) {
+				err = multierror.Append(err, e)
+			}
 		default:
 		}
 	}

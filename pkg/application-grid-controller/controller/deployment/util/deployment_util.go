@@ -81,6 +81,23 @@ func CreateDeployment(dg *crdv1.DeploymentGrid, gridValue string, dth Deployment
 	return dp, nil
 }
 
+func CreateDeploymentGrid(dg *crdv1.DeploymentGrid, nameSpace string) *crdv1.DeploymentGrid {
+	dgcopy := dg.DeepCopy()
+	dgcopy.ResourceVersion = ""
+	TargetNameSpace := dgcopy.Namespace
+	dgcopy.Namespace = nameSpace
+	dgcopy.Labels[common.FedTargetNameSpace] = TargetNameSpace
+	dgcopy.Labels[common.FedrationDisKey] = "yes"
+	dgcopy.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(dg, ControllerKind)}
+	return dgcopy
+}
+
+func UpdateDeploymentGrid(dg, fed *crdv1.DeploymentGrid) *crdv1.DeploymentGrid {
+	dgcopy := fed.DeepCopy()
+	dgcopy.Spec = dg.Spec
+	return dgcopy
+}
+
 func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue string) *appsv1.Deployment {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy

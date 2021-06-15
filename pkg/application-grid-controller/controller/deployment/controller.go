@@ -22,16 +22,13 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
-	"time"
-
-	"k8s.io/klog/v2"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -44,6 +41,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	klog "k8s.io/klog/v2"
+	"time"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 
@@ -53,18 +52,26 @@ import (
 )
 
 type DeploymentGridController struct {
-	dpClient           controller.DeployClientInterface
-	dpGridLister       crdv1listers.DeploymentGridLister
-	dpLister           appslisters.DeploymentLister
-	nodeLister         corelisters.NodeLister
-	dpGridListerSynced cache.InformerSynced
-	dpListerSynced     cache.InformerSynced
-	nodeListerSynced   cache.InformerSynced
+	dpClient        controller.DeployClientInterface
+	dpGridLister    crdv1listers.DeploymentGridLister
+	dpLister        appslisters.DeploymentLister
+	nodeLister      corelisters.NodeLister
+	nameSpaceLister corelisters.NamespaceLister
+
+	dpGridListerSynced    cache.InformerSynced
+	dpListerSynced        cache.InformerSynced
+	nodeListerSynced      cache.InformerSynced
+	nameSpaceListerSynced cache.InformerSynced
 
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
 	crdClient     crdclientset.Interface
+
+	//focus on dg in parent cluster
+	FedDeploymentGridController *FedDeploymentGridController
+	//parent cluster namespace
+	dedicatedNameSpace string
 
 	// To allow injection of syncDeploymentGrid for testing.
 	syncHandler func(dKey string) error
@@ -75,7 +82,8 @@ type DeploymentGridController struct {
 }
 
 func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInformer, dpInformer appsinformers.DeploymentInformer,
-	nodeInformer coreinformers.NodeInformer, kubeClient clientset.Interface, crdClient crdclientset.Interface) *DeploymentGridController {
+	nodeInformer coreinformers.NodeInformer, namespaceInformer coreinformers.NamespaceInformer, kubeClient clientset.Interface,
+	crdClient crdclientset.Interface, dedicatedNameSpace string) *DeploymentGridController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{
@@ -89,6 +97,7 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 			corev1.EventSource{Component: "deployment-grid-controller"}),
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(),
 			"deployment-grid-controller"),
+		dedicatedNameSpace: dedicatedNameSpace,
 	}
 	dgc.dpClient = controller.NewRealDeployClient(kubeClient)
 
@@ -111,6 +120,10 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 		DeleteFunc: dgc.deleteNode,
 	})
 
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: dgc.addNameSpace,
+	})
+
 	dgc.syncHandler = dgc.syncDeploymentGrid
 	dgc.enqueueDeploymentGrid = dgc.enqueue
 
@@ -122,6 +135,9 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 
 	dgc.nodeLister = nodeInformer.Lister()
 	dgc.nodeListerSynced = nodeInformer.Informer().HasSynced
+
+	dgc.nameSpaceLister = namespaceInformer.Lister()
+	dgc.nameSpaceListerSynced = namespaceInformer.Informer().HasSynced
 
 	dgc.templateHasher = util.NewDeploymentTemplateHash()
 
@@ -248,7 +264,22 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 	}
 
 	// sync deployment grid status and its relevant deployments workload
-	return dgc.reconcile(dg, dpList, gridValues)
+	if err := dgc.reconcile(dg, dpList, gridValues); err != nil {
+		return err
+	}
+
+	// sync fed deploymentgrid, get target namespace and serviceGrid for fed
+	_, fed := dg.Labels[common.FedrationKey]
+	_, dis := dg.Labels[common.FedrationDisKey]
+	if fed && !dis {
+		disdgList, nsList, err := dgc.getDisDeploymentGridAndNameSpace(dg)
+		klog.Infof("disdgList len is %d, nsList is %d", len(disdgList), len(nsList))
+		if err != nil {
+			return err
+		}
+		return dgc.reconcileFed(dg, disdgList, nsList)
+	}
+	return nil
 }
 
 func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGrid) ([]*appsv1.Deployment, error) {
@@ -293,6 +324,26 @@ func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interfa
 		return
 	}
 	dgc.enqueueDeploymentGrid(curDg)
+
+	//deploymentGrid in same cluster
+	_, fed := curDg.Labels[common.FedrationKey]
+	_, dis := curDg.Labels[common.FedrationDisKey]
+	if fed && dis {
+		fedDg := dgc.getFedDeploymentGrid(curDg)
+		if fedDg != nil {
+			dgc.enqueueDeploymentGrid(fedDg)
+		}
+	}
+
+	//deploymentGrid in parent cluster
+	if fed && !dis {
+		if dgc.FedDeploymentGridController != nil {
+			parentFedDg := dgc.getParentFedDeploymentGrid(curDg)
+			if parentFedDg != nil {
+				dgc.FedDeploymentGridController.enqueueDeploymentGrid(parentFedDg)
+			}
+		}
+	}
 }
 
 func (dgc *DeploymentGridController) deleteDeploymentGrid(obj interface{}) {
@@ -321,4 +372,61 @@ func (dgc *DeploymentGridController) enqueue(deploymentGrid *crdv1.DeploymentGri
 	}
 
 	dgc.queue.Add(key)
+}
+
+func (dgc *DeploymentGridController) getDisDeploymentGridAndNameSpace(dg *crdv1.DeploymentGrid) ([]*crdv1.DeploymentGrid, []string, error) {
+	var nsList []string
+	var disDgList []*crdv1.DeploymentGrid
+	labelSelector := labels.NewSelector()
+	NameSpaceRequirement, err := labels.NewRequirement(common.FedManagedClustIdKey, selection.Exists, []string{})
+	if err != nil {
+		klog.V(4).Infof("gererate requirement err %v", err)
+		return []*crdv1.DeploymentGrid{}, []string{}, err
+	}
+	labelSelector = labelSelector.Add(*NameSpaceRequirement)
+
+	nameSpaceList, err := dgc.nameSpaceLister.List(labelSelector)
+	if err != nil {
+		klog.V(4).Infof("get nameSpaceList err %v", err)
+		return []*crdv1.DeploymentGrid{}, []string{}, err
+	}
+
+	for _, ns := range nameSpaceList {
+		nsList = append(nsList, ns.Name)
+		klog.Infof("ns is %s", ns.Name)
+		klog.V(4).Infof("ns is %s", ns.Name)
+	}
+
+	for _, ns := range nsList {
+		disDg, err := dgc.dpGridLister.DeploymentGrids(ns).Get(dg.Name)
+		if err != nil && !errors.IsNotFound(err) {
+			klog.V(4).Infof("get disdgList err %v", err)
+			return []*crdv1.DeploymentGrid{}, []string{}, err
+		}
+		if err == nil {
+			disDgList = append(disDgList, disDg)
+		}
+	}
+
+	return disDgList, nsList, nil
+}
+
+func (dgc *DeploymentGridController) getFedDeploymentGrid(dg *crdv1.DeploymentGrid) *crdv1.DeploymentGrid {
+	fedDg, err := dgc.dpGridLister.DeploymentGrids(dg.Labels[common.FedTargetNameSpace]).Get(dg.Name)
+	if err != nil {
+		klog.V(4).Infof("can't get fed deploymentGrid err %v", err)
+		return nil
+	} else {
+		return fedDg
+	}
+}
+
+func (dgc *DeploymentGridController) getParentFedDeploymentGrid(dg *crdv1.DeploymentGrid) *crdv1.DeploymentGrid {
+	parFedDg, err := dgc.FedDeploymentGridController.fedDpGridLister.DeploymentGrids(dgc.dedicatedNameSpace).Get(dg.Name)
+	if err != nil {
+		klog.V(4).Infof("can't get parent fed deploymentGrid err %v", err)
+		return nil
+	} else {
+		return parFedDg
+	}
 }
