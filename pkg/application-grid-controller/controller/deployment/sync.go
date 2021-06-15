@@ -19,7 +19,7 @@ package deployment
 import (
 	"context"
 	"encoding/json"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"

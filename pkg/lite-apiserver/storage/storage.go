@@ -19,7 +19,7 @@ package storage
 import (
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 )
 

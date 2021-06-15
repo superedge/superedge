@@ -41,7 +41,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/server/apis"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/storage"

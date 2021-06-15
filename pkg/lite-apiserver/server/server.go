@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
 	"github.com/superedge/superedge/pkg/lite-apiserver/cache"

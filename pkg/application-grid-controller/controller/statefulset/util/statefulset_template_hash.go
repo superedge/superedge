@@ -23,7 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/util"
 	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type StatefulsetTemplateHash struct{}
