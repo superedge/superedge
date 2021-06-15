@@ -5,7 +5,7 @@
 直接使用 [penetrator.yaml](../../deployment/penetrator.yaml)部署
 
 ```shell
-kubectl apply -f https://github.com/00pf00/superedge/penetrator-copy/deployment/penetrator.yaml
+kubectl apply -f https://raw.githubusercontent.com/superedge/main/deployment/penetrator.yamll
 ```
 
 ## 操作节点的前置条件
