@@ -28,15 +28,12 @@ yum install -y netcat
 ### SSH登录节点
 
 SSH登录边缘节点node-A-1，可以使用下面的命令：
-
-```
-ssh -o ProxyCommand= "nc -X connect -x masterIp:cloud-port  node-A-1 22" root@127.0.0.1
-```
-
-或者
-
 ```
 ssh -o ProxyCommand= "corkscrew masterIP  cloud-port node-A-1  22"  root@127.0.0.1
+```
+或者
+```
+ssh -o ProxyCommand= "nc -X connect -x masterIp:cloud-port  node-A-1 22" root@127.0.0.1
 ```
 
 * materIP: master节点所在节点的外网ip
