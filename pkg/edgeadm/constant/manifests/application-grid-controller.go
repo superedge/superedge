@@ -40,7 +40,9 @@ rules:
     - ""
     resources:
       - nodes
+      - secrets
       - services
+      - namespaces
     verbs:
       - "*"
   - apiGroups:
