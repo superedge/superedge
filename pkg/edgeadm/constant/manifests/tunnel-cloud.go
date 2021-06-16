@@ -112,10 +112,14 @@ metadata:
   namespace: {{.Namespace}}
 spec:
   ports:
-    - name: proxycloud
+    - name: grpc
       port: 9000
       protocol: TCP
       targetPort: 9000
+    - name: ssh
+      port: 22
+      protocol: TCP
+      targetPort: 22
   selector:
     app: tunnel-cloud
   type: NodePort
