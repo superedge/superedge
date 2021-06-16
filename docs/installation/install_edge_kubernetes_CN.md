@@ -135,6 +135,10 @@
 
     >   其他Kubernetes 版本可参考 **5. 自定义Kubernetes静态安装包**，自行制作。
 
+-   节点hostname应该满足以下要求；
+
+    >   不能包含`localhost` 且不能全是数字
+
 #### <2>.下载edgeadm静态安装包，并拷贝到所有Master && Node节点
 
 >   注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
