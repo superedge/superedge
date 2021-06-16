@@ -21,6 +21,7 @@ rules:
     resources:
       - nodes
       - services
+      - secrets
     verbs:
       - "*"
   - apiGroups:
