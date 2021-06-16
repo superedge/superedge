@@ -11,6 +11,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -79,17 +80,22 @@ func DeployTunnelCloud(clientSet kubernetes.Interface, manifestsDir, caCertFile,
 
 func GetTunnelCloudPort(clientSet kubernetes.Interface) (int32, error) {
 	var tunnelCloudNodePort int32 = 0
-	for { //Make sure tunnel-cloud success created
+	wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		coredns, err := clientSet.CoreV1().Services(
 			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceTunnelCloud, metav1.GetOptions{})
-		if err == nil {
-			for _, port := range coredns.Spec.Ports {
-				tunnelCloudNodePort = port.NodePort
-			}
-			break
+		if err != nil {
+			klog.Errorf("Get tunnel-cloud service error: %v", err)
+			return false, nil
 		}
-		time.Sleep(time.Second)
-	}
+
+		for _, port := range coredns.Spec.Ports {
+			if port.Name == constant.TunnelNodePortNameGRPG {
+				tunnelCloudNodePort = port.NodePort
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 
 	if tunnelCloudNodePort == 0 {
 		return tunnelCloudNodePort, errors.New("Get tunnel-cloud nodePort nil\n")

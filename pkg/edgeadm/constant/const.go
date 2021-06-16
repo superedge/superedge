@@ -102,6 +102,10 @@ const (
 	LiteAPIServerAddr = "https://127.0.0.1:51003"
 )
 
+const (
+	TunnelNodePortNameGRPG = "grpc"
+)
+
 const ApplicationGridWrapperServiceAddr = "http://127.0.0.1:51006"
 
 const LiteAPIServerTLSCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-current.pem","cert":"/var/lib/kubelet/pki/kubelet-client-current.pem"}]`
