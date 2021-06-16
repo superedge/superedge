@@ -124,6 +124,9 @@ This program has the following advantages:
 
     >   For other Kubernetes versions, please refer to **5. Customize the Kubernetes static installation package** and make it yourself.
 
+-   hostname of node should meet following requirements;
+    > not contain `localhost` and  not all numbers
+
 #### <2>. Download the edgeadm static installation package and copy it to all master && node nodes
 
 >   Choose installation package according to your installation node CPU architecture [amd64, arm64]
