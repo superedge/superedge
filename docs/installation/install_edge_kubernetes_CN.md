@@ -140,7 +140,7 @@
 >   注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
 
 ```shell
-arch=amd64 version=v0.3.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.4.0.beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 安装包大约200M，关于安装包的详细信息可查看 **5. 自定义Kubernetes静态安装包**。
 >   要是下载安装包比较慢，可直接查看相应[SuperEdge相应版本](https://github.com/superedge/superedge/tags), 下载`edgeadm-linux-amd64/arm64-*.0.tgz`，并解压也是一样的。
@@ -495,7 +495,7 @@ kube-linux-arm64-v1.18.2.tar.gz ## kube-v1.18.2 arm64的Kubernetes静态安装�
 │   ├── kubectl                 ## kube-v1.18.2的kubectl
 │   ├── kubelet                 ## kube-v1.18.2的kubelet
 │   └── lite-apiserver          ## 相应版本的lite-apiserver，可编译SuperEdge的lite-apiserver生成
-├── cni                         ## cin的配置
+├── cni                         ## cni的配置
 │   └── cni-plugins-linux-v0.8.3.tar.gz ## v0.8.3的CNI插件二进制压缩包
 └── container                   ## 容器运行时目录
 │   └── docker-19.03-linux-arm64.tar.gz ## docker 19.03 arm64体系的安装脚本和安装包
