@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/https/httpsmng"
-	"k8s.io/klog/v2"
+	httpsmng2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmng"
+	"k8s.io/klog"
 )
 
 func ConnectingHandler(msg *proto.StreamMsg) error {
-	go httpsmng.Request(msg)
+	go httpsmng2.Request(msg)
 	return nil
 }
 

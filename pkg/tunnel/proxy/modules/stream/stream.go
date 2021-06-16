@@ -19,9 +19,9 @@ package stream
 import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/model"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/connect"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammsg"
+	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammsg"
 	"github.com/superedge/superedge/pkg/tunnel/token"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
@@ -78,6 +78,6 @@ func InitStream(mode string) {
 			return
 		}
 	}
-	model.Register(&Stream{})
+	module.Register(&Stream{})
 	klog.Infof("init module: %s success !", util.STREAM)
 }

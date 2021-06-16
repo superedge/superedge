@@ -21,7 +21,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/stream"
+	stream2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
 	tunnel "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
 	"google.golang.org/grpc"
@@ -58,7 +58,7 @@ func StartServer() {
 	}
 	opts := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(kaep), grpc.KeepaliveParams(kasp), grpc.StreamInterceptor(ServerStreamInterceptor), grpc.Creds(creds)}
 	s := grpc.NewServer(opts...)
-	proto.RegisterStreamServer(s, &stream.Server{})
+	proto.RegisterStreamServer(s, &stream2.Server{})
 
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
 	klog.Infof("the stream server of the cloud tunnel  listen on %s", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))

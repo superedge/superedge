@@ -22,9 +22,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/model"
+	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/stream/streammng/connect"
+	connect2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/channelz/grpc_channelz_v1"
@@ -40,11 +40,11 @@ func Test_StreamServer(t *testing.T) {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
 	}
-	model.InitModules(util.CLOUD)
+	module.InitModules(util.CLOUD)
 	InitStream(util.CLOUD)
-	model.LoadModules(util.CLOUD)
+	module.LoadModules(util.CLOUD)
 	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
-	model.ShutDown()
+	module.ShutDown()
 
 }
 
@@ -71,9 +71,9 @@ func Test_StreamClient(t *testing.T) {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
 	}
-	model.InitModules(util.EDGE)
+	module.InitModules(util.EDGE)
 	InitStream(util.EDGE)
-	model.LoadModules(util.EDGE)
+	module.LoadModules(util.EDGE)
 	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
 	go func() {
 		running := true
@@ -91,7 +91,7 @@ func Test_StreamClient(t *testing.T) {
 			time.Sleep(10 * time.Second)
 		}
 	}()
-	model.ShutDown()
+	module.ShutDown()
 
 }
 
@@ -102,7 +102,7 @@ func Test_ChannelzSever(t *testing.T) {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
 	}
-	conn, clictx, cancle, err := connect.StartClient()
+	conn, clictx, cancle, err := connect2.StartClient()
 	if err != nil {
 		t.Errorf("failed to grpc client err: %v", err)
 		return
