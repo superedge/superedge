@@ -33,6 +33,14 @@ const (
 	GridSelectorUniqKeyName = "superedge.io/grid-uniq-key"
 	// TemplateHashKey is a key for storing template's hash value in labels.
 	TemplateHashKey = "superedge.io/template-hash-key"
+	// Indicate this app is for federation, "yes" or "no"
+	FedrationKey = "superedge.io/fed"
+	// Indicate this app has been distributed
+	FedrationDisKey = "superedge.io/dis"
+	// ClusterId of managed cluster id
+	FedManagedClustIdKey = "clusters.clusternet.io/cluster-id"
+	// Target namespace of app in managed cluster
+	FedTargetNameSpace = "superedge.io/target-namespace"
 )
 
 func GetDefaultSelector(val string) (labels.Selector, error) {
