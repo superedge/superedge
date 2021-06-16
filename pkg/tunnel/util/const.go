@@ -30,6 +30,7 @@ const (
 	STREAM = "stream"
 	TCP    = "tcp"
 	HTTPS  = "https"
+	SSH    = "ssh"
 )
 
 const (
@@ -59,4 +60,11 @@ const (
 
 const (
 	MODULE_DEBUG = "debug"
+	HttpMethod   = "CONNECT"
+)
+
+const (
+	ConnectMsg          = "HTTP/1.1 200 Connection established\r\n\r\n"
+	BadGateway          = "HTTP/1.1 502 Tunnel not established\r\n\r\n"
+	InternalServerError = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
 )

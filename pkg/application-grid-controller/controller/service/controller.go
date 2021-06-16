@@ -19,6 +19,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/selection"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -47,16 +48,24 @@ import (
 )
 
 type ServiceGridController struct {
-	svcClient           controller.SvcClientInterface
-	svcGridLister       crdv1listers.ServiceGridLister
-	svcLister           corelisters.ServiceLister
-	svcGridListerSynced cache.InformerSynced
-	svcListerSynced     cache.InformerSynced
+	svcClient       controller.SvcClientInterface
+	svcGridLister   crdv1listers.ServiceGridLister
+	svcLister       corelisters.ServiceLister
+	nameSpaceLister corelisters.NamespaceLister
+
+	svcGridListerSynced   cache.InformerSynced
+	svcListerSynced       cache.InformerSynced
+	nameSpaceListerSynced cache.InformerSynced
 
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
 	crdClient     crdclientset.Interface
+
+	//focus on sg in parent cluster
+	FedServiceGridController *FedServiceGridController
+	//parent cluster namespace
+	dedicatedNameSpace string
 
 	// To allow injection of syncServiceGrid for testing.
 	syncHandler func(dKey string) error
@@ -65,7 +74,8 @@ type ServiceGridController struct {
 }
 
 func NewServiceGridController(svcGridInformer crdinformers.ServiceGridInformer, svcInformer coreinformers.ServiceInformer,
-	client clientset.Interface, crdClient crdclientset.Interface) *ServiceGridController {
+	namespaceInformer coreinformers.NamespaceInformer,
+	client clientset.Interface, crdClient crdclientset.Interface, dedicatedNameSpace string) *ServiceGridController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{
@@ -77,7 +87,8 @@ func NewServiceGridController(svcGridInformer crdinformers.ServiceGridInformer, 
 		crdClient:  crdClient,
 		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme,
 			corev1.EventSource{Component: "service-grid-controller"}),
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-grid-controller"),
+		queue:              workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-grid-controller"),
+		dedicatedNameSpace: dedicatedNameSpace,
 	}
 	sgc.svcClient = controller.NewRealSvcClient(client)
 
@@ -93,6 +104,10 @@ func NewServiceGridController(svcGridInformer crdinformers.ServiceGridInformer, 
 		DeleteFunc: sgc.deleteService,
 	})
 
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: sgc.addNameSpace,
+	})
+
 	sgc.syncHandler = sgc.syncServiceGrid
 	sgc.enqueueServiceGrid = sgc.enqueue
 
@@ -101,6 +116,10 @@ func NewServiceGridController(svcGridInformer crdinformers.ServiceGridInformer, 
 
 	sgc.svcGridLister = svcGridInformer.Lister()
 	sgc.svcGridListerSynced = svcGridInformer.Informer().HasSynced
+
+	sgc.nameSpaceLister = namespaceInformer.Lister()
+	sgc.nameSpaceListerSynced = namespaceInformer.Informer().HasSynced
+
 	return sgc
 }
 
@@ -193,7 +212,22 @@ func (sgc *ServiceGridController) syncServiceGrid(key string) error {
 	}
 
 	// sync service grid relevant services workload
-	return sgc.reconcile(sg, svcList)
+	if err := sgc.reconcile(sg, svcList); err != nil {
+		return err
+	}
+
+	// sync fed serviceGrid, get target namespace and serviceGrid for fed
+	_, fed := sg.Labels[common.FedrationKey]
+	_, dis := sg.Labels[common.FedrationDisKey]
+	if fed && !dis {
+		dissgList, nsList, err := sgc.getDisServiceGridAndNameSpace(sg)
+		klog.Infof("dissgList len is %d, nsList is %d", len(dissgList), len(nsList))
+		if err != nil {
+			return err
+		}
+		return sgc.reconcileFed(sg, dissgList, nsList)
+	}
+	return nil
 }
 
 func (sgc *ServiceGridController) getServiceForGrid(sg *crdv1.ServiceGrid) ([]*corev1.Service, error) {
@@ -238,6 +272,26 @@ func (sgc *ServiceGridController) updateServiceGrid(oldObj, newObj interface{}) 
 		return
 	}
 	sgc.enqueueServiceGrid(curSg)
+
+	//svcGrid in same cluster
+	_, fed := curSg.Labels[common.FedrationKey]
+	_, dis := curSg.Labels[common.FedrationDisKey]
+	if fed && dis {
+		fedSg := sgc.getFedServiceGrid(curSg)
+		if fedSg != nil {
+			sgc.enqueueServiceGrid(fedSg)
+		}
+	}
+
+	//svcGrid in parent cluster
+	if fed && !dis {
+		if sgc.FedServiceGridController != nil {
+			parentFedSg := sgc.getParentFedServiceGrid(curSg)
+			if parentFedSg != nil {
+				sgc.FedServiceGridController.enqueueServiceGrid(parentFedSg)
+			}
+		}
+	}
 }
 
 func (sgc *ServiceGridController) deleteServiceGrid(obj interface{}) {
@@ -266,4 +320,61 @@ func (sgc *ServiceGridController) enqueue(serviceGrid *crdv1.ServiceGrid) {
 	}
 
 	sgc.queue.Add(key)
+}
+
+func (sgc *ServiceGridController) getDisServiceGridAndNameSpace(sg *crdv1.ServiceGrid) ([]*crdv1.ServiceGrid, []string, error) {
+	var nsList []string
+	var disSgList []*crdv1.ServiceGrid
+	labelSelector := labels.NewSelector()
+	NameSpaceRequirement, err := labels.NewRequirement(common.FedManagedClustIdKey, selection.Exists, []string{})
+	if err != nil {
+		klog.V(4).Infof("GetDisServiceGridAndNameSpace error: gererate requirement err %v", err)
+		return []*crdv1.ServiceGrid{}, []string{}, err
+	}
+	labelSelector = labelSelector.Add(*NameSpaceRequirement)
+
+	nameSpaceList, err := sgc.nameSpaceLister.List(labelSelector)
+	if err != nil {
+		klog.V(4).Infof("GetDisServiceGridAndNameSpace error: get nameSpaceList err %v", err)
+		return []*crdv1.ServiceGrid{}, []string{}, err
+	}
+
+	for _, ns := range nameSpaceList {
+		nsList = append(nsList, ns.Name)
+		klog.Infof("ns is %s", ns.Name)
+		klog.V(4).Infof("ns is %s", ns.Name)
+	}
+
+	for _, ns := range nsList {
+		disSg, err := sgc.svcGridLister.ServiceGrids(ns).Get(sg.Name)
+		if err != nil && !errors.IsNotFound(err) {
+			klog.V(4).Infof("GetDisServiceGridAndNameSpace error: get dissgList err %v", err)
+			return []*crdv1.ServiceGrid{}, []string{}, err
+		}
+		if err == nil {
+			disSgList = append(disSgList, disSg)
+		}
+	}
+
+	return disSgList, nsList, nil
+}
+
+func (sgc *ServiceGridController) getFedServiceGrid(sg *crdv1.ServiceGrid) *crdv1.ServiceGrid {
+	fedSg, err := sgc.svcGridLister.ServiceGrids(sg.Labels[common.FedTargetNameSpace]).Get(sg.Name)
+	if err != nil {
+		klog.V(4).Infof("getFedServiceGrid error: can't get fed serviceGrid err %v", err)
+		return nil
+	} else {
+		return fedSg
+	}
+}
+
+func (sgc *ServiceGridController) getParentFedServiceGrid(sg *crdv1.ServiceGrid) *crdv1.ServiceGrid {
+	parFedSg, err := sgc.FedServiceGridController.fedSvcGridLister.ServiceGrids(sgc.dedicatedNameSpace).Get(sg.Name)
+	if err != nil {
+		klog.V(4).Infof("getParentFedServiceGrid error: can't get parent fed svcGrid err %v", err)
+		return nil
+	} else {
+		return parFedSg
+	}
 }

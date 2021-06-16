@@ -164,10 +164,10 @@ spec:
               mountPath: /etc/superedge/tunnel/conf
           ports:
             - containerPort: 9000
-              name: tunnel
+              name: grpc
               protocol: TCP
-            - containerPort: 7000
-              name: gateway
+            - containerPort: 22
+              name: ssh
               protocol: TCP
             - containerPort: 10250
               name: kubelet

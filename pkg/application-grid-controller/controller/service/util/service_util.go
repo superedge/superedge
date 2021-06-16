@@ -122,3 +122,20 @@ func KeepConsistence(sg *crdv1.ServiceGrid, svc *corev1.Service) *corev1.Service
 	}
 	return copyObj
 }
+
+func CreateServiceGrid(sg *crdv1.ServiceGrid, nameSpace string) *crdv1.ServiceGrid {
+	sgcopy := sg.DeepCopy()
+	sgcopy.ResourceVersion = ""
+	TargetNameSpace := sgcopy.Namespace
+	sgcopy.Namespace = nameSpace
+	sgcopy.Labels[common.FedTargetNameSpace] = TargetNameSpace
+	sgcopy.Labels[common.FedrationDisKey] = "yes"
+	sgcopy.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(sg, ControllerKind)}
+	return sgcopy
+}
+
+func UpdateServiceGrid(sg, fed *crdv1.ServiceGrid) *crdv1.ServiceGrid {
+	sgcopy := fed.DeepCopy()
+	sgcopy.Spec = sg.Spec
+	return sgcopy
+}
