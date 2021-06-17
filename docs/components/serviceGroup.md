@@ -440,7 +440,7 @@ In this example, the NodeGroup
 ## Multi-cluster distribution
 Supports multi-cluster distribution of DeploymentGrid and ServiceGrid, and also supports multi-regional grayscale. The current multi-cluster management solution based on [clusternet](https://github.com/clusternet/clusternet)
 
-### feature
+### Feature
 - Support multi-cluster grayscale by region
 - Ensure the strong consistency and synchronous update/delete between the control cluster and the managed cluster application, achieve one-time operation, multi-cluster deployment
 - The status of the aggregated distribution instances can be seen in the control cluster
