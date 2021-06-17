@@ -437,6 +437,193 @@ In this example, the NodeGroup
 - Zone2 will use workload template **test2** with image version `2.3`.
 - Other NodeGroups will use the default template **test1**, which was specified in the `spec.defaultTemplateName`.
 
+## Multi-cluster distribution
+Supports multi-cluster distribution of DeploymentGrid and ServiceGrid, and also supports multi-regional grayscale. The current multi-cluster management solution based on [clusternet](https://github.com/clusternet/clusternet)
+
+### feature
+- Support multi-cluster grayscale by region
+- Ensure the strong consistency and synchronous update/delete between the control cluster and the managed cluster application, achieve one-time operation, multi-cluster deployment
+- The status of the aggregated distribution instances can be seen in the control cluster
+- Support the supplementary distribution of application in the case of node regional information update: for example, if the cluster does not belong to a nodegroup before, nodegroup is added after the node information is updated, the application in the control cluster will supplement and distribute to the cluster in time
+
+### Preconditions
+- The cluster deploys the components in SuperEdge. If there is no Kubernetes cluster, you can create it through edgeadm. If you already have a Kubernetes cluster, you can deploy SuperEdge related components through the addon of edageadm to convert the cluster into a SuperEdge edge cluster.
+- Register and manage the cluster through clusternet
+
+### Key concepts
+If you want to specify a deploymentgrid or servicegrid that needs to be distributed by multiple clusters, add 'superedge. IO / Fed' to its label and set it to "yes"
+
+### Use examples
+Create three clusters, one control cluster and two managed edge clusters a and B, which are registered and managed through clusternet
+
+A node in cluster A adds the label of zone: Zone1 and nodeunit Zone1; Cluster B does not join nodegroup
+
+Create a DeploymentGrid in the control cluster, where superedge.io/fed: "yes" is added to the labels, indicating that the DeploymentGrid needs to be distributed to the cluster, and grayscale specifies that the distributed applications use different numbers of replicas in zone1 and zone2
+```yaml
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: deploymentgrid-demo
+  namespace: default
+  labels:
+    superedge.io/fed: "yes"
+spec:
+  defaultTemplateName: test1
+  gridUniqKey: zone
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        appGrid: echo
+    strategy: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          appGrid: echo
+      spec:
+        containers:
+        - image: superedge/echoserver:2.2
+          name: echo
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
+  templatePool:
+    test1:
+      replicas: 2
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+    test2:
+      replicas: 3
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+  templates:
+    zone1: test1
+    zone2: test2
+```
+
+After the creation is complete, you can see that in the managed cluster A, the corresponding Deployment has been created, and according to its NodeUnit information, there are two instances.
+```bash
+[root@VM-0-174-centos ~]# kubectl get deploy
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deploymentgrid-demo-zone1   2/2     2            2           99s
+```
+If the corresponding field of deployment is manually changed in the managed cluster A, it will be updated back with the template of the managed cluster
+
+A node in the B cluster adds the label of zone: zone2, and adds it to NodeUnit zone2; the management and control cluster will distribute the application corresponding to zone2 to the cluster in time
+```bash
+[root@VM-0-42-centos ~]# kubectl get deploy
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deploymentgrid-demo-zone2   3/3     3            3           6s
+```
+
+View the status of deploymentgrid-demo in the control cluster, you can see the application status of each managed cluster that is aggregated, which is convenient for viewing
+```yaml
+status:
+  states:
+    zone1:
+      conditions:
+      - lastTransitionTime: "2021-06-17T07:33:50Z"
+        lastUpdateTime: "2021-06-17T07:33:50Z"
+        message: Deployment has minimum availability.
+        reason: MinimumReplicasAvailable
+        status: "True"
+        type: Available
+      readyReplicas: 2
+      replicas: 2
+    zone2:
+      conditions:
+      - lastTransitionTime: "2021-06-17T07:37:12Z"
+        lastUpdateTime: "2021-06-17T07:37:12Z"
+        message: Deployment has minimum availability.
+        reason: MinimumReplicasAvailable
+        status: "True"
+        type: Available
+      readyReplicas: 3
+      replicas: 3
+```
 
 ## Refs
 

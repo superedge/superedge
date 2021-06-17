@@ -507,6 +507,194 @@ spec:
 这个例子中，NodeUnit zone1将会使用test1 template，NodeUnit zone2将会使用test2 template，其余NodeUnit将会使用defaultTemplateName中指定的template，这里
 会使用test1
 
+## 多集群分发
+支持DeploymentGrid和ServiceGrid的多集群分发，分发的同时也支持多地域灰度，当前基于的多集群管理方案为[clusternet](https://github.com/clusternet/clusternet)
+
+### 特点
+- 支持多集群的按NodeUnit灰度
+- 保证控制集群和被纳管集群应用的强一致和同步更新/删除，做到一次操作，多集群部署
+- 在控制集群可以看到聚合的各分发实例的状态
+- 支持节点地域信息更新情况下应用的补充分发：如原先不属于某个NodeGroup的集群，更新节点信息后加入了NodeGroup，控制集群中的应用会及时向该集群补充下发
+
+### 前置条件
+- 集群部署了SuperEdge中的组件，如果没有Kubernetes集群，可以通过edgeadm进行创建，如果已有Kubernetes集群，可以通过edageadm的addon部署SuperEdge相关组件，将集群转换为一个SuperEdge边缘集群
+- 通过clusternet进行集群的注册和纳管
+
+### 重要字段
+如果要指定某个DeploymentGrid或ServiceGrid需要进行多集群的分发，则在其label中添加`superedge.io/fed`，并置为"yes"
+
+### 使用示例
+创建3个集群，分别为一个管控集群和2个被纳管的边缘集群A,B，通过clusternet进行注册和纳管
+
+其中A集群中一个节点添加zone: zone1的label，加入NodeUnit zone1；集群B不加入NodeGroup
+
+在管控集群中创建DeploymentGrid，其中labels中添加了superedge.io/fed: "yes"，表示该DeploymentGrid需要进行集群的分发，同时灰度指定分发出去的应用在zone1和zone2中使用不同的副本个数
+```yaml
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: deploymentgrid-demo
+  namespace: default
+  labels:
+    superedge.io/fed: "yes"
+spec:
+  defaultTemplateName: test1
+  gridUniqKey: zone
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        appGrid: echo
+    strategy: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          appGrid: echo
+      spec:
+        containers:
+        - image: superedge/echoserver:2.2
+          name: echo
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources: {}
+  templatePool:
+    test1:
+      replicas: 2
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+    test2:
+      replicas: 3
+      selector:
+        matchLabels:
+          appGrid: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            appGrid: echo
+        spec:
+          containers:
+          - image: superedge/echoserver:2.2
+            name: echo
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            resources: {}
+  templates:
+    zone1: test1
+    zone2: test2
+```
+
+创建完成后，可以看到在纳管的A集群中，创建了对应的Deployment，而且依照其NodeUnit信息，有两个实例。
+```bash
+[root@VM-0-174-centos ~]# kubectl get deploy
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deploymentgrid-demo-zone1   2/2     2            2           99s
+```
+如果在纳管的A集群中手动更改了deployment的相应字段，会以管控集群的为模板更新回来
+
+B集群中的一个节点添加zone: zone2的label，将其加入NodeUnit zone2;管控集群会及时向该集群补充下发zone2对应的应用
+```bash
+[root@VM-0-42-centos ~]# kubectl get deploy
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deploymentgrid-demo-zone2   3/3     3            3           6s
+```
+
+在管控集群查看deploymentgrid-demo的状态，可以看到被聚合在一起的各个被纳管集群的应用状态，便于查看
+```yaml
+status:
+  states:
+    zone1:
+      conditions:
+      - lastTransitionTime: "2021-06-17T07:33:50Z"
+        lastUpdateTime: "2021-06-17T07:33:50Z"
+        message: Deployment has minimum availability.
+        reason: MinimumReplicasAvailable
+        status: "True"
+        type: Available
+      readyReplicas: 2
+      replicas: 2
+    zone2:
+      conditions:
+      - lastTransitionTime: "2021-06-17T07:37:12Z"
+        lastUpdateTime: "2021-06-17T07:37:12Z"
+        message: Deployment has minimum availability.
+        reason: MinimumReplicasAvailable
+        status: "True"
+        type: Available
+      readyReplicas: 3
+      replicas: 3
+```
+
 ## Refs
 
 * [SEP: ServiceGroup StatefulSetGrid Design Specification](https://github.com/superedge/superedge/issues/26)
