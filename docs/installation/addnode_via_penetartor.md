@@ -1,5 +1,9 @@
 # Use Penetrator to add edge nodes through the cloud
 
+## Use edgeadm to build a SuperEdge Kubernetes edge cluster
+
+How to build:[One-click install of edge Kubernetes cluster](../../README.md)
+
 ## Deploy Penetrator
 
 Deploy directly using [penetrator.yaml](../../deployment/penetrator.yaml)

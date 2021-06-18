@@ -1,5 +1,9 @@
 # 使用Penetrator通过云端添加边缘节点
 
+## 用edgeadm搭建SuperEdge Kubernetes边缘集群
+
+如何搭建: [用edgeadm一键安装边缘独立Kubernetes 集群](../../README_CN.md)
+
 ## 部署Penetrator
 
 直接使用 [penetrator.yaml](../../deployment/penetrator.yaml)部署
