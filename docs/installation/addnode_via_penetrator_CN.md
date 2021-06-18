@@ -1,6 +1,6 @@
-# 使用penetrator添加边缘节点
+# 使用Penetrator通过云端添加边缘节点
 
-## 部署penetrator
+## 部署Penetrator
 
 直接使用 [penetrator.yaml](../../deployment/penetrator.yaml)部署
 
@@ -40,7 +40,7 @@ spec:
 
 * nodeNamePrefix: 节点名前缀，节点名的格式: nodeNamePrefix-随机字符串(6位)
 * targetMachines: 待安装的节点的ip列表
-* sshCredential：存储SSH登录待添加的节点的密码(passwd)和私钥的secret(sshkey)，密码文件的key值必须为passwd，私钥文件的key值必须为sshkey
+* sshCredential：存储SSH登录待添加的节点的密码(passwd)和私钥(sshkey)的secret，密码文件的key值必须为passwd，私钥文件的key值必须为sshkey
 * proxyNode: 执行添加节点的job的集群内的节点的节点名，该节点和待安装的节点处于同一个内网（能够SSH登录待安装的节点）
 
 
@@ -69,9 +69,9 @@ NodeTask的Status中包含任务的执行状态(creating和ready)和未安装完
 kubectl get nt NodeTaskName -o custom-columns='STATUS:status.nodetaskStatus' 
 ```
 
-任务在执行过程的成功和错误信息以事件的形式上报的apiserver，可以使用命令查看：
+任务在执行过程的成功和错误信息以事件的形式上报到apiserver，可以使用命令查看：
 
 ```shell
 kubectl -n edge-system get event
-
+```
 
