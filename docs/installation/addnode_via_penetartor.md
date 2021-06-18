@@ -1,10 +1,10 @@
 # Use Penetrator to add edge nodes through the cloud
 
-## Use edgeadm to build a SuperEdge Kubernetes edge cluster
+## 1. Use edgeadm to build a SuperEdge Kubernetes edge cluster
 
 How to build:[One-click install of edge Kubernetes cluster](../../README.md)
 
-## Deploy Penetrator
+## 2. Deploy Penetrator
 
 Deploy directly using [penetrator.yaml](../../deployment/penetrator.yaml)
 
@@ -12,7 +12,7 @@ Deploy directly using [penetrator.yaml](../../deployment/penetrator.yaml)
 kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/penetrator.yaml
 ```
 
-## Preconditions for operating nodes
+## 3. Preconditions for operating nodes
 
 Use SSH password file passwd to create sshCredential
 
@@ -26,7 +26,7 @@ Or use SSH private key file sshkey to create sshCredential
 kubectl -n edge-system create secret generic login-secret --from-file=sshkey=./sshkey 
 ```
 
-## Install node
+## 4.1 Install node
 
 ```yaml
 apiVersion: nodetask.apps.superedge.io/v1beta1
@@ -49,7 +49,7 @@ spec:
 * proxyNode: The node name of the node in the cluster that executes the job to add the node. The node and the node to be
   installed are on the same intranet (SSH can log in to the node to be installed)
 
-## Reinstall the node
+## 4.2 Reinstall the node
 
 ```yaml
 apiVersion: nodetask.apps.superedge.io/v1beta1
@@ -66,7 +66,7 @@ spec:
 
 * nodeNamesOverride: Reinstall the node name and IP of the node
 
-## Status query
+## 5. Status query
 
 The Status of NodeTask contains the execution status (creating and ready) of the task and the node name and IP of the
 node that has not been installed. You can use the command to view:

@@ -1,10 +1,10 @@
 # 使用Penetrator通过云端添加边缘节点
 
-## 用edgeadm搭建SuperEdge Kubernetes边缘集群
+## 1. 用edgeadm搭建SuperEdge Kubernetes边缘集群
 
 如何搭建: [用edgeadm一键安装边缘独立Kubernetes 集群](../../README_CN.md)
 
-## 部署Penetrator
+## 2. 部署Penetrator
 
 直接使用 [penetrator.yaml](../../deployment/penetrator.yaml)部署
 
@@ -12,7 +12,7 @@
 kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/penetrator.yaml
 ```
 
-## 操作节点的前置条件
+## 3. 操作节点的前置条件
 
 使用SSH的密码文件passwd创建sshCredential
 
@@ -26,7 +26,7 @@ kubectl -n edge-system create secret generic login-secret --from-file=passwd=./p
 kubectl -n edge-system create secret generic login-secret --from-file=sshkey=./sshkey 
 ```
 
-## 安装节点
+## 4.1 安装节点
 
 ```yaml
 apiVersion: nodetask.apps.superedge.io/v1beta1
@@ -47,8 +47,7 @@ spec:
 * sshCredential：存储SSH登录待添加的节点的密码(passwd)和私钥(sshkey)的secret，密码文件的key值必须为passwd，私钥文件的key值必须为sshkey
 * proxyNode: 执行添加节点的job的集群内的节点的节点名，该节点和待安装的节点处于同一个内网（能够SSH登录待安装的节点）
 
-
-## 重装节点
+## 4.2 重装节点
 
 ```yaml
 apiVersion: nodetask.apps.superedge.io/v1beta1
@@ -65,7 +64,7 @@ spec:
 
 * nodeNamesOverride: 重装节点的节点名和IP
 
-## 状态查询
+## 5. 状态查询
 
 NodeTask的Status中包含任务的执行状态(creating和ready)和未安装完成节点的节点名和IP，可以使用命令查看：
 
