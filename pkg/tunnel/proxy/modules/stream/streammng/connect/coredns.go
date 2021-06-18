@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/util"
+	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -31,6 +32,11 @@ import (
 	"os"
 	"strings"
 	"time"
+)
+
+const (
+	CustomStart = "#Custom Start"
+	CustomEnd   = "#Custom End"
 )
 
 var coreDns *CoreDns
@@ -100,7 +106,7 @@ func SynCorefile() {
 	}
 }
 
-func parseHosts() (map[string]string, bool) {
+func parseHostsD() (map[string]string, bool) {
 	file, err := os.Open(conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Hosts)
 	if err != nil {
 		klog.Errorf("load hosts fail! err = %v", err)
@@ -170,6 +176,39 @@ func parseHosts() (map[string]string, bool) {
 		}
 	}
 	return nodes, update
+}
+
+func hosts2Array(fileread io.Reader) [][][]byte {
+	scanner := bufio.NewScanner(fileread)
+	hostsArray := [][][]byte{}
+	for scanner.Scan() {
+		f := bytes.Fields(scanner.Bytes())
+		if len(f) < 2 {
+			hostsArray = append(hostsArray, f)
+			continue
+		}
+		addr := parseIP(string(f[0]))
+		if addr == nil {
+			continue
+		}
+		hostsArray = append(hostsArray, f)
+	}
+	return hostsArray
+}
+
+func filterEndpoint(hostsArray [][][]byte) {
+
+}
+
+func getCustomEndLine(hostsArray [][][]byte) int {
+	for k, v := range hostsArray {
+		if k == 0 {
+			if len(v) > 1 {
+
+			}
+
+		}
+	}
 }
 
 func parseIP(addr string) net.IP {
