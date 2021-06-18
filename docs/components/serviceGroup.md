@@ -1,14 +1,14 @@
-# serviceGroup
+# ServiceGroup
 
-# Why is it needed
+# Why Is It Needed
 
-## What's different about the edges
+## What's Different About The Edges
 
 - In edge computing scenarios, multiple edge sites are often managed in the same cluster, and each edge site has one or more computing nodes
 - We hope to run a group of services with business logic relationship in each site, and each site will run the same and complete microservices
 - Due to network restrictions, the access between microservices is not expected and can not be performed in multiple sites
 
-## What can ServiceGroup solve
+## What Can ServiceGroup Solve
 
 ServiceGroup can easily deploy a group of services in different sites or regions, which belonging to the same cluster,
 and make the calls between services complete within site or region, avoiding cross regional access of services.
@@ -22,7 +22,7 @@ which brings huge management work and is easy to make mistakes
 ServiceGroup is designed for this scenario. The deployment-grid, statefulset-grid and service-grid provided by ServiceGroup can be used to easily deploy and manage edge applications, control service flow,
 and ensure the number of services in each region and disaster recovery
 
-# Key concepts
+# Key Concepts
 
 ## Architecture
 
@@ -52,7 +52,7 @@ ServiceGroup contains one or more business services. The applicable scenarios ar
 
 > Note: ServiceGroup is an abstract resource. Multiple ServiceGroups can be created in a cluster
 
-## Resource types
+## Resource Types
 
 ### DeploymentGrid
 
@@ -102,15 +102,15 @@ spec:
   <service-template>
 ```
 
-# How to use ServiceGroup
+# How To Use ServiceGroup
 
 Taking the deployment of echo-service as an example, we hope to deploy echo-service services in multiple node groups. We need to do the following:
 
-## Determines the unique identity of the ServiceGroup
+## Determines The Unique Identity Of The ServiceGroup
 
 This step is logical planning, and no actual operation is required. For example, we use the UniqKey for the ServiceGroup logical tag to be created as: zone.
 
-## Group edge nodes
+## Group Edge Nodes
 
 In this step, we need to label the edge nodes with kubectl.
 
@@ -368,7 +368,7 @@ Each NodeUnit will use the same headless service to access the pod inside its gr
 ...
 ```
 
-## Canary deployment
+## Canary Deployment
 Both DeploymentGrid and StatefulSetGrid provide build-in support for **NodeUnit** based canary deployment. User can define multiple workload templates in the `templatePool` and assign them to different NodeUnits so as to roll out different releases in different NodeUnit.  
 
 ### Configuration
@@ -437,28 +437,30 @@ In this example, the NodeGroup
 - Zone2 will use workload template **test2** with image version `2.3`.
 - Other NodeGroups will use the default template **test1**, which was specified in the `spec.defaultTemplateName`.
 
-## Multi-cluster distribution
-Supports multi-cluster distribution of DeploymentGrid and ServiceGrid, and also supports multi-regional grayscale. The current multi-cluster management solution based on [clusternet](https://github.com/clusternet/clusternet)
+## Multi-cluster Distribution
+Supports multi-cluster distribution of DeploymentGrid and ServiceGrid, and also supports multi-regional canary. The current multi-cluster management solution based on [clusternet](https://github.com/clusternet/clusternet)
 
-### feature
-- Support multi-cluster grayscale by region
-- Ensure the strong consistency and synchronous update/delete between the control cluster and the managed cluster application, achieve one-time operation, multi-cluster deployment
+### Feature
+- Support multi-cluster canary by region
+- Ensure the strong consistency, synchronize update/delete between the control cluster and the managed cluster application, achieve one-time operation, multi-cluster deployment
 - The status of the aggregated distribution instances can be seen in the control cluster
 - Support the supplementary distribution of application in the case of node regional information update: for example, if the cluster does not belong to a nodegroup before, nodegroup is added after the node information is updated, the application in the control cluster will supplement and distribute to the cluster in time
 
-### Preconditions
-- The cluster deploys the components in SuperEdge. If there is no Kubernetes cluster, you can create it through edgeadm. If you already have a Kubernetes cluster, you can deploy SuperEdge related components through the addon of edageadm to convert the cluster into a SuperEdge edge cluster.
-- Register and manage the cluster through clusternet
+### Prerequisite
+- Kubernetes
+- SuperEdge
+- Clusternet
 
-### Key concepts
+### Key Concepts
 If you want to specify a deploymentgrid or servicegrid that needs to be distributed by multiple clusters, add 'superedge. IO / Fed' to its label and set it to "yes"
 
-### Use examples
-Create three clusters, one control cluster and two managed edge clusters a and B, which are registered and managed through clusternet
+### Examples
+* **Control cluster**: Cluster used to manage other clusters and create application for federation.
+* **Cluster A, Cluster B**: Two managed edge clusters, which are registered and managed through clusternet.
 
-A node in cluster A adds the label of zone: Zone1 and nodeunit Zone1; Cluster B does not join nodegroup
+Add nodes in cluster A to nodeunit zone1.
 
-Create a DeploymentGrid in the control cluster, where superedge.io/fed: "yes" is added to the labels, indicating that the DeploymentGrid needs to be distributed to the cluster, and grayscale specifies that the distributed applications use different numbers of replicas in zone1 and zone2
+Create a DeploymentGrid in the control cluster, where **superedge.io/fed: "yes"** is added to the labels, indicating that the DeploymentGrid needs to be distributed to managed clusters.
 ```yaml
 apiVersion: superedge.io/v1
 kind: DeploymentGrid
@@ -586,20 +588,22 @@ spec:
 
 After the creation is complete, you can see that in the managed cluster A, the corresponding Deployment has been created, and according to its NodeUnit information, there are two instances.
 ```bash
-[root@VM-0-174-centos ~]# kubectl get deploy
+[~]# kubectl get deploy
 NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
 deploymentgrid-demo-zone1   2/2     2            2           99s
 ```
-If the corresponding field of deployment is manually changed in the managed cluster A, it will be updated back with the template of the managed cluster
+If the corresponding field of deployment is manually changed in the managed cluster A, it will be updated back with the template of the control cluster.
 
-A node in the B cluster adds the label of zone: zone2, and adds it to NodeUnit zone2; the management and control cluster will distribute the application corresponding to zone2 to the cluster in time
+Add nodes in cluster B to nodeunit zone2.
+
+The control cluster will distribute the application corresponding to zone2 to the managed cluster B in time.
 ```bash
-[root@VM-0-42-centos ~]# kubectl get deploy
+[~]# kubectl get deploy
 NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
 deploymentgrid-demo-zone2   3/3     3            3           6s
 ```
 
-View the status of deploymentgrid-demo in the control cluster, you can see the application status of each managed cluster that is aggregated, which is convenient for viewing
+View the status of deploymentgrid-demo in the control cluster, you can see the application status of each managed cluster that is aggregated, which is convenient for viewing.
 ```yaml
 status:
   states:
