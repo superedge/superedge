@@ -30,8 +30,8 @@ const (
 
 	DefaultTemplateName = "default"
 
-	EdgeSystemNamespace     = "edge-system"
-	ParentClusterSecretName = "parent-cluster"
+	ParentClusterSecretNamespace = "clusternet-system"
+	ParentClusterSecretName      = "parent-cluster"
 
-	ParentURLKey            = "parent-url"
+	ParentURLKey = "parent-url"
 )

@@ -213,7 +213,7 @@ func createRecorder(kubeClient clientset.Interface, userAgent string) record.Eve
 }
 
 func generateParentDedicatedKubeConfig(kubeClient *clientset.Clientset) (*restclient.Config, string, error) {
-	secret, err := kubeClient.CoreV1().Secrets(common.EdgeSystemNamespace).Get(context.TODO(),
+	secret, err := kubeClient.CoreV1().Secrets(common.ParentClusterSecretNamespace).Get(context.TODO(),
 		common.ParentClusterSecretName, metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
