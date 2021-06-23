@@ -1,34 +1,30 @@
 # Roadmap
 
-2021H1
+This document describes some of the major features of SuperEdge development in 2021. The features included here are inspired by the SuperEdge users and community, which mean to give a general idea of what we are planning to inspire further engagement from the community.
 
-- ServiceGroup support statefulsetGrid and Headless service
-- Support gray release and upgrade for deploymentGrid and statefulsetGrid
-- Lite-apiserver support certificate renewal, cache enhancements, connection pool, support multiple caching methods.
-- Support batch add edge node
-- Air gapped edge node adding
-- Air gapped edge cluster install
-- edgeadm enhance for changing K8s cluster
-- Containerd runtime support
-- Edge Ingress solution, e.g. Traefik or Nginx ingress working in edge
-- Support more edge network solution for cross-region communication, security, etc
-- Support heterogeneous computing resources, e.g. NPU/VPU, etc
-- Support Kubernetes 1.20
-- e2e tests, ci robot
+Let us know on [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-qclaoruf-pj8iKImmJnaJpfrUJBNleg) if you have any questions regarding the roadmap.
 
-2021H2
+## 2021 H1
 
-- Enhance ServiceGroup to support more resources
-- Integrate IoT solution
-- Integrate AI solution
-- Integrate with tkestack
-- Enhanced edge security features
-- Edge monitoring solutions
-- Refactor addons management
-- Edge mesh support
-- Application market for Edge
-- Edge autonomy enhancement: Endpoints can be updated when disconnect with apiserver
-- Support go 1.16
-- Extend capacity and usage scenario of cloud-edge tunnel
-- Distribute dns solution for edge
-- Integrate Log collecting solution
+- SuperEdge installation
+- Air-gap installation
+- Edge autonomy data caching at the edge with multiple alternative storages
+- Canary deployment for ServiceGroup
+- Support SSH into edge nodes from central cloud
+- Support joining edge nodes in a batch
+- Automatically remove abnormal endpoints via edge autonomy    
+- Certificates auto renewal
+- Support statefulSets and headless services in ServiceGroup
+
+## 2021 H2
+
+- Support Service Mesh
+- Optimize DNS at the edge
+- Improve logging and monitoring
+- Supports Cambricon device plugin
+- Platform high availability at the edge
+- Security enhancements
+- AI solutions
+- Support containerd runtime
+- Support Kubernetes v1.20
+- End-to-end tests
