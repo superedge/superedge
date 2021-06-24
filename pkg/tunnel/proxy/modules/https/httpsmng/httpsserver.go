@@ -35,6 +35,9 @@ type ServerHandler struct {
 }
 
 func StartServer() {
+	if conf.TunnelConf.TunnlMode.Cloud.Https == nil {
+		return
+	}
 	cert, err := tls.LoadX509KeyPair(conf.TunnelConf.TunnlMode.Cloud.Https.Cert, conf.TunnelConf.TunnlMode.Cloud.Https.Key)
 	if err != nil {
 		klog.Errorf("client load cert fail certpath = %s keypath = %s \n", conf.TunnelConf.TunnlMode.Cloud.Https.Cert, conf.TunnelConf.TunnlMode.Cloud.Https.Key)

@@ -56,6 +56,8 @@ const (
 	NODE_NAME_ENV       = "NODE_NAME"
 	POD_IP_ENV          = "POD_IP"
 	POD_NAMESPACE_ENV   = "POD_NAMESPACE"
+	CustomStart         = "#CustomStart"
+	CustomEnd           = "#CustomEnd"
 )
 
 const (
