@@ -64,6 +64,8 @@ const (
 	LiteAPIServerCrtPath    = KubeEdgePath + "lite-apiserver.crt"
 	LiteAPIServerKeyPath    = KubeEdgePath + "lite-apiserver.key"
 	LiteAPIServerTLSPath    = KubeEdgePath + "tls.json"
+	KubeManifestsPath       = KubeCfgPath + "manifests/"
+	KubeVIPPath             = KubeManifestsPath + "vip.yaml"
 )
 
 const (

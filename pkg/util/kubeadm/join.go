@@ -207,6 +207,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	}
 
 	joinConfigFlags(cmd.Flags(), edgeConfig)
+	joinInstallHAFlag(cmd.Flags(), edgeConfig)
 	addJoinConfigFlags(cmd.Flags(), joinOptions.externalcfg, joinOptions.joinControlPlane)
 	addJoinOtherFlags(cmd.Flags(), joinOptions)
 
@@ -245,6 +246,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
 	joinRunner.AppendPhase(phases.NewKubeletStartPhase())
+	joinRunner.AppendPhase(steps.NewKubeVIPJoinPhase(edgeConfig))
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
 
 	// Add edge node label
@@ -267,6 +269,17 @@ func joinConfigFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 	flagSet.StringVar(
 		&edgeConfig.InstallPkgPath, constant.InstallPkgPath,
 		constant.InstallPkgNetworkLocation, "Install static package path of kubernetes cluster.",
+	)
+}
+
+func joinInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
+	flagSet.StringVar(
+		&edgeConfig.DefaultHA, constant.DefaultHA,
+		constant.DefaultHAKubeVIP, `Specify a HA to install`,
+	)
+	flagSet.StringVar(
+		&edgeConfig.KubeVIPInterface, constant.HANetworkInterface,
+		constant.HANetworkDefaultInterface, `Specify a network interface for the control-plane-endpoint to install default HA.`,
 	)
 }
 
