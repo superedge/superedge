@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	phases "k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/join"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -61,6 +63,10 @@ func installLiteAPIServer(c workflow.RunData) error {
 
 	if data.Cfg().ControlPlane != nil {
 		return nil
+	}
+
+	if err := updateControlPlaneInfo(data.Cfg()); err != nil {
+		return err
 	}
 
 	// Deploy LiteAPIServer
@@ -98,6 +104,49 @@ func installLiteAPIServer(c workflow.RunData) error {
 	return nil
 }
 
+func updateControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error {
+	endpoint := joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
+	host, port, err := util.SplitHostPortIgnoreMissingPort(endpoint)
+	if err != nil {
+		return errors.Errorf("Invalid APIServerEndpoint: %s", endpoint)
+	}
+	if port != "" {
+		endpoint = net.JoinHostPort(constant.AddonAPIServerDomain, port)
+	} else {
+		endpoint = constant.AddonAPIServerDomain
+	}
+	// if domain instead of ipv4 address was provided, we won't update control plane info
+	if net.ParseIP(host) == nil {
+		return nil
+	}
+	joinConfiguration.Discovery = kubeadm.Discovery{
+		BootstrapToken: &kubeadm.BootstrapTokenDiscovery{
+			APIServerEndpoint:        endpoint,
+			Token:                    joinConfiguration.Discovery.BootstrapToken.Token,
+			CACertHashes:             joinConfiguration.Discovery.BootstrapToken.CACertHashes,
+			UnsafeSkipCAVerification: joinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification,
+		},
+		File:              joinConfiguration.Discovery.File,
+		TLSBootstrapToken: joinConfiguration.Discovery.TLSBootstrapToken,
+		Timeout:           joinConfiguration.Discovery.Timeout,
+	}
+	return ensureHostDNS(host)
+}
+
+func ensureHostDNS(publicIP string) error {
+	cmds := []string{
+		constant.ResetDNSCmd,
+		fmt.Sprintf("cat << EOF >>%s \n%s\n%s\n%s\nEOF", constant.HostsFilePath, constant.HostDNSBeginMark, publicIP+" "+constant.AddonAPIServerDomain, constant.HostDNSEndMark),
+	}
+	for _, cmd := range cmds {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
+			klog.Errorf("Running linux command: %s error: %v", cmd, err)
+			return err
+		}
+	}
+	return nil
+}
+
 func isRunningLiteAPIServer() (bool, error) {
 	cmdRun := fmt.Sprintf(constant.LiteAPIServerStatusCmd)
 	if _, _, err := util.RunLinuxCommand(cmdRun); err != nil {
@@ -110,6 +159,21 @@ func isRunningLiteAPIServer() (bool, error) {
 func initKubeClient(data phases.JoinData, tlsBootstrapCfg *clientcmdapi.Config) (*kubernetes.Clientset, error) {
 	// Write the bootstrap kubelet config file or the TLS-Bootstrapped kubelet config file down to disk
 	klog.V(1).Infof("[kubelet-start] writing bootstrap kubelet config file at %s", kubeadmconstants.GetBootstrapKubeletKubeConfigPath())
+	for _, c := range tlsBootstrapCfg.Clusters {
+		server := c.Server
+		address, err := url.Parse(server)
+		if err != nil {
+			return nil, err
+		}
+		if net.ParseIP(address.Hostname()) == nil {
+			c.Server = server
+		} else if address.Port() != "" {
+			c.Server = fmt.Sprintf("%s://%s:%s", address.Scheme, constant.AddonAPIServerDomain, address.Port())
+		} else {
+			c.Server = fmt.Sprintf("%s://%s", address.Scheme, constant.AddonAPIServerDomain)
+
+		}
+	}
 	if err := kubeconfigutil.WriteToDisk(kubeadmconstants.GetBootstrapKubeletKubeConfigPath(), tlsBootstrapCfg); err != nil {
 		return nil, errors.Wrap(err, "couldn't save bootstrap-kubelet.conf to disk")
 	}
@@ -182,14 +246,19 @@ func createLiteAPIServerConfig(data phases.JoinData) error {
 	if data.Cfg().Discovery.BootstrapToken == nil {
 		return errors.New("Get bootstrap token nil")
 	}
-	addr, port, err := net.SplitHostPort(data.Cfg().Discovery.BootstrapToken.APIServerEndpoint)
+	addr, port, err := util.SplitHostPortWithDefaultPort(data.Cfg().Discovery.BootstrapToken.APIServerEndpoint, "443")
 	if err != nil {
 		return fmt.Errorf("Get kube-api addr: %s, port: %s, form bootstrap token error: %v\n", addr, port, err)
 	}
 	klog.V(4).Infof("Get kube-api-server addr: %v", addr)
 
-	liteAIPServerConfigTemplate := strings.ReplaceAll(constant.LiteAPIServerTemplate, "${MASTER_IP}", addr)
-	liteAIPServerConfigTemplate = strings.ReplaceAll(liteAIPServerConfigTemplate, "${MASTER_PORT}", port)
+	liteAIPServerConfigTemplate := strings.ReplaceAll(constant.LiteAPIServerTemplate, "${MASTER_PORT}", port)
+	if net.ParseIP(addr) == nil {
+		liteAIPServerConfigTemplate = strings.ReplaceAll(liteAIPServerConfigTemplate, "${MASTER_IP}", addr)
+	} else {
+		liteAIPServerConfigTemplate = strings.ReplaceAll(liteAIPServerConfigTemplate, "${MASTER_IP}", constant.AddonAPIServerDomain)
+
+	}
 	cmds := []string{
 		fmt.Sprintf(`echo "%s" > %s`, liteAIPServerConfigTemplate, constant.LiteAPIServerConfFile),
 	}
