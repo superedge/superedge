@@ -84,12 +84,12 @@ func joinMasterPreparePhase(c workflow.RunData) error {
 }
 
 func setKubeAPIServerPatch(kubeClient *kubernetes.Clientset, patchesDir string) error {
-	liteApiServerConfigMap, err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	edgeInfoConfigMap, err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	tunnelCoreDNSClusterIP, ok := liteApiServerConfigMap.Data[constant.TunnelCoreDNSClusterIP]
+	tunnelCoreDNSClusterIP, ok := edgeInfoConfigMap.Data[constant.TunnelCoreDNSClusterIP]
 	if !ok {
 		return fmt.Errorf("Get tunnelCoreDNSClusterIP configMap %s value nil\n", constant.TunnelCoreDNSClusterIP)
 	}
