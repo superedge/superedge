@@ -86,3 +86,29 @@ func GetStringInBetween(str string, start string, end string) (result string) {
 	e := strings.Index(str, end)
 	return str[s:e]
 }
+
+func SplitHostPortIgnoreMissingPort(v string) (addr string, port string, err error) {
+	addr, port, err = net.SplitHostPort(v)
+	if err != nil {
+		if aerr, ok := err.(*net.AddrError); ok {
+			if strings.HasPrefix(aerr.Err, "missing port") {
+				// ignore missing port number.
+				addr, port, err = v, "", nil
+			}
+		}
+	}
+	return addr, port, err
+}
+
+func SplitHostPortWithDefaultPort(v string, defaultPort string) (addr string, port string, err error) {
+	addr, port, err = net.SplitHostPort(v)
+	if err != nil {
+		if aerr, ok := err.(*net.AddrError); ok {
+			if strings.HasPrefix(aerr.Err, "missing port") {
+				// ignore missing port number.
+				addr, port, err = net.SplitHostPort(v + ":" + defaultPort)
+			}
+		}
+	}
+	return addr, port, err
+}

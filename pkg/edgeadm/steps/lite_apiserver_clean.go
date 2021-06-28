@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/initsystem"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 func NewCleanupLiteApiServerPhase() workflow.Phase {
@@ -51,6 +52,7 @@ func runCleanupLiteAPIServer(c workflow.RunData) error {
 			klog.Warningln("[reset] Please ensure lite-apiserver is stopped manually")
 		}
 	}
+	resetHostsFile()
 	resetConfigDir(constant.KubeEdgePath, constant.LiteAPIServerCACertPath)
 	return nil
 }
@@ -63,10 +65,19 @@ func resetConfigDir(configPathDir, pkiPathDir string) {
 		filepath.Join(configPathDir, constant.LiteAPIServerTLSPath),
 		pkiPathDir,
 	}
-	klog.Infof("[reset] Deleting files: %v\n", filesToClean)
+	klog.V(1).Infof("[reset] Deleting files: %v\n", filesToClean)
 	for _, path := range filesToClean {
 		if err := os.RemoveAll(path); err != nil {
 			klog.Warningf("[reset] Failed to remove file: %q [%v]\n", path, err)
 		}
 	}
+}
+
+func resetHostsFile() error {
+	klog.V(1).Infof("[reset] Resetting file: %s\n", constant.HostsFilePath)
+	if _, _, err := util.RunLinuxCommand(constant.ResetDNSCmd); err != nil {
+		klog.Errorf("[reset] Failed to reset file: %s error: %v\n", constant.ResetDNSCmd, err)
+		return err
+	}
+	return nil
 }
