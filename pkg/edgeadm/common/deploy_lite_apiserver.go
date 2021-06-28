@@ -92,6 +92,16 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 	}
 	kubeAPIClusterIP := kubeService.Spec.ClusterIP
 
+	tunnelCoreDNSService, err := clientSet.CoreV1().Services(
+		constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceTunnelCoreDNS, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if tunnelCoreDNSService.Spec.ClusterIP == "" {
+		return errors.New("Get kubernetes service clusterIP nil\n")
+	}
+	tunnelCoreDNSIP := tunnelCoreDNSService.Spec.ClusterIP
+
 	liteApiServerCrt, liteApiServerKey, err :=
 		GetServiceCert("LiteApiServer", caCertFile, caKeyFile, []string{"127.0.0.1"}, []string{kubeAPIClusterIP})
 	if err != nil {
@@ -115,12 +125,13 @@ func CreateLiteApiServerCert(clientSet kubernetes.Interface, manifestsDir, caCer
 			Name: constant.EdgeCertCM,
 		},
 		Data: map[string]string{
-			constant.KubeAPICACrt:         string(caCertStr),
-			constant.KubeAPIClusterIP:     kubeAPIClusterIP,
-			constant.LiteAPIServerCrt:     string(liteApiServerCrt),
-			constant.LiteAPIServerKey:     string(liteApiServerKey),
-			constant.LiteAPIServerTLSJSON: constant.LiteAPIServerTLSCfg,
-			manifests.APP_LITE_APISERVER:  string(yamlLiteAPISerer),
+			constant.KubeAPICACrt:           string(caCertStr),
+			constant.KubeAPIClusterIP:       kubeAPIClusterIP,
+			constant.LiteAPIServerCrt:       string(liteApiServerCrt),
+			constant.LiteAPIServerKey:       string(liteApiServerKey),
+			manifests.APP_LITE_APISERVER:    string(yamlLiteAPISerer),
+			constant.TunnelCoreDNSClusterIP: tunnelCoreDNSIP,
+			constant.LiteAPIServerTLSJSON:   constant.LiteAPIServerTLSCfg,
 		},
 	}
 

@@ -39,8 +39,9 @@ const (
 )
 
 const (
-	ServiceKubernetes  = "kubernetes"
-	ServiceTunnelCloud = "tunnel-cloud"
+	ServiceKubernetes    = "kubernetes"
+	ServiceTunnelCloud   = "tunnel-cloud"
+	ServiceTunnelCoreDNS = "tunnel-coredns"
 )
 
 const (
@@ -85,12 +86,13 @@ const (
 )
 
 const (
-	EdgeCertCM           = "edge-cert"
-	KubeAPIClusterIP     = "kube-api-cluster-ip"
-	KubeAPICACrt         = "kube-api-ca.crt"
-	LiteAPIServerCrt     = "lite-apiserver.crt"
-	LiteAPIServerKey     = "lite-apiserver.key"
-	LiteAPIServerTLSJSON = "tls.json"
+	EdgeCertCM             = "edge-info"
+	LiteAPIServerTLSJSON   = "tls.json"
+	KubeAPIClusterIP       = "kube-api-cluster-ip"
+	KubeAPICACrt           = "kube-api-ca.crt"
+	LiteAPIServerCrt       = "lite-apiserver.crt"
+	LiteAPIServerKey       = "lite-apiserver.key"
+	TunnelCoreDNSClusterIP = "tunnel-coredns-cluster-ip"
 )
 
 const (

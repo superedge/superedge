@@ -22,6 +22,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -214,6 +215,13 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		if strings.Contains(edgeConfig.InstallPkgPath, constant.InstallPkgPathNote) {
 			return fmt.Errorf("Please enter --%s value(path of edgeadm static install package)\n", constant.InstallPkgPath)
 		}
+		if joinOptions.controlPlane && edgeConfig.IsEnableEdge {
+			if joinOptions.patchesDir == "" {
+				patchDir := kubeadmconstants.KubernetesDir + constant.PatchDir
+				os.MkdirAll(path.Dir(patchDir), 0755)
+				joinOptions.patchesDir = patchDir
+			}
+		}
 		steps.EdgeadmConf = edgeConfig
 		dstInstallPackagePath := edgeConfig.WorkerPath + constant.EdgeamdDir
 		if err := common.UnzipPackage(edgeConfig.InstallPkgPath, dstInstallPackagePath); err != nil {
@@ -230,6 +238,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	// init node and install docker container runtime
 	joinRunner.AppendPhase(steps.NewInitNodePhase())
 	joinRunner.AppendPhase(steps.NewContainerPhase())
+	joinRunner.AppendPhase(steps.NewJoinMasterPreparePhase(edgeConfig))
 	joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(edgeConfig))
 	// add logic of join edge node
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
