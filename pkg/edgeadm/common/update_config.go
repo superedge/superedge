@@ -38,12 +38,12 @@ import (
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
 func UpdateKubeConfig(client *kubernetes.Clientset) error {
 	if err := UpdateKubeProxyKubeconfig(client); err != nil {
-		klog.Errorf("Deploy serivce group, error: %s", err)
+		klog.Errorf("Update kube-proxy kubeconfig, error: %s", err)
 		return err
 	}
 
 	if err := UpdateKubernetesEndpoint(client); err != nil {
-		klog.Errorf("Deploy serivce group, error: %s", err)
+		klog.Errorf("Update kubernetes endpoint, error: %s", err)
 		return err
 	}
 

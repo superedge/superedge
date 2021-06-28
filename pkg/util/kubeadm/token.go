@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
@@ -265,9 +267,23 @@ func RunCreateToken(out io.Writer, client clientset.Interface, cfgPath string, i
 			joinCommand = strings.ReplaceAll(joinCommand, "kubeadm", "edgeadm")
 			fmt.Fprintln(out, joinCommand)
 		} else {
+			clusterInfoCM, err := client.CoreV1().ConfigMaps(
+				metav1.NamespacePublic).Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
 			joinCommand, err := cmdutil.GetJoinWorkerCommand(kubeConfigFile, internalcfg.BootstrapTokens[0].Token.String(), skipTokenPrint)
 			if err != nil {
 				return errors.Wrap(err, "failed to get join command")
+			}
+			config, err := clientcmd.Load([]byte(clusterInfoCM.Data[bootstrapapi.KubeConfigKey]))
+			if err != nil {
+				return errors.Wrap(err, "failed to load cluster-info configmap in namespace kube-public")
+			}
+			for _, c := range config.Clusters {
+				joinReg, _ := regexp.Compile(`join(.*)--token`)
+				joinCommand = joinReg.ReplaceAllString(joinCommand, fmt.Sprintf("join %s --token", strings.Replace(c.Server, "https://", "", -1)))
+				break
 			}
 			joinCommand = strings.ReplaceAll(joinCommand, "\\\n", "")
 			joinCommand = strings.ReplaceAll(joinCommand, "\t", "")

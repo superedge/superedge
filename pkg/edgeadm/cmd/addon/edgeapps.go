@@ -82,6 +82,6 @@ func (a *addonAction) runAddon() error {
 }
 
 func (a *addonAction) runDetach() error {
-	klog.Info("Start install addon apps to your original cluster")
+	klog.Info("Start uninstall addon apps from your original cluster")
 	return common.DeleteEdgeAPPS(a.clientSet, a.manifestDir, a.caCertFile, a.caKeyFile, a.masterPublicAddr, a.certSANs)
 }

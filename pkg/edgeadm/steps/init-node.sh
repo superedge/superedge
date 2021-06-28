@@ -20,9 +20,10 @@ command_exists() {
 
 disable_firewalld() {
 	if [ "ubuntu" == ${OS_RELEASE} ]; then
-		systemctl disable ufw && systemctl stop ufw
+		ufw disable || true
 	else
-		systemctl disable firewalld && systemctl stop firewalld
+		systemctl disable firewalld || true
+		systemctl stop firewalld || true
 	fi
 }
 
@@ -45,7 +46,7 @@ clear_node() {
 }
 
 swap_off() {
-	swapoff -a && sed -i "s/^[^#]*swap/#&/" /etc/fstab
+	swapoff -a && sed -i "s/^[^#]*swap/#&/" /etc/fstab || true
 }
 
 disable_selinux() {
@@ -53,7 +54,7 @@ disable_selinux() {
 }
 
 enable_kubelet() {
-	systemctl enable kubelet
+	systemctl enable kubelet || true
 }
 
 set_sysctl() {
