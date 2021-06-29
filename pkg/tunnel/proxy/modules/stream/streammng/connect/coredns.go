@@ -73,7 +73,7 @@ func (dns *CoreDns) syncPodIP() error {
 		return nil
 	}
 
-	err = wait.Poll(5*time.Second, 30*time.Second, func() (done bool, err error) {
+	err = wait.Poll(2*time.Second, 10*time.Second, func() (done bool, err error) {
 		cm, err := dns.ClientSet.CoreV1().ConfigMaps(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.TODO(), conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Configmap, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("get configmap fail err = %v", err)
@@ -148,6 +148,10 @@ func SyncEndPoints() {
 	}
 }
 
+//Read the file by line, split each line of data read according to the space,
+//and the variable after splitting is a byte array
+//e: 127.0.0.1    localhsot
+//hostsArray = [[[49 50 55 46 48 46 48 46 49] [108 111 99 97 108 104 115 111 116]]]
 func hosts2Array(fileread io.Reader) [][][]byte {
 	scanner := bufio.NewScanner(fileread)
 	hostsArray := [][][]byte{}
