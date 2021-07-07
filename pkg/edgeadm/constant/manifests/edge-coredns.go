@@ -84,6 +84,11 @@ data:
             fallthrough
         }
         ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+           pods insecure
+           fallthrough in-addr.arpa ip6.arpa
+           ttl 30
+        }
         prometheus :9153
         forward . /etc/resolv.conf
         cache 30
