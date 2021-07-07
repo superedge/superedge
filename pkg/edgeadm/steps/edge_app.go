@@ -81,16 +81,27 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 				Run: runServiceGroupAddon,
 			},
 			{
-				Name:         "lite-apiserver",
-				Short:        "Config the lite-apiserver configmap into edge Kubernetes cluster",
-				InheritFlags: getAddonPhaseFlags("lite-apiserver"),
+				Name:         "edge-coredns",
+				Short:        "Install the edge-coredns addon to edge Kubernetes cluster",
+				InheritFlags: getAddonPhaseFlags("edge-coredns"),
 				RunIf: func(data workflow.RunData) (bool, error) {
 					return config.IsEnableEdge, nil
 				},
-				Run: configLiteAPIServer,
+				Run: runEdgeCorednsAddon,
+			},
+			{
+				Name:         "join-prepare",
+				Hidden:       true,
+				Short:        "Prepare Config of join master or edge node",
+				InheritFlags: getAddonPhaseFlags("join-prepare"),
+				RunIf: func(data workflow.RunData) (bool, error) {
+					return config.IsEnableEdge, nil
+				},
+				Run: joinNodePrepare,
 			},
 			{
 				Name:         "update-config",
+				Hidden:       true,
 				Short:        "Update Kubernetes cluster config support marginal autonomy",
 				InheritFlags: getAddonPhaseFlags("update-config"),
 				RunIf: func(data workflow.RunData) (bool, error) {
@@ -118,7 +129,9 @@ func getAddonPhaseFlags(name string) []string {
 	}
 	if name == "all" || name == "update-config" {
 	}
-	if name == "all" || name == "lite-apiserver" {
+	if name == "all" || name == "join-prepare" {
+	}
+	if name == "all" || name == "edge-coredns" {
 	}
 	return flags
 }
@@ -232,6 +245,34 @@ func runServiceGroupAddon(c workflow.RunData) error {
 	return err
 }
 
+func runEdgeCorednsAddon(c workflow.RunData) error {
+	data, ok := c.(phases.InitData)
+	if !ok {
+		return errors.New("addon phase invoked with an invalid data struct")
+	}
+
+	client, err := data.Client()
+	if err != nil {
+		return err
+	}
+
+	//Add Label superedge.io.hostname to deploy edge-codedns service-group
+	masterLabel := map[string]string{
+		constant.EdgehostnameLabelKey: data.Cfg().NodeRegistration.Name,
+	}
+	if err := kubeclient.AddNodeLabel(client, data.Cfg().NodeRegistration.Name, masterLabel); err != nil {
+		klog.Errorf("Add edged Node node label error: %v", err)
+		return err
+	}
+
+	if err := common.DeployEdgeCorednsAddon(data.KubeConfigPath(), EdgeadmConf.ManifestsDir); err != nil {
+		klog.Errorf("Deploy edge-coredns error: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func updateKubeConfig(c workflow.RunData) error {
 	initConfiguration, _, client, err := getInitData(c)
 	if err != nil {
@@ -261,8 +302,8 @@ func updateKubeConfig(c workflow.RunData) error {
 	return err
 }
 
-func configLiteAPIServer(c workflow.RunData) error {
-	cfg, edgeadmConf, client, err := getInitData(c)
+func joinNodePrepare(c workflow.RunData) error {
+	cfg, egeadmConf, client, err := getInitData(c)
 	if err != nil {
 		return err
 	}
@@ -271,14 +312,14 @@ func configLiteAPIServer(c workflow.RunData) error {
 		return err
 	}
 
+	// Prepare lite-apiserver config info
 	caKeyFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName)
 	caCertFile := filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName)
-	if err := common.CreateLiteApiServerCert(client, edgeadmConf.ManifestsDir, caCertFile, caKeyFile); err != nil {
-		klog.Errorf("Config lite-apiserver, error: %s", err)
+	if err := common.JoinNodePrepare(client, egeadmConf.ManifestsDir, caCertFile, caKeyFile); err != nil {
+		klog.Errorf("Prepare Config Join Node, error: %s", err)
 		return err
 	}
-
-	klog.Infof("Config lite-apiserver configMap success")
+	klog.Infof("Prepare Config Join Node configMap success")
 
 	return err
 }

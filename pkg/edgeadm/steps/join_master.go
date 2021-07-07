@@ -35,11 +35,11 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func NewJoinMasterPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
+func NewJoinPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
 	return workflow.Phase{
-		Name:  "join-master-prepare",
-		Short: "join master prepare for master node",
-		Run:   joinMasterPreparePhase,
+		Name:  "join-prepare",
+		Short: "join prepare for master or edge node",
+		Run:   joinPreparePhase,
 		RunIf: func(c workflow.RunData) (bool, error) {
 			return config.IsEnableEdge, nil
 		},
@@ -48,14 +48,10 @@ func NewJoinMasterPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
 }
 
 // joinMasterPreparePhase prepare join master logic.
-func joinMasterPreparePhase(c workflow.RunData) error {
+func joinPreparePhase(c workflow.RunData) error {
 	data, ok := c.(phases.JoinData)
 	if !ok {
 		return errors.New("installLiteAPIServer phase invoked with an invalid data struct")
-	}
-
-	if data.Cfg().ControlPlane == nil {
-		return nil
 	}
 
 	tlsBootstrapCfg, err := data.TLSBootstrapCfg()
@@ -75,11 +71,49 @@ func joinMasterPreparePhase(c workflow.RunData) error {
 		os.Remove(constant.KubeadmCertPath)
 	}()
 
-	if err := setKubeAPIServerPatch(kubeClient, data.PatchesDir()); err != nil {
+	// prepare join master node
+	if data.Cfg().ControlPlane != nil {
+		if err := prepareJoinMasterNode(kubeClient, data); err != nil {
+			klog.Errorf("Add kube-apiserver patch error: %v", err)
+			return nil
+		}
+	}
+
+	// prepare join edge node
+	if err := prepareJoinEdgeNode(kubeClient, data); err != nil {
 		klog.Errorf("Add kube-apiserver patch error: %v", err)
 		return nil
 	}
 
+	return nil
+}
+
+func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
+	joinCfg, err := data.InitCfg()
+	if err != nil {
+		return err
+	}
+
+	// Set kubelet cluster-dns
+	edgeInfoConfigMap, err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	edgeCoreDNSClusterIP, ok := edgeInfoConfigMap.Data[constant.EdgeCoreDNSClusterIP]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LiteAPIServerTLSJSON)
+	}
+	edgeCoreDNSClusterIP = strings.Replace(edgeCoreDNSClusterIP, "\n", "", -1)
+	joinCfg.NodeRegistration.KubeletExtraArgs["cluster-dns"] = edgeCoreDNSClusterIP
+
+	return nil
+}
+
+func prepareJoinMasterNode(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
+	if err := setKubeAPIServerPatch(kubeClient, data.PatchesDir()); err != nil {
+		klog.Errorf("Add kube-apiserver patch error: %v", err)
+		return nil
+	}
 	return nil
 }
 

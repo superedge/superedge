@@ -41,6 +41,7 @@ const (
 const (
 	ServiceKubernetes    = "kubernetes"
 	ServiceTunnelCloud   = "tunnel-cloud"
+	ServiceEdgeCoreDNS   = "edge-coredns"
 	ServiceTunnelCoreDNS = "tunnel-coredns"
 )
 
@@ -71,11 +72,12 @@ const (
 
 // label
 const (
-	EdgeNodeLabelKey   = "superedge.io/edge-node"
-	EdgeMasterLabelKey = "superedge.io/edge-master"
-	EdgeChangeLabelKey = "superedge.io/change"
-	EdgeLocalHost      = "superedge.io/local-endpoint"
-	EdgeLocalPort      = "superedge.io/local-port"
+	EdgeNodeLabelKey     = "superedge.io/edge-node"
+	EdgeMasterLabelKey   = "superedge.io/edge-master"
+	EdgeChangeLabelKey   = "superedge.io/change"
+	EdgehostnameLabelKey = "superedge.io.hostname"
+	EdgeLocalHost        = "superedge.io/local-endpoint"
+	EdgeLocalPort        = "superedge.io/local-port"
 
 	EdgeNodeLabelValueEnable   = "enable"
 	EdgeMasterLabelValueEnable = "enable"
@@ -92,6 +94,7 @@ const (
 	KubeAPICACrt           = "kube-api-ca.crt"
 	LiteAPIServerCrt       = "lite-apiserver.crt"
 	LiteAPIServerKey       = "lite-apiserver.key"
+	EdgeCoreDNSClusterIP   = "edge-coredns-cluster-ip"
 	TunnelCoreDNSClusterIP = "tunnel-coredns-cluster-ip"
 )
 

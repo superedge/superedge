@@ -311,7 +311,8 @@ func addEdgeNodeLabel(c workflow.RunData) error {
 		return err
 	}
 	masterLabel := map[string]string{
-		constant.EdgeNodeLabelKey: constant.EdgeNodeLabelValueEnable,
+		constant.EdgeNodeLabelKey:     constant.EdgeNodeLabelValueEnable,
+		constant.EdgehostnameLabelKey: data.Cfg().NodeRegistration.Name,
 	}
 	if err := kubeclient.AddNodeLabel(clientSet, data.Cfg().NodeRegistration.Name, masterLabel); err != nil {
 		klog.Errorf("Add edged Node node label error: %v", err)

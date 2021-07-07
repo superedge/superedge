@@ -63,6 +63,12 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	}
 	klog.Infof("Deploy service-group success!")
 
+	// Deploy edge-coredns
+	if err := DeployEdgeCorednsAddon(configPath, manifestsDir); err != nil {
+		klog.Errorf("Deploy edge-coredns error: %v", err)
+		return err
+	}
+
 	// Update Kube-* Config
 	if err := UpdateKubeConfig(client); err != nil {
 		klog.Errorf("Deploy serivce group, error: %s", err)
@@ -70,17 +76,17 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	}
 	klog.Infof("Update Kubernetes cluster config support marginal autonomy success")
 
-	//Create lite-api-server Cert
-	if err := CreateLiteApiServerCert(client, manifestsDir, caCertFile, caKeyFile); err != nil {
-		klog.Errorf("Config lite-apiserver, error: %s", err)
+	//Prepare config join Node
+	if err := JoinNodePrepare(client, manifestsDir, caCertFile, caKeyFile); err != nil {
+		klog.Errorf("Prepare config join Node error: %s", err)
 		return err
 	}
-	klog.Infof("Config lite-apiserver configMap success")
+	klog.Infof("Prepare join Node configMap success")
 
 	return nil
 }
 
-func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string) error {
+func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string, configPath string) error {
 	if ok := CheckIfEdgeAppDeletable(client); !ok {
 		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
 		return nil
@@ -105,6 +111,13 @@ func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 		return err
 	}
 	klog.Infof("Delete service-group success!")
+
+	// Delete edge-Coredns
+	if err := DeleteEdgeCoredns(configPath, manifestsDir); err != nil {
+		klog.Errorf("Delete edge-coredns, error: %s", err)
+		return err
+	}
+	klog.Infof("Delete edge-Coredns success!")
 
 	// Recover Kube-* Config
 	if err := RecoverKubeConfig(client); err != nil {
