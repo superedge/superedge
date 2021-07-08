@@ -132,7 +132,7 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 		edgeCoreDNSService, err = clientSet.CoreV1().Services(
 			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceEdgeCoreDNS+"-svc", metav1.GetOptions{})
 		if err != nil {
-			klog.Warningf("Waiting get edge-coredns service clusterIP, system message: %v", err)
+			klog.V(2).Infof("Waiting get edge-coredns service clusterIP, system message: %v", err)
 			return false, nil
 		}
 		return true, nil

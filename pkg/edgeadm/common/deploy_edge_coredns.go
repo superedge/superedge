@@ -76,10 +76,10 @@ func DeployEdgeCorednsAddon(kubeconfigFile string, manifestsDir string) error {
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
 		return err
 	}
-	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(3*time.Second, 5*time.Minute, func() (bool, error) {
 		_, err := serviceGrpupClinet.SuperedgeV1().DeploymentGrids(constant.NamespaceEdgeSystem).Create(context.TODO(), obj, metav1.CreateOptions{})
 		if err != nil {
-			klog.Warningf("Waiting deploy edge-coredns DeploymentGrid, system message: %v", err)
+			klog.V(2).Infof("Waiting deploy edge-coredns DeploymentGrid, system message: %v", err)
 			return false, nil
 		}
 		return true, nil
@@ -98,10 +98,10 @@ func DeployEdgeCorednsAddon(kubeconfigFile string, manifestsDir string) error {
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, serviceGrid); err != nil {
 		return err
 	}
-	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(3*time.Second, 5*time.Minute, func() (bool, error) {
 		_, err := serviceGrpupClinet.SuperedgeV1().ServiceGrids(constant.NamespaceEdgeSystem).Create(context.TODO(), serviceGrid, metav1.CreateOptions{})
 		if err != nil {
-			klog.Warningf("Waiting deploy edge-coredns ServiceGrid, system message: %v", err)
+			klog.V(2).Infof("Waiting deploy edge-coredns ServiceGrid, system message: %v", err)
 			return false, nil
 		}
 		return true, nil
