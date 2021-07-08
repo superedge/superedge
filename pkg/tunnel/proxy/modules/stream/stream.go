@@ -41,7 +41,8 @@ func (stream *Stream) Start(mode string) {
 	if mode == util.CLOUD {
 		go connect.StartServer()
 		if !conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Debug {
-			go connect.SynCorefile()
+			go connect.SyncPodIP()
+			go connect.SyncEndPoints()
 		}
 		channelzAddr = conf.TunnelConf.TunnlMode.Cloud.Stream.Server.ChannelzAddr
 	} else {
