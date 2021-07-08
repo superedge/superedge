@@ -265,13 +265,13 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 
 	clusterConfig := initOptions.externalClusterCfg
 	serviceCIDR := clusterConfig.Networking.ServiceSubnet
-	clusterIP, err := common.GetIndexedIP(serviceCIDR, constant.TunnelCoreDNSCIDRIndex)
+	tunnelCoreDNSClusterIP, err := common.GetIndexedIP(serviceCIDR, constant.TunnelCoreDNSCIDRIndex)
 	if err != nil {
 		klog.Errorf("Get tunnel-coreDNS ClusterIP, error: %v", err)
 		return err
 	}
 	option := map[string]interface{}{
-		"TunnelCoreDNSClusterIP": clusterIP,
+		"TunnelCoreDNSClusterIP": tunnelCoreDNSClusterIP,
 	}
 	kubeAPIServerPatch, err := kubeclient.ParseString(constant.KubeAPIServerPatchYaml, option)
 	if err != nil {
@@ -290,7 +290,7 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	edgeadmConfig.TunnelCloudToken = util.GetRandToken(32)
-	edgeadmConfig.TunnelCoreDNSClusterIP = clusterIP.String()
+	edgeadmConfig.TunnelCoreDNSClusterIP = tunnelCoreDNSClusterIP.String()
 
 	return nil
 }

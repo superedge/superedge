@@ -34,9 +34,12 @@ var yamlMap = map[string]string{
 	manifests.APP_TUNNEL_CLOUD:                manifests.TunnelCloudYaml,
 	manifests.APP_TUNNEL_CORDDNS:              manifests.TunnelCorednsYaml,
 	manifests.APP_LITE_APISERVER:              manifests.LiteApiServerYaml,
+	manifests.APPEdgeCorednsConfig:            manifests.EdgeCorednsConfigYaml,
 	manifests.APP_EDGE_HEALTH_ADMISSION:       manifests.EdgeHealthAdmissionYaml,
 	manifests.APP_EDGE_HEALTH_WEBHOOK:         manifests.EdgeHealthWebhookConfigYaml,
 	manifests.APP_APPLICATION_GRID_WRAPPER:    manifests.ApplicationGridWrapperYaml,
+	manifests.APPEdgeCorednsServiceGrid:       manifests.EdgeCorednsServiceGridYaml,
+	manifests.APPEdgeCorednsDeploymentGrid:    manifests.EdgeCorednsDeploymentGridYaml,
 	manifests.APP_APPLICATION_GRID_CONTROLLER: manifests.ApplicationGridControllerYaml,
 }
 

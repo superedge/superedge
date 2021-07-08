@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	phases "k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/join"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -65,10 +64,6 @@ func installLiteAPIServer(c workflow.RunData) error {
 		return nil
 	}
 
-	if err := updateControlPlaneInfo(data.Cfg()); err != nil {
-		return err
-	}
-
 	// Deploy LiteAPIServer
 	isDeploy, err := isRunningLiteAPIServer()
 	if isDeploy || err != nil {
@@ -100,49 +95,6 @@ func installLiteAPIServer(c workflow.RunData) error {
 	//node kube-api-server addr set lite-api-server addr if deploy lite-api-server success.
 	for _, cluster := range tlsBootstrapCfg.Clusters {
 		cluster.Server = constant.LiteAPIServerAddr
-	}
-	return nil
-}
-
-func updateControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error {
-	endpoint := joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
-	host, port, err := util.SplitHostPortIgnoreMissingPort(endpoint)
-	if err != nil {
-		return errors.Errorf("Invalid APIServerEndpoint: %s", endpoint)
-	}
-	if port != "" {
-		endpoint = net.JoinHostPort(constant.AddonAPIServerDomain, port)
-	} else {
-		endpoint = constant.AddonAPIServerDomain
-	}
-	// if domain instead of ipv4 address was provided, we won't update control plane info
-	if net.ParseIP(host) == nil {
-		return nil
-	}
-	joinConfiguration.Discovery = kubeadm.Discovery{
-		BootstrapToken: &kubeadm.BootstrapTokenDiscovery{
-			APIServerEndpoint:        endpoint,
-			Token:                    joinConfiguration.Discovery.BootstrapToken.Token,
-			CACertHashes:             joinConfiguration.Discovery.BootstrapToken.CACertHashes,
-			UnsafeSkipCAVerification: joinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification,
-		},
-		File:              joinConfiguration.Discovery.File,
-		TLSBootstrapToken: joinConfiguration.Discovery.TLSBootstrapToken,
-		Timeout:           joinConfiguration.Discovery.Timeout,
-	}
-	return ensureHostDNS(host)
-}
-
-func ensureHostDNS(publicIP string) error {
-	cmds := []string{
-		constant.ResetDNSCmd,
-		fmt.Sprintf("cat << EOF >>%s \n%s\n%s\n%s\nEOF", constant.HostsFilePath, constant.HostDNSBeginMark, publicIP+" "+constant.AddonAPIServerDomain, constant.HostDNSEndMark),
-	}
-	for _, cmd := range cmds {
-		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
-			klog.Errorf("Running linux command: %s error: %v", cmd, err)
-			return err
-		}
 	}
 	return nil
 }
@@ -311,8 +263,10 @@ func addEdgeNodeLabel(c workflow.RunData) error {
 		return err
 	}
 	masterLabel := map[string]string{
-		constant.EdgeNodeLabelKey: constant.EdgeNodeLabelValueEnable,
+		constant.EdgeNodeLabelKey:     constant.EdgeNodeLabelValueEnable,
+		constant.EdgehostnameLabelKey: data.Cfg().NodeRegistration.Name,
 	}
+
 	if err := kubeclient.AddNodeLabel(clientSet, data.Cfg().NodeRegistration.Name, masterLabel); err != nil {
 		klog.Errorf("Add edged Node node label error: %v", err)
 		return err

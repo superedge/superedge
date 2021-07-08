@@ -70,8 +70,9 @@ arch=amd64 version=v0.4.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 ## 联系
 
 如果您有任何疑问或需要支持，请随时与我们联系：
-- [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)
+- [Slack](https://app.slack.com/client/T01GSLDPQG7/C01H7KT4PMZ)
 - [网上论坛](https://groups.google.com/g/superedge)
+- [社区例会](https://docs.qq.com/doc/DSFVJbHVFUnVKdFlE)
 - 微信群
 
 <div align="center">
