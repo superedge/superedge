@@ -17,14 +17,16 @@ package steps
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	phases "k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/join"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -35,11 +37,11 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func NewJoinMasterPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
+func NewJoinPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
 	return workflow.Phase{
-		Name:  "join-master-prepare",
-		Short: "join master prepare for master node",
-		Run:   joinMasterPreparePhase,
+		Name:  "join-prepare",
+		Short: "join prepare for master or edge node",
+		Run:   joinPreparePhase,
 		RunIf: func(c workflow.RunData) (bool, error) {
 			return config.IsEnableEdge, nil
 		},
@@ -48,14 +50,15 @@ func NewJoinMasterPreparePhase(config *cmd.EdgeadmConfig) workflow.Phase {
 }
 
 // joinMasterPreparePhase prepare join master logic.
-func joinMasterPreparePhase(c workflow.RunData) error {
+func joinPreparePhase(c workflow.RunData) error {
 	data, ok := c.(phases.JoinData)
 	if !ok {
 		return errors.New("installLiteAPIServer phase invoked with an invalid data struct")
 	}
 
-	if data.Cfg().ControlPlane == nil {
-		return nil
+	if err := configControlPlaneInfo(data.Cfg()); err != nil {
+		klog.Errorf("Config ControlPlaneInfo, error: %v")
+		return err
 	}
 
 	tlsBootstrapCfg, err := data.TLSBootstrapCfg()
@@ -75,11 +78,100 @@ func joinMasterPreparePhase(c workflow.RunData) error {
 		os.Remove(constant.KubeadmCertPath)
 	}()
 
+	// prepare join master node
+	if data.Cfg().ControlPlane != nil {
+		if err := prepareJoinMasterNode(kubeClient, data); err != nil {
+			klog.Errorf("Prepare Join master node, error: %v", err)
+			return nil
+		}
+	}
+
+	// prepare join edge node
+	if data.Cfg().ControlPlane == nil {
+		if err := prepareJoinEdgeNode(kubeClient, data); err != nil {
+			klog.Errorf("Prepare Join edge node, error: %v", err)
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error {
+	endpoint := joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
+	host, port, err := util.SplitHostPortIgnoreMissingPort(endpoint)
+	if err != nil {
+		return errors.Errorf("Invalid APIServerEndpoint: %s", endpoint)
+	}
+	if port != "" {
+		endpoint = net.JoinHostPort(constant.AddonAPIServerDomain, port)
+	} else {
+		endpoint = constant.AddonAPIServerDomain
+	}
+	// if domain instead of ipv4 address was provided, we won't update control plane info
+	if net.ParseIP(host) == nil {
+		return nil
+	}
+	joinConfiguration.Discovery = kubeadm.Discovery{
+		BootstrapToken: &kubeadm.BootstrapTokenDiscovery{
+			APIServerEndpoint:        endpoint,
+			Token:                    joinConfiguration.Discovery.BootstrapToken.Token,
+			CACertHashes:             joinConfiguration.Discovery.BootstrapToken.CACertHashes,
+			UnsafeSkipCAVerification: joinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification,
+		},
+		File:              joinConfiguration.Discovery.File,
+		TLSBootstrapToken: joinConfiguration.Discovery.TLSBootstrapToken,
+		Timeout:           joinConfiguration.Discovery.Timeout,
+	}
+	return ensureHostDNS(host)
+}
+
+func ensureHostDNS(publicIP string) error {
+	cmds := []string{
+		constant.ResetDNSCmd,
+		fmt.Sprintf("cat << EOF >>%s \n%s\n%s\n%s\nEOF", constant.HostsFilePath, constant.HostDNSBeginMark, publicIP+" "+constant.AddonAPIServerDomain, constant.HostDNSEndMark),
+	}
+	for _, cmd := range cmds {
+		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
+			klog.Errorf("Running linux command: %s error: %v", cmd, err)
+			return err
+		}
+	}
+	return nil
+}
+
+func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
+	joinCfg, err := data.InitCfg()
+	if err != nil {
+		return err
+	}
+
+	// Set kubelet cluster-dns
+	edgeInfoConfigMap, err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Get configMap: %s, error: %v", constant.EdgeCertCM, err)
+		return err
+	}
+	edgeCoreDNSClusterIP, ok := edgeInfoConfigMap.Data[constant.EdgeCoreDNSClusterIP]
+	if !ok {
+		return fmt.Errorf("Get lite-apiserver configMap %s value nil\n", constant.LiteAPIServerTLSJSON)
+	}
+	edgeCoreDNSClusterIP = strings.Replace(edgeCoreDNSClusterIP, "\n", "", -1)
+
+	if joinCfg.NodeRegistration.KubeletExtraArgs == nil {
+		joinCfg.NodeRegistration.KubeletExtraArgs = make(map[string]string)
+	}
+	joinCfg.NodeRegistration.KubeletExtraArgs["cluster-dns"] = edgeCoreDNSClusterIP
+	klog.V(4).Infof("Get edge-coredns clusterIP %s", edgeCoreDNSClusterIP)
+
+	return nil
+}
+
+func prepareJoinMasterNode(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
 	if err := setKubeAPIServerPatch(kubeClient, data.PatchesDir()); err != nil {
 		klog.Errorf("Add kube-apiserver patch error: %v", err)
 		return nil
 	}
-
 	return nil
 }
 
