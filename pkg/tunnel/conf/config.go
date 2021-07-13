@@ -55,6 +55,7 @@ type StreamServer struct {
 	Cert         string `toml:"cert"`
 	GrpcPort     int    `toml:"grpcport"`
 	LogPort      int    `toml:"logport"`
+	MetricsPort  int    `toml:"metricsport"`
 	ChannelzAddr string `toml:"channelzaddr"`
 }
 

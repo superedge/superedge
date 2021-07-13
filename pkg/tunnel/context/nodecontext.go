@@ -17,8 +17,10 @@ limitations under the License.
 package context
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/metrics"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
+	"os"
 	"sync"
 )
 
@@ -36,6 +38,7 @@ func (entity *nodeContext) AddNode(name string) *node {
 		name:      name,
 	}
 	entity.nodes[name] = edge
+	metrics.EdgeNodes.WithLabelValues(os.Getenv(util.POD_NAMESPACE_ENV), os.Getenv(util.POD_NAME)).Inc()
 	return edge
 }
 
@@ -49,6 +52,7 @@ func (entity *nodeContext) RemoveNode(name string) {
 	entity.nodeLock.Lock()
 	defer entity.nodeLock.Unlock()
 	delete(entity.nodes, name)
+	metrics.EdgeNodes.WithLabelValues(os.Getenv(util.POD_NAMESPACE_ENV), os.Getenv(util.POD_NAME)).Dec()
 }
 
 func (entity *nodeContext) GetNodes() []string {
