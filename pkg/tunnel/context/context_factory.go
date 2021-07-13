@@ -96,8 +96,8 @@ func (ctx *Context) RemoveNode(name string) {
 			for _, v := range conns {
 				v.Send2Conn(stopMsg)
 			}
-			ctx.nodes.RemoveNode(name)
 		}
+		ctx.nodes.RemoveNode(name)
 	}
 	klog.V(8).Infof("remove node success node: %s", name)
 }
