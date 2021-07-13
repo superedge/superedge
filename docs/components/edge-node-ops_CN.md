@@ -1,6 +1,6 @@
 # 边缘节点运维
 
-在边缘集群的场景下,边缘节点分布在不同的区域，且边缘节点和云端之间是单向网络(边缘节点和访问云端，云端无法直接访问边缘节点)
+在边缘集群的场景下,边缘节点分布在不同的区域，且边缘节点和云端之间是单向网络(边缘节点可以访问云端，云端无法直接访问边缘节点)
 ，提供云端SSH登录统一入口可以简化节点的运维工作。针对这一需求在[SuperEdge](https://github.com/superedge/superedge)项目的[tunnel组件](https://github.com/superedge/superedge/blob/main/docs/components/tunnel_CN.md)添加SSH模块，实现在云端统一操作节点。
 
 ## 需求分析

@@ -41,7 +41,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
-	golang.org/x/tools v0.0.0-20201105001634-bc3cf281b174 // indirect
+	golang.org/x/tools v0.0.0-20201105001634-bc3cf281b174
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
