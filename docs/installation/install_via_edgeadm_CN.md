@@ -1,15 +1,16 @@
 # 部署SuperEdge - edgeadm方式
 
-- [前提](#%E5%89%8D%E6%8F%90)
-- [一、edgeadm 简要](#%E4%B8%80edgeadm-%E7%AE%80%E8%A6%81)
-  - [1. edgeadm 是什么？](#1-edgeadm-%E6%98%AF%E4%BB%80%E4%B9%88)
-  - [2. edgeadm 有什么用？](#2-edgeadm-%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8)
-  - [3. 如何获取 edgeadm 工具](#3-%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96-edgeadm-%E5%B7%A5%E5%85%B7)
-  - [4. 将kubernestes集群转化成边缘集群](#4-%E5%B0%86kubernestes%E9%9B%86%E7%BE%A4%E8%BD%AC%E5%8C%96%E6%88%90%E8%BE%B9%E7%BC%98%E9%9B%86%E7%BE%A4)
-- [二、edgeadm 命令介绍](#%E4%BA%8Cedgeadm-%E5%91%BD%E4%BB%A4%E4%BB%8B%E7%BB%8D)
-  - [1. change 命令](#1-change-%E5%91%BD%E4%BB%A4)
-  - [2. revert 命令](#2-revert-%E5%91%BD%E4%BB%A4)
-  - [3. mainfests 命令](#3-mainfests-%E5%91%BD%E4%BB%A4)
+- [部署SuperEdge - edgeadm方式](#部署superedge---edgeadm方式)
+  - [前提](#前提)
+  - [一、edgeadm 简要](#一edgeadm-简要)
+    - [1. edgeadm 是什么？](#1-edgeadm-是什么)
+    - [2. edgeadm 有什么用？](#2-edgeadm-有什么用)
+    - [3. 如何获取 edgeadm 工具](#3-如何获取-edgeadm-工具)
+    - [4. 将kubernestes集群转化成边缘集群](#4-将kubernestes集群转化成边缘集群)
+  - [二、edgeadm 命令介绍](#二edgeadm-命令介绍)
+    - [1. change 命令](#1-change-命令)
+    - [2. revert 命令](#2-revert-命令)
+    - [3. mainfests 命令](#3-mainfests-命令)
 
 ## 前提
 
@@ -35,7 +36,7 @@
 ### 3. 如何获取 edgeadm 工具
 
 - 直接获取二进制 [点我获取](https://github.com/superedge/superedge/releases)
-- 手动编译工程 [开始编译](./tutorial_CN.md)
+- 手动编译工程 [开始编译](../tutorial_CN.md)
 
 ### 4. 将kubernestes集群转化成边缘集群
 
