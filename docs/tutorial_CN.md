@@ -70,6 +70,8 @@ arch=amd64 version=v0.4.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 - [打破内网壁垒，从云端一次添加成百上千的边缘节点](https://mp.weixin.qq.com/s/JmzQuiBBkNwS9hpS0hIg7A)
 - [SuperEdge 云边隧道新特性：从云端SSH运维边缘节点](https://mp.weixin.qq.com/s/J-sxkiL62FAjGBRHERPbKg)
 - [Addon SuperEdge 让原生 K8s 集群可管理边缘应用和节点](https://mp.weixin.qq.com/s/1CnvqASzLnOShj8Hoh-Trw)
+- [配置tunnel-cloud HPA](./components/hpa-monitor_CN.md)
+- [如何使用Promethues采集边缘metrics](./components/hpa-monitor_CN.md)
 
 #### 2. 技术文章
 
