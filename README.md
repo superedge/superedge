@@ -60,7 +60,10 @@ arch=amd64 version=v0.4.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 
 See the detailed process[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
 
-Other installation, deployment, and administration, see our [**Tutorial**](docs/installation/tutorial.md).
+Other installation, deployment, and administration, see our [**Tutorial**](docs/tutorial.md).
+
+## more details
+- [tutorial_CN](./docs/tutorial_CN.md)
 
 ## Contact
 

@@ -1,15 +1,16 @@
 # Install SuperEdge by edgeadm tool
 
-- [Prerequisite](#prerequisite)
-- [edgeadm Introduction](#edgeadm-introduction)
-  - [1. what is edgeadm ?](#1-what-is-edgeadm-)
-  - [2. What can edgeadm do ?](#2-what-can-edgeadm-do-)
-  - [3. How to get edgeadm tool](#3-how-to-get-edgeadm-tool)
-  - [4. Transform a native kubernestes into edge Kubernestes cluster](#4-transform-a-native-kubernestes-into-edge-kubernestes-cluster)
-- [edgeadm commands Introduction](#edgeadm-commands-introduction)
-  - [1. change](#1-change)
-  - [2. revert](#2-revert)
-  - [3. mainfests](#3-mainfests)
+- [Install SuperEdge by edgeadm tool](#install-superedge-by-edgeadm-tool)
+  - [Prerequisite](#prerequisite)
+  - [edgeadm Introduction](#edgeadm-introduction)
+    - [1. what is edgeadm ?](#1-what-is-edgeadm-)
+    - [2. What can edgeadm do ?](#2-what-can-edgeadm-do-)
+    - [3. How to get edgeadm tool](#3-how-to-get-edgeadm-tool)
+    - [4. Transform a native kubernestes into edge Kubernestes cluster](#4-transform-a-native-kubernestes-into-edge-kubernestes-cluster)
+  - [edgeadm commands Introduction](#edgeadm-commands-introduction)
+    - [1. change](#1-change)
+    - [2. revert](#2-revert)
+    - [3. mainfests](#3-mainfests)
 
 ## Prerequisite
 
@@ -33,7 +34,7 @@
 ### 3. How to get edgeadm tool
 
 - Download binary [download](https://github.com/superedge/superedge/releases)
-- Building binary [how to building](docs/installation/tutorial.md)
+- Building binary [how to building](docs/../../tutorial.md)
 
 ### 4. Transform a native kubernestes into edge Kubernestes cluster
 
