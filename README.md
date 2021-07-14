@@ -62,7 +62,7 @@ See the detailed process[One-click install of edge Kubernetes cluster](./docs/in
 
 Other installation, deployment, and administration, see our [**Tutorial**](docs/tutorial.md).
 
-## more details
+## More details
 - [tutorial_CN](./docs/tutorial_CN.md)
 
 ## Contact
