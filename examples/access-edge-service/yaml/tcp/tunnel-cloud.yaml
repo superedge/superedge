@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-cloud-conf
+  namespace: edge
+data:
+  tunnel_cloud.toml: |
+    [mode]
+      [mode.cloud]
+        [mode.cloud.stream]
+          [mode.cloud.stream.server]
+            grpcport = 9000
+            key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
+            cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
+            tokenfile = "/etc/superedge/tunnel/token/token"
+            logport = 51000
+          [mode.cloud.stream.dns]
+            debug = true
+        [mode.cloud.tcp]
+          "0.0.0.0:80" = "10.10.234.205:80"
+          [mode.cloud.https]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-cloud-token
+  namespace: edge
+data:
+  token: |
+    default:BpLnfgDsc2WD8F2qNfHK5a84jjJkwzDk
+---
+apiVersion: v1
+data:
+  tunnel-cloud-server.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQWdtZ0F3SUJBZ0lJTUs3OHZUeFQxcnN3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TVRBME1ESXdNek15TVRGYUZ3MHpNVEF6TXpFd05EQTBNelZhTURFeApFakFRQmdOVkJBb1RDWE4xY0dWeVpXUm5aVEViTUJrR0ExVUVBeE1TVkhWdWJtVnNRMnh2ZFdSVFpYSjJhV05sCk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBcHh6MndWeDJkSXBqRG9tS1k5ZlcKb3hWR0d5R0FkeDJkQWdBL1AxeE1zaXJMaWFLdkFmNzh1SHl1SkxwRnJRU3ordHNqT2ZJUXNPZVJHeUtZSC9YQgpxRy9aREE3dzQrb1ozSEVXZzFSdVdhYVJuM3BDUHoyMnhrRjVwSWNBU3dPbVNSV0ZudFRsaWlHY1VKMVorTk5MCjBObkYxWFEzbklLOUhHUnRzVSsyU3FCTTBndEg5N3Nmd1pmSzRzNWMzbCt4TW8vS0xtam9DWFM1c0pBVnFMV0UKajRqQUVid1BvdGd2WjRxUlhKUVdwVFJBV1dGcDRua3JZRUdlWllyK1c4ZTdZQnkzZVRFYUpzd0tEQmpLQ3Evbgo5bnF1d1d0MGoxR3BxSWZDK3djZUlBRHBNZ0ZZYVN1eVZWR1dYMkpyRGxOMGZHMGFPcWo4UXlBRGY5MVluZndXCmRRSURBUUFCbzFrd1Z6QU9CZ05WSFE4QkFmOEVCQU1DQmFBd0hRWURWUjBsQkJZd0ZBWUlLd1lCQlFVSEF3SUcKQ0NzR0FRVUZCd01CTUNZR0ExVWRFUVFmTUIyQ0QzUjFibTVsYkM1amJHOTFaQzVwYjRjRWZ3QUFBWWNFQ2dBQQpDVEFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBaG45S1BZZlVVaFJHK0FlVnFRMXFpK2Q0YlpqMjkrb0FQdXBTCmRMdzhWeGl5QTdBZFQvRGFNb1RjZlpMeFhiTUxGdlNxb0M0NG1NY0dDV0FXTHZHbzZPVFN6RSt2K1dIZTVxbTcKczN1VlZtUHVSTUdBV0dPSERGaHlLbTJ6T3g0bXJHZ1JYelI5ekRDVWVtNDRpQ2FVK1gzWkNIUEptQktDcHhnMApNZlNDd040TUMxZHpMRVByM25oWlIwQmZYVW9sdmtxamEybkpKQXBiaFZnQWdLNGdhN3dBTDMvVjFNQUVKUHh5CkIzOTd6VnNCQ0ZiTENiZDAyUkxDcElvaG9peFZJL243bkV1ZTVYRXozcWd3TXNPcHBhbGttU0VSeUhrV2FRSTUKVVpwUVhyeUZVcHFhYmxleXlOWk5sZ2lkZHM4TXFUeExYWUp0SzROeFh5R1huNEo5bVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  tunnel-cloud-server.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBcHh6MndWeDJkSXBqRG9tS1k5ZldveFZHR3lHQWR4MmRBZ0EvUDF4TXNpckxpYUt2CkFmNzh1SHl1SkxwRnJRU3ordHNqT2ZJUXNPZVJHeUtZSC9YQnFHL1pEQTd3NCtvWjNIRVdnMVJ1V2FhUm4zcEMKUHoyMnhrRjVwSWNBU3dPbVNSV0ZudFRsaWlHY1VKMVorTk5MME5uRjFYUTNuSUs5SEdSdHNVKzJTcUJNMGd0SAo5N3Nmd1pmSzRzNWMzbCt4TW8vS0xtam9DWFM1c0pBVnFMV0VqNGpBRWJ3UG90Z3ZaNHFSWEpRV3BUUkFXV0ZwCjRua3JZRUdlWllyK1c4ZTdZQnkzZVRFYUpzd0tEQmpLQ3EvbjlucXV3V3QwajFHcHFJZkMrd2NlSUFEcE1nRlkKYVN1eVZWR1dYMkpyRGxOMGZHMGFPcWo4UXlBRGY5MVluZndXZFFJREFRQUJBb0lCQVFDV3hLdmZJY09CTzBWSgpYVStzNnBNc0NVcDV1YzBFS29SM3hLOUxROE95VHFmWllodlFpak9KWW50ZWlXdkpRRi84cCs1dEhmWnZGRXkzCkZZdjM4YW9wZzlkbmFLZHVpTXVTTmJrZy9YQ2RrNGo0UDc0Ni9qdkRQRms1MWM2dTN2a01JTTJ2MGRYUnZLY2gKbUFVUFY5cWo3NFhzSVhEMjFJRTNkMmY3dTdYME5wdTM3NDllNTZlMzVsci9uWGhiYUhjWVgvU0dWNTlEdnI5bgpzMGJsQktpbXpRaFFma2R5UWZLcXdIVmtkVTBQcTlPQUV0M2duaWlTZjE2dUxFZkpTKzVYS3ViYTllZ1NraHBkCjRiQnE1RFBwZGVvb0N4K0ZQZmN1QWt0OFZaWFpDVmpGMHArcmZVOG1ycm1iMys0c1lRL1EzR1N2cjlMNUxDMFoKS0ZITSsyRkJBb0dCQU5vMEVtSFp1ZUZma3RRMWdXK2dQclZiQjVjWkhZTnBramJOeWtleGJoRVczWloxdWl2bApsdlBnSHBWRy9ITm9WZngxUW8wQjFwTWNNa3NtWGkrM2M4a1BvWkZOMDBxSktJek12aG5xaThiVDBLeXhKWGVKCjkwb3dGK2JGaUg5eHMvbWFxY2lRMlNCRys4UGpvTG5qeGNXaFYzZlQ2bzFNVjF0Q25aa1Z1WlF4QW9HQkFNUVAKWFd4Mjh2TGlWM1VFUTVybTFLTDU3VGxZejRYcDZ1eFVHVUdZMHpvZFJEWVlDRWZMby96M2R0dzFzSUFxNk1YRgoxQ0lPQTZGZ2dHMmU2SXZBSE5LbGxGeFNNMEpJNjFwdjRweTFkYm9ra01qOFhVaXBzajcycFFOcFRaVFBsUEYvCjlMQUVxOThUajhweDZiY2E3VHFzaC9QVEc5c25WT2svYVh0aTZtbUZBb0dBZTBwTTBLa2JGRExTWGNGVnYyTEYKeStjQlpPaTErbGllV3dUd05JNFdhT1dJa3NrMlJqTlZsYnFlelMzczJyQ3JWUmhVWUNRWHY4dUF4MkdJZW1Hbgp0SVYyZndtQVIyODBVRW9uWjdGVkJTVU5sV1lLaTM2VEVZSVhIemVocHBEeVppaHpvblhsbVExQ21DNTMxRkRVCm9KUkhQZGVwZ2VrT3V1dnE3R0tRRnlFQ2dZQlNzOXlIeldGTVBWZ0EvMng1SWhmZUs2ajZ3TkRCUDF3ZWxwY1UKeVorSWF5SUQ0MzFTczc4WURWY3hLdUNxSCsrU3haRm5VQndON2NRZSthSkVtU1JQWXhORElsV0hCM1ZuNzd4YQp1RnpSeVd6ZHF6NjZVUUxrZG14REZSOXB2MnFudUg4QjVPYVBNaFE4cEhLZkQ1ZTBZV1R6NEVCbTRKOTd5SWo1ClNFOXpkUUtCZ0RpbzhTb2V4WTRtalJEbmlRa2MyTXRRRzk5WlRUVldBQ01yNFJXTTFrSGphZi9iR0dGTHphUHQKLzJWMWUzVGVPV3ErbkJqZGsvUkRScThkYURjb3JuRkF1VlVuN1J2Y1BRUE5KZCtUdnNMWkJXWjRLb0J4Q05WYQpiQVd6ZkxnSHlJbUdmNWs3cG9iZ2czN0JvU2Ryc0hwZUg0U25rNnpFejNRQnlTSi9ldGg4Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+kind: Secret
+metadata:
+  name: tunnel-cloud-cert
+  namespace: edge
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tunnel-cloud
+  namespace: edge
+spec:
+  ports:
+    - name: proxycloud
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: tunnel-cloud
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tunnel-cloud
+  name: tunnel-cloud
+  namespace: edge
+spec:
+  selector:
+    matchLabels:
+      app: tunnel-cloud
+  template:
+    metadata:
+      labels:
+        app: tunnel-cloud
+    spec:
+      containers:
+        - name: tunnel-cloud
+          image: superedge/tunnel:v0.2.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /cloud/healthz
+              port: 51000
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 1
+          command:
+            - /usr/local/bin/tunnel
+          args:
+            - --m=cloud
+            - --c=/etc/superedge/tunnel/conf/tunnel_cloud.toml
+            - --log-dir=/var/log/tunnel
+            - --alsologtostderr
+          volumeMounts:
+            - name: token
+              mountPath: /etc/superedge/tunnel/token
+            - name: certs
+              mountPath: /etc/superedge/tunnel/certs
+            - name: conf
+              mountPath: /etc/superedge/tunnel/conf
+          ports:
+            - containerPort: 9000
+              name: tunnel
+              protocol: TCP
+            - containerPort: 6443
+              name: apiserver
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 50m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      volumes:
+        - name: token
+          configMap:
+            name: tunnel-cloud-token
+        - name: certs
+          secret:
+            secretName: tunnel-cloud-cert
+        - name: conf
+          configMap:
+            name: tunnel-cloud-conf
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
