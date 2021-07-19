@@ -45,8 +45,6 @@ SuperEdge具有如下特性:
 
 ## 快速入门指南
 
-[一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)
-
 -   下载安装包
 > 注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
 ```shell
@@ -63,14 +61,13 @@ arch=amd64 version=v0.4.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 ./edgeadm join <Master节点外网IP/Master节点内网IP/域名>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-*静态安装包地址> --enable-edge=true 
 ```
 
-详细流程见[一键安装边缘Kubernetes集群](./docs/installation/install_edge_kubernetes_CN.md)
+## 更多资料
+- [资料列表](./docs/tutorial_CN.md)
 
-其他安装、部署和管理，请参见[**教程**](docs/installation/tutorial_CN.md)。
-
-## 联系
+## 联系方式
 
 如果您有任何疑问或需要支持，请随时与我们联系：
-- [Slack](https://app.slack.com/client/T01GSLDPQG7/C01H7KT4PMZ)
+- [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-srf4srqc-L_I4Z1zncTJ6lr4AwbzEUA)
 - [网上论坛](https://groups.google.com/g/superedge)
 - [社区例会](https://docs.qq.com/doc/DSFVJbHVFUnVKdFlE)
 - 微信群

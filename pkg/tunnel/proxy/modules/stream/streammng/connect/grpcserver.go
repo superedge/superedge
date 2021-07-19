@@ -18,11 +18,14 @@ package connect
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/metrics"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	stream2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
-	tunnel "github.com/superedge/superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
+	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/channelz/service"
@@ -33,6 +36,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -58,7 +62,7 @@ func StartServer() {
 	}
 	opts := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(kaep), grpc.KeepaliveParams(kasp), grpc.StreamInterceptor(ServerStreamInterceptor), grpc.Creds(creds)}
 	s := grpc.NewServer(opts...)
-	proto.RegisterStreamServer(s, &stream2.Server{})
+	proto.RegisterStreamServer(s, &stream.Server{})
 
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
 	klog.Infof("the stream server of the cloud tunnel  listen on %s", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.GrpcPort))
@@ -78,7 +82,7 @@ func StartLogServer(mode string) {
 	ser := &http.Server{
 		Handler: mux,
 	}
-	if mode == tunnel.CLOUD {
+	if mode == tunnelutil.CLOUD {
 		mux.HandleFunc("/cloud/healthz", func(writer http.ResponseWriter, request *http.Request) {
 			if request.Method == http.MethodGet {
 				fmt.Fprintln(writer, context.GetContext().GetNodes())
@@ -116,5 +120,18 @@ func StartChannelzServer(addr string) {
 	if err := s.Serve(lis); err != nil {
 		klog.Errorf("failed to start channelz grpc server  err = %v", err)
 		return
+	}
+}
+
+func StartMetricsServer() {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(metrics.EdgeNodes)
+	metrics.EdgeNodes.WithLabelValues(os.Getenv(tunnelutil.POD_NAMESPACE_ENV), os.Getenv(tunnelutil.POD_NAME)).Set(0)
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	addr := "0.0.0.0:" + strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.MetricsPort)
+	klog.Infof("metrics server listen on %s", addr)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		klog.Errorf("failed to start log http server err = %v", err)
 	}
 }

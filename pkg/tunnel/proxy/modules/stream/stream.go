@@ -40,6 +40,7 @@ func (stream *Stream) Start(mode string) {
 	var channelzAddr string
 	if mode == util.CLOUD {
 		go connect.StartServer()
+		go connect.StartMetricsServer()
 		if !conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Debug {
 			go connect.SyncPodIP()
 			go connect.SyncEndPoints()
