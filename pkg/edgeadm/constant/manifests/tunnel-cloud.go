@@ -68,7 +68,7 @@ data:
                 [mode.cloud.stream.server]
                     grpcport = 9000
                     logport = 51010
-					metricsport = 6000
+		    metricsport = 6000
                     key = "/etc/superedge/tunnel/certs/tunnel-cloud-server.key"
                     cert = "/etc/superedge/tunnel/certs/tunnel-cloud-server.crt"
                     tokenfile = "/etc/superedge/tunnel/token/token"
@@ -121,7 +121,7 @@ spec:
       port: 22
       protocol: TCP
       targetPort: 22
-	- name: tunnel-metrics
+    - name: tunnel-metrics
       port: 6000
       protocol: TCP
       targetPort: 6000
