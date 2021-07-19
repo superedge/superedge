@@ -47,8 +47,8 @@ const (
 
 const (
 	CMKubeConfig               = "kubeconfig.conf"
-	CMKubeProxy                = "kube-proxy"
-	CMKubeProxyNoEdge          = "kube-proxy-no-edge"
+	KubeProxy                  = "kube-proxy"
+	EdgeKubeProxy              = "edge-kube-proxy"
 	KubernetesEndpoint         = "kubernetes"
 	KubernetesEndpointNoEdge   = "kubernetes-no-edge"
 	ConfigMapClusterInfoNoEdge = "cluster-info-no-edge"
@@ -87,6 +87,9 @@ const (
 
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
+
+	EdgeNodeAffinityAction     = "Exists"
+	EdgeNodeAntiAffinityAction = "DoesNotExist"
 )
 
 const (
