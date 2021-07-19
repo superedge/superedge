@@ -41,6 +41,7 @@ var yamlMap = map[string]string{
 	manifests.APPEdgeCorednsServiceGrid:       manifests.EdgeCorednsServiceGridYaml,
 	manifests.APPEdgeCorednsDeploymentGrid:    manifests.EdgeCorednsDeploymentGridYaml,
 	manifests.APP_APPLICATION_GRID_CONTROLLER: manifests.ApplicationGridControllerYaml,
+	manifests.KUBE_VIP:                        manifests.KubeVIPYaml,
 }
 
 func NewManifestsCMD() *cobra.Command {

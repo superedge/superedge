@@ -8,4 +8,6 @@ type EdgeadmConfig struct {
 	Kubeconfig             string
 	TunnelCloudToken       string
 	TunnelCoreDNSClusterIP string
+	KubeVIPInterface       string
+	DefaultHA              string
 }

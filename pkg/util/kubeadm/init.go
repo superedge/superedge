@@ -164,6 +164,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 
 	// One-click install of flags for cluster
 	initClusterFlags(cmd.Flags(), edgeConfig)
+	initInstallHAFlag(cmd.Flags(), edgeConfig)
 
 	// adds flags to the init command
 	// init command local flags could be eventually inherited by the sub-commands automatically generated for phases
@@ -217,6 +218,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	initRunner.AppendPhase(phases.NewCertsPhase())
 	initRunner.AppendPhase(phases.NewKubeConfigPhase())
 	initRunner.AppendPhase(phases.NewKubeletStartPhase())
+	initRunner.AppendPhase(steps.NewKubeVIPInitPhase(edgeConfig))
 	initRunner.AppendPhase(phases.NewControlPlanePhase())
 	initRunner.AppendPhase(phases.NewEtcdPhase())
 	initRunner.AppendPhase(phases.NewWaitControlPlanePhase())
@@ -255,6 +257,17 @@ func initClusterFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 		&edgeConfig.ManifestsDir, constant.ManifestsDir, "", "Manifests document of edge kubernetes cluster.",
 	)
 
+}
+
+func initInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
+	flagSet.StringVar(
+		&edgeConfig.DefaultHA, constant.DefaultHA,
+		constant.DefaultHAKubeVIP, `Specify a HA to install`,
+	)
+	flagSet.StringVar(
+		&edgeConfig.KubeVIPInterface, constant.HANetworkInterface,
+		constant.HANetworkDefaultInterface, `Specify a network interface for the control-plane-endpoint to install default HA.`,
+	)
 }
 
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {

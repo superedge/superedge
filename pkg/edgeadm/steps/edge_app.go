@@ -42,6 +42,7 @@ var (
 
 // NewEdgeAppsPhase returns the edge addon to edge Kubernetes cluster
 func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
+	EdgeadmConf = config
 	return workflow.Phase{
 		Name:  "edge-apps",
 		Short: "Addon SuperEdge edge-apps to Kubernetes cluster",

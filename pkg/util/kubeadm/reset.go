@@ -53,6 +53,8 @@ var (
 		to reset your system's IPVS tables.
 		The reset process does not clean your kubeconfig files and you must remove them manually.
 		Please, check the contents of the $HOME/.kube/config file.
+		The reset process does not remove control plane's virtual IP from network interface.
+        If your cluster was setup to utilize kube-vip, please check your virtual IP and run sudo ip addr del ${VIRTUAL_IP}/32 dev ${INTERFACE} (or similar)
 	`)
 
 	cniCleanupInstructions = dedent.Dedent(`
