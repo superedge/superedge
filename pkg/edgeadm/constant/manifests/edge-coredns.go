@@ -127,8 +127,6 @@ spec:
         tolerations:
           - key: "CriticalAddonsOnly"
             operator: "Exists"
-        nodeSelector:
-          superedge.io/edge-node: enable
         containers:
         - name: coredns
           image: superedge.tencentcloudcr.com/superedge/coredns:1.6.9
