@@ -284,7 +284,7 @@ spec:
         - args:
             - --volume-dir=/etc/config
             - --webhook-url=http://127.0.0.1:9090/-/reload
-          image: jimmidyson/configmap-reload:v0.5.0
+          image: superedge.tencentcloudcr.com/superedge/configmap-reload:v0.5.0
           imagePullPolicy: IfNotPresent
           name: prometheus-server-configmap-reload
           resources: {}
@@ -301,7 +301,7 @@ spec:
             - --web.console.libraries=/etc/prometheus/console_libraries
             - --web.console.templates=/etc/prometheus/consoles
             - --web.enable-lifecycle
-          image: quay.io/prometheus/prometheus:v2.26.0
+          image: superedge.tencentcloudcr.com/superedge/prometheus:v2.26.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
@@ -421,7 +421,7 @@ spec:
             - --path.rootfs=/host/root
             - --web.config=/home/conf/config.yaml
             - --web.listen-address=:9100
-          image: quay.io/prometheus/node-exporter:v1.1.2
+          image: superedge.tencentcloudcr.com/superedge/node-exporter:v1.1.2
           imagePullPolicy: IfNotPresent
           name: prometheus-node-exporter
           ports:
