@@ -128,8 +128,8 @@ data:
         insecure_skip_verify: true
       relabel_configs:
       - source_labels: [__name__]
-        regex: '(container_tasks_state|container_memory_failures_total)'
-        action: drop
+        regex: (.+)
+        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
@@ -149,8 +149,8 @@ data:
         insecure_skip_verify: true
       relabel_configs:
       - source_labels: [__name__]
-        regex: '(container_tasks_state|container_memory_failures_total)'
-        action: drop
+        regex: (.+)
+        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
@@ -331,7 +331,17 @@ spec:
           volumeMounts:
             - mountPath: /etc/config
               name: config-volume
-      dnsPolicy: ClusterFirst
+      dnsConfig:
+        nameservers:
+          - <tunnel-coredns的clusterip>
+        options:
+          - name: ndots
+            value: "5"
+        searches:
+          - edge-system.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+      dnsPolicy: None
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -371,6 +381,7 @@ spec:
   type: ClusterIP
 ```
 
+使用tunnel-coredns的clusterip替换yaml中的变量
 ## 2. 部署prometheus-node-exporter
 
 ```yaml
@@ -487,7 +498,7 @@ spec:
 ### 3.1 验证是否采集到kubelet metrics
 
 ```shell
-$ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=container_processes'
+$ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=container_processes{job="node-cadvisor"}'
 {
   [
     {
@@ -511,7 +522,7 @@ $ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencod
 ### 3.2 验证是否采集到node metrics
 
 ```shell
-curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=node_cpu_guest_seconds_total'
+curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=node_cpu_guest_seconds_total{job="node-exporter"}'
 {
   "status": "success",
   "data": [
