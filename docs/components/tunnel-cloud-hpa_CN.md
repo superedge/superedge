@@ -31,7 +31,7 @@ curl -G  http://<prometheus-server-clusterip>/api/v1/series? --data-urlencode 'm
 
 ### 3.1 安装[helm](https://helm.sh/docs/intro/install/)
 
-### 3.2 准备value.yaml
+### 3.2 准备values.yaml
 
 ```
 rules:
