@@ -128,8 +128,8 @@ data:
         insecure_skip_verify: true
       relabel_configs:
       - source_labels: [__name__]
-        regex: '(container_tasks_state|container_memory_failures_total)'
-        action: drop
+        regex: (.+)
+        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
@@ -149,8 +149,8 @@ data:
         insecure_skip_verify: true
       relabel_configs:
       - source_labels: [__name__]
-        regex: '(container_tasks_state|container_memory_failures_total)'
-        action: drop
+        regex: (.+)
+        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
@@ -241,6 +241,19 @@ metadata:
   name: prometheus-server
   namespace: edge-system
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-server
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-server
+    namespace: edge-system
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -271,7 +284,7 @@ spec:
         - args:
             - --volume-dir=/etc/config
             - --webhook-url=http://127.0.0.1:9090/-/reload
-          image: jimmidyson/configmap-reload:v0.5.0
+          image: superedge.tencentcloudcr.com/superedge/configmap-reload:v0.5.0
           imagePullPolicy: IfNotPresent
           name: prometheus-server-configmap-reload
           resources: {}
@@ -288,7 +301,7 @@ spec:
             - --web.console.libraries=/etc/prometheus/console_libraries
             - --web.console.templates=/etc/prometheus/consoles
             - --web.enable-lifecycle
-          image: quay.io/prometheus/prometheus:v2.26.0
+          image: superedge.tencentcloudcr.com/superedge/prometheus:v2.26.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
@@ -318,7 +331,17 @@ spec:
           volumeMounts:
             - mountPath: /etc/config
               name: config-volume
-      dnsPolicy: ClusterFirst
+      dnsConfig:
+        nameservers:
+          - <tunnel-coredns的clusterip>
+        options:
+          - name: ndots
+            value: "5"
+        searches:
+          - edge-system.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+      dnsPolicy: None
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -358,6 +381,7 @@ spec:
   type: ClusterIP
 ```
 
+使用tunnel-coredns的clusterip替换yaml中的变量
 ## 2. 部署prometheus-node-exporter
 
 ```yaml
@@ -408,7 +432,7 @@ spec:
             - --path.rootfs=/host/root
             - --web.config=/home/conf/config.yaml
             - --web.listen-address=:9100
-          image: quay.io/prometheus/node-exporter:v1.1.2
+          image: superedge.tencentcloudcr.com/superedge/node-exporter:v1.1.2
           imagePullPolicy: IfNotPresent
           name: prometheus-node-exporter
           ports:
@@ -474,7 +498,7 @@ spec:
 ### 3.1 验证是否采集到kubelet metrics
 
 ```shell
-$ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=container_processes'
+$ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=container_processes{job="node-cadvisor"}'
 {
   [
     {
@@ -498,7 +522,7 @@ $ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencod
 ### 3.2 验证是否采集到node metrics
 
 ```shell
-curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=node_cpu_guest_seconds_total'
+curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=node_cpu_guest_seconds_total{job="node-exporter"}'
 {
   "status": "success",
   "data": [
