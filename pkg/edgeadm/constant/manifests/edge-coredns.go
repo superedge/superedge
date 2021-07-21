@@ -127,6 +127,9 @@ spec:
         tolerations:
           - key: "CriticalAddonsOnly"
             operator: "Exists"
+          - key: "node-role.kubernetes.io/master"
+            operator: "Exists"
+            effect: "NoSchedule"
         containers:
         - name: coredns
           image: superedge.tencentcloudcr.com/superedge/coredns:1.6.9
