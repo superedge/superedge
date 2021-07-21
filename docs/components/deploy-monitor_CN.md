@@ -241,6 +241,19 @@ metadata:
   name: prometheus-server
   namespace: edge-system
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-server
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-server
+    namespace: edge-system
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
