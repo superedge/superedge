@@ -178,6 +178,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
           volumeMounts:
             - name: token
               mountPath: /etc/superedge/tunnel/token
