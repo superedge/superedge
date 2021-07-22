@@ -52,9 +52,8 @@ prometheus:
 ```
 
 ```shell
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm install prometheus-adapter prometheus-community/prometheus-adapter -f values.yaml
+wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/charts/prometheus-adapter-2.15.0.tgz
+helm install prometheus-adapter prometheus-adapter-2.15.0.tgz -f values.yaml -n edge-system
 ```
 
 ### 3.3 测试prometheus-adapter是否安装成功
