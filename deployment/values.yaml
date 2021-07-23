@@ -1,0 +1,15 @@
+rules:
+  default: false
+  custom:
+    - seriesQuery: 'tunnel_cloud_nodes'
+      resources:
+        overrides:
+          kubernetes_namespace: { resource: "namespace" }
+          kubernetes_pod_name: { resource: "pod" }
+      name:
+        matches: "tunnel_cloud_nodes"
+        as: "nodes_per_pod"
+      metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+prometheus:
+  url: http://prometheus-server.edge-system.svc.cluster.local
+  port: 80

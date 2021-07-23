@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-node-exporter
+  namespace: edge-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-node-exporter-conf
+  namespace: edge-system
+data:
+  config.yaml: |
+    tls_server_config:
+      cert_file: /home/certs/apiserver-kubelet-server.crt
+      key_file: /home/certs/apiserver-kubelet-server.key
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prometheus-node-exporter
+  namespace: edge-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: prometheus
+      component: node-exporter
+      release: prometheus
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: prometheus
+        chart: prometheus-14.3.1
+        component: node-exporter
+        heritage: Helm
+        release: prometheus
+    spec:
+      containers:
+        - args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --web.config=/home/conf/config.yaml
+            - --web.listen-address=:9100
+          image: superedge.tencentcloudcr.com/superedge/node-exporter:v1.1.2
+          imagePullPolicy: IfNotPresent
+          name: prometheus-node-exporter
+          ports:
+            - containerPort: 9100
+              hostPort: 9100
+              name: metrics
+              protocol: TCP
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /host/proc
+              name: proc
+              readOnly: true
+            - mountPath: /host/sys
+              name: sys
+              readOnly: true
+            - mountPath: /host/root
+              mountPropagation: HostToContainer
+              name: root
+              readOnly: true
+            - mountPath: /home/conf
+              name: conf
+            - mountPath: /home/certs
+              name: certs
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      hostPID: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+      serviceAccount: prometheus-node-exporter
+      serviceAccountName: prometheus-node-exporter
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - hostPath:
+            path: /proc
+            type: ""
+          name: proc
+        - hostPath:
+            path: /sys
+            type: ""
+          name: sys
+        - hostPath:
+            path: /
+            type: ""
+          name: root
+        - configMap:
+            defaultMode: 420
+            name: prometheus-node-exporter-conf
+          name: conf
+        - name: certs
+          secret:
+            defaultMode: 420
+            secretName: tunnel-cloud-cert
