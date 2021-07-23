@@ -4,9 +4,8 @@
 
 ## 1. 部署prometheus-server
 
-[prometheus-server.yaml](../../deployment/prometheus-server.yaml)
-
-使用tunnel-coredns的clusterip替换yaml中的变量
+使用tunnel-coredns的clusterip替换[prometheus-server.yaml](../../deployment/prometheus-server.yaml)
+中的spec.dnsConfig.nameservers变量
 
 ```shell
 kubectl -n edge-system get svc  tunnel-coredns  -o=jsonpath='{.spec.clusterIP}'
@@ -17,8 +16,6 @@ kubectl apply -f prometheus-server.yaml
 ```
 
 ## 2. 部署prometheus-node-exporter
-
-[prometheus-node-exporter.yaml](../../deployment/prometheus-node-exporter.yaml)
 
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/prometheus-node-exporter.yaml
