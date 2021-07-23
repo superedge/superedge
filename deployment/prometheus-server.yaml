@@ -121,9 +121,6 @@ data:
       tls_config:
         insecure_skip_verify: true
       relabel_configs:
-      - source_labels: [__name__]
-        regex: (.+)
-        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
@@ -142,9 +139,6 @@ data:
       tls_config:
         insecure_skip_verify: true
       relabel_configs:
-      - source_labels: [__name__]
-        regex: (.+)
-        action: keep
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
         target_label: __address__
