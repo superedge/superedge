@@ -1,18 +1,33 @@
 # 部署监控系统
+
 监控系统分为2个部分：prometheus-server、node-exporter
 
 ## 1. 部署prometheus-server
+
 [prometheus-server.yaml](../../deployment/prometheus-server.yaml)
 
 使用tunnel-coredns的clusterip替换yaml中的变量
+
+```shell
+kubectl -n edge-system get svc  tunnel-coredns  -o=jsonpath='{.spec.clusterIP}'
+```
+
+```shell
+kubectl apply -f prometheus-server.yaml
+```
 
 ## 2. 部署prometheus-node-exporter
 
 [prometheus-node-exporter.yaml](../../deployment/prometheus-node-exporter.yaml)
 
+```shell
+kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/prometheus-node-exporter.yaml
+```
+
 ## 3. 验证部署是否成功
 
-### 3.1 验证是否采集到kubelet metrics
+<details><summary>是否采集到kubelet metrics</summary>
+<p>
 
 ```shell
 $ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=container_processes{job="node-cadvisor"}'
@@ -36,7 +51,12 @@ $ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencod
 }
 ```
 
-### 3.2 验证是否采集到node metrics
+</p>
+</details>
+
+
+<details><summary>是否采集到node metrics</summary>
+<p>
 
 ```shell
 curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 'match[]=node_cpu_guest_seconds_total{job="node-exporter"}'
@@ -78,3 +98,6 @@ curl -G  http://<prometheus-server的clusterip>/api/v1/series? --data-urlencode 
   ]
 }
 ```
+
+</p>
+</details>

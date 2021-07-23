@@ -1,9 +1,13 @@
 # 配置tunnel-cloud HPA
 
 ## 1. 部署好监控系统
+
 - [部署监控系统](./deploy-monitor_CN.md)
 
 ## 2. 确认tunnel-cloud的metrics数据是否采集成功
+
+<details><summary>tunnel-cloud metrics</summary>
+<p>
 
 ```shell
 curl -G  http://<prometheus-server-clusterip>/api/v1/series? --data-urlencode 'match[]=tunnel_cloud_nodes'
@@ -27,6 +31,10 @@ curl -G  http://<prometheus-server-clusterip>/api/v1/series? --data-urlencode 'm
   ]
 }
 ```
+
+</p>
+</details>
+
 ## 3. 部署prometheus-adapter
 
 ### 3.1 安装[helm](https://helm.sh/docs/intro/install/)
@@ -43,6 +51,9 @@ helm install prometheus-adapter prometheus-adapter-2.15.0.tgz -f values.yaml -n 
 ### 3.3 测试prometheus-adapter是否安装成功
 
 如果安装正确，是可以看到 Custom Metrics API 返回了我们配置的**nodes_per_pod**相关指标:
+
+<details><summary>Custom Metrics API</summary>
+<p>
 
 ```shell
 $ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
@@ -73,7 +84,13 @@ $ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
 }
 ```
 
+</p>
+</details>
+
 并且可以看到当前所有**tunnel-cloud**的pod，以及各pod上连接的边缘节点个数
+
+<details><summary>nodes_per_pod </summary>
+<p>
 
 ```shell
 $ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/edge-system/pods/*/nodes_per_pod
@@ -99,6 +116,9 @@ $ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/edge-system/p
   ]
 }
 ```
+
+</p>
+</details>
 
 ## 4. 部署tunel-cloud-hpa.yaml
 
