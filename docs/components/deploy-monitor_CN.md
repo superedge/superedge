@@ -3,6 +3,7 @@
 
 ## 1. 部署prometheus-server
 [prometheus-server.yaml](../../deployment/prometheus-server.yaml)
+
 使用tunnel-coredns的clusterip替换yaml中的变量
 
 ## 2. 部署prometheus-node-exporter
