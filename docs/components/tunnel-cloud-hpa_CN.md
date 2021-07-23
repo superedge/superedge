@@ -1,7 +1,7 @@
 # 配置tunnel-cloud HPA
 
 ## 1. 部署好监控系统
-- [部署监控系统](./deploy_monitor_CN.md)
+- [部署监控系统](./deploy-monitor_CN.md)
 
 ## 2. 确认tunnel-cloud的metrics数据是否采集成功
 
@@ -33,23 +33,7 @@ curl -G  http://<prometheus-server-clusterip>/api/v1/series? --data-urlencode 'm
 
 ### 3.2 准备values.yaml
 
-```
-rules:
-  default: false
-  custom:
-    - seriesQuery: 'tunnel_cloud_nodes'
-      resources:
-        overrides:
-          kubernetes_namespace: { resource: "namespace" }
-          kubernetes_pod_name: { resource: "pod" }
-      name:
-        matches: "tunnel_cloud_nodes"
-        as: "nodes_per_pod"
-      metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
-prometheus:
-  url: http://prometheus-server.edge-system.svc.cluster.local
-  port: 80
-```
+[values.yaml](../../deployment/values.yaml)
 
 ```shell
 wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/charts/prometheus-adapter-2.15.0.tgz
@@ -118,27 +102,6 @@ $ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/edge-system/p
 
 ## 4. 部署tunel-cloud-hpa.yaml
 
-```
-apiVersion: autoscaling/v2beta2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: tunnel-cloud
-  namespace: edge-system
-spec:
-  minReplicas: 1
-  maxReplicas: 10
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: tunnel-cloud
-  metrics:
-    - type: Pods
-      pods:
-        metric:
-          name: nodes_per_pod
-        target:
-          averageValue: 300       #平均每个pod连接的边缘节点的个数，超过这个数目就会触发扩容
-          type: AverageValue
-```
+[tunnel-cloud-hpa.yaml](../../deployment/tunel-cloud-hpa.yaml)
 
 通过调整averageValue值和改变边缘节点数量，可以快速观察到 tunnel-cloud 的pod数量变化情况
