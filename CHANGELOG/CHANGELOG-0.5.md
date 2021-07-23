@@ -8,7 +8,7 @@
 ## Features and Enhancements
 
 * Edgeadm: add kube-vip as default HA component support([#186](https://github.com/superedge/superedge/pull/186),[@lianghao208](https://github.com/lianghao208))
-* TunnelCloud HPA: adds tunnel-cloud metrics for HPA([#187](https://github.com/superedge/superedge/pull/187),[@00pf00](https://github.com/00pf00)), support tunnel-cloud HPA based on the number of connected edge nodes([#189](https://github.com/superedge/superedge/pull/189),[@00pf00](https://github.com/00pf00)). [Usage](https://github.com/superedge/superedge/blob/main/docs/components/tunnel-cloud-hpa_CN.md)
+* TunnelCloud HPA: add tunnel-cloud metrics for HPA([#187](https://github.com/superedge/superedge/pull/187),[@00pf00](https://github.com/00pf00)), support tunnel-cloud HPA based on the number of connected edge nodes([#189](https://github.com/superedge/superedge/pull/189),[@00pf00](https://github.com/00pf00)). [Usage](https://github.com/superedge/superedge/blob/main/docs/components/tunnel-cloud-hpa_CN.md)
 * Deploy Prometheus([#189](https://github.com/superedge/superedge/pull/189),[@00pf00](https://github.com/00pf00)), [Usage](https://github.com/superedge/superedge/blob/main/docs/components/deploy-monitor_CN.md)
 * TunnelCloud DNS: Separate the synchronization of podIP and Endpoints([#177](https://github.com/superedge/superedge/pull/177),[@00pf00](https://github.com/00pf00))
 * Edgeadm: Deploy coredns for every edge node by servicegroup([#185](https://github.com/superedge/superedge/pull/185),[@attlee-wang](https://github.com/attlee-wang))
