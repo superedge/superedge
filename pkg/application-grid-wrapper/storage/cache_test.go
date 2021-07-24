@@ -57,7 +57,7 @@ func TestCache(t *testing.T) {
 			}
 		}
 	}()
-	cache := NewStorageCache("hostname", true, svcCh, epsCh)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh)
 
 	testNodes := make([]*v1.Node, 10)
 	nodeEventHandler := cache.NodeEventHandler()
@@ -217,7 +217,7 @@ func TestCacheServiceNotifier(t *testing.T) {
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, svcCh, epsCh)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh)
 
 	expectServiceSequence := make([]*v1.Service, 0)
 	testServices := make([]*v1.Service, 10)
@@ -289,7 +289,7 @@ func TestCacheEndpointsWithNodeChange(t *testing.T) {
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, svcCh, epsCh)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh)
 
 	hostNode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -522,7 +522,7 @@ func TestCacheEndpointsWithServiceUpdate(t *testing.T) {
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, svcCh, epsCh)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh)
 
 	hostNode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
