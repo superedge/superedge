@@ -372,7 +372,7 @@ func ensureKubeletConfigMap(clientSet kubernetes.Interface, clusterConfiguration
 	}
 	internalcfg, err := configutil.DefaultedInitConfiguration(&kubeadmapiv1beta2.InitConfiguration{}, clusterCfg)
 	if err != nil {
-		errors.Wrapf(err, "unexpected failure by DefaultedInitConfiguration: %v")
+		errors.Wrapf(err, "unexpected failure by DefaultedInitConfiguration: %v", clusterCfg)
 	}
 	klog.V(1).Infoln("[upload-config] Uploading the kubelet component config to a ConfigMap")
 	if err := createConfigMap(&internalcfg.ClusterConfiguration, clientSet); err != nil {
