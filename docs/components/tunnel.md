@@ -475,7 +475,7 @@ certificate).
 
 ```go
 func Test_StreamServer(t *testing.T) {
-	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
@@ -499,7 +499,7 @@ StreamDebugHandler is a custom handler for debugging cloud side messaging
 ```go
 func Test_StreamClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
@@ -539,7 +539,7 @@ The node name is loaded through the environment variable of NODE_NAME
 
 ```go
 func Test_TcpServer(t *testing.T) {
-	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
@@ -558,7 +558,7 @@ Need to initialize the **TCP module** (InitTcp) and the **stream module**  (stre
 ```go
 func Test_TcpClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return

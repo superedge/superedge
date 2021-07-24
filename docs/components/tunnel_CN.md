@@ -460,7 +460,7 @@ main_path="../../../../conf"(([stream_test](https://github.com/superedge/supered
 
 ```go
 func Test_StreamServer(t *testing.T) {
-	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
@@ -481,7 +481,7 @@ StreamDebugHandler是调试云边消息收发的自定义handler
 ```go
 func Test_StreamClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
@@ -519,7 +519,7 @@ func Test_StreamClient(t *testing.T) {
 #### TCP server的调试
 ```go
 func Test_TcpServer(t *testing.T) {
-	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
@@ -536,7 +536,7 @@ func Test_TcpServer(t *testing.T) {
 ```go
 func Test_TcpClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return

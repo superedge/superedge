@@ -35,7 +35,7 @@ import (
 )
 
 func Test_StreamServer(t *testing.T) {
-	err := conf.InitConf(util.CLOUD, "../../../../conf/cloud_mode.toml")
+	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream server configuration file err = %v", err)
 		return
@@ -66,7 +66,7 @@ func StreamDebugHandler(msg *proto.StreamMsg) error {
 
 func Test_StreamClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
@@ -97,7 +97,7 @@ func Test_StreamClient(t *testing.T) {
 
 func Test_ChannelzSever(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
-	err := conf.InitConf(util.EDGE, "../../../../conf/edge_mode.toml")
+	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
 	if err != nil {
 		t.Errorf("failed to initialize stream client configuration file err = %v", err)
 		return
