@@ -171,7 +171,7 @@ kubernetes   ClusterIP   10.10.0.1    <none>        443/TCP   23d
 $ openssl genrsa -out lite-apiserver.key 2048
 
 #create lite-apiserver.csr
-$ cat << EOF >lite_apiserver.conf
+$ cat << EOF >lite-apiserver.conf
 [req]
 distinguished_name = req_distinguished_name
 req_extensions = v3_req
@@ -192,7 +192,7 @@ $ openssl req -new -key lite-apiserver.key -subj "/CN=lite-apiserver" -config li
 #generating lite-apiserver.crt
 openssl x509 -req -in lite-apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 5000 -extensions v3_req -extfile lite-apiserver.conf -out lite-apiserver.crt
 ```
-* Copy lite-apiserver.crt and lite-apiserver.key into edge worker node, path at /etc/kubernetes/pki/
+* Copy lite-apiserver.crt and lite-apiserver.key into edge worker node, path at /etc/kubernetes/edge/
 
 * Modify deployment/lite-apiserver.yaml, set --kube-apiserver-url and --kube-apiserver-port to apiserver's host and port
 
