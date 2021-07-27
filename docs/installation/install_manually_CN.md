@@ -205,7 +205,7 @@ $ openssl req -new -key lite-apiserver.key -subj "/CN=lite-apiserver" -config li
 #生成lite-apiserver.crt
 openssl x509 -req -in lite-apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 5000 -extensions v3_req -extfile lite-apiserver.conf -out lite-apiserver.crt
 ```
-* 分发lite-apiserver.crt和lite-apiserver.key到边缘节点的/etc/kubernetes/pki/下；
+* 分发lite-apiserver.crt和lite-apiserver.key到边缘节点的/etc/kubernetes/edge/下；
 
 * 修改deployment/lite-apiserver.yaml中的--kube-apiserver-url和--kube-apiserver-port指向apiserver的host和port；
 

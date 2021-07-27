@@ -256,128 +256,25 @@ If there is a problem during the execution, the corresponding error message will
 -   3 machines that meet [kubeadm's minimum requirements](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) serve as master nodes;
 -   3 machines that meet [kubeadm's minimum requirements](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) serve as worker nodes;
 
-#### <2>. Install Haproxy
+#### <2>. Configure Master VIP and network interface
 
-Install Haproxy on the load balancing machine as the main entrance of the cluster:
-> Note:
-> Replace <master VIP> in the configuration file
 ```shell
-# yum install -y haproxy
-# cat << EOF >/etc/haproxy/haproxy.cfg
-global
-    log         127.0.0.1 local2
-
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
-    group       haproxy
-    daemon
-    stats socket /var/lib/haproxy/stats
-defaults
-    mode                    http
-    log                     global
-    option                  httplog
-    option                  dontlognull
-    option http-server-close
-    option forwardfor       except 127.0.0.0/8
-    option                  redispatch
-    retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
-frontend  main *:5000
-    acl url_static       path_beg       -i /static /images /javascript /stylesheets
-    acl url_static       path_end       -i .jpg .gif .png .css .js
-
-    use_backend static          if url_static
-    default_backend             app
-
-frontend kubernetes-apiserver
-    mode                 tcp
-    bind                 *:16443
-    option               tcplog
-    default_backend      kubernetes-apiserver
-backend kubernetes-apiserver
-    mode        tcp
-    balance     roundrobin
-    server  master-0  <master VIP>:6443 check # Here replace the master VIP with the user's own VIP
-backend static
-    balance     roundrobin
-    server      static 127.0.0.1:4331 check
-backend app
-    balance     roundrobin
-    server  app1 127.0.0.1:5001 check
-    server  app2 127.0.0.1:5002 check
-    server  app3 127.0.0.1:5003 check
-    server  app4 127.0.0.1:5004 check
-EOF
+INTERFACE=eth0
+VIP=<Master VIP>
 ```
-#### <3>. Install Keepalived
 
-If the cluster has two masters, install Keepalived on both masters and perform the same operation:
-> Note:
->
-> 1. Replace <master VIP> in the configuration file
->
-> 2. In the keepalived.conf configuration file below, <master's local public network IP> and <another master's public network IP> are opposite in the configuration of the two masters. Don't fill in the error.
-```shell
-# yum install -y keepalived
-# cat << EOF >/etc/keepalived/keepalived.conf 
-! Configuration File for keepalived
-
-global_defs {
-   smtp_connect_timeout 30
-   router_id LVS_DEVEL_EDGE_1
-}
-vrrp_script checkhaproxy{
-script "/etc/keepalived/do_sth.sh"
-interval 5
-}
-vrrp_instance VI_1 {
-    state BACKUP
-    interface eth0
-    nopreempt
-    virtual_router_id 51
-    priority 100
-    advert_int 1
-    authentication {
-        auth_type PASS
-        auth_pass aaa
-    }
-    virtual_ipaddress {
-        <master VIP> # Here replace the master VIP with the user's own VIP
-    }
-    unicast_src_ip <master Public IP>
-    unicast_peer {
-      <Public IP of other master nodes>
-    }
-notify_master "/etc/keepalived/notify_action.sh MASTER"
-notify_backup "/etc/keepalived/notify_action.sh BACKUP"
-notify_fault "/etc/keepalived/notify_action.sh FAULT"
-notify_stop "/etc/keepalived/notify_action.sh STOP"
-garp_master_delay 1
-garp_master_refresh 5
-   track_interface {
-     eth0
-   }
-   track_script {
-     checkhaproxy 
-   }
-}
-EOF
-```
-#### <4>. Install high-availability edge Kubernetes master
+#### <3>. Install high-availability edge Kubernetes master
 
 Perform cluster initialization operations in one of the masters
 ```shell
-./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
+./edgeadm init --control-plane-endpoint ${VIP} --interface ${INTERFACE}  --default-ha=kube-vip --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Domain or Public/Intranet IP of Master node> --install-pkg-path <edgeadm Kube-*Static installation package address/FTP path> -v=6
 ```
+
+On：
+
+-   --interface: the network interface to bind VIP, default value is eth0.
+-   --default-ha: high-availability component to be installed. For now, it only supports kube-vip. The high-availability component won't be installed if this option is not being set up.
+
 >   The meaning of the parameters is the same as `3. Use edgeadm to install edge Kubernetes cluster`, and others are the same as kubeadm, so I won't explain it here;
 
 If there are no exceptions during execution and the cluster is successfully initialized, the following content will be output:
@@ -412,7 +309,7 @@ edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx  
     --install-pkg-path <Path of edgeadm kube-* install package>
 ```
-If there is a problem during the execution, the corresponding error message will be directly returned, and the initialization of the cluster will be interrupted. Use the `./edgeadm reset` command to roll back the initialization operation of the cluster.
+If there is a problem during the execution, the corresponding error message will be directly returned, and the initialization of the cluster will be interrupted. Use the `rm /etc/kubernetes/admin.conf ; ./edgeadm reset` command to roll back the initialization operation of the cluster.
 
 To enable non-root users to run kubectl, run the following commands, which are also part of the edgeadm init output:
 ```shell
@@ -429,11 +326,16 @@ Pay attention to the `./edgeadm join` command that saves the output of `./edgead
 
 Record the `./edgeadm join` command output by `./edgeadm init`. You need this command to add the Master node and the edge node.
 
-#### <5>. Join master node
+#### <4>. Join master node
 
-Execute the `./edgeadm join` command on another master
+Configure Master VIP and network interface on another master
 ```shell
-./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
+INTERFACE=eth0
+VIP=<Master VIP>
+```
+Execute the `./edgeadm join` command
+```shell
+./edgeadm join ${VIP}:xxx --interface ${INTERFACE} --default-ha=kube-vip --token xxxx    \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
     --control-plane --certificate-key xxxxxxxxxx     \
     --install-pkg-path <Path of edgeadm kube-* install package> 
@@ -456,9 +358,9 @@ To start administering your cluster from this node, you need to run the followin
 
 Run 'kubectl get nodes' to see this node join the cluster.
 ```
-If there is a problem during the execution, the corresponding error message will be directly returned, and the addition of the node will be interrupted. Use the `./edgeadm reset` command to roll back the initialization of the cluster.
+If there is a problem during the execution, the corresponding error message will be directly returned, and the addition of the node will be interrupted. Use the `rm /etc/kubernetes/admin.conf ; ./edgeadm reset` command to roll back the initialization of the cluster.
 
-#### <6>. Join edge node
+#### <5>. Join edge node
 
 ```shell
 ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
