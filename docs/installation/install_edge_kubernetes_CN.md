@@ -269,131 +269,26 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 -   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器作为Master节点；
 -   3台满足 [kubeadm 的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) 的机器做worker节点；
 
-#### <2>.安装 Haproxy
+#### <2>.指定 Master VIP 和其绑定的网卡
 
-在Master上安装 Haproxy 作为集群总入口
-> 注意：替换配置文件中的 < Master VIP >
 ```shell
-# yum install -y haproxy
-# cat << EOF >/etc/haproxy/haproxy.cfg
-global
-    log         127.0.0.1 local2
-
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
-    group       haproxy
-    daemon
-    stats socket /var/lib/haproxy/stats
-defaults
-    mode                    http
-    log                     global
-    option                  httplog
-    option                  dontlognull
-    option http-server-close
-    option forwardfor       except 127.0.0.0/8
-    option                  redispatch
-    retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
-frontend  main *:5000
-    acl url_static       path_beg       -i /static /images /javascript /stylesheets
-    acl url_static       path_end       -i .jpg .gif .png .css .js
-
-    use_backend static          if url_static
-    default_backend             app
-
-frontend kubernetes-apiserver
-    mode                 tcp
-    bind                 *:16443
-    option               tcplog
-    default_backend      kubernetes-apiserver
-backend kubernetes-apiserver
-    mode        tcp
-    balance     roundrobin
-    server  master-0  <Master VIP>:6443 check # 这里替换 Master VIP 为用户自己的 VIP
-backend static
-    balance     roundrobin
-    server      static 127.0.0.1:4331 check
-backend app
-    balance     roundrobin
-    server  app1 127.0.0.1:5001 check
-    server  app2 127.0.0.1:5002 check
-    server  app3 127.0.0.1:5003 check
-    server  app4 127.0.0.1:5004 check
-EOF
+INTERFACE=eth0
+VIP=<Master VIP>
 ```
-#### <3>.安装 Keepalived
 
-在所有Master安装 Keepalived，执行同样操作：
-> 注意：
->
-> 1.  替换配置文件中的 < Master VIP >
->
-> 2.  下面的 keepalived.conf 配置文件中 < Master 本机外网 IP > 和 < 其他 Master 外网 IP > 在不同 Master 的配置需要调换位置，不要填错。
-```shell
-## 安装keepalived
-yum install -y keepalived
-
-cat << EOF >/etc/keepalived/keepalived.conf 
-! Configuration File for keepalived
-
-global_defs {
-   smtp_connect_timeout 30
-   router_id LVS_DEVEL_EDGE_1
-}
-vrrp_script checkhaproxy{
-script "/etc/keepalived/do_sth.sh"
-interval 5
-}
-vrrp_instance VI_1 {
-    state BACKUP
-    interface eth0
-    nopreempt
-    virtual_router_id 51
-    priority 100
-    advert_int 1
-    authentication {
-        auth_type PASS
-        auth_pass aaa
-    }
-    virtual_ipaddress {
-        <master VIP> # 这里替换 Master VIP 为用户自己的 VIP
-    }
-    unicast_src_ip <Master 本机外网 IP>
-    unicast_peer {
-      <其他 Master 外网 IP>
-      <其他 Master 外网 IP>
-    }
-notify_master "/etc/keepalived/notify_action.sh master"
-notify_backup "/etc/keepalived/notify_action.sh BACKUP"
-notify_fault "/etc/keepalived/notify_action.sh FAULT"
-notify_stop "/etc/keepalived/notify_action.sh STOP"
-garp_master_delay 1
-garp_master_refresh 5
-   track_interface {
-     eth0
-   }
-   track_script {
-     checkhaproxy 
-   }
-}
-EOF
-```
-#### <4>.安装高可用边缘 Kubernetes Master
+#### <3>.安装高可用边缘 Kubernetes Master
 
 在其中一台 Master中执行集群初始化操作
 ```shell
-./edgeadm init --control-plane-endpoint <Master VIP> --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
+./edgeadm init --control-plane-endpoint ${VIP} --interface ${INTERFACE}  --default-ha=kube-vip --upload-certs --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans=<Master节点外网IP/Master节点内网IP/域名/> --install-pkg-path <edegadm Kube-*静态安装包地址/FTP路径> -v=6
 ```
->   参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
+
+其中：
+
+-   --interface: 绑定高可用 VIP 的网卡设备名，默认为 eth0
+-   --default-ha: 需要安装的高可用组件，当前只支持 kube-vip，如果不指定该参数，则默认用户已经安装了高可用组件，不会为集群安装高可用组件。
+
+>   其它参数含义同 `3. 用 edgeadm 安装边缘 Kubernetes 集群`，其他和kubeadm一致，这里不在解释；
 
 要是执行过程中没有问题，集群成功初始化，会输出如下内容：
 
@@ -427,7 +322,7 @@ edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx  
     --install-pkg-path <Path of edgeadm kube-* install package>
 ```
-执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，使用`./edgeadm reset`命令回滚集群的初始化操作。
+执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，使用`rm /etc/kubernetes/admin.conf ; ./edgeadm reset`命令回滚集群的初始化操作。
 
 要使非 root 用户可以运行 kubectl，请运行以下命令，它们也是 edgeadm init 输出的一部分：
 ```shell
@@ -442,11 +337,15 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 注意保存`./edgeadm init`输出的`./edgeadm join`命令，后面添加Master节点和边缘节点需要用到。
 
-#### <5>. Join Master 节点
-
-在另一台 Master 执行`./edgeadm join`命令
+#### <4>. Join Master 节点
+在另一台 Master 指定 Master VIP 和其绑定的网卡
 ```shell
-./edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx    \
+INTERFACE=eth0
+VIP=<Master VIP>
+```
+执行`./edgeadm join`命令
+```shell
+./edgeadm join ${VIP}:xxx --interface ${INTERFACE} --default-ha=kube-vip --token xxxx    \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxx \
     --control-plane --certificate-key xxxxxxxxxx     \
     --install-pkg-path <edgeadm Kube-*静态安装包地址/FTP路径> 
@@ -469,9 +368,9 @@ To start administering your cluster from this node, you need to run the followin
 
 Run 'kubectl get nodes' to see this node join the cluster.
 ```
-执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`./edgeadm reset`命令回滚集群的初始化操作。
+执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，使用`rm /etc/kubernetes/admin.conf ; ./edgeadm reset`命令回滚集群的初始化操作。
 
-#### <6>. Join node 边缘节点
+#### <5>. Join node 边缘节点
 
 ```shell
 ./edgeadm join xxx.xxx.xxx.xxx:xxxx --token xxxx \
