@@ -85,6 +85,7 @@ arch=amd64 version=v0.5.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
   - [一文读懂 SuperEdge 云边隧道](https://mp.weixin.qq.com/s/5btXwUot0vSGvUlzVcofLg)
   - [SuperEdge 如何支持多地域 StatefulSets 及灰度](https://mp.weixin.qq.com/s/PBGA5Rd-LVKLZawpjHL_Eg)
   - [从 lite-apiserver 看 SuperEdge 边缘节点自治](https://mp.weixin.qq.com/s/kRmkiOVWCwVvhp4veqWWpA)
+  - [SuperEdge 高可用云边隧道有哪些特点？](https://mp.weixin.qq.com/s/RId4f-ia326-9wFn4VKE2w)
 
 #### 3. 实践案例
 - [完爆！用边缘容器，竟能秒级实现团队七八人一周的工作量](https://mp.weixin.qq.com/s/FMO6V1pvG-Xyi9xfBttCQA)
