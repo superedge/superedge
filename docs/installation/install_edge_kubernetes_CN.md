@@ -126,7 +126,7 @@
 -   遵循 [kubeadm的最低要求](https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin) ，Master && Node 最低2C2G，磁盘空间不小于1G；
 
     > ⚠️注意：尽可能提供干净的机器，避免其他因素引起安装错误。`要有机器上有容器服务在安装过程中可能会被清理，请在执行之前细心确认`。
-                                                                                                                                                                                                                                                                                                                                            
+    
 -   目前支持amd64、arm64两个体系；
 
     >    其他体系可自行编译edgeadm和制作相应体系安装包，可参考 **5. 自定义Kubernetes静态安装包**
@@ -201,6 +201,8 @@ edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx \
     --install-pkg-path <Path of edgeadm kube-* install package>
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断集群的初始化，可使用`./edgeadm reset`命令回滚集群的初始化操作。
+
+>   节点网络带宽尽可能大，防止中途拉取镜像太慢一直等待，推荐百兆带宽，安装完成后可调整至正常。或者可手动提前拉取其相关镜像到节点。
 
 #### <4>.设置Master kube-config 文件
 

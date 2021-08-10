@@ -125,6 +125,7 @@ This program has the following advantages:
     >   For other Kubernetes versions, please refer to **5. Customize the Kubernetes static installation package** and make it yourself.
 
 -   hostname of node should meet following requirements;
+    
     > not contain `localhost` and  not all numbers
 
 #### <2>. Download the edgeadm static installation package and copy it to all master && node nodes
@@ -189,6 +190,8 @@ edgeadm join xxx.xxx.xxx.xxx:xxx --token xxxx \
     --install-pkg-path <Path of edgeadm kube-* install package>
 ```
 If there is a problem during the execution, the corresponding error message will be returned directly and the initialization of the cluster will be interrupted. You can use the `./edgeadm reset` command to roll back the initialization operation of the cluster.
+
+>   The node network bandwidth should be as large as possible to prevent the slowness of pulling the image halfway and wait forever. 100M bandwidth is recommended, which can be adjusted to normal after the installation is complete. Or you can manually pull the related image to the node in advance.
 
 #### <4>. Set the master kube-config file
 
