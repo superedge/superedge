@@ -102,9 +102,9 @@ spec:
       protocol: TCP
       targetPort: 22
     - name: tunnel-metrics
-        port: 6000
-        protocol: TCP
-        targetPort: 6000
+      port: 6000
+      protocol: TCP
+      targetPort: 6000
   selector:
     app: tunnel-cloud
   type: NodePort
@@ -159,10 +159,10 @@ spec:
                   apiVersion: v1
                   fieldPath: metadata.namespace
             - name: POD_NAME
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.name
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
           volumeMounts:
             - name: token
               mountPath: /etc/superedge/tunnel/token
