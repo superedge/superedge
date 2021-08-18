@@ -52,7 +52,7 @@ $ kubectl apply -f deployment/tunnel-coredns.yaml
       openssl req -new -key tunnel_persistent_connectiong_server.key -subj "/CN=tunnel-cloud" -out tunnel_persistent_connectiong_server.csr
 
       # Add DNS and IP
-      echo "subjectAltName=DNS:tunnelcloud.io,IP:127.0.0.1" > tunnel_cloud_cert_extensions
+      echo "subjectAltName=DNS:tunnel.cloud.io,IP:127.0.0.1" > tunnel_cloud_cert_extensions
 
       # Generate Self Signed certificate
       openssl x509 -req -days 365 -in tunnel_persistent_connectiong_server.csr -CA tunnel-cloud-ca.crt -CAkey tunnel_ca.key -CAcreateserial  -extfile tunnel_cloud_cert_extensions -out tunnel_persistent_connectiong_server.crt
@@ -123,7 +123,7 @@ dnsConfig:
 Set the following parameters in the `deployment/tunnel-edge.yaml`
 
 ```bash
-MasterIP:  #Normal Kubernetes master node's IP or domain(currently, only one IP address or domain is supported)
+MasterIP:  #Edge nodes can access the IP or domain name of the normal Kubernetes master node(currently, only one IP address or domain is supported)
 TunnelCloudEdgeToken:  #Fill in the same token as "TunnelCloudEdgeToken" in Tunnel-cloud
 TunnelPersistentConnectionPort:  #Tunnel-cloud's Persistent connection server Port
 KubernetesCaCert:  #kube-apiserver's ca.crt(base64 encoded)
