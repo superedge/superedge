@@ -75,7 +75,7 @@ $ kubectl apply -f deployment/tunnel-cloud.yaml
     # generate csr
     openssl req -new -key tunnel_persistent_connectiong_server.key -subj "/CN=tunnel-cloud" -out tunnel_persistent_connectiong_server.csr
     
-    # Add DNS and IP, 必须填写 "DNS:tunnel.cloud.io"
+    # Add DNS and IP, 如果有可用的公网域名请填写该域名，默认是tunnel.cloud.io
     echo "subjectAltName=DNS:tunnel.cloud.io,IP:127.0.0.1" > tunnel_persistent_connectiong_server_cert_extensions
     
     # Generate Self Signed certificate
