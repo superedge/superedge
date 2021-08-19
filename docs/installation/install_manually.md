@@ -126,7 +126,7 @@ Set the following parameters in the `deployment/tunnel-edge.yaml`
 MasterIP:  #Edge nodes can access the IP or domain name of the normal Kubernetes master node(currently, only one IP address or domain is supported)
 TunnelCloudEdgeToken:  #Fill in the same token as "TunnelCloudEdgeToken" in Tunnel-cloud
 TunnelPersistentConnectionPort:  #Tunnel-cloud's Persistent connection server Port
-KubernetesCaCert:  #kube-apiserver's ca.crt(base64 encoded)
+KubernetesCaCert:  #tunnel_ca.crt#(base64 encoded)
 KubeletClientKey:  #Kubelet client key for Tunnel-edge to access Kubelet
 KubeletClientCrt:  #Kubelet client cert for Tunnel-edge to access Kubelet
 ```

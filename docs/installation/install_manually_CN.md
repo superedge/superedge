@@ -140,9 +140,9 @@ dnsConfig:
 
   > 至少随机32位字符串，tunnel-cloud和tunnel-edge必须为同一个，需要完全相同；
 
--   TunnelPersistentConnectionPort： tunnel-cloud的NodePort端口；
+- TunnelPersistentConnectionPort： tunnel-cloud的NodePort端口；
 
--   KubernetesCaCert：kube-apiserver的ca.crt的base64加密；
+- KubernetesCaCert：生成的tunnel-ca的base64加密；
     
 > 用于验证tunnel cloud的server端证书
 
