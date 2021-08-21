@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"k8s.io/klog/v2"
 	"os"
+	"path/filepath"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -35,6 +36,25 @@ import (
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
+
+func DeployEdgex(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
+	if err := EnsureEdgeSystemNamespace(client); err != nil {
+		return err
+	}
+
+	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgeSystem,
+	}
+	userManifests := filepath.Join(manifestsDir, manifests.EDGEX)
+	EdgexY := ReadYaml(userManifests, manifests.EdgexYaml)
+	err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
+	if err != nil {
+		return err
+	}
+	klog.Infof("Deploy %s success!", manifests.EDGEX)
+	return nil
+}
+
 
 func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
@@ -83,6 +103,32 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	}
 	klog.Infof("Prepare join Node configMap success")
 
+	return nil
+}
+
+func DeleteEdgex(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string, configPath string) error {
+	userManifests := filepath.Join(manifestsDir, manifests.EDGEX)
+	EdgexYaml := ReadYaml(userManifests, manifests.EdgexYaml)
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgeSystem,
+	}
+	err := kubeclient.DeleteResourceWithFile(client, EdgexYaml, option)
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll("~/.kube/cache/");
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll("/consul");
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll("/data");
+	if err != nil {
+		return err
+	}
+	klog.Infof("Delete %s success!", manifests.EDGEX)
 	return nil
 }
 

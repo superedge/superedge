@@ -46,6 +46,7 @@ func NewAddonCMD() *cobra.Command {
 		Long:  cmdutil.MacroCommandLongDescription,
 	}
 	cmd.AddCommand(NewInstallEdgeAppsCMD())
+	cmd.AddCommand(NewInstallEdgexCMD())
 	return cmd
 }
 
@@ -56,6 +57,7 @@ func NewDetachCMD() *cobra.Command {
 		Long:  cmdutil.MacroCommandLongDescription,
 	}
 	cmd.AddCommand(NewDetachEdgeAppsCMD())
+	cmd.AddCommand(NewDetachEdgexCMD())
 	return cmd
 }
 
