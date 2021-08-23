@@ -38,12 +38,12 @@ import (
 )
 
 func DeployEdgex(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
-	if err := EnsureEdgeSystemNamespace(client); err != nil {
+	if err := EnsureEdgexNamespace(client); err != nil {
 		return err
 	}
 
 	option := map[string]interface{}{
-		"Namespace":              constant.NamespaceEdgeSystem,
+		"Namespace":              constant.NamespaceEdgex,
 	}
 	userManifests := filepath.Join(manifestsDir, manifests.EDGEX)
 	EdgexY := ReadYaml(userManifests, manifests.EdgexYaml)
@@ -110,7 +110,7 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFi
 	userManifests := filepath.Join(manifestsDir, manifests.EDGEX)
 	EdgexYaml := ReadYaml(userManifests, manifests.EdgexYaml)
 	option := map[string]interface{}{
-		"Namespace": constant.NamespaceEdgeSystem,
+		"Namespace": constant.NamespaceEdgex,
 	}
 	err := kubeclient.DeleteResourceWithFile(client, EdgexYaml, option)
 	if err != nil {
@@ -385,6 +385,17 @@ func EnsureEdgeSystemNamespace(client kubernetes.Interface) error {
 	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.NamespaceEdgeSystem,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func EnsureEdgexNamespace(client kubernetes.Interface) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.NamespaceEdgex,
 		},
 	}); err != nil {
 		return err

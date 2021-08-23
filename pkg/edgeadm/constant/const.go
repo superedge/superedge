@@ -36,6 +36,7 @@ const (
 	NamespaceEdgeSystem = "edge-system"
 	NamespaceKubeSystem = "kube-system"
 	NamespaceKubePublic = "kube-public"
+	NamespaceEdgex      = "edgex"
 )
 
 const (
