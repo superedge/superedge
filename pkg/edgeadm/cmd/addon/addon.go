@@ -37,6 +37,15 @@ type addonAction struct {
 	masterPublicAddr string
 	certSANs         []string
 	kubeConfig       string
+
+	app bool
+	core bool
+	device bool
+	support bool
+	ui bool
+	mqtt bool
+	configmap bool
+	completely bool
 }
 
 func NewAddonCMD() *cobra.Command {
@@ -46,6 +55,7 @@ func NewAddonCMD() *cobra.Command {
 		Long:  cmdutil.MacroCommandLongDescription,
 	}
 	cmd.AddCommand(NewInstallEdgeAppsCMD())
+	cmd.AddCommand(NewInstallEdgexCMD())
 	return cmd
 }
 
@@ -56,6 +66,7 @@ func NewDetachCMD() *cobra.Command {
 		Long:  cmdutil.MacroCommandLongDescription,
 	}
 	cmd.AddCommand(NewDetachEdgeAppsCMD())
+	cmd.AddCommand(NewDetachEdgexCMD())
 	return cmd
 }
 
