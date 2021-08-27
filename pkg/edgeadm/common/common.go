@@ -20,8 +20,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests/edgex"
 	"k8s.io/klog/v2"
 	"os"
+	"path/filepath"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -35,6 +37,65 @@ import (
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
+
+func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[string]bool) error {
+	if err := EnsureEdgexNamespace(client); err != nil {
+		return err
+	}
+
+	option := map[string]interface{}{
+		"Namespace":              constant.NamespaceEdgex,
+	}
+	klog.Info("Start install edgex-configmap to your original cluster")
+	userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
+	EdgexY := ReadYaml(userManifests, edgex.Edgex_CONFIGMAP_Yaml)
+	err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
+	if err != nil {
+		klog.Errorf("Deploy edgex-configmap fail")
+		return err
+	}
+	klog.V(4).Infof("Deploy edgex-configmap success!")
+
+	var sername string
+	var seryaml string
+	for k := range flag {
+		if flag[k]==false {
+			continue
+		}
+		switch k {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.Edgex_APP_Yaml
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.Edgex_CORE_Yaml
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.Edgex_SUPPORT_Yaml
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.Edgex_DEVICE_Yaml
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.Edgex_UI_Yaml
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.Edgex_MQTT_Yaml
+		}
+		klog.Info("Start install " + k + " to your original cluster")
+		userManifests := filepath.Join(manifestsDir, sername)
+		EdgexY := ReadYaml(userManifests, seryaml)
+		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
+		if err != nil {
+			klog.Errorf("Deploy "+ k+" fail")
+			return err
+		}
+		klog.V(4).Infof("Deploy "+k+" success!")
+	}
+
+	return nil
+}
+
 
 func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
@@ -83,6 +144,74 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	}
 	klog.Infof("Prepare join Node configMap success")
 
+	return nil
+}
+
+func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[string]bool) error {
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgex,
+	}
+
+	var sername string
+	var seryaml string
+
+	for k := range flag {
+		if flag[k]==false {
+			continue
+		}
+		switch k {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.Edgex_APP_Yaml
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.Edgex_CORE_Yaml
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.Edgex_SUPPORT_Yaml
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.Edgex_DEVICE_Yaml
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.Edgex_UI_Yaml
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.Edgex_MQTT_Yaml
+		case constant.Completely:
+			sername = edgex.EDGEX_CONFIGMAP
+			seryaml = edgex.Edgex_CONFIGMAP_Yaml
+		}
+		klog.Info("Start uninstall addon "+k+" from your original cluster")
+		userManifests := filepath.Join(manifestsDir, sername)
+		EdgexYaml := ReadYaml(userManifests, seryaml)
+		err := kubeclient.DeleteResourceWithFile(client, EdgexYaml, option)
+		if err != nil {
+			klog.Errorf("Delete "+k+" fail")
+			return err
+		}
+		klog.V(4).Infof("Delete "+k+" success!")
+	}
+
+	if flag[constant.Completely]{
+		klog.Info("Start uninstall edgex completely.")
+		err := os.RemoveAll("~/.kube/cache/");
+		if err != nil {
+			klog.Errorf("Delete ~/.kube/cache fail. Please 'rm ~/.kube/cache' by yourself.")
+			return err
+		}
+		err = os.RemoveAll("/consul");
+		if err != nil {
+			klog.Errorf("Delete /consul fail. Please 'rm /consul' by yourself.")
+			return err
+		}
+		err = os.RemoveAll("/data");
+		if err != nil {
+			klog.Errorf("Delete /data fail. Please 'rm /data' by yourself.")
+			return err
+		}
+		klog.V(4).Infof("Delete edgex completely success!")
+	}
 	return nil
 }
 
@@ -339,6 +468,17 @@ func EnsureEdgeSystemNamespace(client kubernetes.Interface) error {
 	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.NamespaceEdgeSystem,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func EnsureEdgexNamespace(client kubernetes.Interface) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.NamespaceEdgex,
 		},
 	}); err != nil {
 		return err
