@@ -37,15 +37,14 @@ type addonAction struct {
 	masterPublicAddr string
 	certSANs         []string
 	kubeConfig       string
-
-	app bool
-	core bool
-	device bool
-	support bool
-	ui bool
-	mqtt bool
-	configmap bool
-	completely bool
+	app              bool
+	core             bool
+	device           bool
+	support          bool
+	ui               bool
+	mqtt             bool
+	configmap        bool
+	completely       bool
 }
 
 func NewAddonCMD() *cobra.Command {

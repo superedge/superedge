@@ -3,6 +3,7 @@ package addon
 import (
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/pkg/edgeadm/common"
+	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/util"
 )
 
@@ -69,69 +70,42 @@ func NewDetachEdgexCMD() *cobra.Command {
 
 func  (a *addonAction) runAddonedgex() error {
 	var ser map[string]bool
-	ser = map[string]bool{"app":false,"core":false,"support":false,"device":false,"ui":false,"mqtt":false}
-	if a.app {
-		ser["app"]=true
-	}
-	if a.core {
-		ser["core"]=true
-	}
-	if a.support {
-		ser["support"]=true
-	}
-	if a.device {
-		ser["device"]=true
-	}
-	if a.ui {
-		ser["ui"]=true
-	}
-	if a.mqtt {
-		ser["mqtt"]=true
-	}
+	ser = map[string]bool{constant.App:false,constant.Core:false,constant.Support:false,constant.Device:false,constant.Ui:false,constant.Mqtt:false}
+	ser[constant.App]=a.app
+	ser[constant.Core]=a.core
+	ser[constant.Support]=a.support
+	ser[constant.Device]=a.device
+	ser[constant.Ui]=a.ui
+	ser[constant.Mqtt]=a.mqtt
 	if !(a.app||a.core||a.support||a.device||a.ui||a.mqtt||a.configmap) {
-		ser["app"]=true
-		ser["core"]=true
-		ser["support"]=true
-		ser["device"]=true
-		ser["ui"]=true
-		ser["mqtt"]=true
-
+		ser[constant.App]=true
+		ser[constant.Core]=true
+		ser[constant.Support]=true
+		ser[constant.Device]=true
+		ser[constant.Ui]=true
+		ser[constant.Mqtt]=true
 	}
 	return common.DeployEdgex(a.clientSet, a.manifestDir, ser)
 }
 
 func  (a *addonAction) runDetachedgex() error {
 	var ser map[string]bool
-	ser = map[string]bool{"app":false,"core":false,"support":false,"device":false,"ui":false,"mqtt":false,"completely":false}
-	if a.app {
-		ser["app"]=true
-	}
-	if a.core {
-		ser["core"]=true
-	}
-	if a.support {
-		ser["support"]=true
-	}
-	if a.device {
-		ser["device"]=true
-	}
-	if a.ui {
-		ser["ui"]=true
-	}
-	if a.mqtt {
-		ser["mqtt"]=true
-	}
-	if a.completely{
-		ser["completely"] = true
-	}
+	ser = map[string]bool{constant.App:false,constant.Core:false,constant.Support:false,constant.Device:false,constant.Ui:false,constant.Mqtt:false,constant.Completely:false}
+	ser[constant.App]=a.app
+	ser[constant.Core]=a.core
+	ser[constant.Support]=a.support
+	ser[constant.Device]=a.device
+	ser[constant.Ui]=a.ui
+	ser[constant.Mqtt]=a.mqtt
+	ser[constant.Completely] = a.completely
 	if !(a.app||a.core||a.support||a.device||a.ui||a.mqtt||a.completely) {
-		ser["app"]=true
-		ser["core"]=true
-		ser["support"]=true
-		ser["device"]=true
-		ser["ui"]=true
-		ser["mqtt"]=true
-		ser["completely"]=true
+		ser[constant.App]=true
+		ser[constant.Core]=true
+		ser[constant.Support]=true
+		ser[constant.Device]=true
+		ser[constant.Ui]=true
+		ser[constant.Mqtt]=true
+		ser[constant.Completely]=true
 	}
 	return common.DeleteEdgex(a.clientSet, a.manifestDir, ser)
 }

@@ -51,77 +51,48 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[str
 	EdgexY := ReadYaml(userManifests, edgex.Edgex_CONFIGMAP_Yaml)
 	err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
 	if err != nil {
-		klog.Info("Deploy edgex-configmap fail")
+		klog.Errorf("Deploy edgex-configmap fail")
 		return err
 	}
-	klog.Infof("Deploy edgex-configmap success!")
+	klog.V(4).Infof("Deploy edgex-configmap success!")
 
-	if flag["app"] {
-		klog.Info("Start install edgex-app to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_APP)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_APP_Yaml)
+	var sername string
+	var seryaml string
+	for k := range flag {
+		if flag[k]==false {
+			continue
+		}
+		switch k {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.Edgex_APP_Yaml
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.Edgex_CORE_Yaml
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.Edgex_SUPPORT_Yaml
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.Edgex_DEVICE_Yaml
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.Edgex_UI_Yaml
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.Edgex_MQTT_Yaml
+		}
+		klog.Info("Start install " + k + " to your original cluster")
+		userManifests := filepath.Join(manifestsDir, sername)
+		EdgexY := ReadYaml(userManifests, seryaml)
 		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
 		if err != nil {
-			klog.Info("Deploy edgex-app fail")
+			klog.Errorf("Deploy "+ k+" fail")
 			return err
 		}
-		klog.Infof("Deploy edgex-app success!")
+		klog.V(4).Infof("Deploy "+k+" success!")
 	}
-	if flag["core"] {
-		klog.Info("Start install edgex-core to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CORE)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_CORE_Yaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Deploy edgex-core fail")
-			return err
-		}
-		klog.Infof("Deploy edgex-core success!")
-	}
-	if flag["device"] {
-		klog.Info("Start install edgex-device to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_DEVICE)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_DEVICE_Yaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Deploy edgex-device fail")
-			return err
-		}
-		klog.Infof("Deploy edgex-device success!")
-	}
-	if flag["support"] {
-		klog.Info("Start install edgex-support to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_SUPPORT)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_SUPPORT_Yaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Deploy edgex-support fail")
-			return err
-		}
-		klog.Infof("Deploy edgex-support success!")
-	}
-	if flag["ui"] {
-		klog.Info("Start install edgex-ui to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_UI)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_UI_Yaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Deploy edgex-ui fail")
-			return err
-		}
-		klog.Infof("Deploy edgex-ui success!")
-	}
-	if flag["mqtt"] {
-		klog.Info("Start install edgex-mqtt to your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_MQTT)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_MQTT_Yaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Deploy edgex-mqtt fail")
-			return err
-		}
-		klog.Infof("Deploy edgex-mqtt success!")
-	}
+
 	return nil
 }
 
@@ -180,99 +151,66 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[str
 	option := map[string]interface{}{
 		"Namespace": constant.NamespaceEdgex,
 	}
-	if flag["app"]{
-		klog.Info("Start uninstall addon edgex-app from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_APP)
-		EdgexYaml := ReadYaml(userManifests, edgex.Edgex_APP_Yaml)
+
+	var sername string
+	var seryaml string
+
+	for k := range flag {
+		if flag[k]==false {
+			continue
+		}
+		switch k {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.Edgex_APP_Yaml
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.Edgex_CORE_Yaml
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.Edgex_SUPPORT_Yaml
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.Edgex_DEVICE_Yaml
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.Edgex_UI_Yaml
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.Edgex_MQTT_Yaml
+		case constant.Completely:
+			sername = edgex.EDGEX_CONFIGMAP
+			seryaml = edgex.Edgex_CONFIGMAP_Yaml
+		}
+		klog.Info("Start uninstall addon "+k+" from your original cluster")
+		userManifests := filepath.Join(manifestsDir, sername)
+		EdgexYaml := ReadYaml(userManifests, seryaml)
 		err := kubeclient.DeleteResourceWithFile(client, EdgexYaml, option)
 		if err != nil {
-			klog.Info("Delete edgex-app fail")
+			klog.Errorf("Delete "+k+" fail")
 			return err
 		}
-		klog.Infof("Delete edgex-app success!")
+		klog.V(4).Infof("Delete "+k+" success!")
 	}
-	if flag["core"] {
-		klog.Info("Start uninstall edgex-core from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CORE)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_CORE_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-core fail")
-			return err
-		}
-		klog.Infof("Delete edgex-core success!")
-	}
-	if flag["device"] {
-		klog.Info("Start uninstall edgex-device from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_DEVICE)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_DEVICE_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-device fail")
-			return err
-		}
-		klog.Infof("Delete edgex-device success!")
-	}
-	if flag["support"] {
-		klog.Info("Start uninstall edgex-support from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_SUPPORT)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_SUPPORT_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-support fail")
-			return err
-		}
-		klog.Infof("Delete edgex-support success!")
-	}
-	if flag["ui"] {
-		klog.Info("Start uninstall edgex-ui from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_UI)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_UI_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-ui fail")
-			return err
-		}
-		klog.Infof("Delete edgex-ui success!")
-	}
-	if flag["mqtt"] {
-		klog.Info("Start uninstall edgex-mqtt from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_MQTT)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_MQTT_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-mqtt fail")
-			return err
-		}
-		klog.Infof("Delete edgex-mqtt success!")
-	}
-	if flag["completely"]{
-		klog.Info("Start uninstall edgex-configmap from your original cluster")
-		userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
-		EdgexY := ReadYaml(userManifests, edgex.Edgex_CONFIGMAP_Yaml)
-		err := kubeclient.DeleteResourceWithFile(client, EdgexY, option)
-		if err != nil {
-			klog.Info("Delete edgex-configmap fail")
-			return err
-		}
-		klog.Infof("Delete edgex-configmap success!")
+
+	if flag[constant.Completely]{
 		klog.Info("Start uninstall edgex completely.")
-		err = os.RemoveAll("~/.kube/cache/");
+		err := os.RemoveAll("~/.kube/cache/");
 		if err != nil {
-			klog.Info("Delete ~/.kube/cache fail. Please 'rm ~/.kube/cache' by yourself.")
+			klog.Errorf("Delete ~/.kube/cache fail. Please 'rm ~/.kube/cache' by yourself.")
 			return err
 		}
 		err = os.RemoveAll("/consul");
 		if err != nil {
-			klog.Info("Delete /consul fail. Please 'rm /consul' by yourself.")
+			klog.Errorf("Delete /consul fail. Please 'rm /consul' by yourself.")
 			return err
 		}
 		err = os.RemoveAll("/data");
 		if err != nil {
-			klog.Info("Delete /data fail. Please 'rm /data' by yourself.")
+			klog.Errorf("Delete /data fail. Please 'rm /data' by yourself.")
 			return err
 		}
-		klog.Infof("Delete edgex completely success!")
+		klog.V(4).Infof("Delete edgex completely success!")
 	}
 	return nil
 }
