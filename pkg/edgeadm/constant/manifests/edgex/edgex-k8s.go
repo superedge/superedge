@@ -16,10 +16,11 @@ limitations under the License.
 
 package edgex
 
-//all the components for edgex
+//the origin yaml for edgex, not advised to be used
+//just for reference
 const EDGEX = "k8s-hanoi-redis-no-secty.yml"
 
-const EdgexYaml = `
+const EDGEXYAML = `
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -39,7 +40,6 @@ data:
   Databases_Primary_Host: "edgex-redis"
   Service_ServerBindAddr: "0.0.0.0"
   Logging_EnableRemote: "false"
-
 ---
 apiVersion: v1
 kind: Service
@@ -244,6 +244,22 @@ spec:
     protocol: TCP
     targetPort: 4000
     nodePort: 30040
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgex-sys-mgmt-agent
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort
+  selector:
+    app: edgex-sys-mgmt-agent
+  ports:
+  - name: http
+    port: 48090
+    protocol: TCP
+    targetPort: 48090
+    nodePort: 30090
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -767,5 +783,46 @@ spec:
             value: "edgex"
           - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Topic
             value: "EdgeXEvents"
-
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: edgex-sys-mgmt-agent
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    matchLabels: 
+      app: edgex-sys-mgmt-agent
+  template:
+    metadata:
+      labels: 
+        app: edgex-sys-mgmt-agent
+    spec:
+      hostname: edgex-sys-mgmt-agent
+      volumes:
+        - name: edgex-sys-mgmt-agent
+          hostPath:
+            path: /var/run/docker.sock
+            type: DirectoryOrCreate
+      containers:
+      - name: edgex-sys-mgmt-agent
+        image: edgexfoundry/docker-sys-mgmt-agent-go:1.3.0
+        imagePullPolicy: IfNotPresent
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env:
+          - name: EXECUTORPATH
+            value: "/sys-mgmt-executor"
+          - name: METRICSMECHANISM
+            value: "executor"
+          - name: SERVICE_HOST
+            value: "edgex-sys-mgmt-agent"
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 48090
+        volumeMounts:
+        - name: edgex-sys-mgmt-agent
+          mountPath: /var/run/docker.sock
 `

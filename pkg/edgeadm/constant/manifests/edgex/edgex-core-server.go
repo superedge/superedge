@@ -16,10 +16,10 @@ limitations under the License.
 
 package edgex
 
-////The components in core services
+//The components in core services
 const EDGEX_CORE = "edgex-core-services.yml"
 
-const Edgex_CORE_Yaml = `
+const EDGEX_CORE_YAML = `
 apiVersion: v1
 kind: Service
 metadata:
@@ -55,7 +55,6 @@ spec:
     port: 6379
     targetPort: 6379  
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -287,6 +286,4 @@ spec:
         env: 
         - name: Service_Host
           value: "edgex-core-command"
-
-
 `

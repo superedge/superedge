@@ -16,10 +16,10 @@ limitations under the License.
 
 package edgex
 
-//The components in support services
-const EDGEX_SUPPORT = "k8s-hanoi-redis-no-secty-support.yml"
+//The components in supporting services
+const EDGEX_SUPPORT = "edgex-support-services.yml"
 
-const Edgex_SUPPORT_Yaml = `
+const EDGEX_SUPPORT_YAML = `
 apiVersion: v1
 kind: Service
 metadata:
@@ -35,7 +35,6 @@ spec:
     protocol: TCP
     targetPort: 48060
     nodePort: 30060
-
 ---
 apiVersion: v1
 kind: Service
@@ -52,6 +51,27 @@ spec:
     protocol: TCP
     targetPort: 48085  
     nodePort: 30085
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: edgex-kuiper
+ namespace: {{.Namespace}}
+spec:
+ type: NodePort
+ selector:
+   app: edgex-kuiper
+ ports:
+ - name: tcp-48075
+   port: 48075
+   protocol: TCP
+   targetPort: 48075
+   nodePort: 30075
+ - name: tcp-20498
+   port: 20498
+   protocol: TCP
+   targetPort: 20498
+   nodePort: 30098
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -116,28 +136,6 @@ spec:
           value: "edgex-core-data"
         - name: IntervalActions_ScrubAged_Host
           value: "edgex-core-data"
----
-
-apiVersion: v1
-kind: Service
-metadata:
- name: edgex-kuiper
- namespace: {{.Namespace}}
-spec:
- type: NodePort
- selector:
-   app: edgex-kuiper
- ports:
- - name: tcp-48075
-   port: 48075
-   protocol: TCP
-   targetPort: 48075
-   nodePort: 30075
- - name: tcp-20498
-   port: 20498
-   protocol: TCP
-   targetPort: 20498
-   nodePort: 30098
 ---
 apiVersion: apps/v1
 kind: Deployment

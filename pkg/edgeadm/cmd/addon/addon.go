@@ -45,6 +45,7 @@ type addonAction struct {
 	mqtt             bool
 	configmap        bool
 	completely       bool
+	sysmgmt          bool
 }
 
 func NewAddonCMD() *cobra.Command {

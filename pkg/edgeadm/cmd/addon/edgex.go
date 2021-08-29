@@ -34,7 +34,8 @@ func NewInstallEdgexCMD() *cobra.Command {
 	cmd.Flags().BoolVar(&action.device, "device", false, "Addon the edgex device-services to cluster.")
 	cmd.Flags().BoolVar(&action.ui, "ui", false, "Addon the edgex ui to cluster.")
 	cmd.Flags().BoolVar(&action.mqtt, "mqtt", false, "Addon the mqtt.")
-	cmd.Flags().BoolVar(&action.configmap, "configmap", false, "add the configmap. only used when lose configmap")
+	cmd.Flags().BoolVar(&action.configmap, "configmap", false, "Addon the configmap. only used when lose configmap")
+	cmd.Flags().BoolVar(&action.sysmgmt, "sysmgmt", false, "Addon the edgex system management to cluster")
 	return cmd
 }
 
@@ -64,34 +65,33 @@ func NewDetachEdgexCMD() *cobra.Command {
 	cmd.Flags().BoolVar(&action.device, "device", false, "Detach the edgex device-services from cluster.")
 	cmd.Flags().BoolVar(&action.ui, "ui", false, "Detach the ui from cluster.")
 	cmd.Flags().BoolVar(&action.mqtt, "mqtt", false, "Detach the mqtt from cluster.")
+	cmd.Flags().BoolVar(&action.sysmgmt, "sysmgmt", false, "Detach the edgex system management from cluster.")
 	cmd.Flags().BoolVar(&action.completely, "completely", false, "Detach edgex completely from cluster.")
 	return cmd
 }
 
 func (a *addonAction) runAddonedgex() error {
-	var ser map[string]bool
-	ser = map[string]bool{constant.App: false, constant.Core: false, constant.Support: false, constant.Device: false, constant.Ui: false, constant.Mqtt: false}
+	var ser = make([]bool, constant.SerCount + 1)
 	ser[constant.App] = a.app
 	ser[constant.Core] = a.core
 	ser[constant.Support] = a.support
 	ser[constant.Device] = a.device
 	ser[constant.Ui] = a.ui
 	ser[constant.Mqtt] = a.mqtt
-
-	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.configmap) {
+	ser[constant.Sysmgmt] = a.sysmgmt
+	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.configmap || a.sysmgmt) {
 		ser[constant.App] = true
 		ser[constant.Core] = true
 		ser[constant.Support] = true
 		ser[constant.Device] = true
 		ser[constant.Ui] = true
-		ser[constant.Mqtt] = true
+		ser[constant.Sysmgmt] = true
 	}
 	return common.DeployEdgex(a.clientSet, a.manifestDir, ser)
 }
 
 func (a *addonAction) runDetachedgex() error {
-	var ser map[string]bool
-	ser = map[string]bool{constant.App: false, constant.Core: false, constant.Support: false, constant.Device: false, constant.Ui: false, constant.Mqtt: false, constant.Completely: false}
+	var ser = make([]bool, constant.SerCount + 1)
 	ser[constant.App] = a.app
 	ser[constant.Core] = a.core
 	ser[constant.Support] = a.support
@@ -99,14 +99,15 @@ func (a *addonAction) runDetachedgex() error {
 	ser[constant.Ui] = a.ui
 	ser[constant.Mqtt] = a.mqtt
 	ser[constant.Completely] = a.completely
+	ser[constant.Sysmgmt] = a.sysmgmt
 
-	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.completely) {
+	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.sysmgmt || a.completely) {
 		ser[constant.App] = true
 		ser[constant.Core] = true
 		ser[constant.Support] = true
 		ser[constant.Device] = true
 		ser[constant.Ui] = true
-		ser[constant.Mqtt] = true
+		ser[constant.Sysmgmt] = true
 		ser[constant.Completely] = true
 	}
 	return common.DeleteEdgex(a.clientSet, a.manifestDir, ser)
