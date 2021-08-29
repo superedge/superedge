@@ -57,21 +57,44 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 	}
 	klog.V(1).Infof("Deploy %s success!", edgex.EDGEX_CONFIGMAP)
 
-	sername := [] string {constant.Sername0, constant.Sername1, constant.Sername2, constant.Sername3, constant.Sername4, constant.Sername5, constant.Sername6, constant.Sername7, constant.Sername8}
-	seryaml := [] string {constant.Seryaml0, constant.Seryaml1, constant.Seryaml2, constant.Seryaml3, constant.Seryaml4, constant.Seryaml5, constant.Seryaml6, constant.Seryaml7, constant.Seryaml8}
+	var sername string
+	var seryaml string
 	for edgexModule, isTrue := range modules {
 		if !isTrue {
 			continue
 		}
-		klog.V(1).Infof("Start install %s to your cluster", sername[edgexModule])
-		userManifests := filepath.Join(manifestsDir, sername[edgexModule])
-		edgexYaml := ReadYaml(userManifests, seryaml[edgexModule])
+		switch edgexModule {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.EDGEX_APP_YAML
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.EDGEX_CORE_YAML
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.EDGEX_SUPPORT_YAML
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.EDGEX_DEVICE_YAML
+		case constant.Sysmgmt:
+			sername = edgex.EDGEX_SYS_MGMT
+			seryaml = edgex.EDGEX_SYS_MGMT_YAML
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.EDGEX_UI_YAML
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.EDGEX_MQTT_YAML
+		}
+		klog.V(1).Infof("Start install %s to your cluster", sername)
+		userManifests := filepath.Join(manifestsDir, sername)
+		edgexYaml := ReadYaml(userManifests, seryaml)
 		err := kubeclient.CreateResourceWithFile(client, edgexYaml, option)
 		if err != nil {
-			klog.Errorf("Deploy %s fail, error: %v", sername[edgexModule], err)
+			klog.Errorf("Deploy %s fail, error: %v", sername, err)
 			return err
 		}
-		klog.V(1).Infof("Deploy %s success!", sername[edgexModule])
+		klog.V(1).Infof("Deploy %s success!", sername)
 	}
 	return nil
 }
@@ -131,23 +154,47 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		"Namespace": constant.NamespaceEdgex,
 	}
 
-	sername := [] string {constant.Sername0, constant.Sername1, constant.Sername2, constant.Sername3, constant.Sername4, constant.Sername5, constant.Sername6, constant.Sername7, constant.Sername8}
-	seryaml := [] string {constant.Seryaml0, constant.Seryaml1, constant.Seryaml2, constant.Seryaml3, constant.Seryaml4, constant.Seryaml5, constant.Seryaml6, constant.Seryaml7, constant.Seryaml8}
-
+	var sername string
+	var seryaml string
 	for edgexModule, isTrue := range modules {
 		if !isTrue {
 			continue
 		}
-
-		klog.V(1).Infof("Start uninstall %s from your cluster", sername[edgexModule])
-		userManifests := filepath.Join(manifestsDir, sername[edgexModule])
-		edgexYaml := ReadYaml(userManifests, seryaml[edgexModule])
+		switch edgexModule {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.EDGEX_APP_YAML
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.EDGEX_CORE_YAML
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.EDGEX_SUPPORT_YAML
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.EDGEX_DEVICE_YAML
+		case constant.Sysmgmt:
+			sername = edgex.EDGEX_SYS_MGMT
+			seryaml = edgex.EDGEX_SYS_MGMT_YAML
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.EDGEX_UI_YAML
+		case constant.Mqtt:
+			sername = edgex.EDGEX_MQTT
+			seryaml = edgex.EDGEX_MQTT_YAML
+		case constant.Completely:
+			sername = edgex.EDGEX_CONFIGMAP
+			seryaml = edgex.EDGEX_CONFIGMAP_YAML
+		}
+		klog.V(1).Infof("Start uninstall %s from your cluster", sername)
+		userManifests := filepath.Join(manifestsDir, sername)
+		edgexYaml := ReadYaml(userManifests, seryaml)
 		err := kubeclient.DeleteResourceWithFile(client, edgexYaml, option)
 		if err != nil {
-			klog.Errorf("Detach %s fail, error: %v", sername[edgexModule], err)
+			klog.Errorf("Detach %s fail, error: %v", sername, err)
 			return err
 		}
-		klog.V(1).Infof("Detach %s success!", sername[edgexModule])
+		klog.V(1).Infof("Detach %s success!", sername)
 	}
 
 	if modules[constant.Completely] {

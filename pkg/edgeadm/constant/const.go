@@ -16,8 +16,6 @@ limitations under the License.
 
 package constant
 
-import "github.com/superedge/superedge/pkg/edgeadm/constant/manifests/edgex"
-
 const (
 	DeployModeKubeadm = "kubeadm"
 	ModeKubeProxy     = "kube-proxy"
@@ -128,6 +126,7 @@ const LiteAPIServerTLSCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-curren
 const ImageRepository = "superedge.tencentcloudcr.com/superedge"
 
 const (
+	SerCount    = 9
 	Configmap   = 0
 	App         = 1
 	Core        = 2
@@ -137,28 +136,4 @@ const (
 	Ui          = 6
 	Mqtt        = 7
 	Completely  = 8
-)
-
-const (
-	SerCount   =  9
-
-	Sername0 = edgex.EDGEX_CONFIGMAP
-	Sername1 = edgex.EDGEX_APP
-	Sername2 = edgex.EDGEX_CORE
-	Sername3 = edgex.EDGEX_DEVICE
-	Sername4 = edgex.EDGEX_SUPPORT
-	Sername5 = edgex.EDGEX_SYS_MGMT
-	Sername6 = edgex.EDGEX_UI
-	Sername7 = edgex.EDGEX_MQTT
-	Sername8 = edgex.EDGEX_CONFIGMAP
-
-	Seryaml0 = edgex.EDGEX_CONFIGMAP_YAML
-	Seryaml1 = edgex.EDGEX_APP_YAML
-	Seryaml2 = edgex.EDGEX_CORE_YAML
-	Seryaml3 = edgex.EDGEX_DEVICE_YAML
-	Seryaml4 = edgex.EDGEX_SUPPORT_YAML
-	Seryaml5 = edgex.EDGEX_SYS_MGMT_YAML
-	Seryaml6 = edgex.EDGEX_UI_YAML
-	Seryaml7 = edgex.EDGEX_MQTT_YAML
-	Seryaml8 = edgex.EDGEX_CONFIGMAP_YAML
 )
