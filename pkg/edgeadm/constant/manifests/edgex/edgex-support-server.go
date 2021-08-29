@@ -20,7 +20,6 @@ package edgex
 const EDGEX_SUPPORT = "k8s-hanoi-redis-no-secty-support.yml"
 
 const Edgex_SUPPORT_Yaml = `
-
 apiVersion: v1
 kind: Service
 metadata:

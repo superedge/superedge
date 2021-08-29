@@ -17,9 +17,9 @@ limitations under the License.
 package edgex
 
 //configmap for each component, important, it should be built firstly and deleted lastly
-const EDGEX_CONFIGMAP = "k8s-hanoi-redis-no-secty-configmap.yml"
+const EDGEX_CONFIGMAP = "edgex-configmap.yml"
 
-const Edgex_CONFIGMAP_Yaml = `
+const Edgex_CONFIGMAP_YAML = `
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -30,15 +30,13 @@ data:
   Registry_Host: "edgex-core-consul"
   Clients_CoreData_Host: "edgex-core-data"
   Clients_Data_Host: "edgex-core-data"
-  Clients_Notifications_Host: "edgex-support-notifications"
   Clients_Metadata_Host: "edgex-core-metadata"
   Clients_Command_Host: "edgex-core-command"
+  Clients_Notifications_Host: "edgex-support-notifications"
   Clients_Scheduler_Host: "edgex-support-scheduler"
   Clients_RulesEngine_Host: "edgex-kuiper"
   Clients_VirtualDevice_Host: "edgex-device-virtual"
   Databases_Primary_Host: "edgex-redis"
   Service_ServerBindAddr: "0.0.0.0"
   Logging_EnableRemote: "false"
-
-
 `

@@ -17,10 +17,9 @@ limitations under the License.
 package edgex
 
 ////The components in core services
-const EDGEX_CORE = "k8s-hanoi-redis-no-secty-core.yml"
+const EDGEX_CORE = "edgex-core-services.yml"
 
 const Edgex_CORE_Yaml = `
-
 apiVersion: v1
 kind: Service
 metadata:

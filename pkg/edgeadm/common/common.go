@@ -38,31 +38,33 @@ import (
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[string]bool) error {
+func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules map[string]bool) error {
 	if err := EnsureEdgexNamespace(client); err != nil {
 		return err
 	}
 
 	option := map[string]interface{}{
-		"Namespace":              constant.NamespaceEdgex,
+		"Namespace": constant.NamespaceEdgex,
 	}
-	klog.Info("Start install edgex-configmap to your original cluster")
+	klog.V(1).Infof("Start install %s to your original cluster", edgex.EDGEX_CONFIGMAP)
+
 	userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
-	EdgexY := ReadYaml(userManifests, edgex.Edgex_CONFIGMAP_Yaml)
-	err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
+	edgexConfig := ReadYaml(userManifests, edgex.Edgex_CONFIGMAP_YAML)
+	err := kubeclient.CreateResourceWithFile(client, edgexConfig, option)
 	if err != nil {
-		klog.Errorf("Deploy edgex-configmap fail")
+		klog.Errorf("Deploy edgex-configmap fail, error: %v", err)
 		return err
 	}
-	klog.V(4).Infof("Deploy edgex-configmap success!")
+	klog.V(1).Infof("Deploy %s success!", edgex.EDGEX_CONFIGMAP)
 
 	var sername string
 	var seryaml string
-	for k := range flag {
-		if flag[k]==false {
+	for edgexModule := range modules {
+
+		if modules[edgexModule] == false {
 			continue
 		}
-		switch k {
+		switch edgexModule {
 		case constant.App:
 			sername = edgex.EDGEX_APP
 			seryaml = edgex.Edgex_APP_Yaml
@@ -82,20 +84,21 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[str
 			sername = edgex.EDGEX_MQTT
 			seryaml = edgex.Edgex_MQTT_Yaml
 		}
-		klog.Info("Start install " + k + " to your original cluster")
+		klog.V(1).Infof("Start install %s to your cluster", sername)
+
 		userManifests := filepath.Join(manifestsDir, sername)
-		EdgexY := ReadYaml(userManifests, seryaml)
-		err := kubeclient.CreateResourceWithFile(client, EdgexY, option)
+		edgexYaml := ReadYaml(userManifests, seryaml)
+		err := kubeclient.CreateResourceWithFile(client, edgexYaml, option)
 		if err != nil {
-			klog.Errorf("Deploy "+ k+" fail")
+			klog.Errorf("Deploy %s fail, error: %v", sername, err)
 			return err
 		}
-		klog.V(4).Infof("Deploy "+k+" success!")
+
+		klog.V(1).Infof("Deploy %s success!", sername)
 	}
 
 	return nil
 }
-
 
 func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
@@ -156,7 +159,7 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[str
 	var seryaml string
 
 	for k := range flag {
-		if flag[k]==false {
+		if flag[k] == false {
 			continue
 		}
 		switch k {
@@ -180,32 +183,32 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, flag map[str
 			seryaml = edgex.Edgex_MQTT_Yaml
 		case constant.Completely:
 			sername = edgex.EDGEX_CONFIGMAP
-			seryaml = edgex.Edgex_CONFIGMAP_Yaml
+			seryaml = edgex.Edgex_CONFIGMAP_YAML
 		}
-		klog.Info("Start uninstall addon "+k+" from your original cluster")
+		klog.Info("Start uninstall addon " + k + " from your original cluster")
 		userManifests := filepath.Join(manifestsDir, sername)
 		EdgexYaml := ReadYaml(userManifests, seryaml)
 		err := kubeclient.DeleteResourceWithFile(client, EdgexYaml, option)
 		if err != nil {
-			klog.Errorf("Delete "+k+" fail")
+			klog.Errorf("Delete " + k + " fail")
 			return err
 		}
-		klog.V(4).Infof("Delete "+k+" success!")
+		klog.V(4).Infof("Delete " + k + " success!")
 	}
 
-	if flag[constant.Completely]{
+	if flag[constant.Completely] {
 		klog.Info("Start uninstall edgex completely.")
-		err := os.RemoveAll("~/.kube/cache/");
+		err := os.RemoveAll("~/.kube/cache/")
 		if err != nil {
 			klog.Errorf("Delete ~/.kube/cache fail. Please 'rm ~/.kube/cache' by yourself.")
 			return err
 		}
-		err = os.RemoveAll("/consul");
+		err = os.RemoveAll("/consul")
 		if err != nil {
 			klog.Errorf("Delete /consul fail. Please 'rm /consul' by yourself.")
 			return err
 		}
-		err = os.RemoveAll("/data");
+		err = os.RemoveAll("/data")
 		if err != nil {
 			klog.Errorf("Delete /data fail. Please 'rm /data' by yourself.")
 			return err
