@@ -20,20 +20,21 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests/edgex"
-	"k8s.io/klog/v2"
 	"os"
 	"path/filepath"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests/edgex"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
@@ -47,15 +48,18 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		"Namespace": constant.NamespaceEdgex,
 	}
 
-	klog.V(1).Infof("Start install %s to your original cluster", edgex.EDGEX_CONFIGMAP)
-	userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
-	edgexConfig := ReadYaml(userManifests, edgex.EDGEX_CONFIGMAP_YAML)
-	err := kubeclient.CreateResourceWithFile(client, edgexConfig, option)
-	if err != nil {
-		klog.Errorf("Deploy %s fail, error: %v", edgex.EDGEX_CONFIGMAP, err)
-		return err
+	configmap_name := "common-variables"
+	if _, err := client.CoreV1().ConfigMaps(constant.NamespaceEdgex).Get(context.TODO(), configmap_name, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
+			edgexConfig := ReadYaml(userManifests, edgex.EDGEX_CONFIGMAP_YAML)
+			err = kubeclient.CreateResourceWithFile(client, edgexConfig, option)
+			if err != nil {
+				klog.Errorf("Deploy %s fail, error: %v", edgex.EDGEX_CONFIGMAP, err)
+				return err
+			}
+		}
 	}
-	klog.V(1).Infof("Deploy %s success!", edgex.EDGEX_CONFIGMAP)
 
 	var sername string
 	var seryaml string
@@ -82,9 +86,6 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		case constant.Ui:
 			sername = edgex.EDGEX_UI
 			seryaml = edgex.EDGEX_UI_YAML
-		case constant.Mqtt:
-			sername = edgex.EDGEX_MQTT
-			seryaml = edgex.EDGEX_MQTT_YAML
 		}
 		klog.V(1).Infof("Start install %s to your cluster", sername)
 		userManifests := filepath.Join(manifestsDir, sername)
@@ -154,6 +155,19 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		"Namespace": constant.NamespaceEdgex,
 	}
 
+	configmap_name := "common-variables"
+	if _, err := client.CoreV1().ConfigMaps(constant.NamespaceEdgex).Get(context.TODO(), configmap_name, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
+			edgexConfig := ReadYaml(userManifests, edgex.EDGEX_CONFIGMAP_YAML)
+			err = kubeclient.CreateResourceWithFile(client, edgexConfig, option)
+			if err != nil {
+				klog.Errorf("Deploy %s fail, error: %v", edgex.EDGEX_CONFIGMAP, err)
+				return err
+			}
+		}
+	}
+
 	var sername string
 	var seryaml string
 	for edgexModule, isTrue := range modules {
@@ -179,9 +193,6 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		case constant.Ui:
 			sername = edgex.EDGEX_UI
 			seryaml = edgex.EDGEX_UI_YAML
-		case constant.Mqtt:
-			sername = edgex.EDGEX_MQTT
-			seryaml = edgex.EDGEX_MQTT_YAML
 		case constant.Completely:
 			sername = edgex.EDGEX_CONFIGMAP
 			seryaml = edgex.EDGEX_CONFIGMAP_YAML
@@ -199,12 +210,7 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 
 	if modules[constant.Completely] {
 		klog.V(1).Infof("Start uninstall edgex completely.")
-		err := os.RemoveAll("~/.kube/cache/")
-		if err != nil {
-			klog.Errorf("Delete ~/.kube/cache fail, error: %v.\nPlease 'rm ~/.kube/cache' by yourself.", err)
-			return err
-		}
-		err = os.RemoveAll("/consul")
+		err := os.RemoveAll("/consul")
 		if err != nil {
 			klog.Errorf("Delete /consul fail, err: %v.\nPlease 'rm /consul' by yourself.", err)
 			return err
@@ -214,7 +220,7 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 			klog.Errorf("Delete /data fail, err: %v\nPlease 'rm /data' by yourself.", err)
 			return err
 		}
-		klog.V(1).Infof("Delete edgex completely success!")
+		klog.V(1).Infof("Uninstall edgex completely success!")
 	}
 	return nil
 }

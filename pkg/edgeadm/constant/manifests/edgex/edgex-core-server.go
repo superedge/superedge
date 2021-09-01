@@ -23,6 +23,22 @@ const EDGEX_CORE_YAML = `
 apiVersion: v1
 kind: Service
 metadata:
+  name: edgex-core-command
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort
+  selector:
+    app: edgex-core-command
+  ports:
+  - name: http
+    port: 48082
+    protocol: TCP
+    targetPort: 48082   
+    nodePort: 30082 
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: edgex-core-consul
   namespace: {{.Namespace}}
 spec:
@@ -40,6 +56,26 @@ spec:
     protocol: TCP
     targetPort: 8400
     nodePort: 30840
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgex-core-data
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort
+  selector:
+    app: edgex-core-data
+  ports:
+  - name: tcp-5563
+    port: 5563
+    protocol: TCP
+    targetPort: 5563
+  - name: tcp-48080
+    port: 48080
+    protocol: TCP
+    targetPort: 48080   
+    nodePort: 30080
 ---
 apiVersion: v1
 kind: Service
@@ -71,41 +107,35 @@ spec:
     targetPort: 48081
     nodePort: 30081
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: edgex-core-data
-  namespace: {{.Namespace}}
-spec:
-  type: NodePort
-  selector:
-    app: edgex-core-data
-  ports:
-  - name: tcp-5563
-    port: 5563
-    protocol: TCP
-    targetPort: 5563
-  - name: tcp-48080
-    port: 48080
-    protocol: TCP
-    targetPort: 48080   
-    nodePort: 30080
----
-apiVersion: v1
-kind: Service
-metadata:
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
   name: edgex-core-command
   namespace: {{.Namespace}}
 spec:
-  type: NodePort
   selector:
-    app: edgex-core-command
-  ports:
-  - name: http
-    port: 48082
-    protocol: TCP
-    targetPort: 48082   
-    nodePort: 30082 
+    matchLabels: 
+      app: edgex-core-command
+  template:
+    metadata:
+      labels: 
+        app: edgex-core-command
+    spec:
+      hostname: edgex-core-command
+      containers:
+      - name: edgex-core-command
+        image: edgexfoundry/docker-core-command-go:1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 48082
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env: 
+        - name: Service_Host
+          value: "edgex-core-command"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -158,6 +188,39 @@ spec:
           mountPath: /consul/data
         - name: consul-scripts
           mountPath: /consul/scripts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: edgex-core-data
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    matchLabels: 
+      app: edgex-core-data
+  template:
+    metadata:
+       labels: 
+         app: edgex-core-data
+    spec:
+      hostname: edgex-core-data
+      containers:
+      - name: edgex-core-data
+        image: edgexfoundry/docker-core-data-go:1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: tcp-48080
+          protocol: TCP
+          containerPort: 48080
+        - name: tcp-5563
+          protocol: TCP
+          containerPort: 5563
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env: 
+        - name: Service_Host
+          value: "edgex-core-data"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -222,68 +285,5 @@ spec:
         - name: Service_Host
           value: "edgex-core-metadata"
         - name: Notifications_Sender
-          value: "edgex-core-metadata" 
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: 
-  name: edgex-core-data
-  namespace: {{.Namespace}}
-spec:
-  selector:
-    matchLabels: 
-      app: edgex-core-data
-  template:
-    metadata:
-       labels: 
-         app: edgex-core-data
-    spec:
-      hostname: edgex-core-data
-      containers:
-      - name: edgex-core-data
-        image: edgexfoundry/docker-core-data-go:1.3.0
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: tcp-48080
-          protocol: TCP
-          containerPort: 48080
-        - name: tcp-5563
-          protocol: TCP
-          containerPort: 5563
-        envFrom: 
-        - configMapRef:
-            name: common-variables
-        env: 
-        - name: Service_Host
-          value: "edgex-core-data"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: 
-  name: edgex-core-command
-  namespace: {{.Namespace}}
-spec:
-  selector:
-    matchLabels: 
-      app: edgex-core-command
-  template:
-    metadata:
-      labels: 
-        app: edgex-core-command
-    spec:
-      hostname: edgex-core-command
-      containers:
-      - name: edgex-core-command
-        image: edgexfoundry/docker-core-command-go:1.3.0
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: http
-          protocol: TCP
-          containerPort: 48082
-        envFrom: 
-        - configMapRef:
-            name: common-variables
-        env: 
-        - name: Service_Host
-          value: "edgex-core-command"
+          value: "edgex-core-metadata"
 `

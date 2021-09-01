@@ -39,22 +39,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: edgex-support-scheduler
-  namespace: {{.Namespace}}
-spec:
-  type: NodePort
-  selector:
-    app: edgex-support-scheduler
-  ports:
-  - name: http
-    port: 48085
-    protocol: TCP
-    targetPort: 48085  
-    nodePort: 30085
----
-apiVersion: v1
-kind: Service
-metadata:
  name: edgex-kuiper
  namespace: {{.Namespace}}
 spec:
@@ -72,6 +56,22 @@ spec:
    protocol: TCP
    targetPort: 20498
    nodePort: 30098
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgex-support-scheduler
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort
+  selector:
+    app: edgex-support-scheduler
+  ports:
+  - name: http
+    port: 48085
+    protocol: TCP
+    targetPort: 48085  
+    nodePort: 30085
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -102,40 +102,6 @@ spec:
         - name: http
           protocol: TCP
           containerPort: 48060        
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: 
-  name: edgex-support-scheduler 
-  namespace: {{.Namespace}}
-spec:
-  selector:
-    matchLabels: 
-      app: edgex-support-scheduler
-  template:
-    metadata:
-      labels: 
-        app: edgex-support-scheduler
-    spec:
-      hostname: edgex-support-scheduler
-      containers:
-      - name: edgex-support-scheduler
-        image: edgexfoundry/docker-support-scheduler-go:1.3.0
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: http
-          protocol: TCP
-          containerPort: 48085
-        envFrom: 
-        - configMapRef:
-            name: common-variables
-        env: 
-        - name: Service_Host
-          value: "edgex-support-scheduler"
-        - name: IntervalActions_ScrubPushed_Host
-          value: "edgex-core-data"
-        - name: IntervalActions_ScrubAged_Host
-          value: "edgex-core-data"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -178,4 +144,38 @@ spec:
            value: "tcp"
          - name: EDGEX__DEFAULT__PORT
            value: "5566"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: edgex-support-scheduler 
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    matchLabels: 
+      app: edgex-support-scheduler
+  template:
+    metadata:
+      labels: 
+        app: edgex-support-scheduler
+    spec:
+      hostname: edgex-support-scheduler
+      containers:
+      - name: edgex-support-scheduler
+        image: edgexfoundry/docker-support-scheduler-go:1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 48085
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env: 
+        - name: Service_Host
+          value: "edgex-support-scheduler"
+        - name: IntervalActions_ScrubPushed_Host
+          value: "edgex-core-data"
+        - name: IntervalActions_ScrubAged_Host
+          value: "edgex-core-data"
 `

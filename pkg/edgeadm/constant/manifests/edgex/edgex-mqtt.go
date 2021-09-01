@@ -16,20 +16,19 @@ limitations under the License.
 
 package edgex
 
-//designed for exporting data to cloud, the yaml file is not promised to run correctly
-//because it isn't able to do the test temporarily
+//The mqtt for exporting test
 const EDGEX_MQTT = "edgex-mqtt.yml"
 
 const EDGEX_MQTT_YAML = `
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-service-mqtt
+  name: edgex-app-service-configurable-mqtt
   namespace: {{.Namespace}}
 spec:
   type: NodePort 
   selector:
-    app: app-service-mqtt
+    app: edgex-app-service-configurable-mqtt
   ports:
   - name: http
     port: 48101
@@ -40,20 +39,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
-  name: app-service-mqtt
+  name: edgex-app-service-configurable-mqtt
   namespace: {{.Namespace}}
 spec:
   selector:
     matchLabels: 
-      app: app-service-mqtt
+      app: edgex-app-service-configurable-mqtt
   template:
     metadata:
       labels: 
-        app: app-service-mqtt
+        app: edgex-app-service-configurable-mqtt
     spec:
-      hostname: app-service-mqtt
+      hostname: edgex-app-service-configurable-mqtt
       containers:
-      - name: app-service-mqtt
+      - name: edgex-app-service-configurable-mqtt
         image: edgexfoundry/docker-app-service-configurable:1.1.0
         imagePullPolicy: IfNotPresent
         ports:

@@ -30,12 +30,10 @@ func NewInstallEdgexCMD() *cobra.Command {
 
 	cmd.Flags().BoolVar(&action.app, "app", false, "Addon the edgex application-services to cluster.")
 	cmd.Flags().BoolVar(&action.core, "core", false, "Addon the edgex core-services to cluster.")
-	cmd.Flags().BoolVar(&action.support, "support", false, "Addon the edgex supporting-services to cluster.")
 	cmd.Flags().BoolVar(&action.device, "device", false, "Addon the edgex device-services to cluster.")
-	cmd.Flags().BoolVar(&action.ui, "ui", false, "Addon the edgex ui to cluster.")
-	cmd.Flags().BoolVar(&action.mqtt, "mqtt", false, "Addon the mqtt.")
-	cmd.Flags().BoolVar(&action.configmap, "configmap", false, "Addon the configmap. only used when lose configmap")
+	cmd.Flags().BoolVar(&action.support, "support", false, "Addon the edgex supporting-services to cluster.")
 	cmd.Flags().BoolVar(&action.sysmgmt, "sysmgmt", false, "Addon the edgex system management to cluster")
+	cmd.Flags().BoolVar(&action.ui, "ui", false, "Addon the edgex ui to cluster.")
 	return cmd
 }
 
@@ -59,14 +57,14 @@ func NewDetachEdgexCMD() *cobra.Command {
 	action.flags = cmd.Flags()
 	cmd.Flags().StringVar(&action.manifestDir, "manifest-dir", "",
 		"Manifests document of edge kubernetes cluster.")
+
 	cmd.Flags().BoolVar(&action.app, "app", false, "Detach the edgex application-services from cluster.")
 	cmd.Flags().BoolVar(&action.core, "core", false, "Detach the edgex core-services from cluster.")
-	cmd.Flags().BoolVar(&action.support, "support", false, "Detach the edgex supporting-services from cluster.")
 	cmd.Flags().BoolVar(&action.device, "device", false, "Detach the edgex device-services from cluster.")
-	cmd.Flags().BoolVar(&action.ui, "ui", false, "Detach the ui from cluster.")
-	cmd.Flags().BoolVar(&action.mqtt, "mqtt", false, "Detach the mqtt from cluster.")
+	cmd.Flags().BoolVar(&action.support, "support", false, "Detach the edgex supporting-services from cluster.")
 	cmd.Flags().BoolVar(&action.sysmgmt, "sysmgmt", false, "Detach the edgex system management from cluster.")
-	cmd.Flags().BoolVar(&action.completely, "completely", false, "Detach edgex completely from cluster.")
+	cmd.Flags().BoolVar(&action.ui, "ui", false, "Detach the ui from cluster.")
+	cmd.Flags().BoolVar(&action.completely, "completely", false, "Detach the configmap and volumes from cluster.")
 	return cmd
 }
 
@@ -77,9 +75,8 @@ func (a *addonAction) runAddonedgex() error {
 	ser[constant.Support] = a.support
 	ser[constant.Device] = a.device
 	ser[constant.Ui] = a.ui
-	ser[constant.Mqtt] = a.mqtt
 	ser[constant.Sysmgmt] = a.sysmgmt
-	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.configmap || a.sysmgmt) {
+	if !(a.app || a.core || a.support || a.device || a.ui || a.sysmgmt) {
 		ser[constant.App] = true
 		ser[constant.Core] = true
 		ser[constant.Support] = true
@@ -97,11 +94,10 @@ func (a *addonAction) runDetachedgex() error {
 	ser[constant.Support] = a.support
 	ser[constant.Device] = a.device
 	ser[constant.Ui] = a.ui
-	ser[constant.Mqtt] = a.mqtt
-	ser[constant.Completely] = a.completely
 	ser[constant.Sysmgmt] = a.sysmgmt
+	ser[constant.Completely] = a.completely
 
-	if !(a.app || a.core || a.support || a.device || a.ui || a.mqtt || a.sysmgmt || a.completely) {
+	if !(a.app || a.core || a.support || a.device || a.ui || a.sysmgmt || a.completely) {
 		ser[constant.App] = true
 		ser[constant.Core] = true
 		ser[constant.Support] = true

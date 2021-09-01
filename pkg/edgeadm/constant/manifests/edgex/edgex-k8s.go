@@ -18,7 +18,7 @@ package edgex
 
 //the origin yaml for edgex, not advised to be used
 //just for reference
-const EDGEX = "k8s-hanoi-redis-no-secty.yml"
+const EDGEX = "edgex-redis.yaml"
 
 const EDGEXYAML = `
 apiVersion: v1
@@ -200,6 +200,22 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: edgex-app-service-configurable-mqtt
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort 
+  selector:
+    app: edgex-app-service-configurable-mqtt
+  ports:
+  - name: http
+    port: 48101
+    protocol: TCP
+    targetPort: 48101
+    nodePort: 30200
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: edgex-device-virtual
   namespace: {{.Namespace}}
 spec:
@@ -228,6 +244,22 @@ spec:
     protocol: TCP
     targetPort: 49986
     nodePort: 30086
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgex-device-random
+  namespace: {{.Namespace}}
+spec:
+  type: NodePort
+  selector:
+    app: edgex-device-random
+  ports:
+  - name: http
+    port: 49988
+    protocol: TCP
+    targetPort: 49988
+    nodePort: 30088
 ---
 apiVersion: v1
 kind: Service
@@ -588,6 +620,54 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
+  name: edgex-app-service-configurable-mqtt
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    matchLabels: 
+      app: edgex-app-service-configurable-mqtt
+  template:
+    metadata:
+      labels: 
+        app: edgex-app-service-configurable-mqtt
+    spec:
+      hostname: edgex-app-service-configurable-mqtt
+      containers:
+      - name: edgex-app-service-configurable-mqtt
+        image: edgexfoundry/docker-app-service-configurable:1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 48101
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env:
+          - name: edgex_profile
+            value: "mqtt-export"
+          - name: Service_Host
+            value: "edgex-app-service-configurable-mqtt"
+          - name: Service_Port
+            value: "48101"
+          - name: MessageBus_SubscribeHost_Host
+            value: "edgex-core-data"
+          - name: Binding_PublishTopic
+            value: "events"
+          - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Address
+            value: "broker.mqttdashboard.com"
+          - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Port
+            value: "1883"
+          - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Protocol
+            value: "tcp"
+          - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Publisher
+            value: "edgex"
+          - name: Writable_Pipeline_Functions_MQTTSend_Addressable_Topic
+            value: "EdgeXEvents"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
   namespace: {{.Namespace}}
   name: edgex-device-virtual
 spec:
@@ -646,6 +726,36 @@ spec:
         env:
           - name: Service_Host
             value: "edgex-device-rest"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: edgex-device-random
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    matchLabels: 
+      app: edgex-device-random
+  template:
+    metadata:
+      labels: 
+        app: edgex-device-random
+    spec:
+      hostname: edgex-device-random
+      containers:
+      - name: edgex-device-random
+        image: edgexfoundry/docker-device-random-go:1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          protocol: TCP
+          containerPort: 49988
+        envFrom: 
+        - configMapRef:
+            name: common-variables
+        env:
+          - name: Service_Host
+            value: "edgex-device-random"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -720,22 +830,6 @@ spec:
           - name: Service_Host
             value: "edgex-device-random"
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: app-service-mqtt
-  namespace: {{.Namespace}}
-spec:
-  type: NodePort 
-  selector:
-    app: app-service-mqtt
-  ports:
-  - name: http
-    port: 48101
-    protocol: TCP
-    targetPort: 48101
-    nodePort: 30200
----
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
@@ -802,7 +896,7 @@ spec:
       volumes:
         - name: edgex-sys-mgmt-agent
           hostPath:
-            path: /var/run/docker.sock
+            path: /var/run/
             type: DirectoryOrCreate
       containers:
       - name: edgex-sys-mgmt-agent
@@ -825,4 +919,5 @@ spec:
         volumeMounts:
         - name: edgex-sys-mgmt-agent
           mountPath: /var/run/docker.sock
+          subPath: docker.sock
 `

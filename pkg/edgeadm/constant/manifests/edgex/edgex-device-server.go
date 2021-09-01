@@ -16,26 +16,10 @@ limitations under the License.
 
 package edgex
 
-//The components in device services, contains a device-random for test
+//The components in device services
 const EDGEX_DEVICE = "edgex-device-services.yml"
 
 const EDGEX_DEVICE_YAML = `
-apiVersion: v1
-kind: Service
-metadata:
-  name: edgex-device-virtual
-  namespace: {{.Namespace}}
-spec:
-  type: NodePort
-  selector:
-    app: edgex-device-virtual
-  ports:
-  - name: http
-    port: 49990
-    protocol: TCP
-    targetPort: 49990
-    nodePort: 30090
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -55,51 +39,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: edgex-device-random
+  name: edgex-device-virtual
   namespace: {{.Namespace}}
 spec:
   type: NodePort
   selector:
-    app: edgex-device-random
+    app: edgex-device-virtual
   ports:
   - name: http
-    port: 49988
+    port: 49990
     protocol: TCP
-    targetPort: 49988
-    nodePort: 30088
+    targetPort: 49990
+    nodePort: 30090
 ---
 apiVersion: apps/v1
-kind: Deployment
-metadata: 
-  namespace: {{.Namespace}}
-  name: edgex-device-virtual
-spec:
-  selector:
-    matchLabels: 
-      app: edgex-device-virtual
-  template:
-    metadata:
-      namespace: {{.Namespace}}
-      labels: 
-        app: edgex-device-virtual
-    spec:
-      hostname: edgex-device-virtual
-      containers:
-      - name: edgex-device-virtual
-        image: edgexfoundry/docker-device-virtual-go:1.3.0
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: http
-          protocol: TCP
-          containerPort: 49990
-        envFrom: 
-        - configMapRef:
-            name: common-variables
-        env:
-          - name: Service_Host
-            value: "edgex-device-virtual"
----
-#apiVersion: apps/v1
 kind: Deployment
 metadata: 
   name: edgex-device-rest
@@ -133,30 +86,31 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
-  name: edgex-device-random
   namespace: {{.Namespace}}
+  name: edgex-device-virtual
 spec:
   selector:
     matchLabels: 
-      app: edgex-device-random
+      app: edgex-device-virtual
   template:
     metadata:
+      namespace: {{.Namespace}}
       labels: 
-        app: edgex-device-random
+        app: edgex-device-virtual
     spec:
-      hostname: edgex-device-random
+      hostname: edgex-device-virtual
       containers:
-      - name: edgex-device-random
-        image: edgexfoundry/docker-device-random-go:1.3.0
+      - name: edgex-device-virtual
+        image: edgexfoundry/docker-device-virtual-go:1.3.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
           protocol: TCP
-          containerPort: 49988
+          containerPort: 49990
         envFrom: 
         - configMapRef:
             name: common-variables
         env:
           - name: Service_Host
-            value: "edgex-device-random"
+            value: "edgex-device-virtual"
 `

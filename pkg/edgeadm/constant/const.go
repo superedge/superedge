@@ -126,14 +126,12 @@ const LiteAPIServerTLSCfg = `[{"key":"/var/lib/kubelet/pki/kubelet-client-curren
 const ImageRepository = "superedge.tencentcloudcr.com/superedge"
 
 const (
-	SerCount    = 9
-	Configmap   = 0
-	App         = 1
-	Core        = 2
-	Device      = 3
-	Support     = 4
-	Sysmgmt     = 5
-	Ui          = 6
-	Mqtt        = 7
-	Completely  = 8
+	App = iota
+	Core
+	Device
+	Support
+	Sysmgmt
+	Ui
+	Completely
+	SerCount
 )

@@ -54,7 +54,7 @@ spec:
       volumes:
         - name: edgex-sys-mgmt-agent
           hostPath:
-            path: /var/run/edgex-docker-sock
+            path: /var/run/
             type: DirectoryOrCreate
       containers:
       - name: edgex-sys-mgmt-agent
@@ -76,5 +76,6 @@ spec:
           containerPort: 48090
         volumeMounts:
         - name: edgex-sys-mgmt-agent
-          mountPath: /var/run
+          mountPath: /var/run/docker.sock
+          subPath: docker.sock
 `
