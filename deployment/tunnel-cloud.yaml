@@ -58,6 +58,7 @@ data:
                      service = "tunnel-cloud"
             [mode.cloud.tcp]
                 "0.0.0.0:6443" = "127.0.0.1:6443"
+                "0.0.0.0:30021" = "127.0.0.1:30021"
             [mode.cloud.https]
                 cert ="/etc/superedge/tunnel/certs/apiserver-kubelet-server.crt"
                 key = "/etc/superedge/tunnel/certs/apiserver-kubelet-server.key"
