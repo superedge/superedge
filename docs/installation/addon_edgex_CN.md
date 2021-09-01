@@ -1,15 +1,14 @@
 简体中文
 
-# 一键部署EdgeX Foundry到边缘集群
+# 一键部署EdgeX Foundry到边缘集群  
 
-* 一键部署EdgeX Foundry到边缘集群
-   * 1. 背景
-   * 2. 架构设计
-   * 3. EdgeX Foundry的安装
-   * 4. EdgeX Foundry的测试
-   * 5. EdgeX Foundry的使用
-   * 6. EdgeX Foundry的卸载
-   * 7. 补充
+* 1. 背景
+* 2. 架构设计
+* 3. EdgeX Foundry的安装
+* 4. EdgeX Foundry的测试
+* 5. EdgeX Foundry的使用
+* 6. EdgeX Foundry的卸载
+* 7. 补充
 
 ## 1. 背景
 
@@ -26,7 +25,7 @@
 -    面对没有官方适用kubernetes的yaml文件的问题，我们通过网络搜索其他相关开源项目，选择有效的yaml文件，以及自己手动编写部分缺失文件，来集齐各个组件的yaml文件。
 
 -    为了增强部署的扩展性，支持用户根据输入的不同参数，进行EdgeX Foundry的分层部署。我们将所有组件按EdgeX Foundry的服务层次分为不同文件，并且支持在安装命令后跟随flag指定安装的服务层级，根据需要部署特定层级的组件即可。默认情况下安装所有的组件满足完整的功能。相关组件的分层如下所示  
-![Image](https://github.com/OmigaXm/pic-edgex/raw/main/image1.png)  
+![Image1](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-layer.png)  
 -    我们已经在边缘集群上对部署的各个组件进行了相应的测试和调整，减少了可能的错误。
 
 ## 3. EdgeX Foundry组件的安装
@@ -106,7 +105,7 @@ kubectl get svc,pods -n edgex
 ```shell
 curl http://localhost:30850/ui/dc1/services
 ```  
-![2](https://github.com/OmigaXm/pic-edgex/blob/main/image2.png)  
+![2](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-consul.png)  
 
 如果显示红色叉号，说明组件安装失败，请试图对该组件所在层级进行卸载和安装。
   
@@ -114,7 +113,7 @@ curl http://localhost:30850/ui/dc1/services
 ```shell
 curl http://localhost:30040/
 ```  
-![3](https://github.com/OmigaXm/pic-edgex/blob/main/image3.png)  
+![3](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-ui.png)  
 
 如果部署成功，则各项会有相应的条目生成
   
@@ -183,7 +182,7 @@ kubectl apply -f edgex-device-random.yaml
 ```shell
 curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 ```  
-![4](https://github.com/OmigaXm/pic-edgex/blob/main/image4.png)  
+![4](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-data.png)  
 
 ### <3> 设备控制
 网页访问core-command服务的端口查看可以对虚拟设备进行的命令,包括get和put，其中get用于获取数据，put用于下发命令  
@@ -191,13 +190,13 @@ curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 ```shell
 curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 ```  
-![5](https://github.com/OmigaXm/pic-edgex/blob/main/image5.png)  
+![5](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-command.png)  
 
 从上面的网页内容中可以看到get命令的url，使用get的url可以获取随机数设备发送的数据（此处仅为例子，具体url根据显示获取，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`）  
 ```shell
 http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/command/5353248d-8006-4b01-8250-a07cb436aeb1
 ```  
-![6](https://github.com/OmigaXm/pic-edgex/blob/main/image6.png)  
+![6](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-get.png)  
 
 执行put命令可以对虚拟设备进行控制，这里以修改其产生的随机数的范围为例，从网页中找到put命令的url，并执行以下命令：（此处仅为例子，具体url由显示的put命令的url得到，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`,将`{}`内的内容改为可用的参数，该可修改参数也由之前查询命令的显示中得到）  
 ```shell
@@ -286,13 +285,13 @@ kubectl apply -f mqtt.yaml
 ```shell
 http://www.hivemq.com/demos/websocket-client/
 ```  
-![7](https://github.com/OmigaXm/pic-edgex/raw/main/image7.png) 
+![7](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-connect.png) 
 
 点击connect进行连接，填写主题为EdgeXEvents  
 
-![8](https://github.com/OmigaXm/pic-edgex/raw/main/image8.png)  
+![8](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-create.png)  
 即可看到message一栏出现虚拟设备向EdgeX Foundry发送的数据，说明数据导出到云端成功。  
-![9](https://github.com/OmigaXm/pic-edgex/raw/main/image9.png)  
+![9](https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-message.png)  
 
 注：如果上述操作中出现网页无法访问等异常，请重新查看pod情况，必要时进行卸载重装。
   
