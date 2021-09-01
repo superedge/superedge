@@ -64,7 +64,6 @@ func NewDetachEdgexCMD() *cobra.Command {
 	cmd.Flags().BoolVar(&action.support, "support", false, "Detach the edgex supporting-services from cluster.")
 	cmd.Flags().BoolVar(&action.sysmgmt, "sysmgmt", false, "Detach the edgex system management from cluster.")
 	cmd.Flags().BoolVar(&action.ui, "ui", false, "Detach the ui from cluster.")
-	cmd.Flags().BoolVar(&action.completely, "completely", false, "Detach the configmap and volumes from cluster.")
 	return cmd
 }
 
@@ -95,9 +94,8 @@ func (a *addonAction) runDetachedgex() error {
 	ser[constant.Device] = a.device
 	ser[constant.Ui] = a.ui
 	ser[constant.Sysmgmt] = a.sysmgmt
-	ser[constant.Completely] = a.completely
 
-	if !(a.app || a.core || a.support || a.device || a.ui || a.sysmgmt || a.completely) {
+	if !(a.app || a.core || a.support || a.device || a.ui || a.sysmgmt) {
 		ser[constant.App] = true
 		ser[constant.Core] = true
 		ser[constant.Support] = true
