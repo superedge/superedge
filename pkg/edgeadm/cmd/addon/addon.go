@@ -44,6 +44,7 @@ type addonAction struct {
 	support          bool
 	sysmgmt          bool
 	ui               bool
+	completely       bool
 }
 
 func NewAddonCMD() *cobra.Command {

@@ -200,10 +200,10 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		klog.V(1).Infof("Start uninstall %s from your cluster", sername)
 		userManifests := filepath.Join(manifestsDir, sername)
 		edgexYaml := ReadYaml(userManifests, seryaml)
-		err := kubeclient.DeleteEdgexResourceWithFile(client, edgexYaml, option)
+		err := kubeclient.DeleteResourceWithFile(client, edgexYaml, option)
 		if err != nil {
 			klog.Errorf("Detach %s fail, error: %v", sername, err)
-			continue
+			return err
 		}
 		klog.V(1).Infof("Detach %s success!", sername)
 	}
@@ -213,10 +213,12 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 		err := os.RemoveAll("/consul")
 		if err != nil {
 			klog.Errorf("Delete /consul fail, err: %v.\nPlease 'rm /consul' by yourself.", err)
+			return err
 		}
 		err = os.RemoveAll("/data")
 		if err != nil {
 			klog.Errorf("Delete /data fail, err: %v\nPlease 'rm /data' by yourself.", err)
+			return err
 		}
 		klog.V(1).Infof("Uninstall edgex completely success!")
 	}
