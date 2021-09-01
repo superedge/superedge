@@ -66,7 +66,7 @@ $ kubectl apply -f deployment/tunnel-cloud.yaml
     openssl x509 -req -days 365 -in tunnel-ca.csr -signkey tunnel-ca.key -extfile tunnel_ca_cert_extensions -out tunnel-ca.crt
     ```
 
--   生成TunnelPersistentConnectionServerKey和TunnelPersistentConnectionServerCrt
+- 生成TunnelPersistentConnectionServerKey和TunnelPersistentConnectionServerCrt
 
     ```bash
     # private key
@@ -75,8 +75,8 @@ $ kubectl apply -f deployment/tunnel-cloud.yaml
     # generate csr
     openssl req -new -key tunnel_persistent_connectiong_server.key -subj "/CN=tunnel-cloud" -out tunnel_persistent_connectiong_server.csr
     
-    # Add DNS and IP, 必须填写 "DNS:tunnelcloud.io"
-    echo "subjectAltName=DNS:tunnelcloud.io,IP:127.0.0.1" > tunnel_persistent_connectiong_server_cert_extensions
+    # Add DNS and IP, 如果有可用的公网域名请填写该域名，默认是tunnel.cloud.io
+    echo "subjectAltName=DNS:tunnel.cloud.io,IP:127.0.0.1" > tunnel_persistent_connectiong_server_cert_extensions
     
     # Generate Self Signed certificate
     openssl x509 -req -days 365 -in tunnel_persistent_connectiong_server.csr -CA tunnel-ca.crt -CAkey tunnel_ca.key -CAcreateserial  -extfile tunnel_persistent_connectiong_server_cert_extensions -out tunnel_persistent_connectiong_server.crt
@@ -134,15 +134,15 @@ dnsConfig:
 
 要填充的参数：
 
--   MasterIP：kube-api-server的master节点内网IP，填一个就可；       
+- MasterIP：边缘节点能够访问的kube-api-server的master节点ip，填一个就可；
 
--   TunnelCloudEdgeToken：tunnel-cloud和tunnel-edge的认证token；
+- TunnelCloudEdgeToken：tunnel-cloud和tunnel-edge的认证token；
 
-    >  至少随机32位字符串，tunnel-cloud和tunnel-edge必须为同一个，需要完全相同；
+  > 至少随机32位字符串，tunnel-cloud和tunnel-edge必须为同一个，需要完全相同；
 
--   TunnelPersistentConnectionPort： tunnel-cloud的NodePort端口；
+- TunnelPersistentConnectionPort： tunnel-cloud的NodePort端口；
 
--   KubernetesCaCert：kube-apiserver的ca.crt的base64加密；
+- KubernetesCaCert：生成的tunnel-ca的base64加密；
     
 > 用于验证tunnel cloud的server端证书
 
