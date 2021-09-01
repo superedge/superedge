@@ -153,7 +153,7 @@ data:
     - job_name: kubernetes-pods-slow
       kubernetes_sd_configs:
       - role: pod
-      scheme: http
+      scheme: https
       relabel_configs:
       - action: keep
         regex: true
