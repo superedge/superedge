@@ -119,7 +119,7 @@ kubectl get svc,pods -n edgex
 ```  
   
 
-**注意：**如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考 [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
+**注意**: 如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考 [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
   
 ## 4. EdgeX Foundry的测试  
 ### <1> 访问consul  
@@ -231,7 +231,7 @@ curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 
 
 #### (2) get命令
-从上面的网页内容中可以看到get命令的url，使用get的url可以获取随机数设备发送的数据（**此处仅为例子，具体url根据显示获取，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`**），其中`30082`是core-command服务的端口号  
+从上面的网页内容中可以看到get命令的url，使用get的url可以获取随机数设备发送的数据(**此处仅为例子,具体url根据显示获取,并请记得将`edgex-core-command:48082`字段改为`localhost:30082`**)，其中`30082`是core-command服务的端口号  
 ```shell
 curl http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/command/5353248d-8006-4b01-8250-a07cb436aeb1
 ```  
@@ -241,7 +241,7 @@ curl http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/c
 
 
 #### (3) put命令
-执行put命令可以对虚拟设备进行控制，这里以修改其产生的随机数的范围为例，从网页中找到put命令的url，并执行以下命令：**（此处仅为例子，具体url由显示的put命令的url得到，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`，将`{}`内的内容改为可用的参数，该可修改参数也由之前查询命令的显示中得到）**,其中`30082`是core-command服务的端口号  
+执行put命令可以对虚拟设备进行控制，这里以修改其产生的随机数的范围为例，从网页中找到put命令的url，并执行以下命令：(**此处仅为例子,具体url由显示的put命令的url得到,并请记得将`edgex-core-command:48082`字段改为`localhost:30082`,将`{}`内的内容改为可用的参数,该可修改参数也由之前查询命令的显示中得到**),其中`30082`是core-command服务的端口号  
 ```shell
 curl -X PUT -d '{"Min_Int8": "0", "Max_Int8": "100"}' http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/command/5353248d-8006-4b01-8250-a07cb436aeb1
 ```  
@@ -346,7 +346,7 @@ http://www.hivemq.com/demos/websocket-client/
 
 但是，由于这是公有的broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看broker网页中是否有数据出现，若有，说明真正导出成功。
 
-**注意:**如果上述操作中出现网页无法访问等异常，请重新查看pod情况，必要时进行卸载重装。
+**注意**: 如果上述操作中出现网页无法访问等异常，请重新查看pod情况，必要时进行卸载重装。
   
 ## 6. EdgeX Foundry的卸载
 如果是执行`./edgeadm addon edgex`安装了所有组件或者自定义安装了所有层级组件的，可以执行以下命令将所有EdgeX Foundry卸载，同时卸载在主机上产生的挂载数据。如果是只安装了部分层级或者有部分组件缺失的，请根据后文中的通过添加flag的方式逐个层级卸载  
@@ -407,7 +407,7 @@ Delete edgex completely success!
 kubectl get pods -n edgex  
 ```  
 
-**注意：**  
+**注意**:  
 
 -    如果删除中出现错误，导致某一层级的组件部分已删除，部分未删除，则对该层级重新执行删除操作将失败，需要用addon对该层级所有组件重装，再进行删除
 如：删除core层级的过程中遇到失败，导致core-data的组件已删除而core-consul的组件未删除，则`./edgeadm detach edgex –-core`命令无法再次正常重新执行，需要用`./edgeadm addon edgex –-core`补充缺失的core-data组件，再使用`./edgeadm detach edgex –-core`删除core层级。
