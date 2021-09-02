@@ -153,6 +153,7 @@ data:
     - job_name: kubernetes-pods-slow
       kubernetes_sd_configs:
       - role: pod
+      scheme: https
       relabel_configs:
       - action: keep
         regex: true
@@ -164,16 +165,18 @@ data:
         - __meta_kubernetes_pod_annotation_prometheus_io_scheme
         target_label: __scheme__
       - action: replace
-        regex: (.+)
+        regex: (.+);(.+);(.+)
+        replacement: '$1:$2$3'
         source_labels:
+        - __meta_kubernetes_pod_ip
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
         - __meta_kubernetes_pod_annotation_prometheus_io_path
         target_label: __metrics_path__
       - action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
+        regex: (.+)
+        replacement: ${1}:30021
         source_labels:
-        - __address__
-        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        - __meta_kubernetes_pod_node_name
         target_label: __address__
       - action: labelmap
         regex: __meta_kubernetes_pod_label_(.+)
