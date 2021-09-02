@@ -20,21 +20,85 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"k8s.io/klog/v2"
 	"os"
+	"path/filepath"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests/edgex"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
+
+func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bool) error {
+	if err := EnsureEdgexNamespace(client); err != nil {
+		return err
+	}
+
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgex,
+	}
+
+	configmap_name := "common-variables"
+	if _, err := client.CoreV1().ConfigMaps(constant.NamespaceEdgex).Get(context.TODO(), configmap_name, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
+			edgexConfig := ReadYaml(userManifests, edgex.EDGEX_CONFIGMAP_YAML)
+			err = kubeclient.CreateResourceWithFile(client, edgexConfig, option)
+			if err != nil {
+				klog.Errorf("Deploy %s fail, error: %v", edgex.EDGEX_CONFIGMAP, err)
+				return err
+			}
+		}
+	}
+
+	var sername string
+	var seryaml string
+	for edgexModule, isTrue := range modules {
+		if !isTrue {
+			continue
+		}
+		switch edgexModule {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.EDGEX_APP_YAML
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.EDGEX_CORE_YAML
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.EDGEX_SUPPORT_YAML
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.EDGEX_DEVICE_YAML
+		case constant.Sysmgmt:
+			sername = edgex.EDGEX_SYS_MGMT
+			seryaml = edgex.EDGEX_SYS_MGMT_YAML
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.EDGEX_UI_YAML
+		}
+		klog.V(1).Infof("Start install %s to your cluster", sername)
+		userManifests := filepath.Join(manifestsDir, sername)
+		edgexYaml := ReadYaml(userManifests, seryaml)
+		err := kubeclient.CreateResourceWithFile(client, edgexYaml, option)
+		if err != nil {
+			klog.Errorf("Deploy %s fail, error: %v", sername, err)
+			return err
+		}
+		klog.V(1).Infof("Deploy %s success!", sername)
+	}
+	return nil
+}
 
 func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
@@ -83,6 +147,81 @@ func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKe
 	}
 	klog.Infof("Prepare join Node configMap success")
 
+	return nil
+}
+
+func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bool) error {
+	option := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgex,
+	}
+
+	configmap_name := "common-variables"
+	if _, err := client.CoreV1().ConfigMaps(constant.NamespaceEdgex).Get(context.TODO(), configmap_name, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			userManifests := filepath.Join(manifestsDir, edgex.EDGEX_CONFIGMAP)
+			edgexConfig := ReadYaml(userManifests, edgex.EDGEX_CONFIGMAP_YAML)
+			err = kubeclient.CreateResourceWithFile(client, edgexConfig, option)
+			if err != nil {
+				klog.Errorf("Deploy %s fail, error: %v", edgex.EDGEX_CONFIGMAP, err)
+				return err
+			}
+		}
+	}
+
+	var sername string
+	var seryaml string
+	for edgexModule, isTrue := range modules {
+		if !isTrue {
+			continue
+		}
+		switch edgexModule {
+		case constant.App:
+			sername = edgex.EDGEX_APP
+			seryaml = edgex.EDGEX_APP_YAML
+		case constant.Core:
+			sername = edgex.EDGEX_CORE
+			seryaml = edgex.EDGEX_CORE_YAML
+		case constant.Support:
+			sername = edgex.EDGEX_SUPPORT
+			seryaml = edgex.EDGEX_SUPPORT_YAML
+		case constant.Device:
+			sername = edgex.EDGEX_DEVICE
+			seryaml = edgex.EDGEX_DEVICE_YAML
+		case constant.Sysmgmt:
+			sername = edgex.EDGEX_SYS_MGMT
+			seryaml = edgex.EDGEX_SYS_MGMT_YAML
+		case constant.Ui:
+			sername = edgex.EDGEX_UI
+			seryaml = edgex.EDGEX_UI_YAML
+		case constant.Completely:
+			sername = edgex.EDGEX_CONFIGMAP
+			seryaml = edgex.EDGEX_CONFIGMAP_YAML
+		}
+		klog.V(1).Infof("Start uninstall %s from your cluster", sername)
+		userManifests := filepath.Join(manifestsDir, sername)
+		edgexYaml := ReadYaml(userManifests, seryaml)
+		err := kubeclient.DeleteResourceWithFile(client, edgexYaml, option)
+		if err != nil {
+			klog.Errorf("Detach %s fail, error: %v", sername, err)
+			return err
+		}
+		klog.V(1).Infof("Detach %s success!", sername)
+	}
+
+	if modules[constant.Completely] {
+		klog.V(1).Infof("Start uninstall edgex completely.")
+		err := os.RemoveAll("/consul")
+		if err != nil {
+			klog.Errorf("Delete /consul fail, err: %v.\nPlease 'rm /consul' by yourself.", err)
+			return err
+		}
+		err = os.RemoveAll("/data")
+		if err != nil {
+			klog.Errorf("Delete /data fail, err: %v\nPlease 'rm /data' by yourself.", err)
+			return err
+		}
+		klog.V(1).Infof("Uninstall edgex completely success!")
+	}
 	return nil
 }
 
@@ -339,6 +478,17 @@ func EnsureEdgeSystemNamespace(client kubernetes.Interface) error {
 	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constant.NamespaceEdgeSystem,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func EnsureEdgexNamespace(client kubernetes.Interface) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.NamespaceEdgex,
 		},
 	}); err != nil {
 		return err
