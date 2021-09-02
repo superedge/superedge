@@ -64,6 +64,7 @@ data:
                 [mode.cloud.https.addr]
                     "10250" = "127.0.0.1:10250"
                     "9100" = "127.0.0.1:9100"
+                    "30021" = "127.0.0.1:30021"
 ---
 apiVersion: v1
 kind: ConfigMap
