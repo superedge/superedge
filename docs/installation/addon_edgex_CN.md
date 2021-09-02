@@ -38,10 +38,12 @@
 -    面对没有官方适用kubernetes的yaml文件的问题，我们通过网络搜索其他相关开源项目，选择有效的yaml文件，以及自己手动编写部分缺失文件，来集齐各个组件的yaml文件。
 
 -    为了增强部署的扩展性，支持用户根据输入的不同参数，进行EdgeX Foundry的分层部署。我们将所有组件按EdgeX Foundry的服务层次分为不同文件，并且支持在安装命令后跟随flag指定安装的服务层级，根据需要部署特定层级的组件即可。默认情况下安装所有的组件满足完整的功能。相关组件的分层如下所示  
+
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-layer.png" width=80% title="Edgex-layer">
+  <img src="/docs/img/edgex-layer.png" width=80% title="Edgex-layer">
 </div>
   
+
 
 -    我们已经在边缘集群上对部署的各个组件进行了相应的测试和调整，减少了可能的错误。
 
@@ -126,7 +128,7 @@ kubectl get svc,pods -n edgex
 curl http://localhost:30850/ui/dc1/services
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-consul.png" width=80% title="Edgex-consul">
+  <img src="/docs/img/edgex-consul.png" width=80% title="Edgex-consul">
 </div>
   
 
@@ -139,7 +141,7 @@ curl http://localhost:30850/ui/dc1/services
 curl http://localhost:30040/
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-ui.png" width=80% title="Edgex-ui">
+  <img src="/docs/img/edgex-ui.png" width=80% title="Edgex-ui">
 </div>  
 
 
@@ -212,7 +214,7 @@ kubectl apply -f edgex-device-random.yaml
 curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-data.png" width=80% title="Edgex-data">
+  <img src="/docs/img/edgex-data.png" width=80% title="Edgex-data">
 </div>  
 
 
@@ -224,7 +226,7 @@ curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-command.png" width=80% title="Edgex-command">
+  <img src="/docs/img/edgex-command.png" width=80% title="Edgex-command">
 </div>  
 
 
@@ -234,7 +236,7 @@ curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 curl http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/command/5353248d-8006-4b01-8250-a07cb436aeb1
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-get.png" width=80% title="Edgex-get">
+  <img src="/docs/img/edgex-get.png" width=80% title="Edgex-get">
 </div>  
 
 
@@ -327,19 +329,19 @@ kubectl apply -f mqtt.yaml
 http://www.hivemq.com/demos/websocket-client/
 ```  
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-connect.png" width=80% title="Edgex-hivemq-connect">
+  <img src="/docs/img/edgex-hivemq-connect.png" width=80% title="Edgex-hivemq-connect">
 </div>  
 
 点击connect进行连接，填写主题为EdgeXEvents  
 
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-create.png" width=80% title="Edgex-hivemq-create">
+  <img src="/docs/img/edgex-hivemq-create.png" width=80% title="Edgex-hivemq-create">
 </div>  
 
 即可看到message一栏出现虚拟设备向EdgeX Foundry发送的数据  
 
 <div align="center">
-  <img src="https://github.com/OmigaXm/superedge/blob/main/docs/img/edgex-hivemq-message.png" width=80% title="Edgex-hivemq-message">
+  <img src="/docs/img/edgex-hivemq-message.png" width=80% title="Edgex-hivemq-message">
 </div>  
 
 但是，由于这是公有的broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看broker网页中是否有数据出现，若有，说明真正导出成功。
