@@ -55,7 +55,7 @@
 arch=amd64 version=v0.5.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
-安装一个边缘集群,具体参考**(上面已经下载了最新的安装文件，下面链接内安装边缘集群无需再安装edgeadm的安装包)**  
+安装一个边缘集群,具体参考以下链接(上面已经下载了最新的安装文件，下面链接内安装边缘集群**无需**再安装edgeadm的安装包)  
 
 [一键安装边缘独立Kubernetes 集群](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md)  
 
@@ -117,7 +117,7 @@ kubectl get svc,pods -n edgex
 ```  
   
 
-**注意：**如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考**[6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)**
+**注意：**如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考 [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
   
 ## 4. EdgeX Foundry的测试  
 ### <1> 访问consul  
@@ -207,7 +207,7 @@ kubectl apply -f edgex-device-random.yaml
 ```  
 该命令会启动一个随机整数生成器的虚拟设备连接到EdgeX Foundry，该设备会向core-data发送随机数，同时接收core-command的命令控制。  
 ### <2> 数据访问
-通过以下命令从网页访问core-data的服务的端口查看上一步启动的随机数设备向core服务发送的最近10条数据，其中`30080`是core-data服务的端口号  
+通过以下命令从网页访问core-data的服务的端口查看上一步启动的随机数设备向core服务发送的最近10条数据，其中`30080`是core-data服务的端口号，`Random-Integer-Generator01`是以上文件安装的虚拟设备  
 ```shell
 curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 ```  
@@ -218,7 +218,7 @@ curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 
 ### <3> 设备控制
 #### (1) 查看可用命令
-网页访问core-command服务的端口查看可以对虚拟设备进行的命令,包括get和put，其中get用于获取数据，put用于下发命令，其中`30082`是core-command服务的端口号，`Random-Integer-Generator01`是以上文件安装的虚拟设备  
+网页访问core-command服务的端口查看可以对虚拟设备进行的命令,包括get和put，其中get用于获取数据，put用于下发命令，其中`30082`是core-command服务的端口号  
 
 ```shell
 curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
@@ -229,7 +229,7 @@ curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 
 
 #### (2) get命令
-从上面的网页内容中可以看到get命令的url，使用get的url可以获取随机数设备发送的数据**（此处仅为例子，具体url根据显示获取，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`）**，其中`30082`是core-command服务的端口号  
+从上面的网页内容中可以看到get命令的url，使用get的url可以获取随机数设备发送的数据（**此处仅为例子，具体url根据显示获取，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`**），其中`30082`是core-command服务的端口号  
 ```shell
 curl http://localhost:30082/api/v1/device/4a602dc3-afd5-4c76-9d72-de02407e80f8/command/5353248d-8006-4b01-8250-a07cb436aeb1
 ```  
@@ -344,10 +344,10 @@ http://www.hivemq.com/demos/websocket-client/
 
 但是，由于这是公有的broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看broker网页中是否有数据出现，若有，说明真正导出成功。
 
-**注意：**如果上述操作中出现网页无法访问等异常，请重新查看pod情况，必要时进行卸载重装。
+**注意:**如果上述操作中出现网页无法访问等异常，请重新查看pod情况，必要时进行卸载重装。
   
 ## 6. EdgeX Foundry的卸载
-可以执行以下命令将所有EdgeX Foundry卸载，同时卸载在主机上产生的挂载数据。  
+如果是执行`./edgeadm addon edgex`安装了所有组件或者自定义安装了所有层级组件的，可以执行以下命令将所有EdgeX Foundry卸载，同时卸载在主机上产生的挂载数据。如果是只安装了部分层级或者有部分组件缺失的，请根据后文中的通过添加flag的方式逐个层级卸载  
 
 ```shell
 ./edgeadm detach edgex
