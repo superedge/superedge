@@ -31,7 +31,7 @@ const (
 
 var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	ServiceTopology: {Default: false, PreRelease: featuregate.Alpha},
-	EndpointSlice:   {Default: false, PreRelease: featuregate.Beta},
+	EndpointSlice:   {Default: true, PreRelease: featuregate.Beta},
 	EvenPodsSpread:  {Default: false, PreRelease: featuregate.Alpha},
 }
 

@@ -34,12 +34,9 @@ func (eh *endpointSliceHandler) add(endpointSlice *discovery.EndpointSlice) {
 	sc.mu.Lock()
 
 	endpointsKey := types.NamespacedName{Namespace: endpointSlice.Namespace, Name: endpointSlice.Name}
-	klog.Infof("Adding endpoints %v", endpointsKey)
+	klog.Infof("Adding endpointSlice %v", endpointsKey)
 	newEps := pruneEndpointSlice(sc.hostName, sc.nodesMap, sc.servicesMap, endpointSlice, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
-	//sc.endpointsMap[endpointsKey] = &endpointsContainer{
-	//	endpoints: endpoints,
-	//	modified:  newEps,
-	//}
+
 	sc.endpointSliceMap[endpointsKey] = &endpointSliceContainer{
 		endpointSlice: endpointSlice,
 		modified:      newEps,
@@ -58,12 +55,12 @@ func (eh *endpointSliceHandler) update(endpointSlice *discovery.EndpointSlice) {
 
 	sc.mu.Lock()
 	endpointsKey := types.NamespacedName{Namespace: endpointSlice.Namespace, Name: endpointSlice.Name}
-	klog.Infof("Updating endpoints %v", endpointsKey)
+	klog.Infof("Updating endpointSlice %v", endpointsKey)
 
 	endpointSliceContainer, found := sc.endpointSliceMap[endpointsKey]
 	if !found {
 		sc.mu.Unlock()
-		klog.Errorf("Updating non-existed endpoints %v", endpointsKey)
+		klog.Errorf("Updating non-existed endpointSlice %v", endpointsKey)
 		return
 	}
 	endpointSliceContainer.endpointSlice = endpointSlice
@@ -88,11 +85,11 @@ func (eh *endpointSliceHandler) delete(endpointSlice *discovery.EndpointSlice) {
 	sc.mu.Lock()
 
 	endpointsKey := types.NamespacedName{Namespace: endpointSlice.Namespace, Name: endpointSlice.Name}
-	klog.Infof("Deleting endpoints %v", endpointsKey)
+	klog.Infof("Deleting endpointSlice %v", endpointsKey)
 	endpointSliceContainer, found := sc.endpointSliceMap[endpointsKey]
 	if !found {
 		sc.mu.Unlock()
-		klog.Errorf("Deleting non-existed endpoints %v", endpointsKey)
+		klog.Errorf("Deleting non-existed endpointSlice %v", endpointsKey)
 		return
 	}
 	delete(sc.endpointSliceMap, endpointsKey)

@@ -21,6 +21,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	"net"
 	"strconv"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1beta1"
@@ -220,7 +221,13 @@ func pruneEndpointSlice(hostName string,
 	services map[types.NamespacedName]*serviceContainer,
 	eps *discovery.EndpointSlice, localNodeInfo map[string]data.ResultDetail, wrapperInCluster, serviceAutonomyEnhancementEnabled bool) *discovery.EndpointSlice {
 
-	epsKey := types.NamespacedName{Namespace: eps.Namespace, Name: eps.Name}
+	//drop suffix
+	strArr := strings.Split(eps.Name, "-")
+	epsName := strArr[0]
+	for i := 1; i < len(strArr)-1; i++ {
+		epsName = epsName + "-" + strArr[i]
+	}
+	epsKey := types.NamespacedName{Namespace: eps.Namespace, Name: epsName}
 
 	if wrapperInCluster {
 		eps = genLocalEndpointSlice(eps)
@@ -229,20 +236,20 @@ func pruneEndpointSlice(hostName string,
 	// dangling endpoints
 	svc, ok := services[epsKey]
 	if !ok {
-		klog.V(4).Infof("Dangling endpoints %s, %+#v", eps.Name, eps.Endpoints)
+		klog.V(4).Infof("Dangling endpointSlice %s, %+#v", eps.Name, eps.Endpoints)
 		return eps
 	}
 
 	// normal service
 	if len(svc.keys) == 0 {
-		klog.V(4).Infof("Normal endpoints %s, %+#v", eps.Name, eps.Endpoints)
+		klog.V(4).Infof("Normal endpointSlice %s, %+#v", eps.Name, eps.Endpoints)
 		if eps.Namespace == metav1.NamespaceDefault && eps.Name == MasterEndpointName {
 			return eps
 		}
 		if serviceAutonomyEnhancementEnabled {
 			newEps := eps.DeepCopy()
 			newEps.Endpoints = filterLocalNodeInfoConcernedAddressesForEndpointSlice(nodes, newEps.Endpoints, localNodeInfo)
-			klog.V(4).Infof("Normal endpoints after LocalNodeInfo filter %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
+			klog.V(4).Infof("Normal endpointSlice after LocalNodeInfo filter %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
 			return newEps
 		}
 		return eps
@@ -251,7 +258,7 @@ func pruneEndpointSlice(hostName string,
 	// topology endpoints
 	newEps := eps.DeepCopy()
 	newEps.Endpoints = filterConcernedAddressesForEndpointSlice(svc.keys, hostName, nodes, newEps.Endpoints, localNodeInfo, serviceAutonomyEnhancementEnabled)
-	klog.V(4).Infof("Topology endpoints %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
+	klog.V(4).Infof("Topology endpointSlice %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
 
 	return newEps
 }
@@ -301,8 +308,9 @@ func filterConcernedAddressesForEndpointSlice(topologyKeys []string, hostName st
 	filteredEndpointAddresses := make([]discovery.Endpoint, 0)
 	for i := range endpoints {
 		endpoint := endpoints[i]
-		if nodeName := endpoint.NodeName; nodeName != nil {
-			epsNode, found := nodes[types.NamespacedName{Name: *nodeName}]
+		topology := endpoint.Topology
+		if nodeName := topology["kubernetes.io/hostname"]; &nodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: nodeName}]
 			if !found {
 				continue
 			}
@@ -353,8 +361,9 @@ func filterLocalNodeInfoConcernedAddressesForEndpointSlice(nodes map[types.Names
 	filteredEndpointAddresses := make([]discovery.Endpoint, 0)
 	for i := range endpoints {
 		endpoint := endpoints[i]
-		if nodeName := endpoint.NodeName; nodeName != nil {
-			epsNode, found := nodes[types.NamespacedName{Name: *nodeName}]
+		topology := endpoint.Topology
+		if nodeName := topology["kubernetes.io/hostname"]; &nodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: nodeName}]
 			if !found {
 				continue
 			}
