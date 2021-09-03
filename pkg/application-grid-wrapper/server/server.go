@@ -52,11 +52,12 @@ type interceptorServer struct {
 	cache                             storage.Cache
 	serviceWatchCh                    <-chan watch.Event
 	endpointsWatchCh                  <-chan watch.Event
+	endpointSliceWatchCh              <-chan watch.Event
 	mediaSerializer                   []runtime.SerializerInfo
 	serviceAutonomyEnhancementAddress string
 }
 
-func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions) *interceptorServer {
+func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions, supportEndpointSlice bool) *interceptorServer {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		klog.Errorf("can't build rest config, %v", err)
@@ -65,12 +66,14 @@ func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster b
 
 	serviceCh := make(chan watch.Event, channelSize)
 	endpointsCh := make(chan watch.Event, channelSize)
+	endpointSliceCh := make(chan watch.Event, channelSize)
 
 	server := &interceptorServer{
 		restConfig:                        restConfig,
-		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh),
+		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh, endpointSliceCh, supportEndpointSlice),
 		serviceWatchCh:                    serviceCh,
 		endpointsWatchCh:                  endpointsCh,
+		endpointSliceWatchCh:              endpointSliceCh,
 		mediaSerializer:                   scheme.Codecs.SupportedMediaTypes(),
 		serviceAutonomyEnhancementAddress: serviceAutonomyEnhancement.NeighborStatusSvc,
 	}
@@ -154,21 +157,25 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 	nodeInformer := nodeInformerFactory.Core().V1().Nodes().Informer()
 	serviceInformer := informerFactory.Core().V1().Services().Informer()
 	endpointsInformer := informerFactory.Core().V1().Endpoints().Informer()
+	endpointSliceInformer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
 
 	/*
 	 */
 	nodeInformer.AddEventHandlerWithResyncPeriod(s.cache.NodeEventHandler(), resyncPeriod)
 	serviceInformer.AddEventHandlerWithResyncPeriod(s.cache.ServiceEventHandler(), resyncPeriod)
 	endpointsInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointsEventHandler(), resyncPeriod)
+	endpointSliceInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceEventHandler(), resyncPeriod)
 
 	go nodeInformer.Run(stop)
 	go serviceInformer.Run(stop)
 	go endpointsInformer.Run(stop)
+	go endpointSliceInformer.Run(stop)
 
 	if !cache.WaitForNamedCacheSync("node", stop,
 		nodeInformer.HasSynced,
 		serviceInformer.HasSynced,
-		endpointsInformer.HasSynced) {
+		endpointsInformer.HasSynced,
+		endpointSliceInformer.HasSynced) {
 		return fmt.Errorf("can't sync informers")
 	}
 
@@ -178,6 +185,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 func (s *interceptorServer) buildFilterChains(debug bool) http.Handler {
 	handler := http.Handler(http.NewServeMux())
 
+	handler = s.interceptEndpointSliceRequest(handler)
 	handler = s.interceptEndpointsRequest(handler)
 	handler = s.interceptServiceRequest(handler)
 	handler = s.interceptEventRequest(handler)
