@@ -8,19 +8,19 @@
   * [3\. EdgeX Foundry组件的安装](#3-edgex-foundry组件的安装)
     * [&lt;1&gt; 准备条件](#1-准备条件)
     * [&lt;2&gt; 安装EdgeX Foundry的组件](#2-安装edgex-foundry的组件)
-  * [4\. EdgeX Foundry的界面](#4-访问edgex-foundry的界面)
+  * [4\. EdgeX Foundry的界面](#4-edgex-foundry的界面)
     * [&lt;1&gt; 访问consul](#1-访问consul)
-    * [&lt;2&gt; 访问ui](#2-访问ui)
-  * [5\. EdgeX Foundry的验证](#5-edgex-foundry的验证)
+    * [&lt;2&gt; 访问UI](#2-访问ui)
+  * [5\. EdgeX Foundry 的验证](#5-edgex-foundry-的验证)
     * [&lt;1&gt; 连接设备](#1-连接设备)
     * [&lt;2&gt; 数据访问](#2-数据访问)
     * [&lt;3&gt; 设备控制](#3-设备控制)
       * [(1) 查看可用命令](#1-查看可用命令)
-      * [(2) get命令](#2-get命令)
-      * [(3) put命令](#3-put命令)
+      * [(2) Put指令](#2-put指令)
+      * [(3) Get指令](#3-get指令)
     * [&lt;4&gt; 数据导出](#4-数据导出)
   * [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
-  * [7\. 补充](#7-补充)
+  * [7\. 后期计划](#7-后期计划)
   
 
 ## 1. 背景
@@ -56,7 +56,7 @@ EdgeX Foundry 是一个开源的边缘设备管理平台，可以部署在网络
 
 -   **所有参数可自定义**
 
-    我们是以yaml模板方式集成的 EdgeX Foundry, 用户可修改yaml模板的任何参数，实现自己业务自定义的需求。
+    我们是以yaml模板方式集成的 EdgeX Foundry， 用户可修改yaml模板的任何参数，实现自己业务自定义的需求。
 
 ## 3. EdgeX Foundry组件的安装
 
@@ -128,7 +128,7 @@ Deploy edgex-ui.yml success!
 kubectl get svc,pods -n edgex
 ```
 
->   **注意**: 如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考 [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
+>   **注意**： 如果出现同一层级的组件部分安装成功，部分安装失败，可直接重新执行安装命令进行更新和安装。如果已安装的组件出现异常无法运行，可以使用`./edgeadm detach edgex [flag]`对特定层级的组件进行卸载重装。卸载操作具体参考 [6\. EdgeX Foundry的卸载](#6-edgex-foundry的卸载)
 
 ## 4. EdgeX Foundry的界面
 
@@ -246,7 +246,7 @@ curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
 curl -X PUT -d '{"Min_Int8": "0", "Max_Int8": "100"}' http://localhost:30082/api/v1/device/2a20be3f-d9e6-4032-aeba-23f602d99a63/command/646fb3c7-f8bc-4b4f-bbad-d566777582d1
 ```
 
->   此处仅为例子，具体url由显示的Put命令的url得到，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`，将`{}`内的内容改为可用的参数，该可修改参数也由之前查询命令的显示中得到
+>   此处仅为例子，具体url由显示的Put命令的url得到，并请记得将`edgex-core-command:48082`字段改为`localhost:30082`，将`{}`内的内容改为可用的参数，该可修改参数由之前查询命令的显示中得到
 >
 >   其中`30082`是core-command服务的端口号 
 
@@ -269,7 +269,7 @@ curl http://localhost:30082/api/v1/device/2a20be3f-d9e6-4032-aeba-23f602d99a63/c
 
 ### <4> 数据导出  
 
-执行以下命令部署一个将edgex foundry的数据导出至云端的组件  
+执行以下命令部署一个将EdgeX Foundry的数据导出至云端的组件  
 ```shell
 kubectl apply -f mqtt.yaml
 ```
@@ -362,7 +362,7 @@ http://www.hivemq.com/demos/websocket-client/
 </div>  
 
 
-但是，由于这是公有的Broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看broker网页中是否有数据出现，若有，说明真正导出成功。
+但是，由于这是公有的Broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看Broker网页中是否有数据出现，若有，说明真正导出成功。
 
 >   **注意：**如果上述操作中出现网页无法访问等异常，请重新查看Pod情况，必要时进行卸载重装。
 
@@ -394,7 +394,7 @@ Detach edgex-configmap.yml success!
 Start uninstall edgex completely.
 Delete edgex completely success!
 ```
-也可执行`./edgeadm detach edgex [flag]`对EdgeX Foundry进行卸载，可以通过`./edgeadm detach edgex –-help`命令查看可以使用的flag:
+也可执行`./edgeadm detach edgex [flag]`对EdgeX Foundry进行卸载，可以通过`./edgeadm detach edgex –-help`命令查看可以使用的flag：
 ```shell
 --app          Detach the edgex application-services from cluster.
 --core          Detach the edgex core-services from cluster.
@@ -406,7 +406,7 @@ Delete edgex completely success!
 ```
 
 
-如需卸载core服务的相关组件，请运行  
+如需卸载core服务的相关组件，可运行  
 
 ```shell
 ./edgeadm detach edgex –-core
@@ -419,7 +419,7 @@ Delete edgex completely success!
 kubectl get pods -n edgex  
 ```
 
-**注意**:  
+**注意**：  
 
 -    如果删除中出现错误，导致某一层级的组件部分已删除，部分未删除，则对该层级重新执行删除操作将失败，需要用addon对该层级所有组件重装，再进行删除
 如：删除core层级的过程中遇到失败，导致core-data的组件已删除而core-consul的组件未删除，则`./edgeadm detach edgex –-core`命令无法再次正常重新执行，需要用`./edgeadm addon edgex –-core`补充缺失的core-data组件，再使用`./edgeadm detach edgex –-core`删除core层级。
