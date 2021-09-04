@@ -51,13 +51,13 @@
 
 ### <1> 准备条件
 
-执行以下命令下载edgeadm文件和k8s安装包  
+执行以下命令下载edgeadm静态安装包，注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变  
 
 ```shell
-arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/v0.6.0-beta.1/arm64/edgeadm && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.6.0-beta.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
-安装一个边缘集群,具体参考以下链接(上面已经下载了最新的安装文件，下面链接内安装边缘集群**无需**再安装edgeadm的安装包)  
+安装一个边缘集群,具体参考以下链接(上面已经下载了最新的edgeadm静态安装包，下面链接内安装边缘集群**无需**再安装edgeadm的安装包)  
 
 [一键安装边缘独立Kubernetes 集群](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md)  
 
