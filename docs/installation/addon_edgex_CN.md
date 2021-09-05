@@ -9,7 +9,7 @@
     * [&lt;1&gt; 准备条件](#1-准备条件)
     * [&lt;2&gt; 安装EdgeX Foundry的组件](#2-安装edgex-foundry的组件)
   * [4\. EdgeX Foundry的界面](#4-edgex-foundry的界面)
-    * [&lt;1&gt; 访问consul](#1-访问consul)
+    * [&lt;1&gt; 访问CONSUL](#1-访问consul)
     * [&lt;2&gt; 访问UI](#2-访问ui)
   * [5\. EdgeX Foundry 的验证](#5-edgex-foundry-的验证)
     * [&lt;1&gt; 连接设备](#1-连接设备)
@@ -48,7 +48,7 @@ EdgeX Foundry 是一个开源的边缘设备管理平台，可以部署在网络
 
 -   **组件可选**
 
-    我们对 EdgeX Foundry 集成目前支持到层级可选，后面我们还会继续细化，细化到组件可选，让用户完全按自己的意愿和业务需要去部署需要的组件。层级可选见下图 EdgeX Foundry 的架构图：
+    我们对 EdgeX Foundry 集成目前支持到层级可选，后面我们还会继续细化，细化到组件可选，让用户完全按自己的意愿和业务需要去部署需要的组件。层级可选见 EdgeX Foundry 的架构图：
 
     <div align="center">
       <img src="../img/edgex-layer.png" width=80% title="Edgex-layer">
@@ -118,9 +118,9 @@ Deploy edgex-ui.yml success!
 ```
 其他组件同上安装，替换flag即可。如需同时安装多个层级组件，可以同时添加多个flag。  
 
->   以上提供的安装版本为haoni版本，如需安装其他版本的组件，请拉取仓库源码，并在`/pkg/edgeadm/constant/manifests/edgex`目录下修改对应组件的相关细节。
+>   以上提供的安装版本为EdgeX Foundry 1.3版本，如需安装其他版本的组件，请拉取仓库源码，并在`/pkg/edgeadm/constant/manifests/edgex`目录下修改对应组件的相关细节。
 
->   以上安装不包含serity的相关组件和配置，后期版本可能添加相关功能，也可在项目源文件中自行配置。
+>   以上安装不包含security的相关组件和配置，后期版本可能添加相关功能，也可在项目源文件中自行配置。
 
 部署成功后，可以通过以下命令查看svc和pod的启动情况  
 
@@ -132,7 +132,7 @@ kubectl get svc,pods -n edgex
 
 ## 4. EdgeX Foundry的界面
 
-### <1> 访问consul
+### <1> 访问CONSUL
 
 从网页访问core-consul的服务的端口可以查看各组件的部署情况，其中`30850`是core-consul服务暴露的端口号  
 ```shell
@@ -201,7 +201,7 @@ spec:
       hostname: edgex-device-random
       containers:
       - name: edgex-device-random
-        image: EdgeX Foundry/docker-device-random-go:1.3.0
+        image: edgexfoundry/docker-device-random-go:1.3.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -229,7 +229,7 @@ curl http://localhost:30080/api/v1/event/device/Random-Integer-Generator01/10
 
 #### (1) 查看可用命令
 
-网页访问core-command服务的端口查看可以对虚拟设备进行的指令，包括Put指令和Get指令，其中Put用于下发命令，Get用于获取命令，其中`30082`是core-command服务的端口号  
+网页访问core-command服务的端口查看可以对虚拟设备进行的指令，包括Put指令和Get指令，其中Put用于下发命令，Get用于获取命令，其中`30082`是core-command服务的端口号，`Random-Integer-Generator01`是以上文件安装的虚拟设备  
 
 ```shell
 curl http://localhost:30082/api/v1/device/name/Random-Integer-Generator01
@@ -308,7 +308,7 @@ spec:
       hostname: edgex-app-service-configurable-mqtt
       containers:
       - name: edgex-app-service-configurable-mqtt
-        image: EdgeX Foundry/docker-app-service-configurable:1.1.0
+        image: edgexfoundry/docker-app-service-configurable:1.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -364,7 +364,7 @@ http://www.hivemq.com/demos/websocket-client/
 
 但是，由于这是公有的Broker，多方多次上传的数据都会保留并共存在相应的主题下，所以即使message一栏有数据显示，可能是之前导出操作遗留的数据，要想真正验证是否导出成功，可以在connect后尝试创建一个新主题，该主题尚无message显示，再修改mqtt.yaml中`env`下的`Writable_Pipeline_Functions_MQTTSend_Addressable_Topic`的值为该主题，部署后查看Broker网页中是否有数据出现，若有，说明真正导出成功。
 
->   **注意：**如果上述操作中出现网页无法访问等异常，请重新查看Pod情况，必要时进行卸载重装。
+>   **注意**：如果上述操作中出现网页无法访问等异常，请重新查看Pod情况，必要时进行卸载重装。
 
 ## 6. EdgeX Foundry的卸载
 如果是执行`./edgeadm addon edgex`安装了所有组件或者自定义安装了所有层级组件的，可以执行以下命令将所有EdgeX Foundry卸载，同时卸载在主机上产生的挂载数据。如果是只安装了部分层级或者有部分组件缺失的，请根据后文中的通过添加flag的方式逐个层级卸载  
@@ -394,35 +394,35 @@ Detach edgex-configmap.yml success!
 Start uninstall edgex completely.
 Delete edgex completely success!
 ```
-也可执行`./edgeadm detach edgex [flag]`对EdgeX Foundry进行卸载，可以通过`./edgeadm detach edgex –-help`命令查看可以使用的flag：
+也可执行`./edgeadm detach edgex [flag]`对EdgeX Foundry进行卸载，可以通过`./edgeadm detach edgex --help`命令查看可以使用的flag：
 ```shell
 --app          Detach the edgex application-services from cluster.
---core          Detach the edgex core-services from cluster.
+--core         Detach the edgex core-services from cluster.
 --device       Detach the edgex device-services from cluster.
---support       Detach the edgex supporting-services from cluster.
---sysmgmt         Detach the edgex system management from cluster.
---ui              Detach the ui from cluster.
---completely       Detach the configmap and volumes from cluster.
+--support      Detach the edgex supporting-services from cluster.
+--sysmgmt      Detach the edgex system management from cluster.
+--ui           Detach the ui from cluster.
+--completely   Detach the configmap and volumes from cluster.
 ```
 
 
 如需卸载core服务的相关组件，可运行  
 
 ```shell
-./edgeadm detach edgex –-core
+./edgeadm detach edgex --core
 ```
 
 其他组件删除操作同上，替换flag即可，支持多个flag同时删除多个层级的组件。
-可以通过以下命令查看所有pod是否已删除。  
+可以通过以下命令查看所有svc和pod是否已删除。  
 
 ```shell
-kubectl get pods -n edgex  
+kubectl get svc,pods -n edgex  
 ```
 
 **注意**：  
 
 -    如果删除中出现错误，导致某一层级的组件部分已删除，部分未删除，则对该层级重新执行删除操作将失败，需要用addon对该层级所有组件重装，再进行删除
-如：删除core层级的过程中遇到失败，导致core-data的组件已删除而core-consul的组件未删除，则`./edgeadm detach edgex –-core`命令无法再次正常重新执行，需要用`./edgeadm addon edgex –-core`补充缺失的core-data组件，再使用`./edgeadm detach edgex –-core`删除core层级。
+如：删除core层级的过程中遇到失败，导致core-data的组件已删除而core-consul的组件未删除，则`./edgeadm detach edgex --core`命令无法再次正常重新执行，需要用`./edgeadm addon edgex --core`补充缺失的core-data组件，再使用`./edgeadm detach edgex --core`删除core层级。
 -    `./edgeadm detach edgex`仅适用于所有组件都存在的情况，如仅存在部分组件，请对相应层级进行独立删除。
 
 ## 7. 后期计划
