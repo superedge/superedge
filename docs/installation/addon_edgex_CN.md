@@ -1,4 +1,4 @@
-简体中文
+简体中文 | [English](./addon_edgex.md)
 
 # 一键部署EdgeX Foundry到边缘集群  
 
