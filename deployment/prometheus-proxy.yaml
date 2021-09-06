@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  namespace: edge-system
+data:
+  nginx.conf: |
+    worker_processes  1;
+    events {
+        worker_connections  1024;
+    }
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+        sendfile        on;
+        tcp_nopush     on;
+        keepalive_timeout  65;
+        server {
+            listen       443 ssl;
+            server_name  localhost;
+            ssl_certificate  /home/certs/apiserver-kubelet-server.crt;
+            ssl_certificate_key  /home/certs/apiserver-kubelet-server.key;
+            ssl_session_cache  shared:SSL:1m;
+            ssl_session_timeout  5m;
+            ssl_ciphers HIGH:!aNULL:!MD5;
+            ssl_prefer_server_ciphers  on;
+            proxy_connect_timeout  60s;
+            proxy_read_timeout  120s;
+            proxy_send_timeout  120s;
+            location ~/(.*) {
+                proxy_pass http://$1?args;
+            }   
+        }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prometheus-proxy
+  namespace: edge-system
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+      component: proxy
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: prometheus
+        component: proxy
+        run: nginx
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        ports:
+        - containerPort: 443
+          hostPort: 30021
+          protocol: TCP
+          name: nginx
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - mountPath: /home/certs
+          name: certs
+      volumes:
+      - name: certs
+        secret:
+          defaultMode: 420
+          secretName: tunnel-cloud-cert
+      - name: config-volume
+        configMap:
+          name: nginx-conf
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+
