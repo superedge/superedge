@@ -67,7 +67,7 @@ Execute the following command to download the edgeadm static installation packag
 arch=amd64 version=v0.6.0-beta.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
-Reference to install an edge cluster:[One-click to install an edge independent Kubernetes clusters.](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md)  
+Reference to install an edge cluster:[One-click to install an edge independent Kubernetes clusters.](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes.md)  
 
 
 ### <2> Install EdgeX Foundry components
