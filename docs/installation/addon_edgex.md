@@ -429,7 +429,7 @@ At present, we have achieved the first step of integrating with EdgeX Foundry. O
   <img src="../img/superedge_edgex_edge_edge_EN.png" width=60% title="Edgex-layer">
 </div>
 
-It is to completely open up the cloud edge and form a complete integration of the cloud edge and edge. EdgeX Foundry is not our only choice. We will integrate and abstract with more edge device platforms in the future, and strive for a more general ** seamless access to multi-platform edge devices**.
+It is to completely open up the cloud edge and form a complete integration of the cloud edge and edge. EdgeX Foundry is not our only choice. We will integrate and abstract with more edge device platforms in the future, and strive for a more general **seamless access to multi-platform edge devices**.
 
 >   If you encounter related problems or have suggestions for improvement during use, you can contact us in the WeChat group or raise Issues in the community.
 
