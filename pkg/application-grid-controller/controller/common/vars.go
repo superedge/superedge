@@ -34,4 +34,8 @@ const (
 	ParentClusterSecretName      = "parent-cluster"
 
 	ParentURLKey = "parent-url"
+
+	CreateError = "CreateError"
+	UpdateError = "UpdateError"
+	DeleteError = "DeleteError"
 )

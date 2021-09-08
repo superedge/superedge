@@ -28,6 +28,7 @@ import (
 	"context"
 	"k8s.io/klog/v2"
 
+	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -35,7 +36,6 @@ import (
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -222,7 +222,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		!apiequality.Semantic.DeepEqual(ssg.Spec.DefaultTemplateName, ssgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(ssg.Spec.TemplatePool, ssgCopy.Spec.TemplatePool) {
 		klog.Infof("Updating statefulsetGrid %s/%s template info", ssgCopy.Namespace, ssgCopy.Name)
-		_, err := ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+		ssg, err = ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
 		if err != nil && !errors.IsConflict(err) {
 			return err
 		}

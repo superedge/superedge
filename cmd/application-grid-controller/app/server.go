@@ -29,6 +29,7 @@ import (
 	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
 	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	controllerutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	"github.com/superedge/superedge/pkg/util"
@@ -39,6 +40,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientset "k8s.io/client-go/kubernetes"
 	clientgokubescheme "k8s.io/client-go/kubernetes/scheme"
@@ -171,6 +173,8 @@ func runController(parent context.Context,
 	}); err != nil {
 		klog.Fatalf("Create and wait for CRDs ready failed: %v", err)
 	}
+
+	utilruntime.Must(scheme.AddToScheme(scheme.Scheme))
 
 	controllerConfig := config.NewControllerConfig(crdClient, fedCrdClient, kubeClient, time.Second*time.Duration(syncPeriod), dedicatedNameSpace)
 	deploymentGridController := deployment.NewDeploymentGridController(
