@@ -29,7 +29,8 @@ type ServiceGrid struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ServiceGridSpec `json:"spec,omitempty"`
+	Spec   ServiceGridSpec  `json:"spec,omitempty"`
+	Status v1.ServiceStatus `json:"status,omitempty"`
 }
 
 type ServiceGridSpec struct {

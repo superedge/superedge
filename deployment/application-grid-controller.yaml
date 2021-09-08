@@ -23,6 +23,7 @@ rules:
       - services
       - secrets
       - namespaces
+      - events
     verbs:
       - "*"
   - apiGroups:
