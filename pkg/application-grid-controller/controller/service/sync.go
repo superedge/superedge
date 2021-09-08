@@ -19,10 +19,12 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	klog "k8s.io/klog/v2"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	corev1 "k8s.io/api/core/v1"
@@ -60,10 +62,10 @@ func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*cor
 		adds = append(adds, util.CreateService(g))
 	}
 
-	return sgc.syncService(adds, updates, deletes)
+	return sgc.syncService(g, adds, updates, deletes)
 }
 
-func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.Service) error {
+func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updates, deletes []*corev1.Service) error {
 	wg := sync.WaitGroup{}
 	totalSize := len(adds) + len(updates) + len(deletes)
 	wg.Add(totalSize)
@@ -73,9 +75,26 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 		go func(svc *corev1.Service) {
 			defer wg.Done()
 			klog.V(4).Infof("Creating service %s/%s by syncService", svc.Namespace, svc.Name)
+			sgCopy := sg.DeepCopy()
 			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			if err != nil {
 				errCh <- err
+				sgCopy.Status.Conditions = []metav1.Condition{{
+					Type:               common.CreateError,
+					Status:             metav1.ConditionTrue,
+					Message:            err.Error(),
+					LastTransitionTime: metav1.NewTime(time.Now()),
+					Reason:             common.CreateError,
+				}}
+
+				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.CreateError, err.Error())
+
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				if err != nil {
+					klog.Errorf("Updating add services %d when error occured %v", svc.Name, err)
+				}
+			} else {
+				sgCopy.Status = svc.Status
 			}
 		}(adds[i])
 	}
@@ -84,9 +103,26 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 		go func(svc *corev1.Service) {
 			defer wg.Done()
 			klog.V(4).Infof("Updating service %s/%s by syncService", svc.Namespace, svc.Name)
+			sgCopy := sg.DeepCopy()
 			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
+				sgCopy.Status.Conditions = []metav1.Condition{{
+					Type:               common.UpdateError,
+					Status:             metav1.ConditionTrue,
+					Message:            err.Error(),
+					LastTransitionTime: metav1.NewTime(time.Now()),
+					Reason:             common.UpdateError,
+				}}
+
+				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.UpdateError, err.Error())
+
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				if err != nil {
+					klog.Errorf("Updating update services %d when error occured %v", svc.Name, err)
+				}
+			} else {
+				sgCopy.Status = svc.Status
 			}
 		}(updates[i])
 	}
@@ -95,9 +131,26 @@ func (sgc *ServiceGridController) syncService(adds, updates, deletes []*corev1.S
 		go func(svc *corev1.Service) {
 			defer wg.Done()
 			klog.V(4).Infof("Deleting service %s/%s by syncService", svc.Namespace, svc.Name)
+			sgCopy := sg.DeepCopy()
 			err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 			if err != nil {
 				errCh <- err
+				sgCopy.Status.Conditions = []metav1.Condition{{
+					Type:               common.DeleteError,
+					Status:             metav1.ConditionTrue,
+					Message:            err.Error(),
+					LastTransitionTime: metav1.NewTime(time.Now()),
+					Reason:             common.DeleteError,
+				}}
+
+				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.DeleteError, err.Error())
+
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				if err != nil {
+					klog.Errorf("Updating delete services %d when error occured %v", svc.Name, err)
+				}
+			} else {
+				sgCopy.Status = svc.Status
 			}
 		}(deletes[i])
 	}
