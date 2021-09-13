@@ -1,0 +1,81 @@
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: testserver
+  namespace: default
+spec:
+  gridUniqKey: zone
+  template:
+    replicas: 2
+    selector:
+      matchLabels:
+        app: testserver
+    template:
+      metadata:
+        labels:
+          app: testserver
+        annotations:
+          prometheus_io_scrape_slow: "true"
+          prometheus_io_port: "10016"
+          prometheus_io_path: "/metrics"
+      spec:
+        containers:
+        - image: whispers1204/tars-testserver:v1
+          name: testserver
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 10014
+            protocol: TCP
+            name: server
+          - containerPort: 10016
+            protocol: TCP
+            name: metrics
+          env:
+            - name: TARS_LOCATOR
+              valueFrom:
+                configMapKeyRef:
+                  name: tarsserver-config
+                  key: TARS_LOCATOR
+            - name: TARS_REGISTRY
+              valueFrom:
+                configMapKeyRef:
+                  name: tarsserver-config
+                  key: TARS_REGISTRY
+            - name: TARS_NOTIFY
+              valueFrom:
+                configMapKeyRef:
+                  name: tarsserver-config
+                  key: TARS_NOTIFY
+            - name: PROMETHEUS_LISTEN_ADDR
+              value: ":10016"
+            - name: TARS_APP  #Tars应用的名称，提供set名
+              value: "testapp"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: DEPLOY_NAME  #DeploymentGrid的名称，便于提取set区域名
+              value: "testserver"
+            - name: GRID_KEY
+              value: "zone"
+            - name: POD_NAME   #Pod名称，便于提取set区域名
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          readinessProbe:
+            exec:
+              command: ["tarscli", "hzcheck"]
+            failureThreshold: 10
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["tarscli", "prestop"]
+        terminationGracePeriodSeconds: 90

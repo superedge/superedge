@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tars-configmap
+  namespace: tars-system
+data:
+  DB_HOST: "mysql ip"
+  DB_PORT: "3306"
+  DB_USER: "root"
+  DB_PASS: "pass"
+  TARS_LOCATOR: "tars.tarsregistry.QueryObj@tcp -h <tarsquerry-svc  CLUSTER-IP> -p 17890"

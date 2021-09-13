@@ -1,0 +1,101 @@
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: tars-registry
+  namespace: tars-system
+spec:
+  gridUniqKey: tars
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: tars-registry
+    template:
+      metadata:
+        labels:
+          app: tars-registry
+      spec:
+        tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        containers:
+        - name: tars-cppregistry
+          image: ccr.ccs.tencentyun.com/tarsbase/cppregistry:v1.1.0
+          ports:
+          - containerPort: 17890
+            protocol: TCP
+            name: query
+          env:
+          - name: DB_HOST
+            value: <your mysql ip>
+          - name: DB_PORT
+            value: "3306"
+          - name: DB_USER
+            value: "root"
+          - name: DB_PASS
+            value: "pass"
+        - name: tars-registry
+          image: ccr.ccs.tencentyun.com/tarsbase/tarsregistry:v1.1.1
+          ports:
+          - containerPort: 13000
+            protocol: TCP
+            name: registry
+          lifecycle:
+            preStop:
+              exec:
+                command: ["tarscli", "prestop"]
+          env:
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_HOST
+          - name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_PORT
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_USER
+          - name: DB_PASS
+            value: "pass"
+---
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: tarsquery
+  namespace: tars-system
+spec:
+  gridUniqKey: tars 
+  template:
+    selector:
+      app: tars-registry
+    type: NodePort
+    ports:
+    - protocol: TCP
+      port: 17890
+      targetPort: 17890
+      nodePort: 30015
+---
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: tarsregistry
+  namespace: tars-system
+spec:
+  gridUniqKey: tars
+  template:
+  template:
+    selector:
+      app: tars-registry
+    type: NodePort
+    ports:
+    - protocol: TCP
+      port: 13000
+      targetPort: 13000
+      nodePort: 30016
+

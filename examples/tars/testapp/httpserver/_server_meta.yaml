@@ -1,0 +1,6 @@
+version: v1
+application: testapp
+server: httpserver
+adapters:
+  - object: HttpObj
+    endpoint: tcp -h ${local_ip} -p 10015
