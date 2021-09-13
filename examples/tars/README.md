@@ -16,7 +16,9 @@ Superedge Tars是便于将Tars服务运行在边缘集群Superedge中的方案
 
 2.将Tars的公共框架服务以NodePort的形式暴露给外部。
 
-3.以ServiceGroup的形式部署Tars服务，并利用[Tars Set](https://github.com/TarsCloud/TarsDocs/blob/master/dev/tars-idc-set.md)让Tars的服务调用局限在Node Unit内部(以Tars应用名作为Set名，以gridUniqKey标签的值作为Set区域               名)。
+3.以ServiceGroup的形式部署Tars服务，并利用[Tars Set](https://github.com/TarsCloud/TarsDocs/blob/master/dev/tars-idc-set.md)让Tars的服务调用局限在Node Unit内部(以Tars应用名作为Set名，以gridUniqKey标签
+
+​    的值作为Set区域名)。
 
 ## 部署示例
 
