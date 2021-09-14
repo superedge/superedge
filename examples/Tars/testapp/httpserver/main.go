@@ -18,7 +18,7 @@ func init(){
 
 func main() {
 	cfg := tars.GetServerConfig()
-    comm = tars.NewCommunicator()
+	comm = tars.NewCommunicator()
 	locator := os.Getenv("TARS_LOCATOR")
 	comm.SetProperty("locator", locator)
 	obj := "testapp.testserver.HelloObj"
@@ -29,9 +29,9 @@ func main() {
 	mux.HandleFunc("/",func(w http.ResponseWriter, r *http.Request){
 		Handler(ctx,app,w,r)
 	})
-    tars.AddHttpServant(mux, cfg.App+"."+cfg.Server+".HttpObj") 
-    go metrics.Listen()
-    metrics.SetPrometheusStat() 
+	tars.AddHttpServant(mux, cfg.App+"."+cfg.Server+".HttpObj") 
+	go metrics.Listen()
+	metrics.SetPrometheusStat() 
 	log.Info(ctx,cfg.App+"."+cfg.Server+"run...")
 	tars.Run()
 }
