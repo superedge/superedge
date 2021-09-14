@@ -2,8 +2,9 @@ package main
 
 import (
 	"os"
-	"github.com/TarsCloud/TarsGo/tars"
+
 	"testapp"
+	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/tarscloud/gopractice/common/metrics"
 )
 
@@ -21,6 +22,6 @@ func main() {
 	app := new(testapp.Hello)
 	app.AddServantWithContext(imp, cfg.App+"."+cfg.Server+".HelloObj")
 	go metrics.Listen()
-	metrics.SetPrometheusStat()//用prometheus代替tars stat
+	metrics.SetPrometheusStat()
 	tars.Run()
 }

@@ -4,8 +4,9 @@ import (
 	"os"
 	"context"
 	"net/http"
-	"github.com/TarsCloud/TarsGo/tars"
+
 	"testapp"
+	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/tarscloud/gopractice/common/metrics"
 	"github.com/tarscloud/gopractice/common/log"
 )
@@ -30,7 +31,7 @@ func main() {
 	})
     tars.AddHttpServant(mux, cfg.App+"."+cfg.Server+".HttpObj") 
     go metrics.Listen()
-    metrics.SetPrometheusStat() //用prometheus代替tars stat
+    metrics.SetPrometheusStat() 
 	log.Info(ctx,cfg.App+"."+cfg.Server+"run...")
 	tars.Run()
 }

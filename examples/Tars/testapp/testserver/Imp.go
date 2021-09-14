@@ -4,6 +4,7 @@ import (
 	"os"
 	"context"
 	"strings"
+
 	"testapp"
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/tarscloud/gopractice/common/log"
@@ -18,8 +19,6 @@ func (imp *HelloImp) Init() error {
 
 // Destroy servant destory
 func (imp *HelloImp) Destroy() {
-	//destroy servant here:
-	//...
 }
 
 func (imp *HelloImp) Echo(ctx context.Context, Req *testapp.Message, Res *testapp.Message) (int32, error) {
