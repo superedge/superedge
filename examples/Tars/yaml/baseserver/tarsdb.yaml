@@ -1,0 +1,58 @@
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: tarsdb
+  namespace: tars-system
+spec:
+  gridUniqKey: tars 
+  template:
+    selector:
+      matchLabels:
+        app: tarsdb
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: tarsdb
+      spec:
+        tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        volumes:
+        - name: db-path
+          hostPath:
+            path: /root/tars_mysql
+            type: DirectoryOrCreate
+        containers:
+        - name: tarsdb
+          image: mysql:5.7.26
+          env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: pass
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+            name: mysql
+          volumeMounts: 
+          - mountPath: /var/lib/mysql
+            name: db-path
+          lifecycle:
+            postStart:
+              exec:
+                command: ["ln", "-nsf", "/usr/share/zoneinfo/Asia/Shanghai", "/etc/localtime"]
+---
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: tarsdb
+  namespace: tars-system
+spec:
+  gridUniqKey: tars 
+  template:
+    selector:
+      app: tarsdb
+    ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
