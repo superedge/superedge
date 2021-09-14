@@ -49,7 +49,7 @@ spec:
                 key: TARS_NOTIFY
           - name: PROMETHEUS_LISTEN_ADDR
             value: ":10016"
-          - name: TARS_APP  #Tras 应用的名字，提供set名
+          - name: TARS_APP  #Tars 应用的名字，提供set名
             value: "testapp"
           - name: NODE_NAME
             valueFrom:
