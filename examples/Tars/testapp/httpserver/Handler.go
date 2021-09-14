@@ -26,7 +26,7 @@ func Handler(ctx context.Context, app *testapp.Hello, w http.ResponseWriter, r *
 	if err != nil {
 		log.Error(ctx,"Echo call error")
 	}
-        Buffer := make(map[string] *testapp.Message)
+    Buffer := make(map[string] *testapp.Message)
 	Buffer["Server"] = &Res
 	Buffer["Client"] = &Req
 	t, err := template.ParseFiles("/tars/bin/Html.tmpl")
