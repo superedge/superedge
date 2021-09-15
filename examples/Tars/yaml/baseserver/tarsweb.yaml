@@ -1,0 +1,72 @@
+apiVersion:  superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: tars-web
+  namespace: tars-system
+spec:
+  gridUniqKey: tars
+  template:
+    selector:
+      matchLabels:
+        app: tarsweb
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: tarsweb
+      spec:
+        tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        containers:
+        - name: tarsweb
+          image: ccr.ccs.tencentyun.com/tarsbase/tarsweb:v1.1.0
+          ports:
+          - containerPort: 3000
+            protocol: TCP
+            name: tarsweb
+          env:
+          - name: TARS_LOCATOR
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: TARS_LOCATOR
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_HOST
+          - name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_PORT
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_USER
+          - name: DB_PASS
+            valueFrom:
+              configMapKeyRef:
+                name: tars-configmap
+                key: DB_PASS
+---
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: tarsweb
+  namespace: tars-system
+spec:
+  gridUniqKey: tars
+  template:
+    type: NodePort
+    selector:
+      app: tarsweb
+    ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30000
+      protocol: TCP
+

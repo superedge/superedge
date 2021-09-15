@@ -1,0 +1,18 @@
+module testapp
+{
+	struct Message
+	{
+		1 require string Nodename;
+		2 require string Podname;
+		3 require string Podip;
+		4 require string Set;
+		5 require string Gridkey;
+		6 require string Gridvalue;
+		7 require string Content;
+	};
+
+	interface Hello
+	{
+		int Echo(Message Req, out Message Res); 
+	};
+};

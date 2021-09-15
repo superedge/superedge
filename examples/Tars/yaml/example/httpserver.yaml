@@ -1,0 +1,99 @@
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
+metadata:
+  name: httpserver
+  namespace: default
+spec:
+  gridUniqKey: zone
+  template:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: httpserver
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: httpserver
+        annotations:
+          prometheus_io_scrape_slow: "true"
+          prometheus_io_port: "10016"
+          prometheus_io_path: "/metrics"
+      spec:
+        containers:
+        - image: whispers1204/tars-httpserver:v1
+          name: httpserver
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 10015
+            protocol: TCP
+            name: http
+          - containerPort: 10016
+            protocol: TCP
+            name: metrics
+          env:
+          - name: TARS_LOCATOR
+            valueFrom:
+              configMapKeyRef:
+                name: tarsserver-config
+                key: TARS_LOCATOR
+          - name: TARS_REGISTRY
+            valueFrom:
+              configMapKeyRef:
+                name: tarsserver-config
+                key: TARS_REGISTRY
+          - name: TARS_NOTIFY
+            valueFrom:
+              configMapKeyRef:
+                name: tarsserver-config
+                key: TARS_NOTIFY
+          - name: PROMETHEUS_LISTEN_ADDR
+            value: ":10016"
+          - name: TARS_APP  #Tars 应用的名字，提供set名
+            value: "testapp"
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: DEPLOY_NAME #DeploymentGrid的名字，便于提取set区域名
+            value: "httpserver"
+          - name: GRID_KEY
+            value: "zone"
+          - name: POD_NAME #Pod名称，便于提取set区域名
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          readinessProbe:
+            exec:
+              command: ["tarscli", "hzcheck"]
+            failureThreshold: 10
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["tarscli", "prestop"]
+        terminationGracePeriodSeconds: 90
+---
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: httpserver
+  namespace: default
+spec:
+  gridUniqKey: zone
+  template:
+    selector:
+      app: httpserver
+    type: NodePort
+    ports:
+    - protocol: TCP
+      port: 10015
+      targetPort: 10015
+      nodePort: 30007
