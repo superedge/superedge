@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <title>SuperEdge & Tars Demo</title>
+</head>
+<body>
+    <h1 style="text-align:center">Hello SuperEdge & Tars</h1>
+    <h2>Server:</h2>
+		<p>NodeName: {{ .Server.Nodename }}</p>
+		<p>PodName: {{ .Server.Podname }}</p>
+		<p>PodIP: {{ .Server.Podip }}</p>
+		<p>GridUniqKey: {{ .Server.Gridkey }} = {{ .Server.Gridvalue }}</p>
+		<p>Set: {{ .Server.Set }}</p>
+    </br>
+    </br>
+    </br>
+    </br>
+    <h2>Client:</h2>
+		<p>NodeName: {{ .Client.Nodename }}</p>
+		<p>PodName: {{ .Client.Podname }}</p>
+		<p>PodIP: {{ .Client.Podip }}</p>
+		<p>GridUniqKey: {{ .Client.Gridkey }} = {{ .Client.Gridvalue }}</p>
+		<p>Set: {{ .Client.Set }}</p>
+</body>
+</html>
