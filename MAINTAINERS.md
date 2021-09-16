@@ -17,7 +17,6 @@ The official maintainers and outstanding contributors of SuperEdge are given in 
 | Shubiao Yao  |   @[shubiao-yao](https://github.com/shubiao-yao)   |   [yaoshubiao@gmail.com](mailto:yaoshubiao@gmail.com)   |
 |  Wenhu Wang  |     @[wenhuwang](https://github.com/wenhuwang)     |                    976400757@qq.com                     |
 | Xiaodong Luo |   @[xiaodongluo](https://github.com/xiaodongluo)   |                   15622358376@163.com                   |
-| Stephendi Xu |        @[dixudx](https://github.com/dixudx)        | [stephenhsu90@gmail.com](mailto:stephenhsu90@gmail.com) |
 |  Yingzhe Ru  |     @[ruyingzhe](https://github.com/ruyingzhe)     |                  yingzheru@tencent.com                  |
 | Bobbyo Zhang | @[bobbyjunzhang](https://github.com/bobbyjunzhang) |                 bobbyozhang@tencent.com                 |
 | Wenjun Tang  |    @[dodiadodia](https://github.com/dodiadodia)    |          [dodia@163.com](mailto:dodia@163.com)          |
