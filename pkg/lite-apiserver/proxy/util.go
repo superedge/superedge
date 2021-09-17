@@ -69,7 +69,7 @@ func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
 	n, err = dr.rc.Read(p)
 	if n > 0 {
 		if n, err := dr.pw.Write(p[:n]); err != nil {
-			klog.Errorf("dualReader: failed to write %v", err)
+			klog.Errorf("dupReader: failed to write %v", err)
 			return n, err
 		}
 	}
