@@ -495,3 +495,25 @@ func EnsureEdgexNamespace(client kubernetes.Interface) error {
 	}
 	return nil
 }
+
+func CreateNamespace(client kubernetes.Interface, namespace string) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveNamespace(client kubernetes.Interface, namespace string) error {
+	if err := kubeclient.CreateOrUpdateNamespace(client, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}

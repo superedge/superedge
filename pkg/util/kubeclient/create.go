@@ -18,6 +18,7 @@ package kubeclient
 
 import (
 	"bytes"
+	"fmt"
 	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
@@ -279,8 +280,10 @@ func createOrUpdateValidatingWebhookConfiguration(client kubernetes.Interface, d
 }
 
 func createOrUpdateMutatingWebhookConfiguration(client kubernetes.Interface, data []byte) error {
+	fmt.Println(string(data))
 	obj := new(admissionv1beta1.MutatingWebhookConfiguration)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		fmt.Printf("error: %+v\n", err)
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := CreateOrUpdateMutatingWebhookConfiguration(client, obj)
