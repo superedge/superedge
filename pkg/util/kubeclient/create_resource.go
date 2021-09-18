@@ -31,6 +31,7 @@ import (
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -350,13 +351,12 @@ func CreateOrUpdateIngress(client clientset.Interface, ing *extensionsv1beta1.In
 }
 
 // CreateOrUpdateIngress creates a podSecurityPolicy if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
-func CreateOrUpdatePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *extensionsv1beta1.PodSecurityPolicy) error {
-	if _, err := client.ExtensionsV1beta1().PodSecurityPolicies().Create(context.TODO(), podSecurityPolicy, metav1.CreateOptions{}); err != nil {
+func CreateOrUpdatePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *v1beta1.PodSecurityPolicy) error {
+	if _, err := client.PolicyV1beta1().PodSecurityPolicies().Create(context.TODO(), podSecurityPolicy, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create podSecurityPolicy")
 		}
-
-		if _, err := client.ExtensionsV1beta1().PodSecurityPolicies().Update(context.TODO(), podSecurityPolicy, metav1.UpdateOptions{}); err != nil {
+		if _, err := client.PolicyV1beta1().PodSecurityPolicies().Update(context.TODO(), podSecurityPolicy, metav1.UpdateOptions{}); err != nil {
 			return errors.Wrap(err, "unable to update podSecurityPolicy")
 		}
 	}
@@ -532,6 +532,7 @@ func CreateOrUpdateValidatingWebhookConfiguration(client clientset.Interface, ob
 
 // CreateOrUpdateMutatingWebhookConfiguration creates a MutatingWebhookConfigurations if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdateMutatingWebhookConfiguration(client clientset.Interface, obj *admissionv1beta1.MutatingWebhookConfiguration) error {
+	client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.TODO(), obj.Name, metav1.DeleteOptions{})
 	if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create MutatingWebhookConfiguration")

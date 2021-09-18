@@ -22,11 +22,11 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 
 	DeployTopolvmCRD(kubeconfigFile, manifestsDir)
 
-	DeployTopolvmWebhook(client, manifestsDir)
-
 	DeployTopolvmController(client, manifestsDir)
 
 	DeployTopolvmScheduler(client, manifestsDir)
+
+	DeployTopolvmWebhook(client, manifestsDir)
 
 	DeployTopolvmLvmd(client, manifestsDir)
 
@@ -238,7 +238,7 @@ func RemoveTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 	}
 	topolvmWebhookConfig := filepath.Join(manifestsDir, manifests.AppTopolvmWebhook)
 	topolvmWebhook := ReadYaml(topolvmWebhookConfig, manifests.AppTopolvmWebhookYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmWebhook, option)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmWebhook, option)
 	if err != nil {
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmWebhook, err)
 		return err
