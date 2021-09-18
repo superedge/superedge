@@ -18,12 +18,12 @@ package app
 
 import (
 	"flag"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"io"
 	"os"
 	"path"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"

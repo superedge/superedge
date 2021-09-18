@@ -32,11 +32,12 @@ const (
 )
 
 const (
-	NamespaceDefault    = "default"
-	NamespaceEdgeSystem = "edge-system"
-	NamespaceKubeSystem = "kube-system"
-	NamespaceKubePublic = "kube-public"
-	NamespaceEdgex      = "edgex"
+	NamespaceDefault       = "default"
+	NamespaceEdgeSystem    = "edge-system"
+	NamespaceKubeSystem    = "kube-system"
+	NamespaceKubePublic    = "kube-public"
+	NamespaceEdgex         = "edgex"
+	NamespaceTopolvmSystem = "topolvm-system"
 )
 
 const (
