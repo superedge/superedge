@@ -18,7 +18,6 @@ package kubeclient
 
 import (
 	"bytes"
-	"fmt"
 	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
@@ -32,6 +31,7 @@ import (
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -208,7 +208,7 @@ func createOrUpdateIngress(client kubernetes.Interface, data []byte) error {
 }
 
 func createOrUpdatePodSecurityPolicy(client kubernetes.Interface, data []byte) error {
-	obj := new(extensionsv1beta1.PodSecurityPolicy)
+	obj := new(v1beta1.PodSecurityPolicy)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
@@ -280,10 +280,8 @@ func createOrUpdateValidatingWebhookConfiguration(client kubernetes.Interface, d
 }
 
 func createOrUpdateMutatingWebhookConfiguration(client kubernetes.Interface, data []byte) error {
-	fmt.Println(string(data))
 	obj := new(admissionv1beta1.MutatingWebhookConfiguration)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
-		fmt.Printf("error: %+v\n", err)
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := CreateOrUpdateMutatingWebhookConfiguration(client, obj)
