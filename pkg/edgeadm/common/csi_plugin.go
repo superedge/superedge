@@ -1,8 +1,10 @@
 package common
 
 import (
+	"encoding/base64"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests/topolvm"
+	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -20,18 +22,39 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 		return err
 	}
 
-	DeployTopolvmCRD(kubeconfigFile, manifestsDir)
+	if err := DeployTopolvmCRD(kubeconfigFile, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-crd error: %v", err)
+		return err
+	}
 
-	DeployTopolvmController(client, manifestsDir)
+	if err := RemoveTopolvmWebhook(client, manifestsDir); err != nil {
+		klog.V(4).Infof("Remove topolvm-webhook error: %v", err)
+	}
 
-	DeployTopolvmScheduler(client, manifestsDir)
+	if err := DeployTopolvmWebhook(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-webhook error: %v", err)
+		return err
+	}
 
-	RemoveTopolvmWebhook(client, manifestsDir)
-	DeployTopolvmWebhook(client, manifestsDir)
+	if err := DeployTopolvmController(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-controller error: %v", err)
+		return err
+	}
 
-	DeployTopolvmLvmd(client, manifestsDir)
+	if err := DeployTopolvmScheduler(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-scheduler error: %v", err)
+		return err
+	}
 
-	DeployTopolvmNode(client, manifestsDir)
+	if err := DeployTopolvmLvmd(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-lvmd error: %v", err)
+		return err
+	}
+
+	if err := DeployTopolvmNode(client, manifestsDir); err != nil {
+		klog.Errorf("Deploy topolvm-node error: %v", err)
+		return err
+	}
 
 	klog.V(1).Infof("Deploy topolvm success!")
 
@@ -56,13 +79,30 @@ func DeployTopolvmCRD(kubeconfigFile string, manifestsDir string) error {
 
 // DeployTopolvmWebhook installs topolvm webhook to a Kubernetes cluster
 func DeployTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) error {
+	caBundle, ca, caKey, err := util.GenerateCA(constant.OrganizationSuperEdgeIO)
+	if err != nil {
+		return err
+	}
+
+	dns := []string{
+		"controller.topolvm-system.svc",
+		constant.OrganizationSuperEdgeIO,
+	}
+	serviceCert, serviceKey, err := util.GetServiceCertByRootca("topolvmWebhook", constant.OrganizationSuperEdgeIO, dns, ca, caKey)
+	if err != nil {
+		return err
+	}
+
 	// Deploy topolvm-webhook config
 	option := map[string]interface{}{
 		"Namespace": constant.NamespaceTopolvmSystem,
+		"CABundle":  caBundle,
+		"ServerCrt": base64.StdEncoding.EncodeToString(serviceCert),
+		"ServerKey": base64.StdEncoding.EncodeToString(serviceKey),
 	}
 	topolvmWebhookConfig := filepath.Join(manifestsDir, manifests.AppTopolvmWebhook)
 	topolvmWebhook := ReadYaml(topolvmWebhookConfig, manifests.AppTopolvmWebhookYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmWebhook, option)
+	err = kubeclient.CreateResourceWithFile(client, topolvmWebhook, option)
 	if err != nil {
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmWebhook, err)
 		return err
@@ -156,7 +196,7 @@ func RemoveTopolvmApps(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 
 	RemoveTopolvmWebhook(client, manifestsDir)
 
-	RemoveTopolvmCRD(client, manifestsDir)
+	//RemoveTopolvmCRD(client, manifestsDir)
 
 	klog.V(1).Infof("Remove topolvm success!")
 
@@ -171,7 +211,7 @@ func RemoveTopolvmLvmd(client *kubernetes.Clientset, manifestsDir string) error 
 	}
 	topolvmLvmdConfig := filepath.Join(manifestsDir, manifests.AppTopolvmLvmd)
 	topolvmLvmd := ReadYaml(topolvmLvmdConfig, manifests.AppTopolvmLvmdYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmLvmd, option)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmLvmd, option)
 	if err != nil {
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmLvmd, err)
 		return err
@@ -188,7 +228,7 @@ func RemoveTopolvmNode(client *kubernetes.Clientset, manifestsDir string) error 
 	}
 	topolvmNodeConfig := filepath.Join(manifestsDir, manifests.AppTopolvmNode)
 	topolvmNode := ReadYaml(topolvmNodeConfig, manifests.AppTopolvmNodeYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmNode, option)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmNode, option)
 	if err != nil {
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmNode, err)
 		return err
@@ -205,7 +245,7 @@ func RemoveTopolvmScheduler(client *kubernetes.Clientset, manifestsDir string) e
 	}
 	topolvmWebhookConfig := filepath.Join(manifestsDir, manifests.AppTopolvmScheduler)
 	topolvmWebhook := ReadYaml(topolvmWebhookConfig, manifests.AppTopolvmSchedulerYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmWebhook, option)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmWebhook, option)
 	if err != nil {
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmScheduler, err)
 		return err
@@ -222,7 +262,7 @@ func RemoveTopolvmController(client *kubernetes.Clientset, manifestsDir string) 
 	}
 	topolvmControllerConfig := filepath.Join(manifestsDir, manifests.AppTopolvmController)
 	topolvmController := ReadYaml(topolvmControllerConfig, manifests.AppTopolvmControllerYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmController, option)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmController, option)
 	if err != nil {
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmController, err)
 		return err
@@ -236,6 +276,9 @@ func RemoveTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 	// Remove topolvm-webhook config
 	option := map[string]interface{}{
 		"Namespace": constant.NamespaceTopolvmSystem,
+		"CABundle":  "",
+		"ServerCrt": "",
+		"ServerKey": "",
 	}
 	topolvmWebhookConfig := filepath.Join(manifestsDir, manifests.AppTopolvmWebhook)
 	topolvmWebhook := ReadYaml(topolvmWebhookConfig, manifests.AppTopolvmWebhookYaml)
@@ -251,7 +294,7 @@ func RemoveTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 func RemoveTopolvmCRD(client *kubernetes.Clientset, manifestsDir string) error {
 	topolvmCRDConfig := filepath.Join(manifestsDir, manifests.AppTopolvmCRD)
 	topolvmCRD := ReadYaml(topolvmCRDConfig, manifests.AppTopolvmCRDYaml)
-	err := kubeclient.CreateResourceWithFile(client, topolvmCRD, nil)
+	err := kubeclient.DeleteResourceWithFile(client, topolvmCRD, nil)
 	if err != nil {
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmCRD, err)
 		return err

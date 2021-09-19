@@ -122,7 +122,7 @@ spec:
       serviceAccountName: topolvm-scheduler
       containers:
         - name: topolvm-scheduler
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml

@@ -25,6 +25,7 @@ webhooks:
     failurePolicy: Fail
     matchPolicy: Equivalent
     clientConfig:
+      caBundle: {{.CABundle}}
       service:
         namespace: topolvm-system
         name: topolvm-controller
@@ -47,6 +48,7 @@ webhooks:
     failurePolicy: Fail
     matchPolicy: Equivalent
     clientConfig:
+      caBundle: {{.CABundle}}
       service:
         namespace: topolvm-system
         name: topolvm-controller
@@ -57,6 +59,15 @@ webhooks:
         apiVersions: ["v1"]
         resources: ["pods"]
     sideEffects: None 
+---
+apiVersion: v1
+data:
+  server.crt: {{.ServerCrt}}
+  server.key: {{.ServerKey}}
+kind: Secret
+metadata:
+  name: topolvm-mutatingwebhook
+  namespace: {{.Namespace}}
 ---
 
 # Source: topolvm/templates/controller/csidriver.yaml
