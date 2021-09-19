@@ -139,16 +139,6 @@ spec:
         - name: topolvm-scheduler-options
           configMap:
             name: topolvm-scheduler-options
-      affinity: 
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: Exists
-            - matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: Exists
       tolerations: 
         - key: CriticalAddonsOnly
           operator: Exists
@@ -156,4 +146,5 @@ spec:
           key: node-role.kubernetes.io/control-plane
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
+          operator: "Exists"
 `

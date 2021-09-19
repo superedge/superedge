@@ -62,8 +62,8 @@ webhooks:
 ---
 apiVersion: v1
 data:
-  server.crt: {{.ServerCrt}}
-  server.key: {{.ServerKey}}
+  tls.crt: {{.ServerCrt}}
+  tls.key: {{.ServerKey}}
 kind: Secret
 metadata:
   name: topolvm-mutatingwebhook

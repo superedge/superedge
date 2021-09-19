@@ -56,7 +56,7 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 		return err
 	}
 
-	klog.V(1).Infof("Deploy topolvm success!")
+	klog.V(1).Infof("Deploy topolvm all success!")
 
 	return nil
 }
@@ -74,6 +74,7 @@ func DeployTopolvmCRD(kubeconfigFile string, manifestsDir string) error {
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmCRD, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmCRD)
 	return err
 }
 
@@ -85,7 +86,9 @@ func DeployTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 	}
 
 	dns := []string{
+		"pod-hook.topolvm.cybozu.com",
 		"controller.topolvm-system.svc",
+		"topolvm-controller.topolvm-system.svc",
 		constant.OrganizationSuperEdgeIO,
 	}
 	serviceCert, serviceKey, err := util.GetServiceCertByRootca("topolvmWebhook", constant.OrganizationSuperEdgeIO, dns, ca, caKey)
@@ -107,6 +110,7 @@ func DeployTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmWebhook, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmWebhook)
 
 	return err
 }
@@ -124,6 +128,7 @@ func DeployTopolvmController(client *kubernetes.Clientset, manifestsDir string) 
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmController, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmController)
 
 	return err
 }
@@ -141,6 +146,7 @@ func DeployTopolvmScheduler(client *kubernetes.Clientset, manifestsDir string) e
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmScheduler, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmScheduler)
 
 	return err
 }
@@ -158,6 +164,7 @@ func DeployTopolvmLvmd(client *kubernetes.Clientset, manifestsDir string) error 
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmLvmd, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmLvmd)
 
 	return err
 }
@@ -175,6 +182,7 @@ func DeployTopolvmNode(client *kubernetes.Clientset, manifestsDir string) error 
 		klog.Errorf("Deploy %s config error: %v", manifests.AppTopolvmNode, err)
 		return err
 	}
+	klog.V(1).Infof("Deploy %s success!", manifests.AppTopolvmNode)
 
 	return err
 }
@@ -287,6 +295,7 @@ func RemoveTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmWebhook, err)
 		return err
 	}
+	klog.V(1).Infof("Remove %s success!", manifests.AppTopolvmWebhook)
 
 	return err
 }
