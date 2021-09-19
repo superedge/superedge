@@ -320,9 +320,11 @@ spec:
         runAsGroup: 10000
         runAsUser: 10000
       serviceAccountName: topolvm-controller
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       containers:
         - name: topolvm-controller
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /topolvm-controller
             - --cert-dir=/certs
@@ -349,7 +351,7 @@ spec:
             - name: certs
               mountPath: /certs
         - name: csi-provisioner
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /csi-provisioner
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -360,7 +362,7 @@ spec:
             - name: socket-dir
               mountPath: /run/topolvm
         - name: csi-resizer
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /csi-resizer
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -370,7 +372,7 @@ spec:
             - name: socket-dir
               mountPath: /run/topolvm
         - name: liveness-probe
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /livenessprobe
             - "--csi-address=/run/topolvm/csi-topolvm.sock"

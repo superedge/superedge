@@ -81,7 +81,7 @@ roleRef:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: topolvm-lvmd-0
+  name: topolvm-lvmd
   namespace: topolvm-system
   labels:
     idx: "0"
@@ -101,7 +101,7 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: topolvm-lvmd-0
+  name: topolvm-lvmd
   namespace: topolvm-system
   labels:
     idx: "0"
@@ -125,7 +125,7 @@ spec:
       hostPID: true
       containers:
         - name: lvmd
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           securityContext:
             privileged: true
           command:
@@ -139,7 +139,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: topolvm-lvmd-0
+            name: topolvm-lvmd
         - hostPath:
             path: /run/topolvm
             type: DirectoryOrCreate

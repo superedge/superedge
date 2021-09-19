@@ -17,6 +17,10 @@ limitations under the License.
 package constant
 
 const (
+	OrganizationSuperEdgeIO = "SuperEdge.io"
+)
+
+const (
 	DeployModeKubeadm = "kubeadm"
 	ModeKubeProxy     = "kube-proxy"
 )

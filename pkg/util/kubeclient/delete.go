@@ -17,7 +17,6 @@ limitations under the License.
 package kubeclient
 
 import (
-	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
 
@@ -27,12 +26,14 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 )
 
 var deleteHandlers map[string]func(kubernetes.Interface, []byte) error
@@ -51,6 +52,7 @@ func init() {
 	deleteHandlers["ClusterRole"] = deleteClusterRole
 	deleteHandlers["StorageClass"] = deleteStorageClass
 	deleteHandlers["ServiceAccount"] = deleteServiceAccount
+	deleteHandlers["PodSecurityPolicy"] = deletePodSecurityPolicy
 	deleteHandlers["ClusterRoleBinding"] = deleteClusterRoleBinding
 	deleteHandlers["MutatingWebhookConfiguration"] = deleteMutatingMutatingWebhookConfigurations
 }
@@ -193,6 +195,18 @@ func deleteStorageClass(client kubernetes.Interface, data []byte) error {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := DeleteStorageClasses(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deletePodSecurityPolicy(client kubernetes.Interface, data []byte) error {
+	obj := new(v1beta1.PodSecurityPolicy)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := DeletePodSecurityPolicy(client, obj)
 	if err != nil {
 		return err
 	}

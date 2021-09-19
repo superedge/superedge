@@ -111,7 +111,7 @@ spec:
       serviceAccountName: topolvm-node
       containers:
         - name: topolvm-node
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           securityContext: 
             privileged: true
           command:
@@ -146,7 +146,7 @@ spec:
               mountPropagation: Bidirectional
               name: csi-plugin-dir
         - name: csi-registrar
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /csi-node-driver-registrar
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -161,7 +161,7 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.9.0"
+          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
           command:
             - /livenessprobe
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
