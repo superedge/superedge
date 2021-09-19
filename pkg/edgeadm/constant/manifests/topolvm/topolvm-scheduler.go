@@ -116,10 +116,6 @@ spec:
       labels:
         app.kubernetes.io/name: topolvm-scheduler
     spec:
-      securityContext: 
-        runAsGroup: 10000
-        runAsUser: 10000
-      serviceAccountName: topolvm-scheduler
       containers:
         - name: topolvm-scheduler
           image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
@@ -139,6 +135,22 @@ spec:
         - name: topolvm-scheduler-options
           configMap:
             name: topolvm-scheduler-options
+      securityContext: 
+        runAsGroup: 10000
+        runAsUser: 10000
+      serviceAccountName: topolvm-scheduler
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      affinity: 
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
       tolerations: 
         - key: CriticalAddonsOnly
           operator: Exists
