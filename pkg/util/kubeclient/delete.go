@@ -28,6 +28,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -44,9 +45,11 @@ func init() {
 	deleteHandlers["Service"] = deleteService
 	deleteHandlers["DaemonSet"] = deleteDaemonSet
 	deleteHandlers["ConfigMap"] = deleteConfigMap
+	deleteHandlers["CSIDriver"] = deleteCSIDriver
 	deleteHandlers["Deployment"] = deleteDeployment
 	deleteHandlers["RoleBinding"] = deleteRoleBinding
 	deleteHandlers["ClusterRole"] = deleteClusterRole
+	deleteHandlers["StorageClass"] = deleteStorageClass
 	deleteHandlers["ServiceAccount"] = deleteServiceAccount
 	deleteHandlers["ClusterRoleBinding"] = deleteClusterRoleBinding
 	deleteHandlers["MutatingWebhookConfiguration"] = deleteMutatingMutatingWebhookConfigurations
@@ -166,6 +169,30 @@ func deleteClusterRoleBinding(client kubernetes.Interface, data []byte) error {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := DeleteClusterRoleBinding(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteCSIDriver(client kubernetes.Interface, data []byte) error {
+	obj := new(storagev1.CSIDriver)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := DeleteCSIDriver(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteStorageClass(client kubernetes.Interface, data []byte) error {
+	obj := new(storagev1.StorageClass)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := DeleteStorageClasses(client, obj)
 	if err != nil {
 		return err
 	}

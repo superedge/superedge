@@ -33,6 +33,7 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
@@ -48,6 +49,7 @@ func init() {
 	handlers["Service"] = createOrUpdateService
 	handlers["CronJob"] = createOrUpdateCronJob
 	handlers["Ingress"] = createOrUpdateIngress
+	handlers["CSIDriver"] = createOrUpdateCSIDriver
 	handlers["Endpoints"] = createOrUpdateEndpoints
 	handlers["Namespace"] = createOrUpdateNamespace
 	handlers["DaemonSet"] = createOrUpdateDaemonSet
@@ -56,6 +58,7 @@ func init() {
 	handlers["StatefulSet"] = createOrUpdateStatefulSet
 	handlers["RoleBinding"] = createOrUpdateRoleBinding
 	handlers["ClusterRole"] = createOrUpdateClusterRole
+	handlers["StorageClass"] = createOrUpdateStorageClass
 	handlers["ServiceAccount"] = createOrUpdateServiceAccount
 	handlers["PodSecurityPolicy"] = createOrUpdatePodSecurityPolicy
 	handlers["ClusterRoleBinding"] = createOrUpdateClusterRoleBinding
@@ -213,6 +216,30 @@ func createOrUpdatePodSecurityPolicy(client kubernetes.Interface, data []byte) e
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := CreateOrUpdatePodSecurityPolicy(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createOrUpdateCSIDriver(client kubernetes.Interface, data []byte) error {
+	obj := new(storagev1.CSIDriver)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := CreateOrUpdateCSIDriver(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createOrUpdateStorageClass(client kubernetes.Interface, data []byte) error {
+	obj := new(storagev1.StorageClass)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := CreateOrUpdateStorageClass(client, obj)
 	if err != nil {
 		return err
 	}
