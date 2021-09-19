@@ -286,7 +286,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 
-
 # Source: topolvm/templates/controller/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -297,7 +296,7 @@ metadata:
     app.kubernetes.io/name: topolvm
     app.kubernetes.io/version: "0.9.0"
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app.kubernetes.io/name: topolvm-controller
@@ -306,16 +305,6 @@ spec:
       labels:
         app.kubernetes.io/name: topolvm-controller
     spec:
-      affinity: 
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                - topolvm-controller
-            topologyKey: kubernetes.io/hostname
       securityContext: 
         runAsGroup: 10000
         runAsUser: 10000
@@ -379,6 +368,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
       volumes:
         - name: certs
           secret:
