@@ -33,6 +33,7 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -352,11 +353,36 @@ func CreateOrUpdateIngress(client clientset.Interface, ing *extensionsv1beta1.In
 
 // CreateOrUpdateIngress creates a podSecurityPolicy if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdatePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *v1beta1.PodSecurityPolicy) error {
+	client.PolicyV1beta1().PodSecurityPolicies().Delete(context.TODO(), podSecurityPolicy.Name, metav1.DeleteOptions{})
 	if _, err := client.PolicyV1beta1().PodSecurityPolicies().Create(context.TODO(), podSecurityPolicy, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create podSecurityPolicy")
 		}
 		if _, err := client.PolicyV1beta1().PodSecurityPolicies().Update(context.TODO(), podSecurityPolicy, metav1.UpdateOptions{}); err != nil {
+			return errors.Wrap(err, "unable to update podSecurityPolicy")
+		}
+	}
+	return nil
+}
+
+func CreateOrUpdateCSIDriver(client clientset.Interface, csiDriver *storagev1.CSIDriver) error {
+	if _, err := client.StorageV1().CSIDrivers().Create(context.TODO(), csiDriver, metav1.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrap(err, "unable to create podSecurityPolicy")
+		}
+		if _, err := client.StorageV1().CSIDrivers().Update(context.TODO(), csiDriver, metav1.UpdateOptions{}); err != nil {
+			return errors.Wrap(err, "unable to update podSecurityPolicy")
+		}
+	}
+	return nil
+}
+
+func CreateOrUpdateStorageClass(client clientset.Interface, csiDriver *storagev1.StorageClass) error {
+	if _, err := client.StorageV1().StorageClasses().Create(context.TODO(), csiDriver, metav1.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrap(err, "unable to create podSecurityPolicy")
+		}
+		if _, err := client.StorageV1().StorageClasses().Update(context.TODO(), csiDriver, metav1.UpdateOptions{}); err != nil {
 			return errors.Wrap(err, "unable to update podSecurityPolicy")
 		}
 	}

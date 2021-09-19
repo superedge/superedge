@@ -26,6 +26,7 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 
 	DeployTopolvmScheduler(client, manifestsDir)
 
+	RemoveTopolvmWebhook(client, manifestsDir)
 	DeployTopolvmWebhook(client, manifestsDir)
 
 	DeployTopolvmLvmd(client, manifestsDir)
