@@ -93,6 +93,10 @@ const (
 
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
+
+	//topolvm
+	TopolvmWebookMatchExpressionsKey   = "topolvm.cybozu.com/webhook"
+	TopolvmWebookMatchExpressionsValue = "ignore"
 )
 
 const (

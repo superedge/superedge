@@ -296,7 +296,7 @@ metadata:
     app.kubernetes.io/name: topolvm
     app.kubernetes.io/version: "0.9.0"
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: topolvm-controller
@@ -305,12 +305,6 @@ spec:
       labels:
         app.kubernetes.io/name: topolvm-controller
     spec:
-      securityContext: 
-        runAsGroup: 10000
-        runAsUser: 10000
-      serviceAccountName: topolvm-controller
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
       containers:
         - name: topolvm-controller
           image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
@@ -368,6 +362,22 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
+      securityContext: 
+        runAsGroup: 10000
+        runAsUser: 10000
+      serviceAccountName: topolvm-controller
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      affinity: 
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - topolvm-controller
+            topologyKey: kubernetes.io/hostname
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"

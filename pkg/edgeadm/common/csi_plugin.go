@@ -22,6 +22,10 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 		return err
 	}
 
+	if err := IgnoreTopolvmWebookNamesapceMatchExpressions(client); err != nil {
+		klog.Errorf("Ignore topolvm-webook namesapce matchExpressions error: %v", err)
+	}
+
 	if err := DeployTopolvmCRD(kubeconfigFile, manifestsDir); err != nil {
 		klog.Errorf("Deploy topolvm-crd error: %v", err)
 		return err
@@ -61,6 +65,14 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 	return nil
 }
 
+func IgnoreTopolvmWebookNamesapceMatchExpressions(client *kubernetes.Clientset) error {
+	namespaceLabelMap := make(map[string]string)
+	namespaceLabelMap[constant.TopolvmWebookMatchExpressionsKey] = constant.TopolvmWebookMatchExpressionsValue
+	err := kubeclient.AddNameSpaceLabel(client, constant.NamespaceKubeSystem, namespaceLabelMap)
+	err = kubeclient.AddNameSpaceLabel(client, constant.NamespaceTopolvmSystem, namespaceLabelMap)
+	return err
+}
+
 func DeployTopolvmCRD(kubeconfigFile string, manifestsDir string) error {
 	client, err := kubeclient.GetAPIExtensionSclientset(kubeconfigFile)
 	if err != nil {
@@ -86,7 +98,6 @@ func DeployTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 	}
 
 	dns := []string{
-		"pod-hook.topolvm.cybozu.com",
 		"controller.topolvm-system.svc",
 		"topolvm-controller.topolvm-system.svc",
 		constant.OrganizationSuperEdgeIO,
