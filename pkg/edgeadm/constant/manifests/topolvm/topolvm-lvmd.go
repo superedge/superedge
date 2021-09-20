@@ -121,8 +121,6 @@ spec:
         checksum/config: 61a60308315b12849f6c11282006c292a18466c65d7201d56f856c0c90a94f5e
         prometheus.io/port: "8080"
     spec:
-      serviceAccountName: topolvm-lvmd
-      hostPID: true
       containers:
         - name: lvmd
           image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
@@ -136,6 +134,10 @@ spec:
               mountPath: /etc/topolvm
             - mountPath: /run/topolvm
               name: lvmd-socket-dir
+      hostPID: true
+      nodeSelector:
+        superedge.io/local.pv: "topolvm"
+      serviceAccountName: topolvm-lvmd
       volumes:
         - name: config
           configMap:

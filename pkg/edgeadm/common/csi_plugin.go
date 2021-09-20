@@ -60,7 +60,7 @@ func DeployTopolvmAppS(kubeconfigFile, manifestsDir, caCertFile, caKeyFile, mast
 		return err
 	}
 
-	klog.V(1).Infof("Deploy topolvm all success!")
+	klog.V(1).Infof("Deploy topolvm all module success!")
 
 	return nil
 }

@@ -45,7 +45,8 @@ func UnzipPackage(srcPackage, dstPath string) error {
 	return nil
 }
 
-func SetPackagePath(workerPath string) error {
+func SetPackagePath(workerPath, kubeconfigDir string) error {
+	os.RemoveAll(kubeconfigDir)
 	moveBin := fmt.Sprintf("mv -f %s/* /usr/bin/", workerPath+constant.InstallBin)
 	if _, _, err := util.RunLinuxCommand(moveBin); err != nil {
 		return err
@@ -57,13 +58,22 @@ func SetPackagePath(workerPath string) error {
 	}
 	klog.V(4).Infof("Install cni plugins success")
 
+	//schduelr config
+	kubeSchedulerConfDir := kubeconfigDir + "/"
+	os.MkdirAll(path.Dir(kubeSchedulerConfDir), 0755)
+	moveKubeSchedulerConf := fmt.Sprintf("mv -f %s %s", workerPath+constant.KubeSchedulerConf, kubeSchedulerConfDir)
+	if _, _, err := util.RunLinuxCommand(moveKubeSchedulerConf); err != nil {
+		return err
+	}
+
+	// kubelet config
 	os.MkdirAll(path.Dir(constant.KubeletServiceFile), 0755)
 	if err := util.WriteWithBufio(constant.KubeletServiceFile, constant.KubeletService); err != nil {
 		return err
 	}
 
-	os.MkdirAll(path.Dir(constant.KubeadmConfFile), 0755)
-	if err := util.WriteWithBufio(constant.KubeadmConfFile, constant.KubeadmConfig); err != nil {
+	os.MkdirAll(path.Dir(constant.KubeletConfFile), 0755)
+	if err := util.WriteWithBufio(constant.KubeletConfFile, constant.KubeletConfig); err != nil {
 		return err
 	}
 

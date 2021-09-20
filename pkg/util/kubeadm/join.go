@@ -229,7 +229,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 			return err
 		}
-		if err := common.SetPackagePath(edgeConfig.WorkerPath); err != nil {
+		if err := common.SetPackagePath(edgeConfig.WorkerPath, joinOptions.cfgPath); err != nil {
 			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 			return err
 		}

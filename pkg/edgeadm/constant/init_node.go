@@ -5,7 +5,7 @@ const (
 	KubeletSysConf        = "/etc/sysconfig/kubelet"
 	KubectlBashCompletion = "/etc/bash_completion.d/kubectl"
 	KubeletServiceFile    = "/usr/lib/systemd/system/kubelet.service"
-	KubeadmConfFile       = "/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf"
+	KubeletConfFile       = "/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf"
 )
 
 const StopFireWall = `systemctl stop firewalld && systemctl disable firewalld`
@@ -30,7 +30,7 @@ const KubeletSys = `
 KUBELET_EXTRA_ARGS=
 `
 
-const KubeadmConfig = `
+const KubeletConfig = `
 # Note: This dropin only works with kubeadm and kubelet v1.11+
 [Service]
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"

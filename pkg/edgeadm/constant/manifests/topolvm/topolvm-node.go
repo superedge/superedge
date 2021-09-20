@@ -108,7 +108,6 @@ spec:
       annotations: 
         prometheus.io/port: "8080"
     spec:
-      serviceAccountName: topolvm-node
       containers:
         - name: topolvm-node
           image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
@@ -168,6 +167,9 @@ spec:
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm
+      nodeSelector:
+        superedge.io/local.pv: "topolvm"
+      serviceAccountName: topolvm-node
       volumes: 
         - hostPath:
             path: /var/lib/kubelet/plugins_registry/
