@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -151,7 +152,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 			}
 
 			data := c.(*initData)
-			fmt.Printf("[init] Using Kubernetes version: %s\n", data.cfg.KubernetesVersion)
+			fmt.Printf("[init] Deploy Kubernetes kubeadm-config: %s\n", util.ToJson(data.cfg))
 
 			if err := initRunner.Run(args); err != nil {
 				return err
@@ -188,6 +189,22 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		if strings.Contains(edgeConfig.InstallPkgPath, constant.InstallPkgPathNote) {
 			return fmt.Errorf("Please enter --%s value(path of edgeadm static install package)\n", constant.InstallPkgPath)
 		}
+
+		// set one-click install static file
+		dstInstallPackagePath := edgeConfig.WorkerPath + constant.EdgeamdDir
+		if err := common.UnzipPackage(edgeConfig.InstallPkgPath, dstInstallPackagePath); err != nil {
+			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
+			return err
+		}
+		if initOptions.kubeconfigDir == "" {
+			initOptions.kubeconfigDir = constant.KubeCfgPath
+		}
+		if err := common.SetPackagePath(edgeConfig.WorkerPath, initOptions.kubeconfigDir); err != nil {
+			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
+			return err
+		}
+
+		// set one-click install kubernetes config
 		if edgeConfig.IsEnableEdge {
 			if err := edgeadmConfigUpdate(initOptions, edgeConfig); err != nil {
 				klog.Errorf("Init edgeadm config error: %v", err)
@@ -197,15 +214,6 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		steps.EdgeadmConf = edgeConfig
 		klog.V(2).Infof("Get one-click install kubernetes config: %s", util.ToJson(steps.EdgeadmConf))
 
-		dstInstallPackagePath := edgeConfig.WorkerPath + constant.EdgeamdDir
-		if err := common.UnzipPackage(edgeConfig.InstallPkgPath, dstInstallPackagePath); err != nil {
-			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
-			return err
-		}
-		if err := common.SetPackagePath(edgeConfig.WorkerPath); err != nil {
-			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
-			return err
-		}
 		return nil
 	}
 
@@ -292,6 +300,34 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		return err
 	}
 
+	// kube-scheduler
+	if util.IsFileExist(constant.SchedulerConfig) && util.IsFileExist(constant.SchedulerPolicy) {
+		schedulerConfig := clusterConfig.Scheduler
+		if len(schedulerConfig.ExtraArgs) == 0 {
+			schedulerConfig.ExtraArgs = make(map[string]string)
+		}
+		schedulerConfig.ExtraArgs["config"] = constant.SchedulerConfig
+		schedulerConfig.ExtraArgs["policy-config-file"] = constant.SchedulerPolicy
+		schedulerConfig.ExtraVolumes = append(schedulerConfig.ExtraVolumes, []kubeadmapiv1beta2.HostPathMount{
+			{
+				"kube-scheduler-config",
+				constant.SchedulerConfig,
+				constant.SchedulerConfig,
+				true,
+				v1.HostPathFileOrCreate,
+			},
+			{
+				"kube-scheduler-policy",
+				constant.SchedulerPolicy,
+				constant.SchedulerPolicy,
+				true,
+				v1.HostPathFileOrCreate,
+			},
+		}...)
+		clusterConfig.Scheduler = schedulerConfig
+	}
+
+	// kube-* patch config
 	if initOptions.patchesDir == "" {
 		patchDir := initOptions.kubeconfigDir + constant.PatchDir
 		os.MkdirAll(path.Dir(patchDir), 0755)

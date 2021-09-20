@@ -85,6 +85,7 @@ func globalFlagSet(flagset *flag.FlagSet) {
 
 	pflag.CommandLine.AddGoFlagSet(flagset)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	os.RemoveAll(edgeadmConf.WorkerPath)
 	os.MkdirAll(path.Dir(edgeadmConf.WorkerPath+constant.EdgeClusterLogFile), 0755)
 	pflag.Set("log_file", edgeadmConf.WorkerPath+constant.EdgeClusterLogFile)
 	flag.Parse()
