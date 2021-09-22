@@ -114,16 +114,18 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 	}
 
 	// cache response data
-	dupReader, pipeReader := NewDupReadCloser(resp.Body)
-
+	multiRead := MultiWrite(resp.Body, 2)
+	if multiRead == nil {
+		return fmt.Errorf("The number of Reads specified by MultiWrite is less than 2")
+	}
 	go func(req *http.Request, header http.Header, statusCode int, pipeReader io.ReadCloser) {
 		err := p.writeCache(req, header, statusCode, pipeReader)
 		if (err != nil) && (err != io.EOF) && (err != context.Canceled) {
 			klog.Errorf("Write cache error: %v", err)
 		}
-	}(resp.Request, resp.Header.Clone(), resp.StatusCode, pipeReader)
+	}(resp.Request, resp.Header.Clone(), resp.StatusCode, multiRead[0])
 
-	resp.Body = dupReader
+	resp.Body = multiRead[1]
 
 	return nil
 }

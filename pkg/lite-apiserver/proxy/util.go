@@ -17,7 +17,6 @@ limitations under the License.
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -48,49 +47,51 @@ func WithRequestAccept(handler http.Handler) http.Handler {
 	})
 }
 
-// NewDupReadCloser create an dupReadCloser object
-func NewDupReadCloser(rc io.ReadCloser) (io.ReadCloser, io.ReadCloser) {
-	pr, pw := io.Pipe()
-	dr := &dupReadCloser{
-		rc: rc,
-		pw: pw,
+type multiWrite struct {
+	read   io.ReadCloser
+	writes []io.WriteCloser
+}
+
+func (w *multiWrite) Read(p []byte) (n int, err error) {
+
+	n, err = w.Read(p)
+	if err != nil {
+		klog.Errorf("multiWrite failed to read source data, error: %v", err)
+		return n, err
 	}
-
-	return dr, pr
-}
-
-type dupReadCloser struct {
-	rc io.ReadCloser
-	pw *io.PipeWriter
-}
-
-// Read read data into p and write into pipe
-func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
-	n, err = dr.rc.Read(p)
-	if n > 0 {
-		if n, err := dr.pw.Write(p[:n]); err != nil {
-			klog.Errorf("dualReader: failed to write %v", err)
+	for i := 0; i < len(w.writes); i++ {
+		_, err = w.writes[i].Write(p)
+		if err != nil {
+			klog.Errorf("multiWrite failed to write data to the pipe, error: %v")
 			return n, err
 		}
 	}
-
-	return
+	return n, err
 }
 
-// Close close dupReader
-func (dr *dupReadCloser) Close() error {
-	errs := make([]error, 0)
-	if err := dr.rc.Close(); err != nil {
-		errs = append(errs, err)
-	}
+func (w *multiWrite) Close() error {
 
-	if err := dr.pw.Close(); err != nil {
-		errs = append(errs, err)
+	for k := 0; k < len(w.writes); k++ {
+		err := w.writes[k].Close()
+		if err != nil {
+			klog.Errorf("multiWrite failed to close PipeWriter, error: %v", err)
+			return err
+		}
 	}
-
-	if len(errs) != 0 {
-		return fmt.Errorf("failed to close dupReader, %v", errs)
-	}
-
 	return nil
+}
+
+func MultiWrite(read io.ReadCloser, number int) []io.ReadCloser {
+	if number < 2 {
+		return nil
+	}
+	rs := make([]io.ReadCloser, number)
+	ws := make([]io.WriteCloser, number-1)
+	for i := 1; i < number; i++ {
+		r, w := io.Pipe()
+		rs[i] = r
+		ws[i-1] = w
+	}
+	rs[0] = &multiWrite{read, ws}
+	return rs
 }
