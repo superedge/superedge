@@ -22,8 +22,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
+	"path/filepath"
 
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
@@ -38,13 +40,13 @@ type addonAction struct {
 	certSANs         []string
 	kubeConfig       string
 
-	app              bool
-	core             bool
-	device           bool
-	support          bool
-	sysmgmt          bool
-	ui               bool
-	completely       bool
+	app        bool
+	core       bool
+	device     bool
+	support    bool
+	sysmgmt    bool
+	ui         bool
+	completely bool
 }
 
 func NewAddonCMD() *cobra.Command {
@@ -55,6 +57,7 @@ func NewAddonCMD() *cobra.Command {
 	}
 	cmd.AddCommand(NewInstallEdgeAppsCMD())
 	cmd.AddCommand(NewInstallEdgexCMD())
+	cmd.AddCommand(NewInstallTopolvmCMD())
 	return cmd
 }
 
@@ -66,6 +69,7 @@ func NewDetachCMD() *cobra.Command {
 	}
 	cmd.AddCommand(NewDetachEdgeAppsCMD())
 	cmd.AddCommand(NewDetachEdgexCMD())
+	cmd.AddCommand(NewDetachTopolvmCMD())
 	return cmd
 }
 
@@ -73,6 +77,11 @@ func (a *addonAction) complete() error {
 	configPath, err := a.flags.GetString("kubeconfig")
 	if err != nil {
 		klog.Errorf("Get kubeconfig flags error: %v", err)
+	}
+	if configPath == "~/.kube/config" {
+		if home := homedir.HomeDir(); home != "" {
+			configPath = filepath.Join(home, ".kube", "config")
+		}
 	}
 
 	a.clientSet, err = kubeclient.GetClientSet(configPath)

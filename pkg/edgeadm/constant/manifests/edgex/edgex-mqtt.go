@@ -1,4 +1,5 @@
 /*
+Copyright 2020 The edgex foundry Authors.
 Copyright 2020 The SuperEdge Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
