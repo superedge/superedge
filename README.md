@@ -81,6 +81,10 @@ For any question or support, feel free to contact us via:
 
 Welcome to [contribute](./CONTRIBUTING.md) and improve SuperEdge
 
+## Troubleshooting and Feedback
+
+If you encounter any failure in the process of using SuperEdge, you can use [Contact](./README.md#:~:text=Slack,Group) Contact us, or give us feedback via [Troubleshooting and Feedback](./SECURITY.md).
+
 ## License
 
 [**Apache License 2.0**](./LICENSE)
