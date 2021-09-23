@@ -75,10 +75,13 @@ arch=amd64 version=v0.5.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 <div align="center">
   <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
 </div>
-
 ## 参与项目
 
 欢迎您[参与](./CONTRIBUTING.md)完善项目
+
+## 故障和反馈
+
+您在使用SuperEdge的过程中遇到任何故障可通过[联系方式](./README_CN.md#:~:text=Slack,%E4%BF%A1%E7%BE%A4)和我们联系，或者通过[故障](./SECURITY.md)给我们反馈。
 
 ## 开源许可
 

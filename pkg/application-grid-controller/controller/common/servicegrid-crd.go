@@ -249,7 +249,6 @@ spec:
                         format: int32
                         type: integer
                       protocol:
-                        default: TCP
                         description: The IP protocol for this port. Supports "TCP",
                           "UDP", and "SCTP". Default is TCP.
                         type: string
@@ -269,6 +268,7 @@ spec:
                         x-kubernetes-int-or-string: true
                     required:
                     - port
+                    - protocol
                     type: object
                   type: array
                   x-kubernetes-list-map-keys:
@@ -468,7 +468,6 @@ spec:
                               format: int32
                               type: integer
                             protocol:
-                              default: TCP
                               description: 'Protocol is the protocol of the service
                                 port of which status is recorded here The supported
                                 values are: "TCP", "UDP", "SCTP"'

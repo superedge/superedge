@@ -23,7 +23,9 @@ import (
 	apps "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
@@ -70,6 +72,18 @@ func DeleteClusterRole(client clientset.Interface, clusterRole *rbac.ClusterRole
 
 func DeleteClusterRoleBinding(client clientset.Interface, clusterRoleBinding *rbac.ClusterRoleBinding) error {
 	return client.RbacV1().ClusterRoleBindings().Delete(context.TODO(), clusterRoleBinding.Name, metav1.DeleteOptions{})
+}
+
+func DeleteCSIDriver(client clientset.Interface, csiDriver *storagev1.CSIDriver) error {
+	return client.StorageV1().CSIDrivers().Delete(context.TODO(), csiDriver.Name, metav1.DeleteOptions{})
+}
+
+func DeleteStorageClasses(client clientset.Interface, csiDriver *storagev1.StorageClass) error {
+	return client.StorageV1().StorageClasses().Delete(context.TODO(), csiDriver.Name, metav1.DeleteOptions{})
+}
+
+func DeletePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *v1beta1.PodSecurityPolicy) error {
+	return client.PolicyV1beta1().PodSecurityPolicies().Delete(context.TODO(), podSecurityPolicy.Name, metav1.DeleteOptions{})
 }
 
 func DeleteMutatingMutatingWebhookConfigurations(client clientset.Interface, obj *admissionv1beta1.MutatingWebhookConfiguration) error {

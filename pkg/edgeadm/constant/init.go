@@ -19,14 +19,22 @@ const (
 	EdgeClusterLogFile = EdgeamdDir + "edgeadm.log"
 	InstallDir         = EdgeamdDir + "edge-install/"
 
-	InstallBin    = InstallDir + "bin/"
-	CNIPluginsDir = InstallDir + "cni/"
+	InstallBin            = InstallDir + "bin/"
+	CNIPluginsDir         = InstallDir + "cni/"
+	InstallConfDir        = InstallDir + "conf/"
+	UnZipContainerDstPath = InstallDir + "container/"
+
+	// cni plugins pkg dir
 	CNIPluginsPKG = CNIPluginsDir + "cni-plugins-*.tgz"
 
-	UnZipContainerDstPath = InstallDir + "container/"
-	ZipContainerPath      = UnZipContainerDstPath + "docker-*.tgz"
-	DockerInstallShell    = UnZipContainerDstPath + "docker/install"
+	// install conf dir
+	KubeSchedulerConf = InstallConfDir + "kube-scheduler/"
 
+	// container runtime dir
+	ZipContainerPath   = UnZipContainerDstPath + "docker-*.tgz"
+	DockerInstallShell = UnZipContainerDstPath + "docker/install"
+
+	// script dir
 	ScriptShellPath = InstallDir + "script/"
 	InitNodeShell   = ScriptShellPath + "init-node.sh"
 )
@@ -37,6 +45,12 @@ const (
 
 const (
 	TMPPackgePath = "/tmp/edgeadm-install.tar.gz"
+)
+
+const (
+	SchedulerConfigDir = "/etc/kubernetes/kube-scheduler/"
+	SchedulerConfig    = SchedulerConfigDir + "kube-scheduler-config.yaml"
+	SchedulerPolicy    = SchedulerConfigDir + "kube-scheduler-policy.cfg"
 )
 
 const (

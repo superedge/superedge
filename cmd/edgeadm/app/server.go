@@ -18,12 +18,12 @@ package app
 
 import (
 	"flag"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"io"
 	"os"
 	"path"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
@@ -85,6 +85,7 @@ func globalFlagSet(flagset *flag.FlagSet) {
 
 	pflag.CommandLine.AddGoFlagSet(flagset)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	os.RemoveAll(edgeadmConf.WorkerPath)
 	os.MkdirAll(path.Dir(edgeadmConf.WorkerPath+constant.EdgeClusterLogFile), 0755)
 	pflag.Set("log_file", edgeadmConf.WorkerPath+constant.EdgeClusterLogFile)
 	flag.Parse()

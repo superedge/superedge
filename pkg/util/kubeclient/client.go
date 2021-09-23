@@ -159,12 +159,40 @@ func k8sVerisonInt(version string) (int, error) {
 	return strconv.Atoi(versionStr)
 }
 
+func AddNameSpaceLabel(kubeClient kubernetes.Interface, namespaceName string, labels map[string]string) error {
+	return wait.PollImmediate(time.Second, 3*time.Minute, func() (bool, error) {
+		namespace, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespaceName, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("Get namespace: %s error: %v", namespaceName, err)
+			return false, nil
+		}
+
+		if len(namespace.ObjectMeta.Labels) == 0 {
+			namespace.ObjectMeta.Labels = make(map[string]string)
+		}
+
+		for key, _ := range labels {
+			namespace.ObjectMeta.Labels[key] = labels[key]
+		}
+		klog.V(4).Infof("Add namespaces label: %s", util.ToJson(namespace.ObjectMeta.Labels))
+		if _, err := kubeClient.CoreV1().Namespaces().Update(context.TODO(), namespace, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Update namespaces: %s labels error: %v", namespaceName, err)
+			return false, nil
+		}
+		return true, nil
+	})
+}
+
 func AddNodeLabel(kubeClient kubernetes.Interface, nodeName string, labels map[string]string) error {
 	return wait.PollImmediate(time.Second, 3*time.Minute, func() (bool, error) {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("Get node: %s error: %v", nodeName, err)
 			return false, nil
+		}
+
+		if len(node.ObjectMeta.Labels) == 0 {
+			node.ObjectMeta.Labels = make(map[string]string)
 		}
 
 		for key, _ := range labels {
