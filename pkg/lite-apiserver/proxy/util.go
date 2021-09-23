@@ -49,6 +49,7 @@ func WithRequestAccept(handler http.Handler) http.Handler {
 }
 
 // NewDupReadCloser create an dupReadCloser object
+// This function is  part of source code modified from OpenYurt
 func NewDupReadCloser(rc io.ReadCloser) (io.ReadCloser, io.ReadCloser) {
 	pr, pw := io.Pipe()
 	dr := &dupReadCloser{
@@ -65,6 +66,7 @@ type dupReadCloser struct {
 }
 
 // Read read data into p and write into pipe
+// This method is  part of source code modified from OpenYurt
 func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
 	n, err = dr.rc.Read(p)
 	if n > 0 {
@@ -78,6 +80,7 @@ func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
 }
 
 // Close close dupReader
+// This method is  part of source code modified from OpenYurt
 func (dr *dupReadCloser) Close() error {
 	errs := make([]error, 0)
 	if err := dr.rc.Close(); err != nil {
