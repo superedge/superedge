@@ -123,9 +123,9 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 		if (err != nil) && (err != io.EOF) && (err != context.Canceled) {
 			klog.Errorf("Write cache error: %v", err)
 		}
-	}(resp.Request, resp.Header.Clone(), resp.StatusCode, multiRead[0])
+	}(resp.Request, resp.Header.Clone(), resp.StatusCode, multiRead[1])
 
-	resp.Body = multiRead[1]
+	resp.Body = multiRead[0]
 
 	return nil
 }

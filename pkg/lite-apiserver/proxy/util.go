@@ -52,27 +52,42 @@ type multiWrite struct {
 	writes []io.WriteCloser
 }
 
+//multiRead prioritizes reading of the source ReaderCloser object
 func (w *multiWrite) Read(p []byte) (n int, err error) {
-
-	n, err = w.Read(p)
+	n, err = w.read.Read(p)
 	if err != nil {
-		klog.Errorf("multiWrite failed to read source data, error: %v", err)
+		if err != io.EOF {
+			klog.Errorf("multiWrite failed to read source data, error: %v", err)
+		} else {
+			w.Close()
+		}
 		return n, err
 	}
-	for i := 0; i < len(w.writes); i++ {
-		_, err = w.writes[i].Write(p)
-		if err != nil {
-			klog.Errorf("multiWrite failed to write data to the pipe, error: %v")
-			return n, err
+
+	if n > 0 {
+		for i := 0; i < len(w.writes); i++ {
+			_, pipeErr := w.writes[i].Write(p[:n])
+			if pipeErr != nil {
+				klog.Errorf("multiWrite failed to write data to the pipe, error: %v", err)
+
+				//In order not to affect the reading of the source ReaderCloser, close the writecloser object that failed to write
+				w.writes[i].Close()
+			}
 		}
 	}
-	return n, err
+
+	return
 }
 
 func (w *multiWrite) Close() error {
+	err := w.read.Close()
+	if err != nil {
+		klog.Errorf("multiWrite failed to close source read, error: %v", err)
+		return err
+	}
 
 	for k := 0; k < len(w.writes); k++ {
-		err := w.writes[k].Close()
+		err = w.writes[k].Close()
 		if err != nil {
 			klog.Errorf("multiWrite failed to close PipeWriter, error: %v", err)
 			return err
@@ -81,6 +96,7 @@ func (w *multiWrite) Close() error {
 	return nil
 }
 
+// MultiWrite The ReadCloser object in the returned array needs to use multiple goroutines to read at the same time
 func MultiWrite(read io.ReadCloser, number int) []io.ReadCloser {
 	if number < 2 {
 		return nil
@@ -92,6 +108,8 @@ func MultiWrite(read io.ReadCloser, number int) []io.ReadCloser {
 		rs[i] = r
 		ws[i-1] = w
 	}
+	//source read
 	rs[0] = &multiWrite{read, ws}
+
 	return rs
 }
