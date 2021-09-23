@@ -62,6 +62,7 @@ rules:
       - statefulsetgrids
       - deploymentgrids/status
       - statefulsetgrids/status
+      - servicegrids/status
     verbs:
       - "*"
 ---

@@ -17,6 +17,10 @@ limitations under the License.
 package constant
 
 const (
+	OrganizationSuperEdgeIO = "SuperEdge.io"
+)
+
+const (
 	DeployModeKubeadm = "kubeadm"
 	ModeKubeProxy     = "kube-proxy"
 )
@@ -32,11 +36,12 @@ const (
 )
 
 const (
-	NamespaceDefault    = "default"
-	NamespaceEdgeSystem = "edge-system"
-	NamespaceKubeSystem = "kube-system"
-	NamespaceKubePublic = "kube-public"
-	NamespaceEdgex      = "edgex"
+	NamespaceDefault       = "default"
+	NamespaceEdgeSystem    = "edge-system"
+	NamespaceKubeSystem    = "kube-system"
+	NamespaceKubePublic    = "kube-public"
+	NamespaceEdgex         = "edgex"
+	NamespaceTopolvmSystem = "topolvm-system"
 )
 
 const (
@@ -88,6 +93,10 @@ const (
 
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
+
+	//topolvm
+	TopolvmWebookMatchExpressionsKey   = "topolvm.cybozu.com/webhook"
+	TopolvmWebookMatchExpressionsValue = "ignore"
 )
 
 const (

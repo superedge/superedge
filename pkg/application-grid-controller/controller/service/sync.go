@@ -89,7 +89,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.CreateError, err.Error())
 
-				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
 					klog.Errorf("Updating add services %d when error occured %v", svc.Name, err)
 				}
@@ -117,7 +117,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.UpdateError, err.Error())
 
-				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
 					klog.Errorf("Updating update services %d when error occured %v", svc.Name, err)
 				}
@@ -145,7 +145,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				sgc.eventRecorder.Eventf(sg, corev1.EventTypeWarning, common.DeleteError, err.Error())
 
-				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).Update(context.TODO(), sgCopy, metav1.UpdateOptions{})
+				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
 					klog.Errorf("Updating delete services %d when error occured %v", svc.Name, err)
 				}

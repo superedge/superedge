@@ -17,11 +17,13 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
 	"crypto"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"math"
@@ -30,6 +32,8 @@ import (
 	"time"
 
 	"k8s.io/client-go/util/cert"
+	k8scert "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 )
 
 const (
@@ -152,6 +156,64 @@ func NewPrivateKey() (*rsa.PrivateKey, error) {
 func GenerateCertAndKeyConfig(caCert *x509.Certificate, caKey *rsa.PrivateKey,
 	config *cert.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
 	return generateCertAndKeyConfig(caCert, caKey, config)
+}
+
+func GetServiceCertByRootca(commonName, organization string, dns []string, rootCA *x509.Certificate, key *rsa.PrivateKey) ([]byte, []byte, error) {
+	svCert, svKey, err := GenerateCertAndKeyConfig(rootCA, key, &k8scert.Config{
+		CommonName:   commonName,
+		Organization: []string{organization},
+		AltNames: k8scert.AltNames{
+			DNSNames: dns,
+		},
+		Usages: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth},
+	})
+
+	svKeyBytes, err := keyutil.MarshalPrivateKeyToPEM(svKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return EncodeCertPEM(svCert), svKeyBytes, nil
+}
+
+func GenerateCA(organization string) (caBundle string, caCert *x509.Certificate, caPrivKey *rsa.PrivateKey, err error) {
+	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+	if err != nil {
+		return
+	}
+	ca := &x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			Organization: []string{organization},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	caPrivKey, err = rsa.GenerateKey(cryptorand.Reader, 2048)
+	if err != nil {
+		return
+	}
+	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return
+	}
+	caPEM := new(bytes.Buffer)
+	pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+	caBundle = base64.StdEncoding.EncodeToString(caPEM.Bytes())
+	caCerts, err := ParseCertsPEM(caPEM.Bytes())
+	if err != nil {
+		return
+	}
+	caCert = caCerts[0]
+	return
 }
 
 func generateCertAndKeyConfig(caCert *x509.Certificate, caKey *rsa.PrivateKey,
