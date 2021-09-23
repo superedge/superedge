@@ -17,7 +17,6 @@ limitations under the License.
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -48,52 +47,69 @@ func WithRequestAccept(handler http.Handler) http.Handler {
 	})
 }
 
-// NewDupReadCloser create an dupReadCloser object
-// This function is  part of source code modified from OpenYurt
-func NewDupReadCloser(rc io.ReadCloser) (io.ReadCloser, io.ReadCloser) {
-	pr, pw := io.Pipe()
-	dr := &dupReadCloser{
-		rc: rc,
-		pw: pw,
+type multiWrite struct {
+	read   io.ReadCloser
+	writes []io.WriteCloser
+}
+
+//multiRead prioritizes reading of the source ReaderCloser object
+func (w *multiWrite) Read(p []byte) (n int, err error) {
+	n, err = w.read.Read(p)
+	if err != nil {
+		if err != io.EOF {
+			klog.Errorf("multiWrite failed to read source data, error: %v", err)
+		} else {
+			w.Close()
+		}
+		return n, err
 	}
 
-	return dr, pr
-}
-
-type dupReadCloser struct {
-	rc io.ReadCloser
-	pw *io.PipeWriter
-}
-
-// Read read data into p and write into pipe
-// This method is  part of source code modified from OpenYurt
-func (dr *dupReadCloser) Read(p []byte) (n int, err error) {
-	n, err = dr.rc.Read(p)
 	if n > 0 {
-		if n, err := dr.pw.Write(p[:n]); err != nil {
-			klog.Errorf("dupReader: failed to write %v", err)
-			return n, err
+		for i := 0; i < len(w.writes); i++ {
+			_, pipeErr := w.writes[i].Write(p[:n])
+			if pipeErr != nil {
+				klog.Errorf("multiWrite failed to write data to the pipe, error: %v", err)
+
+				//In order not to affect the reading of the source ReaderCloser, close the writecloser object that failed to write
+				w.writes[i].Close()
+			}
 		}
 	}
 
 	return
 }
 
-// Close close dupReader
-// This method is  part of source code modified from OpenYurt
-func (dr *dupReadCloser) Close() error {
-	errs := make([]error, 0)
-	if err := dr.rc.Close(); err != nil {
-		errs = append(errs, err)
+func (w *multiWrite) Close() error {
+	err := w.read.Close()
+	if err != nil {
+		klog.Errorf("multiWrite failed to close source read, error: %v", err)
+		return err
 	}
 
-	if err := dr.pw.Close(); err != nil {
-		errs = append(errs, err)
+	for k := 0; k < len(w.writes); k++ {
+		err = w.writes[k].Close()
+		if err != nil {
+			klog.Errorf("multiWrite failed to close PipeWriter, error: %v", err)
+			return err
+		}
 	}
-
-	if len(errs) != 0 {
-		return fmt.Errorf("failed to close dupReader, %v", errs)
-	}
-
 	return nil
+}
+
+// MultiWrite The ReadCloser object in the returned array needs to use multiple goroutines to read at the same time
+func MultiWrite(read io.ReadCloser, number int) []io.ReadCloser {
+	if number < 2 {
+		return nil
+	}
+	rs := make([]io.ReadCloser, number)
+	ws := make([]io.WriteCloser, number-1)
+	for i := 1; i < number; i++ {
+		r, w := io.Pipe()
+		rs[i] = r
+		ws[i-1] = w
+	}
+	//source read
+	rs[0] = &multiWrite{read, ws}
+
+	return rs
 }
