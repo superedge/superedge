@@ -322,7 +322,6 @@ func RemoveTopolvmWebhook(client *kubernetes.Clientset, manifestsDir string) err
 	topolvmWebhook := ReadYaml(topolvmWebhookConfig, manifests.AppTopolvmWebhookYaml)
 	err := kubeclient.DeleteResourceWithFile(client, topolvmWebhook, option)
 	if err != nil {
-		klog.Errorf("Remove %s config error: %v", manifests.AppTopolvmWebhook, err)
 		return err
 	}
 	klog.V(1).Infof("Remove %s success!", manifests.AppTopolvmWebhook)
