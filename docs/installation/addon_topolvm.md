@@ -129,7 +129,7 @@ metadata:
       - default: true
         name: ssd            ## device-classes name
         spare-gb: 3          ## Modify to the size of the VolumeGroupName created by yourself
-        volume-group: VolumeGroupName  ## Modify to VolumeGroupName created by yourself
+        volume-group: myvg1  ## Modify to VolumeGroupName created by yourself
 ```
 
 <4>. Add device identification to nodes with devices

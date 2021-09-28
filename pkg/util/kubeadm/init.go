@@ -204,6 +204,14 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 			return err
 		}
 
+		//schduelr config
+		kubeSchedulerConfDir := initOptions.kubeconfigDir + "/"
+		os.MkdirAll(path.Dir(kubeSchedulerConfDir), 0755)
+		moveKubeSchedulerConf := fmt.Sprintf("mv -f %s %s", edgeConfig.WorkerPath+constant.KubeSchedulerConf, kubeSchedulerConfDir)
+		if _, _, err := util.RunLinuxCommand(moveKubeSchedulerConf); err != nil {
+			return err
+		}
+
 		// set one-click install kubernetes config
 		if edgeConfig.IsEnableEdge {
 			if err := edgeadmConfigUpdate(initOptions, edgeConfig); err != nil {

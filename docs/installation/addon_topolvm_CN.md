@@ -127,7 +127,7 @@ metadata:
       - default: true
         name: ssd            ## device-classes的name
         spare-gb: 3          ## 修改成自己创建的VolumeGroupName的大小
-        volume-group: VolumeGroupName  ## 修改成自己创建的VolumeGroupName
+        volume-group: myvg1  ## 修改成自己创建的VolumeGroupName
 ```
 
 <4>. 给有设备的节点添加设备标识

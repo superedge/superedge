@@ -134,7 +134,7 @@ spec:
     spec:
       containers:
         - name: topolvm-scheduler
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
+          image: "superedge.tencentcloudcr.com/superedge/topolvm-with-sidecar:0.10.0"
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml

@@ -139,7 +139,7 @@ spec:
     spec:
       containers:
         - name: lvmd
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
+          image: "superedge.tencentcloudcr.com/superedge/topolvm-with-sidecar:0.10.0"
           securityContext:
             privileged: true
           command:
