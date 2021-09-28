@@ -28,7 +28,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 ---
 # Source: topolvm/templates/node/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -37,7 +37,7 @@ metadata:
   name: topolvm-system:node
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -60,7 +60,7 @@ metadata:
   name: topolvm-system:node
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 subjects:
   - kind: ServiceAccount
     name: topolvm-node
@@ -78,7 +78,7 @@ metadata:
   name: topolvm-node
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   privileged: true
   allowPrivilegeEscalation: true
@@ -112,7 +112,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   selector:
     matchLabels:

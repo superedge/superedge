@@ -26,7 +26,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: topolvm-system/topolvm-mutatingwebhook
   labels:
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
     app.kubernetes.io/name: topolvm-hook
 webhooks:
   - name: pvc-hook.topolvm.cybozu.com
@@ -93,7 +93,7 @@ metadata:
   name: topolvm.cybozu.com
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   attachRequired: false
   podInfoOnMount: true
@@ -109,7 +109,7 @@ metadata:
   annotations:
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
