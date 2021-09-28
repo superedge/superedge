@@ -18,6 +18,7 @@
 ## Bug Fixes
 
 * ServiceGroup: use template templateHasher modified to reconcile;([#240](https://github.com/superedge/superedge/pull/240),[@chenkaiyue](https://github.com/chenkaiyue))
+* ServiceGroup: fix event scheme used in  ServiceGroup;([#240](https://github.com/superedge/superedge/pull/240),[@chenkaiyue](https://github.com/chenkaiyue))
 * Use multiple pipes to read an io.ReaderClose at the same time;;([#252](https://github.com/superedge/superedge/pull/252),[@00pf00](https://github.com/00pf00))
 
 
