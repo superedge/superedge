@@ -28,7 +28,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 ---
 # Source: topolvm/templates/scheduler/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -38,7 +38,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 rules:
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]
@@ -53,7 +53,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -71,7 +71,7 @@ metadata:
   name: topolvm-scheduler
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   privileged: false
   allowPrivilegeEscalation: false
@@ -105,7 +105,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 data:
   scheduler-options.yaml: |
     listen: "localhost:9251"
@@ -120,7 +120,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   selector:
     matchLabels:
@@ -134,7 +134,7 @@ spec:
     spec:
       containers:
         - name: topolvm-scheduler
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
+          image: "superedge.tencentcloudcr.com/superedge/topolvm-with-sidecar:0.10.0"
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml

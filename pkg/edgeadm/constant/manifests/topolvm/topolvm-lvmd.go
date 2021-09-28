@@ -26,7 +26,7 @@ metadata:
   name: topolvm-lvmd
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   privileged: true
   hostPID: true
@@ -57,7 +57,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 ---
 # Source: topolvm/templates/lvmd/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -67,7 +67,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 rules:
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]
@@ -82,7 +82,7 @@ metadata:
   namespace: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 subjects:
   - kind: ServiceAccount
     name: topolvm-lvmd
@@ -102,14 +102,14 @@ metadata:
   labels:
     idx: "0"
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 data:
   lvmd.yaml: |
     socket-name: /run/topolvm/lvmd.sock
     device-classes: 
       - default: true
         name: ssd
-        spare-gb: 10
+        spare-gb: 3
         volume-group: myvg1
 ---
 
@@ -122,7 +122,7 @@ metadata:
   labels:
     idx: "0"
     app.kubernetes.io/name: topolvm
-    app.kubernetes.io/version: "0.9.0"
+    app.kubernetes.io/version: "0.10.0"
 spec:
   selector:
     matchLabels:
@@ -139,7 +139,7 @@ spec:
     spec:
       containers:
         - name: lvmd
-          image: "quay.io/topolvm/topolvm-with-sidecar:0.10.0"
+          image: "superedge.tencentcloudcr.com/superedge/topolvm-with-sidecar:0.10.0"
           securityContext:
             privileged: true
           command:
