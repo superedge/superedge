@@ -5,7 +5,7 @@ import (
 	"context"
 	"strings"
 
-	"testapp"
+	"github.com/XIAOYUELIN/superedge/example/Tars/testapp/testapp"
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/tarscloud/gopractice/common/log"
 )
