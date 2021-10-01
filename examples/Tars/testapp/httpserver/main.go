@@ -5,7 +5,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/XIAOYUELIN/superedge/examples/Tars/testapp/testapp"
+	"github.com/superedge/superedge/examples/Tars/testapp/testapp"
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/tarscloud/gopractice/common/metrics"
 	"github.com/tarscloud/gopractice/common/log"
