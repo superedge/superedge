@@ -33,7 +33,7 @@ SuperEdge具有如下特性:
 云端组件：
 
 - [**tunnel-cloud**](docs/components/tunnel_CN.md): 云端tunnel服务组件，用于建立云边长连接隧道，支持代理tcp/http/https流量
-- [**application-grid controller**](docs/components/service-group_CN.md): 应用网络（ServiceGroup）控制器
+- [**application-grid controller**](docs/components/serviceGroup_CN.md): 应用网络（ServiceGroup）控制器
 - [**edge-health admission**](docs/components/edge-health_CN.md): 分布式节点健康检查机制云端组件，辅助Kubernetes控制器工作
 
 边端组件:
