@@ -59,7 +59,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd // indirect
-	k8s.io/kubernetes v1.19.0
+	k8s.io/kubernetes v1.19.14
 	k8s.io/system-validators v1.4.0 // indirect
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10 // indirect
 	sigs.k8s.io/controller-runtime v0.8.3 // indirect
