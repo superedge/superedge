@@ -18,7 +18,6 @@ package server
 
 import (
 	"fmt"
-	discovery "k8s.io/api/discovery/v1beta1"
 	"net/http"
 	"net/http/httputil"
 	"net/http/pprof"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	discovery "k8s.io/api/discovery/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/client-go/kubernetes/scheme"
