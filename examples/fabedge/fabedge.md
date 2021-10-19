@@ -10,11 +10,19 @@
 
 - 云边端podIp直通
 
-为了使用户无感知单向网络带来的使用上的差异，我们与fabedge社区的同学合作，实现在云边podIp直通，来屏蔽单向网络带来的使用上的差异。
+为了使用户无感知单向网络带来的使用上的差异，我们与fabedge社区合作，实现在云边podIp直通，来屏蔽单向网络带来的使用上的差异。
 
-# 2. fabedge的设计原理
+# 2. fabedge的原理
 
-> todo fabedge完善
+<img src="fabric-edge-arch-v2.png" style="zoom:50%;" />
+
+FabEdge在SuperEdge的基础上，建立了一个基于IPSec隧道的，三层的数据转发面，使能云端和边缘端POD通过IP地址直接进行通讯，包括普通的POD和使用了hostnework的POD，以及通过ClusterIP访问Service，不论Service的Endpoint在云端或边缘端。
+
+FabEdge包括三个主要组件：
+
+- Operator： 运行在云端任何节点，监听Node等资源的变化，为其它FabEdge组件维护证书，隧道等配置，并保存到相应configmap/secret；同时负责Agent的生命周期管理，包括创建/删除等。
+- Connector： 运行在云端选定节点，使用Operator生成的配置，负责云端隧道的管理，负责在云端和边缘节点之间转发流量。
+- Agent： 运行在边缘节点，使用Operator生成的配置，负责本节点的隧道，路由，iptables规则的管理。
 
 # 3. fabedge与SuperEdge结合实现Service互访和podIp直通 方案验证
 
@@ -129,6 +137,6 @@ cloud-1上的pod，由于不需要通过flannel的网络将请求转发到cloud-
 
 # 4. 展望
 
-- SuperEdge CNI支持 calico
-
-> todo SuperEdge febedge 进一步计划
+- 支持更多的CNI，包括calico等
+- 自动同步SuperEdge NodeUnit和FabEdge Community标签，简化边边通讯
+- 支持FabEdge Connector的HA/HPA
