@@ -12,8 +12,8 @@
 
 为了使用户无感知单向网络带来的使用上的差异，我们与fabedge社区合作，实现在云边podIp直通，来屏蔽单向网络带来的使用上的差异。
 
-# 2. fabedge的原理
-
+# 2. FabEdge介绍
+## 2.1 架构图
 <img src="fabric-edge-arch-v2.png" style="zoom:50%;" />
 
 FabEdge在SuperEdge的基础上，建立了一个基于IPSec隧道的，三层的数据转发面，使能云端和边缘端POD通过IP地址直接进行通讯，包括普通的POD和使用了hostnework的POD，以及通过ClusterIP访问Service，不论Service的Endpoint在云端或边缘端。
@@ -23,6 +23,17 @@ FabEdge包括三个主要组件：
 - Operator： 运行在云端任何节点，监听Node等资源的变化，为其它FabEdge组件维护证书，隧道等配置，并保存到相应configmap/secret；同时负责Agent的生命周期管理，包括创建/删除等。
 - Connector： 运行在云端选定节点，使用Operator生成的配置，负责云端隧道的管理，负责在云端和边缘节点之间转发流量。
 - Agent： 运行在边缘节点，使用Operator生成的配置，负责本节点的隧道，路由，iptables规则的管理。
+## 2.2 原理图
+
+<img src="fabric-edge-networking.png" style="zoom:67%;" />
+
+以上图环境为例，一共4个节点，两个云端的节点：node1， node2， 两个边缘节点：edge1， edge2。 node1和node2运行Flannel，它们之间会有一个flannel管理的VXLAN的隧道。edge1和edge2由FabEdge管理，会建立到运行Connector的节点node1的IPSec的隧道。同时，edge1和edge2加入了同一个FabEdge的Community， 因此它们之间会有一条直连的IPSec隧道。在边缘节点上，POD接入一个Linux的网桥，获取一个全局唯一的IP地址。几种典型的访问场景如下：
+
+- 边缘POD访问云端的POD， 比如c1（蓝色虚线）, 流量从源pod发出，经过网桥，经过路由，iptables规则，xfrm策略，进入IPSec隧道，到达云端Connector节点node1，到达目标pod。
+- 边缘POD访问边缘的POD， 比如c2（红色虚线）, 流量从源pod发出，经过网桥，经过路由，iptables规则，xfrm策略，进入IPSec隧道，到达边缘节点edge2，到达目标pod。
+- 边缘POD访问云端的POD， 比如c3（紫色虚线）, 流量从pod发出，经过网桥，经过路由，iptables规则，xfrm策略，进入IPSec隧道，到达云端Connector节点，再经过一次路由转发，使用Flannedl的VXLAN隧道，到达目标节点node2，到达目标pod。
+- 云端POD访问云端的POD， 比如c4（绿色虚线），仍然有Flannel管理，通过VXLAN到达目标pod，这个过程和FabEdge无关。
+- POD访问Service，经过本地kube-proxy管理的iptables NAT后，等同于POD到POD的访问，不再赘述。
 
 # 3. fabedge与SuperEdge结合实现Service互访和podIp直通 方案验证
 
