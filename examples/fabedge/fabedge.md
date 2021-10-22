@@ -61,14 +61,14 @@ FabEdge包括三个主要组件：
 
 ## 3.1 验证的环境
 
-![img](https://raw.githubusercontent.com/00pf00/superedge/fabedge-pr/docs/img/Architecture.png)
+![img](./Architecture.png)
 在SuperEdge边缘独立集群中添加4个节点，2个节点（cloud-1和cloud-2）在云端和master节点在同一内网，2个节点（edge-1和edge-2）在边缘端。将cloud-1节点作为connector节点，将edge-1和edge-2加入community。具体的搭建过程，请参照[FabEdge文档](https://github.com/FabEdge/fabedge/blob/Release-v0.3-beta/docs/integrate-with-superedge.md)。
 
 ## 3.2 验证场景
 
 ### 3.2.1云端pod访问边缘端pod
 
-![img](https://raw.githubusercontent.com/00pf00/superedge/fabedge-pr/docs/img/fabedge%20cloud-pod%20access%20edge-pod.png)
+![img](./fabedge cloud-pod access edge-pod.png)
 
 #### 3.2.1.1 cloud-2上的pod访问边缘端edge-1上的pod
 
