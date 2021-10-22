@@ -36,7 +36,7 @@ Table of Contents
 
 # 2. FabEdge介绍
 ## 2.1 架构图
-<img src="../img/fabric-edge-arch-v2.png" style="zoom:50%;" />
+<img src="img/fabric-edge-arch-v2.png" style="zoom:50%;" />
 
 FabEdge在SuperEdge的基础上，建立了一个基于IPSec隧道的，三层的数据转发面，使能云端和边缘端POD通过IP地址直接进行通讯，包括普通的POD和使用了hostnework的POD，以及通过ClusterIP访问Service，不论Service的Endpoint在云端或边缘端。
 
@@ -47,7 +47,7 @@ FabEdge包括三个主要组件：
 - Agent： 运行在边缘节点，使用Operator生成的配置，负责本节点的隧道，路由，iptables规则的管理。
 ## 2.2 原理图
 
-<img src="../img/fabric-edge-networking.png" style="zoom:67%;" />
+<img src="img/fabric-edge-networking.png" style="zoom:67%;" />
 
 以上图环境为例，一共4个节点，两个云端的节点：node1， node2， 两个边缘节点：edge1， edge2。 node1和node2运行Flannel，它们之间会有一个flannel管理的VXLAN的隧道。edge1和edge2由FabEdge管理，会建立到运行Connector的节点node1的IPSec的隧道。同时，edge1和edge2加入了同一个FabEdge的Community， 因此它们之间会有一条直连的IPSec隧道。在边缘节点上，POD接入一个Linux的网桥，获取一个全局唯一的IP地址。几种典型的访问场景如下：
 
