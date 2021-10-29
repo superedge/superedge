@@ -289,7 +289,10 @@ func initInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {
 	// edgeadm default value
 	initOptions.externalClusterCfg.APIServer.ExtraArgs = map[string]string{
-		"kubelet-preferred-address-types": "Hostname",
+		"kubelet-preferred-address-types":  "Hostname",
+		"service-account-issuer":           "https://kubernetes.default",
+		"service-account-key-file":         "/etc/kubernetes/pki/sa.pub",
+		"service-account-signing-key-file": "/etc/kubernetes/pki/sa.key",
 	}
 
 	clusterConfig := initOptions.externalClusterCfg
