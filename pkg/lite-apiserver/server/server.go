@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 
 	"k8s.io/klog/v2"
 
@@ -89,6 +90,7 @@ func (s *LiteServer) Run() error {
 	mux := http.NewServeMux()
 	mux.Handle("/", edgeServerHandler)
 	mux.HandleFunc("/debug/flags/v", util.UpdateLogLevel)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
 	caCrt, err := ioutil.ReadFile(s.ServerConfig.CAFile)
 	if err != nil {
