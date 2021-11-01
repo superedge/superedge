@@ -1,18 +1,28 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
-approvers:
-  - geraldwang
-  - attleewang
-  - feeli
-  - kaiyuechen
-  - nebulazhang
-  - randomcheng
-  - zhiguohong
-reviewers:
-  - geraldwang
-  - attleewang
-  - feeli
-  - kaiyuechen
-  - nebulazhang
-  - randomcheng
-  - zhiguohong
+## Manager
+
+|       Role        |    Name     |                           Company                           |
+| :---------------: | :---------: | :---------------------------------------------------------: |
+|  Project Manager  | Wenjun Tang |            [dodia@163.com](mailto:dodia@163.com)            |
+| Marketing Manager | Bobbyozhang |  [bobbyozhang@tencent.com](mailto:bobbyozhang@tencent.com)  |
+|  Project Manager  | Attlee Wang | [wangdong102425@gmail.com](mailto:wangdong102425@gmail.com) |
+| Marketing Manager | Yiwei Chen  |   [yiwei.chen24@gmail.com](mailto:yiwei.chen24@gmail.com)   |
+
+## Approvers
+
+  - [neweyes](https://github.com/neweyes)
+  - [attlee-wang](https://github.com/attlee-wang)
+  - [00pf00](https://github.com/00pf00)
+  - [chenkaiyue](https://github.com/chenkaiyue)
+  - [dodiadodia](https://github.com/dodiadodia)
+
+# Reviewers
+
+  - [neweyes](https://github.com/neweyes)
+  - [attlee-wang](https://github.com/attlee-wang)
+  - [00pf00](https://github.com/00pf00)
+  - [chenkaiyue](https://github.com/chenkaiyue)
+  - [dodiadodia](https://github.com/dodiadodia)
+  - [lianghao208](https://github.com/lianghao208)
+  - [duyanghao](https://github.com/duyanghao)
