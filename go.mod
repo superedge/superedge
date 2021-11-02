@@ -8,7 +8,7 @@ require (
 	github.com/TarsCloud/TarsGo v1.1.7-0.20210519070617-e2dc06be2b59
 	github.com/caddyserver/caddy v1.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgraph-io/badger/v3 v3.2011.1
+	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/golang/protobuf v1.4.3
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
@@ -29,7 +29,7 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
