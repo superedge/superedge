@@ -68,10 +68,10 @@ Other installation, deployment, and administration, see our [**Tutorial**](docs/
 ## Contact
 
 For any question or support, feel free to contact us via:
-- [Slack](https://app.slack.com/client/T01GSLDPQG7/C01H7KT4PMZ)
-- [Discussion Forum](https://groups.google.com/g/superedge)
+- Join [#SuperEdge Slack channel](https://cloud-native.slack.com/archives/C02M1G0MWQ2) (Need to join [CNCF Slack](https://slack.cncf.io/) first)
+- Join [SuperEdge Discussion Forum](https://groups.google.com/g/superedge)
 - [Meeting agenda and notes](https://docs.qq.com/doc/DSFVJbHVFUnVKdFlE)
-- WeChat Group
+- Join WeChat Group Discussion
 
 <div align="center">
   <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
@@ -88,4 +88,3 @@ If you encounter any failure in the process of using SuperEdge, you can use [Con
 ## License
 
 [**Apache License 2.0**](./LICENSE)
-
