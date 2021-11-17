@@ -301,7 +301,7 @@ func (s *interceptorServer) interceptEndpointSliceRequest(handler http.Handler) 
 			return
 		}
 
-		encoder := scheme.Codecs.EncoderForVersion(info.Serializer, v1.SchemeGroupVersion)
+		encoder := scheme.Codecs.EncoderForVersion(info.Serializer, discovery.SchemeGroupVersion)
 		// list request
 		if queries.Get("watch") == "" {
 			w.Header().Set("Content-Type", info.MediaType)
