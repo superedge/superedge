@@ -17,8 +17,6 @@ limitations under the License.
 package common
 
 import (
-	"k8s.io/apimachinery/pkg/util/runtime"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -29,12 +27,8 @@ const (
 	TopologyAnnotationsKey                     = "topologyKeys"
 )
 
-var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
+var DefaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	ServiceTopology: {Default: false, PreRelease: featuregate.Alpha},
-	EndpointSlice:   {Default: true, PreRelease: featuregate.Beta},
+	EndpointSlice:   {Default: false, PreRelease: featuregate.Beta},
 	EvenPodsSpread:  {Default: false, PreRelease: featuregate.Alpha},
-}
-
-func init() {
-	runtime.Must(utilfeature.DefaultMutableFeatureGate.Add(defaultKubernetesFeatureGates))
 }
