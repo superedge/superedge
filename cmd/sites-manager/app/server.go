@@ -22,9 +22,9 @@ import (
 	"github.com/superedge/superedge/cmd/sites-manager/app/options"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
 
-	crdClientset "github.com/superedge/superedge/pkg/sites-manager/generated/clientset/versioned"
 	"github.com/superedge/superedge/pkg/sites-manager/config"
 	"github.com/superedge/superedge/pkg/sites-manager/controller"
+	crdClientset "github.com/superedge/superedge/pkg/sites-manager/generated/clientset/versioned"
 	//"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
@@ -62,7 +62,7 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 			kubeconfig.QPS = siteOptions.QPS
 			kubeconfig.Burst = siteOptions.Burst
 			kubeClient := clientset.NewForConfigOrDie(kubeconfig)
-			crdClient  := crdClientset.NewForConfigOrDie(kubeconfig)
+			crdClient := crdClientset.NewForConfigOrDie(kubeconfig)
 
 			hosts := hosts.NewHosts(siteOptions.HostPath)
 			if _, err := hosts.LoadHosts(); err != nil {
@@ -131,7 +131,7 @@ func runController(parent context.Context,
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
 
-	statefulSetGridDaemonController := controller.NewSiteDaemonController(
+	statefulSetGridDaemonController := controller.NewSitesManagerDaemonController(
 		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.NodeUnitInformer,
 		controllerConfig.NodeGroupInformer, controllerConfig.ServiceInformer, kubeClient, hostName, hosts)
 

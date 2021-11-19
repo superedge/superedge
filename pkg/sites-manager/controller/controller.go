@@ -19,8 +19,8 @@ package controller
 import (
 	"fmt"
 	controllercommon "github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
-	crdinformers "github.com/superedge/superedge/pkg/application-grid-controller/generated/informers/externalversions/superedge.io/v1"
-	crdv1listers "github.com/superedge/superedge/pkg/application-grid-controller/generated/listers/superedge.io/v1"
+	crdinformers "github.com/superedge/superedge/pkg/sites-manager/generated/informers/externalversions/site/v1"
+	crdv1listers "github.com/superedge/superedge/pkg/sites-manager/generated/listers/site/v1"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/util"
@@ -78,10 +78,15 @@ type StatefulSetGridDaemonController struct {
 	enqueueStatefulSet func(set *appsv1.StatefulSet)
 }
 
-func NewSiteDaemonController(nodeInformer coreinformers.NodeInformer, podInformer coreinformers.PodInformer,
-	setInformer appsinformers.StatefulSetInformer, setGridInformer crdinformers.StatefulSetGridInformer,
-	svcInformer coreinformers.ServiceInformer, kubeClient clientset.Interface,
+func NewSitesManagerDaemonController(
+	nodeInformer coreinformers.NodeInformer,
+	podInformer coreinformers.PodInformer,
+	setInformer crdinformers.NodeUnitInformer,
+	setGridInformer crdinformers.NodeGroupInformer,
+	svcInformer coreinformers.ServiceInformer,
+	kubeClient clientset.Interface,
 	hostName string, hosts *hosts.Hosts) *StatefulSetGridDaemonController {
+
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{
