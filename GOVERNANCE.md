@@ -9,7 +9,6 @@ The following document outlines how the SuperEdge project governance works.
    * [Other projects](#other-projects)
    * [SuperEdge and CNCF](#superedge-and-cncf)
    * [Code of Conduct](#code-of-conduct)
-   * [Credits](#credits)
 
 ## Principle
 
@@ -65,8 +64,4 @@ SuperEdge is a CNCF project. Therefore, SuperEdge may participate in CNCF (or ot
 ## Code of Conduct
 
 The [Code of Conduct SuperEdge](https://github.com/superedge/superedge/blob/main/CODE_OF_CONDUCT.md) is aligned with the CNCF Code of Conduct.
-
-## Credits
-
-Sections of this documents have been borrowed from [CoreDns](https://github.com/coredns/coredns)  [Fluentd](https://github.com/fluent/fluentd/blob/master/GOVERNANCE.md) and[Envoy](https://github.com/envoyproxy/envoy/blob/master/GOVERNANCE.md) projects.
 
