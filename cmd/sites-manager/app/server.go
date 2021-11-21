@@ -131,7 +131,7 @@ func runController(parent context.Context,
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
 
-	statefulSetGridDaemonController := controller.NewSitesManagerDaemonController(
+	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(
 		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.NodeUnitInformer,
 		controllerConfig.NodeGroupInformer, controllerConfig.ServiceInformer, kubeClient, hostName, hosts)
 
@@ -139,7 +139,7 @@ func runController(parent context.Context,
 	defer cancel()
 
 	controllerConfig.Run(ctx.Done())
-	go statefulSetGridDaemonController.Run(workerNum, syncPeriodAsWhole, ctx.Done())
+	go sitesManagerDaemonController.Run(workerNum, syncPeriodAsWhole, ctx.Done())
 	<-ctx.Done()
 }
 
