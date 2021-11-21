@@ -24,8 +24,8 @@ import (
 type NodeUnitType string
 
 const (
-	EdgeNodeUnit  NodeUnitType = "Edge"
-	CloudNodeUnit NodeUnitType = "Cloud"
+	EdgeNodeUnit  NodeUnitType = "edge"
+	CloudNodeUnit NodeUnitType = "cloud"
 )
 
 // NodeUnitSpec defines the desired state of NodeUnit
@@ -65,10 +65,12 @@ type SetNode struct {
 type NodeUnitSpec struct {
 	// Type of nodeunit， vaule: Cloud、Edge
 	// +optional
+	//+kubebuilder:default=edge
 	Type NodeUnitType `json:"type,omitempty" protobuf:"bytes,2,rep,name=type"`
 
 	// Unschedulable controls nodeUnit schedulability of new workwolads. By default, nodeUnit is schedulable.
 	// +optional
+	//+kubebuilder:default=false
 	Unschedulable bool `json:"unschedulable,omitempty" protobuf:"varint,4,opt,name=unschedulable"`
 
 	// If specified, If node exists, join nodeunit directly
@@ -89,6 +91,10 @@ type NodeUnitSpec struct {
 
 // NodeUnitStatus defines the observed state of NodeUnit
 type NodeUnitStatus struct {
+	// Node that is ready in nodeunit
+	//+kubebuilder:default='1/1'
+	// +optional
+	ReadyNodes string `json:"readynodes" protobuf:"bytes,2,rep,name=readynodes"`
 	// Node selected by nodeunit
 	// +optional
 	Nodes []string `json:"nodes" protobuf:"bytes,12,rep,name=nodes"`
@@ -100,6 +106,10 @@ type NodeUnitStatus struct {
 // +genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=nu,scope=Cluster
+//+kubebuilder:printcolumn:name="TYPE",type=string,JSONPath=`.spec.type`
+//+kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.readyNodes`
+//+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 // NodeUnit is the Schema for the nodeunits API
 type NodeUnit struct {

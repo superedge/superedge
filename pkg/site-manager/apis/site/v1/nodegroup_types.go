@@ -73,10 +73,13 @@ type WorkloadStatus struct {
 
 // NodeGroupStatus defines the observed state of NodeGroup
 type NodeGroupStatus struct {
+	// NodeUnit that is number in nodegroup
+	//+kubebuilder:default=0
+	// +optional
+	UnitNumber int64 `json:"unitnumber" protobuf:"bytes,2,rep,name=unitnumber"`
 	// Nodeunit contained in nodegroup
 	// +optional
 	NodeUnits []string `json:"nodeunits" protobuf:"bytes,12,rep,name=nodeunits"`
-
 	// The status of the workload in the nodegroup in each nodeunit
 	// +optional
 	WorkloadStatus []WorkloadStatus `json:"workloadstatus" protobuf:"bytes,12,rep,name=workloadstatus"`
@@ -85,6 +88,9 @@ type NodeGroupStatus struct {
 // +genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=ng,scope=Cluster
+//+kubebuilder:printcolumn:name="UNITS",type="integer",JSONPath=".status.unitNumber"
+//+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 
 // NodeGroup is the Schema for the nodegroups API
 type NodeGroup struct {
