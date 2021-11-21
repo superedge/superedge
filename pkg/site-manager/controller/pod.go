@@ -28,28 +28,28 @@ package controller
 //	"reflect"
 //)
 //
-//func (ssgdc *SitesManagerDaemonController) addPod(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) addPod(obj interface{}) {
 //	pod := obj.(*corev1.Pod)
 //	if pod.DeletionTimestamp != nil {
 //		// On a restart of the controller manager, it's possible for an object to
 //		// show up in a state that is already pending deletion.
-//		ssgdc.deletePod(pod)
+//		siteManager.deletePod(pod)
 //		return
 //	}
 //
-//	set := ssgdc.getStatefulSetForPod(pod)
+//	set := siteManager.getStatefulSetForPod(pod)
 //	if set == nil {
 //		return
 //	}
 //
-//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//	if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //		return
 //	}
 //	klog.V(4).Infof("Pod %s(its owner statefulset %s) added.", pod.Name, set.Name)
-//	ssgdc.enqueueStatefulSet(set)
+//	siteManager.enqueueStatefulSet(set)
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) updatePod(oldObj, newObj interface{}) {
+//func (siteManager *SitesManagerDaemonController) updatePod(oldObj, newObj interface{}) {
 //	oldPod := oldObj.(*corev1.Pod)
 //	curPod := newObj.(*corev1.Pod)
 //	if curPod.ResourceVersion == oldPod.ResourceVersion {
@@ -63,27 +63,27 @@ package controller
 //	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 //	if controllerRefChanged && oldControllerRef != nil {
 //		// The ControllerRef was changed. Sync the old controller, if any.
-//		if set := ssgdc.getStatefulSetForPod(oldPod); set != nil {
-//			if rel, err := ssgdc.IsConcernedStatefulSet(set); err == nil && rel {
+//		if set := siteManager.getStatefulSetForPod(oldPod); set != nil {
+//			if rel, err := siteManager.IsConcernedStatefulSet(set); err == nil && rel {
 //				klog.V(4).Infof("Pod %s(its old owner statefulset %s) updated.", oldPod.Name, set.Name)
-//				ssgdc.enqueueStatefulSet(set)
+//				siteManager.enqueueStatefulSet(set)
 //			}
 //		}
 //	}
 //
 //	// If it has a ControllerRef, that's all that matters.
 //	if curControllerRef != nil {
-//		if set := ssgdc.getStatefulSetForPod(curPod); set != nil {
-//			if rel, err := ssgdc.IsConcernedStatefulSet(set); err == nil && rel {
+//		if set := siteManager.getStatefulSetForPod(curPod); set != nil {
+//			if rel, err := siteManager.IsConcernedStatefulSet(set); err == nil && rel {
 //				klog.V(4).Infof("Pod %s(its owner statefulset %s) updated.", curPod.Name, set.Name)
-//				ssgdc.enqueueStatefulSet(set)
+//				siteManager.enqueueStatefulSet(set)
 //			}
 //		}
 //	}
 //	return
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) deletePod(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) deletePod(obj interface{}) {
 //	pod, ok := obj.(*corev1.Pod)
 //	if !ok {
 //		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -98,27 +98,27 @@ package controller
 //		}
 //	}
 //
-//	set := ssgdc.getStatefulSetForPod(pod)
+//	set := siteManager.getStatefulSetForPod(pod)
 //	if set == nil {
 //		return
 //	}
 //
-//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//	if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //		return
 //	}
 //
 //	klog.V(4).Infof("Pod %s(its owner statefulset %s) deleted.", pod.Name, set.Name)
-//	ssgdc.enqueueStatefulSet(set)
+//	siteManager.enqueueStatefulSet(set)
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
+//func (siteManager *SitesManagerDaemonController) getStatefulSetForPod(pod *corev1.Pod) *appv1.StatefulSet {
 //	controllerRef := metav1.GetControllerOf(pod)
 //	if controllerRef != nil {
 //		if controllerRef.Kind != controllerKind.Kind {
 //			return nil
 //		}
 //
-//		set, err := ssgdc.setLister.StatefulSets(pod.Namespace).Get(controllerRef.Name)
+//		set, err := siteManager.setLister.StatefulSets(pod.Namespace).Get(controllerRef.Name)
 //		if err != nil {
 //			klog.Errorf("get %s StatefulSets err %v", controllerRef.Name, err)
 //			return nil
