@@ -18,7 +18,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -27,7 +26,7 @@ import (
 	"reflect"
 )
 
-func (ssgdc *StatefulSetGridDaemonController) addNode(obj interface{}) {
+func (ssgdc *SitesManagerDaemonController) addNode(obj interface{}) {
 	node := obj.(*corev1.Node)
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
@@ -43,7 +42,7 @@ func (ssgdc *StatefulSetGridDaemonController) addNode(obj interface{}) {
 	}
 }
 
-func (ssgdc *StatefulSetGridDaemonController) updateNode(oldObj, newObj interface{}) {
+func (ssgdc *SitesManagerDaemonController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
@@ -62,7 +61,7 @@ func (ssgdc *StatefulSetGridDaemonController) updateNode(oldObj, newObj interfac
 	}
 }
 
-func (ssgdc *StatefulSetGridDaemonController) deleteNode(obj interface{}) {
+func (ssgdc *SitesManagerDaemonController) deleteNode(obj interface{}) {
 	node, ok := obj.(*corev1.Node)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -83,21 +82,21 @@ func (ssgdc *StatefulSetGridDaemonController) deleteNode(obj interface{}) {
 	}
 }
 
-func (ssgdc *StatefulSetGridDaemonController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
-	selector, err := common.GetNodesSelector(node)
-	if err != nil {
-		return nil
-	}
-	setList, err := ssgdc.setLister.List(selector)
-	if err != nil {
-		return nil
-	}
+func (ssgdc *SitesManagerDaemonController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
+	//selector, err := common.GetNodesSelector(node)
+	//if err != nil {
+	//	return nil
+	//}
+	//setList, err := ssgdc.setLister.List(selector)
+	//if err != nil {
+	//	return nil
+	//}
 	var sets []*appv1.StatefulSet
-	for _, set := range setList {
-		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
-			continue
-		}
-		sets = append(sets, set)
-	}
+	//for _, set := range setList {
+	//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+	//		continue
+	//	}
+	//	sets = append(sets, set)
+	//}
 	return sets
 }
