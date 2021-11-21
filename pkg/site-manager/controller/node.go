@@ -26,23 +26,23 @@ import (
 	"reflect"
 )
 
-func (ssgdc *SitesManagerDaemonController) addNode(obj interface{}) {
+func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 	node := obj.(*corev1.Node)
 	if node.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
 		// show up in a state that is already pending deletion.
-		ssgdc.deleteNode(node)
+		siteManager.deleteNode(node)
 		return
 	}
 
-	sets := ssgdc.getStatefulSetForNode(node)
+	sets := siteManager.getStatefulSetForNode(node)
 	for _, set := range sets {
 		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) added.", node.Name, set.Name)
-		ssgdc.enqueueStatefulSet(set)
+		//siteManager.enqueueStatefulSet(set)
 	}
 }
 
-func (ssgdc *SitesManagerDaemonController) updateNode(oldObj, newObj interface{}) {
+func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj interface{}) {
 	oldNode := oldObj.(*corev1.Node)
 	curNode := newObj.(*corev1.Node)
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
@@ -53,15 +53,15 @@ func (ssgdc *SitesManagerDaemonController) updateNode(oldObj, newObj interface{}
 	labelChanged := !reflect.DeepEqual(curNode.Labels, oldNode.Labels)
 	// Only handles nodes whose label has changed.
 	if labelChanged {
-		sets := ssgdc.getStatefulSetForNode(curNode)
+		sets := siteManager.getStatefulSetForNode(curNode)
 		for _, set := range sets {
 			klog.V(4).Infof("Node %s(its relevant StatefulSet %s) updated.", curNode.Name, set.Name)
-			ssgdc.enqueueStatefulSet(set)
+			//siteManager.enqueueStatefulSet(set)
 		}
 	}
 }
 
-func (ssgdc *SitesManagerDaemonController) deleteNode(obj interface{}) {
+func (siteManager *SitesManagerDaemonController) deleteNode(obj interface{}) {
 	node, ok := obj.(*corev1.Node)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -75,25 +75,25 @@ func (ssgdc *SitesManagerDaemonController) deleteNode(obj interface{}) {
 			return
 		}
 	}
-	sets := ssgdc.getStatefulSetForNode(node)
+	sets := siteManager.getStatefulSetForNode(node)
 	for _, set := range sets {
 		klog.V(4).Infof("Node %s(its relevant StatefulSet %s) deleted.", node.Name, set.Name)
-		ssgdc.enqueueStatefulSet(set)
+		//siteManager.enqueueStatefulSet(set)
 	}
 }
 
-func (ssgdc *SitesManagerDaemonController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
+func (siteManager *SitesManagerDaemonController) getStatefulSetForNode(node *corev1.Node) []*appv1.StatefulSet {
 	//selector, err := common.GetNodesSelector(node)
 	//if err != nil {
 	//	return nil
 	//}
-	//setList, err := ssgdc.setLister.List(selector)
+	//setList, err := siteManager.setLister.List(selector)
 	//if err != nil {
 	//	return nil
 	//}
 	var sets []*appv1.StatefulSet
 	//for _, set := range setList {
-	//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+	//	if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 	//		continue
 	//	}
 	//	sets = append(sets, set)

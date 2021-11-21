@@ -29,24 +29,24 @@ package controller
 //	"k8s.io/klog/v2"
 //)
 //
-//func (ssgdc *SitesManagerDaemonController) addStatefulSet(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) addStatefulSet(obj interface{}) {
 //	set := obj.(*appsv1.StatefulSet)
 //
 //	if set.DeletionTimestamp != nil {
 //		// On a restart of the controller manager, it's possible for an object to
 //		// show up in a state that is already pending deletion.
-//		ssgdc.deleteStatefulSet(set)
+//		siteManager.deleteStatefulSet(set)
 //		return
 //	}
 //
-//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//	if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //		return
 //	}
 //	klog.V(4).Infof("StatefulSet %s added.", set.Name)
-//	ssgdc.enqueueStatefulSet(set)
+//	siteManager.enqueueStatefulSet(set)
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) updateStatefulSet(oldObj, newObj interface{}) {
+//func (siteManager *SitesManagerDaemonController) updateStatefulSet(oldObj, newObj interface{}) {
 //	oldSet := oldObj.(*appsv1.StatefulSet)
 //	curSet := newObj.(*appsv1.StatefulSet)
 //	if curSet.ResourceVersion == oldSet.ResourceVersion {
@@ -55,14 +55,14 @@ package controller
 //		return
 //	}
 //
-//	if rel, err := ssgdc.IsConcernedStatefulSet(curSet); err != nil || !rel {
+//	if rel, err := siteManager.IsConcernedStatefulSet(curSet); err != nil || !rel {
 //		return
 //	}
 //	klog.V(4).Infof("StatefulSet %s updated.", curSet.Name)
-//	ssgdc.enqueueStatefulSet(curSet)
+//	siteManager.enqueueStatefulSet(curSet)
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) deleteStatefulSet(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) deleteStatefulSet(obj interface{}) {
 //	set, ok := obj.(*appsv1.StatefulSet)
 //	if !ok {
 //		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -77,15 +77,15 @@ package controller
 //		}
 //	}
 //
-//	if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//	if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //		return
 //	}
 //
 //	klog.V(4).Infof("StatefulSet %s deleted.", set.Name)
-//	ssgdc.enqueueStatefulSet(set)
+//	siteManager.enqueueStatefulSet(set)
 //}
 ////
-////func (ssgdc *StatefulSetGridDaemonController) IsConcernedStatefulSet(set *appsv1.StatefulSet) (bool, error) {
+////func (siteManager *StatefulSetGridDaemonController) IsConcernedStatefulSet(set *appsv1.StatefulSet) (bool, error) {
 ////	// Check statefulset controllerRef
 ////	controllerRef := metav1.GetControllerOf(set)
 ////	if controllerRef == nil || controllerRef.Kind != util.ControllerKind.Kind {
@@ -106,7 +106,7 @@ package controller
 ////	if !found {
 ////		return false, nil
 ////	}
-////	if ssg, err := ssgdc.setGridLister.StatefulSetGrids(set.Namespace).Get(controllerRef.Name); err == nil {
+////	if ssg, err := siteManager.setGridLister.StatefulSetGrids(set.Namespace).Get(controllerRef.Name); err == nil {
 ////		if ssg.Spec.GridUniqKey != gridUniqKeyName {
 ////			return false, nil
 ////		}
@@ -128,9 +128,9 @@ package controller
 ////	}
 ////
 ////	// Check NodeSelector consistency
-////	node, err := ssgdc.nodeLister.Get(ssgdc.hostName)
+////	node, err := siteManager.nodeLister.Get(siteManager.hostName)
 ////	if err != nil {
-////		klog.Errorf("Get host node %s err %v", ssgdc.hostName, err)
+////		klog.Errorf("Get host node %s err %v", siteManager.hostName, err)
 ////		return false, err
 ////	}
 ////	nodeGridValue, exist := node.Labels[gridUniqKeyName]

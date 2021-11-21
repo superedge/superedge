@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
 	crdinformers "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/site-manager/generated/listers/site/v1"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
@@ -66,8 +67,8 @@ type SitesManagerDaemonController struct {
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
 
-	syncHandler        func(dKey string) error
-	enqueueStatefulSet func(set *appsv1.StatefulSet)
+	syncHandler     func(dKey string) error
+	enqueueNodeUnit func(set *sitev1.NodeUnit)
 }
 
 func NewSitesManagerDaemonController(
@@ -85,7 +86,7 @@ func NewSitesManagerDaemonController(
 		Interface: kubeClient.CoreV1().Events(""),
 	})
 
-	ssgdc := &SitesManagerDaemonController{
+	siteController := &SitesManagerDaemonController{
 		hostName:      hostName,
 		hosts:         hosts,
 		kubeClient:    kubeClient,
@@ -94,110 +95,110 @@ func NewSitesManagerDaemonController(
 	}
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    ssgdc.addNode,
-		UpdateFunc: ssgdc.updateNode,
-		DeleteFunc: ssgdc.deleteNode,
+		AddFunc:    siteController.addNode,
+		UpdateFunc: siteController.updateNode,
+		DeleteFunc: siteController.deleteNode,
 	})
 
 	//podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-	//	AddFunc:    ssgdc.addPod,
-	//	UpdateFunc: ssgdc.updatePod,
-	//	DeleteFunc: ssgdc.deletePod,
+	//	AddFunc:    siteManager.addPod,
+	//	UpdateFunc: siteManager.updatePod,
+	//	DeleteFunc: siteManager.deletePod,
 	//})
 
-	//nodeUnitInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-	//	AddFunc:    ssgdc.addStatefulSet,
-	//	UpdateFunc: ssgdc.updateStatefulSet,
-	//	DeleteFunc: ssgdc.deleteStatefulSet,
-	//})
+	nodeUnitInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    siteController.addNodeUnit,
+		UpdateFunc: siteController.updateNodeUnit,
+		DeleteFunc: siteController.deleteNodeUnit,
+	})
 
 	//serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-	//	AddFunc:    ssgdc.addService,
-	//	UpdateFunc: ssgdc.updateService,
-	//	DeleteFunc: ssgdc.deleteService,
+	//	AddFunc:    siteManager.addService,
+	//	UpdateFunc: siteManager.updateService,
+	//	DeleteFunc: siteManager.deleteService,
 	//})
 
-	//ssgdc.syncHandler = ssgdc.syncDnsHosts
-	//ssgdc.enqueueStatefulSet = ssgdc.enqueue
+	//siteManager.syncHandler = siteManager.syncDnsHosts
+	siteController.enqueueNodeUnit = siteController.enqueue
 
-	ssgdc.podLister = podInformer.Lister()
-	ssgdc.podListerSynced = podInformer.Informer().HasSynced
+	siteController.podLister = podInformer.Lister()
+	siteController.podListerSynced = podInformer.Informer().HasSynced
 
-	ssgdc.nodeLister = nodeInformer.Lister()
-	ssgdc.nodeListerSynced = nodeInformer.Informer().HasSynced
+	siteController.nodeLister = nodeInformer.Lister()
+	siteController.nodeListerSynced = nodeInformer.Informer().HasSynced
 
-	ssgdc.serviceLister = serviceInformer.Lister()
-	ssgdc.serviceListerSynced = serviceInformer.Informer().HasSynced
+	siteController.serviceLister = serviceInformer.Lister()
+	siteController.serviceListerSynced = serviceInformer.Informer().HasSynced
 
-	ssgdc.nodeUnitLister = nodeUnitInformer.Lister()
-	ssgdc.nodeUnitListerSynced = nodeGroupInformer.Informer().HasSynced
+	siteController.nodeUnitLister = nodeUnitInformer.Lister()
+	siteController.nodeUnitListerSynced = nodeGroupInformer.Informer().HasSynced
 
-	ssgdc.nodeGroupLister = nodeGroupInformer.Lister()
-	ssgdc.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
+	siteController.nodeGroupLister = nodeGroupInformer.Lister()
+	siteController.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
 
-	return ssgdc
+	return siteController
 }
 
-func (ssgdc *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
+func (siteManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	defer ssgdc.queue.ShutDown()
+	defer siteManager.queue.ShutDown()
 
 	klog.V(1).Infof("Starting site-manager daemon")
 	defer klog.V(1).Infof("Shutting down site-manager daemon")
 
 	if !cache.WaitForNamedCacheSync("site-manager-daemon", stopCh,
-		ssgdc.nodeListerSynced, ssgdc.podListerSynced,
-		ssgdc.nodeUnitListerSynced, ssgdc.nodeGroupListerSynced, ssgdc.serviceListerSynced) {
+		siteManager.nodeListerSynced, siteManager.podListerSynced,
+		siteManager.nodeUnitListerSynced, siteManager.nodeGroupListerSynced, siteManager.serviceListerSynced) {
 		return
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.Until(ssgdc.worker, time.Second, stopCh)
+		go wait.Until(siteManager.worker, time.Second, stopCh)
 	}
 
 	// sync dns hosts as a whole
-	//go wait.Until(ssgdc.syncDnsHostsAsWhole, time.Duration(syncPeriodAsWhole)*time.Second, stopCh)
+	//go wait.Until(siteManager.syncDnsHostsAsWhole, time.Duration(syncPeriodAsWhole)*time.Second, stopCh)
 	<-stopCh
 }
 
-func (ssgdc *SitesManagerDaemonController) worker() {
-	for ssgdc.processNextWorkItem() {
+func (siteManager *SitesManagerDaemonController) worker() {
+	for siteManager.processNextWorkItem() {
 	}
 }
 
-func (ssgdc *SitesManagerDaemonController) processNextWorkItem() bool {
-	key, quit := ssgdc.queue.Get()
+func (siteManager *SitesManagerDaemonController) processNextWorkItem() bool {
+	key, quit := siteManager.queue.Get()
 	if quit {
 		return false
 	}
-	defer ssgdc.queue.Done(key)
+	defer siteManager.queue.Done(key)
 
-	err := ssgdc.syncHandler(key.(string))
-	ssgdc.handleErr(err, key)
+	err := siteManager.syncHandler(key.(string))
+	siteManager.handleErr(err, key)
 
 	return true
 }
 
-func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{}) {
+func (siteManager *SitesManagerDaemonController) handleErr(err error, key interface{}) {
 	if err == nil {
-		ssgdc.queue.Forget(key)
+		siteManager.queue.Forget(key)
 		return
 	}
 
-	if ssgdc.queue.NumRequeues(key) < common.MaxRetries {
+	if siteManager.queue.NumRequeues(key) < common.MaxRetries {
 		klog.V(2).Infof("Error syncing statefulset %v: %v", key, err)
-		ssgdc.queue.AddRateLimited(key)
+		siteManager.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
 	klog.V(2).Infof("Dropping statefulset %q out of the queue: %v", key, err)
-	ssgdc.queue.Forget(key)
+	siteManager.queue.Forget(key)
 }
 
-//func (ssgdc *SitesManagerDaemonController) needClearStatefulSetDomains(set *appsv1.StatefulSet) (bool, error) {
+//func (siteManager *SitesManagerDaemonController) needClearStatefulSetDomains(set *appsv1.StatefulSet) (bool, error) {
 //	// Check existence of statefulset relevant service
-//	svc, err := ssgdc.serviceLister.Services(set.Namespace).Get(set.Spec.ServiceName)
+//	svc, err := siteManager.serviceLister.Services(set.Namespace).Get(set.Spec.ServiceName)
 //	if errors.IsNotFound(err) {
 //		klog.V(2).Infof("StatefulSet %v relevant service %s not found", set.Name, set.Spec.ServiceName)
 //		return true, nil
@@ -216,7 +217,7 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	return false, nil
 //}
 
-//func (ssgdc *SitesManagerDaemonController) syncDnsHostsAsWhole() {
+//func (siteManager *SitesManagerDaemonController) syncDnsHostsAsWhole() {
 //	startTime := time.Now()
 //	klog.V(4).Infof("Started syncing dns hosts as a whole (%v)", startTime)
 //	defer func() {
@@ -224,9 +225,9 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	}()
 //
 //	// Get node relevant GridSelectorUniqKeyName labels
-//	node, err := ssgdc.nodeLister.Get(ssgdc.hostName)
+//	node, err := siteManager.nodeLister.Get(siteManager.hostName)
 //	if err != nil {
-//		klog.Errorf("Get host node %s err %v", ssgdc.hostName, err)
+//		klog.Errorf("Get host node %s err %v", siteManager.hostName, err)
 //		return
 //	}
 //	gridUniqKeyLabels, err := controllercommon.GetNodesSelector(node)
@@ -236,7 +237,7 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	}
 //
 //	// List all statefulsets by node labels
-//	setList, err := ssgdc.setLister.List(gridUniqKeyLabels)
+//	setList, err := siteManager.setLister.List(gridUniqKeyLabels)
 //	if err != nil {
 //		klog.Errorf("List statefulsets by labels %v err %v", gridUniqKeyLabels, err)
 //		return
@@ -245,15 +246,15 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //
 //	// Filter concerned statefulsets and construct dns hosts
 //	for _, set := range setList {
-//		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//		if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //			continue
 //		}
-//		if needClear, err := ssgdc.needClearStatefulSetDomains(set); err != nil || needClear {
+//		if needClear, err := siteManager.needClearStatefulSetDomains(set); err != nil || needClear {
 //			continue
 //		}
 //
 //		// Get pod list of this statefulset
-//		podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
+//		podList, err := siteManager.podLister.Pods(set.Namespace).List(labels.Everything())
 //		if err != nil {
 //			klog.Errorf("Get podList err %v", err)
 //			return
@@ -278,13 +279,13 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //		}
 //	}
 //	// Set dns hosts as a whole
-//	if err := ssgdc.hosts.SetHostsByMap(hostsMap); err != nil {
+//	if err := siteManager.hosts.SetHostsByMap(hostsMap); err != nil {
 //		klog.Errorf("SetHostsByMap err %v", err)
 //	}
 //	return
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) syncDnsHosts(key string) error {
+//func (siteManager *SitesManagerDaemonController) syncDnsHosts(key string) error {
 //	startTime := time.Now()
 //	klog.V(4).Infof("Started syncing dns hosts of statefulset %q (%v)", key, startTime)
 //	defer func() {
@@ -296,7 +297,7 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //		return err
 //	}
 //
-//	set, err := ssgdc.setLister.StatefulSets(namespace).Get(name)
+//	set, err := siteManager.setLister.StatefulSets(namespace).Get(name)
 //	if errors.IsNotFound(err) {
 //		klog.V(2).Infof("StatefulSet %v has been deleted", key)
 //		return nil
@@ -308,10 +309,10 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	var PodDomainInfoToHosts = make(map[string]string)
 //	ControllerRef := metav1.GetControllerOf(set)
 //	// Check existence of statefulset relevant service and execute delete operations if necessary
-//	if needClear, err := ssgdc.needClearStatefulSetDomains(set); err != nil {
+//	if needClear, err := siteManager.needClearStatefulSetDomains(set); err != nil {
 //		return err
 //	} else if needClear {
-//		if err := ssgdc.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
+//		if err := siteManager.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
 //			klog.Errorf("Clear statefulset %v dns hosts err %v", key, err)
 //			return err
 //		}
@@ -320,7 +321,7 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	}
 //
 //	// Get pod list of this statefulset
-//	podList, err := ssgdc.podLister.Pods(set.Namespace).List(labels.Everything())
+//	podList, err := siteManager.podLister.Pods(set.Namespace).List(labels.Everything())
 //	if err != nil {
 //		klog.Errorf("Get podList err %v", err)
 //		return err
@@ -354,7 +355,7 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //			}
 //			PodDomainInfoToHosts[hosts.AppendDomainSuffix(podDomainsToHosts, pod.Namespace)] = pod.Status.PodIP
 //		}
-//		if err := ssgdc.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
+//		if err := siteManager.hosts.CheckOrUpdateHosts(PodDomainInfoToHosts, set.Namespace, ControllerRef.Name, set.Spec.ServiceName); err != nil {
 //			klog.Errorf("update dns hosts err %v", err)
 //			return err
 //		}
@@ -362,12 +363,12 @@ func (ssgdc *SitesManagerDaemonController) handleErr(err error, key interface{})
 //	return nil
 //}
 
-func (ssgdc *SitesManagerDaemonController) enqueue(set *appsv1.StatefulSet) {
-	key, err := KeyFunc(set)
+func (siteManager *SitesManagerDaemonController) enqueue(nodeunit *sitev1.NodeUnit) {
+	key, err := KeyFunc(nodeunit)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", set, err))
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", nodeunit, err))
 		return
 	}
 
-	ssgdc.queue.Add(key)
+	siteManager.queue.Add(key)
 }

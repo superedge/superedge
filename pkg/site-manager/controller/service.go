@@ -32,25 +32,25 @@ package controller
 //	"reflect"
 //)
 //
-//func (ssgdc *SitesManagerDaemonController) addService(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) addService(obj interface{}) {
 //	svc := obj.(*corev1.Service)
 //	if svc.DeletionTimestamp != nil {
 //		// On a restart of the controller manager, it's possible for an object to
 //		// show up in a state that is already pending deletion.
-//		ssgdc.deleteService(svc)
+//		siteManager.deleteService(svc)
 //		return
 //	}
-//	setList := ssgdc.getStatefulSetForService(svc)
+//	setList := siteManager.getStatefulSetForService(svc)
 //	for _, set := range setList {
-//		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//		if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //			continue
 //		}
 //		klog.V(4).Infof("Service %s(its relevant statefulset %s) added.", svc.Name, set.Name)
-//		ssgdc.enqueueStatefulSet(set)
+//		siteManager.enqueueStatefulSet(set)
 //	}
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) updateService(oldObj, newObj interface{}) {
+//func (siteManager *SitesManagerDaemonController) updateService(oldObj, newObj interface{}) {
 //	oldSvc := oldObj.(*corev1.Service)
 //	curSvc := newObj.(*corev1.Service)
 //	if curSvc.ResourceVersion == oldSvc.ResourceVersion {
@@ -62,32 +62,32 @@ package controller
 //	labelChanged := !reflect.DeepEqual(curSvc.Labels, oldSvc.Labels)
 //	if labelChanged {
 //		if _, exist := oldSvc.Labels[common.GridSelectorUniqKeyName]; exist {
-//			setList := ssgdc.getStatefulSetForService(oldSvc)
+//			setList := siteManager.getStatefulSetForService(oldSvc)
 //			for _, set := range setList {
-//				if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//				if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //					continue
 //				}
 //				klog.V(4).Infof("Service %s(its old relevant statefulset %s) updated.", oldSvc.Name, set.Name)
-//				ssgdc.enqueueStatefulSet(set)
+//				siteManager.enqueueStatefulSet(set)
 //			}
 //		}
 //	}
 //
 //	// If it has a ControllerRef, that's all that matters.
 //	if _, exist := curSvc.Labels[common.GridSelectorUniqKeyName]; exist {
-//		setList := ssgdc.getStatefulSetForService(curSvc)
+//		setList := siteManager.getStatefulSetForService(curSvc)
 //		for _, set := range setList {
-//			if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//			if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //				continue
 //			}
 //			klog.V(4).Infof("Service %s(its new relevant statefulset %s) updated.", curSvc.Name, set.Name)
-//			ssgdc.enqueueStatefulSet(set)
+//			siteManager.enqueueStatefulSet(set)
 //		}
 //	}
 //	return
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) deleteService(obj interface{}) {
+//func (siteManager *SitesManagerDaemonController) deleteService(obj interface{}) {
 //	svc, ok := obj.(*corev1.Service)
 //	if !ok {
 //		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -101,17 +101,17 @@ package controller
 //			return
 //		}
 //	}
-//	setList := ssgdc.getStatefulSetForService(svc)
+//	setList := siteManager.getStatefulSetForService(svc)
 //	for _, set := range setList {
-//		if rel, err := ssgdc.IsConcernedStatefulSet(set); err != nil || !rel {
+//		if rel, err := siteManager.IsConcernedStatefulSet(set); err != nil || !rel {
 //			continue
 //		}
 //		klog.V(4).Infof("Service %s(its relevant statefulset %s) deleted.", svc.Name, set.Name)
-//		ssgdc.enqueueStatefulSet(set)
+//		siteManager.enqueueStatefulSet(set)
 //	}
 //}
 //
-//func (ssgdc *SitesManagerDaemonController) getStatefulSetForService(svc *corev1.Service) []*appv1.StatefulSet {
+//func (siteManager *SitesManagerDaemonController) getStatefulSetForService(svc *corev1.Service) []*appv1.StatefulSet {
 //	if svc.Labels == nil {
 //		klog.V(4).Infof("Service %s no labels.", svc.Name)
 //		return nil
@@ -139,7 +139,7 @@ package controller
 //	labelSelector := labels.NewSelector()
 //	labelSelector = labelSelector.Add(*requirement)
 //
-//	setList, err := ssgdc.setLister.StatefulSets(svc.Namespace).List(labelSelector)
+//	setList, err := siteManager.setLister.StatefulSets(svc.Namespace).List(labelSelector)
 //	if err != nil {
 //		klog.V(4).Infof("List statefulset err %v", err)
 //		return nil
