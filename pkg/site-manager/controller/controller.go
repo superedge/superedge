@@ -19,6 +19,7 @@ package controller
 import (
 	"fmt"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	crdinformers "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/site-manager/generated/listers/site/v1"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
@@ -66,6 +67,7 @@ type SitesManagerDaemonController struct {
 	eventRecorder record.EventRecorder
 	queue         workqueue.RateLimitingInterface
 	kubeClient    clientset.Interface
+	crdClient     *crdClientset.Clientset
 
 	syncHandler     func(dKey string) error
 	enqueueNodeUnit func(set *sitev1.NodeUnit)
@@ -78,6 +80,7 @@ func NewSitesManagerDaemonController(
 	nodeGroupInformer crdinformers.NodeGroupInformer,
 	serviceInformer coreinformers.ServiceInformer,
 	kubeClient clientset.Interface,
+	crdClient *crdClientset.Clientset,
 	hostName string, hosts *hosts.Hosts) *SitesManagerDaemonController {
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -90,6 +93,7 @@ func NewSitesManagerDaemonController(
 		hostName:      hostName,
 		hosts:         hosts,
 		kubeClient:    kubeClient,
+		crdClient:     crdClient,
 		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "site-manager-daemon"}),
 		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "site-manager-daemon"),
 	}
@@ -118,7 +122,7 @@ func NewSitesManagerDaemonController(
 	//	DeleteFunc: siteManager.deleteService,
 	//})
 
-	//siteManager.syncHandler = siteManager.syncDnsHosts
+	//siteController.syncHandler = siteController.syncDnsHosts
 	siteController.enqueueNodeUnit = siteController.enqueue
 
 	siteController.podLister = podInformer.Lister()
@@ -131,10 +135,12 @@ func NewSitesManagerDaemonController(
 	siteController.serviceListerSynced = serviceInformer.Informer().HasSynced
 
 	siteController.nodeUnitLister = nodeUnitInformer.Lister()
-	siteController.nodeUnitListerSynced = nodeGroupInformer.Informer().HasSynced
+	siteController.nodeUnitListerSynced = nodeUnitInformer.Informer().HasSynced
 
 	siteController.nodeGroupLister = nodeGroupInformer.Lister()
 	siteController.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
+
+	klog.V(4).Infof("Site-manager set handler success")
 
 	return siteController
 }
@@ -154,6 +160,7 @@ func (siteManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole 
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(siteManager.worker, time.Second, stopCh)
+		klog.V(4).Infof("Site-manager set worker-%d success", i)
 	}
 
 	// sync dns hosts as a whole
@@ -172,9 +179,12 @@ func (siteManager *SitesManagerDaemonController) processNextWorkItem() bool {
 		return false
 	}
 	defer siteManager.queue.Done(key)
+	klog.V(4).Infof("Get siteManager queue key: %s", key)
 
-	err := siteManager.syncHandler(key.(string))
-	siteManager.handleErr(err, key)
+	//err := siteManager.syncHandler(key.(string))
+	//klog.V(4).Infof("Get siteManager syncHandler error: %#v", err)
+
+	siteManager.handleErr(nil, key)
 
 	return true
 }
