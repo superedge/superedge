@@ -32,7 +32,6 @@ import (
 // FakeNodeUnits implements NodeUnitInterface
 type FakeNodeUnits struct {
 	Fake *FakeSiteV1
-	ns   string
 }
 
 var nodeunitsResource = schema.GroupVersionResource{Group: "site.superedge.io", Version: "v1", Resource: "nodeunits"}
@@ -42,8 +41,7 @@ var nodeunitsKind = schema.GroupVersionKind{Group: "site.superedge.io", Version:
 // Get takes name of the nodeUnit, and returns the corresponding nodeUnit object, and an error if there is any.
 func (c *FakeNodeUnits) Get(ctx context.Context, name string, options v1.GetOptions) (result *sitev1.NodeUnit, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(nodeunitsResource, c.ns, name), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootGetAction(nodeunitsResource, name), &sitev1.NodeUnit{})
 	if obj == nil {
 		return nil, err
 	}
@@ -53,8 +51,7 @@ func (c *FakeNodeUnits) Get(ctx context.Context, name string, options v1.GetOpti
 // List takes label and field selectors, and returns the list of NodeUnits that match those selectors.
 func (c *FakeNodeUnits) List(ctx context.Context, opts v1.ListOptions) (result *sitev1.NodeUnitList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(nodeunitsResource, nodeunitsKind, c.ns, opts), &sitev1.NodeUnitList{})
-
+		Invokes(testing.NewRootListAction(nodeunitsResource, nodeunitsKind, opts), &sitev1.NodeUnitList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -75,15 +72,13 @@ func (c *FakeNodeUnits) List(ctx context.Context, opts v1.ListOptions) (result *
 // Watch returns a watch.Interface that watches the requested nodeUnits.
 func (c *FakeNodeUnits) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(nodeunitsResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(nodeunitsResource, opts))
 }
 
 // Create takes the representation of a nodeUnit and creates it.  Returns the server's representation of the nodeUnit, and an error, if there is any.
 func (c *FakeNodeUnits) Create(ctx context.Context, nodeUnit *sitev1.NodeUnit, opts v1.CreateOptions) (result *sitev1.NodeUnit, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(nodeunitsResource, c.ns, nodeUnit), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootCreateAction(nodeunitsResource, nodeUnit), &sitev1.NodeUnit{})
 	if obj == nil {
 		return nil, err
 	}
@@ -93,8 +88,7 @@ func (c *FakeNodeUnits) Create(ctx context.Context, nodeUnit *sitev1.NodeUnit, o
 // Update takes the representation of a nodeUnit and updates it. Returns the server's representation of the nodeUnit, and an error, if there is any.
 func (c *FakeNodeUnits) Update(ctx context.Context, nodeUnit *sitev1.NodeUnit, opts v1.UpdateOptions) (result *sitev1.NodeUnit, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(nodeunitsResource, c.ns, nodeUnit), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootUpdateAction(nodeunitsResource, nodeUnit), &sitev1.NodeUnit{})
 	if obj == nil {
 		return nil, err
 	}
@@ -105,8 +99,7 @@ func (c *FakeNodeUnits) Update(ctx context.Context, nodeUnit *sitev1.NodeUnit, o
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeNodeUnits) UpdateStatus(ctx context.Context, nodeUnit *sitev1.NodeUnit, opts v1.UpdateOptions) (*sitev1.NodeUnit, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(nodeunitsResource, "status", c.ns, nodeUnit), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(nodeunitsResource, "status", nodeUnit), &sitev1.NodeUnit{})
 	if obj == nil {
 		return nil, err
 	}
@@ -116,14 +109,13 @@ func (c *FakeNodeUnits) UpdateStatus(ctx context.Context, nodeUnit *sitev1.NodeU
 // Delete takes name of the nodeUnit and deletes it. Returns an error if one occurs.
 func (c *FakeNodeUnits) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(nodeunitsResource, c.ns, name), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootDeleteAction(nodeunitsResource, name), &sitev1.NodeUnit{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeNodeUnits) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(nodeunitsResource, c.ns, listOpts)
+	action := testing.NewRootDeleteCollectionAction(nodeunitsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &sitev1.NodeUnitList{})
 	return err
@@ -132,8 +124,7 @@ func (c *FakeNodeUnits) DeleteCollection(ctx context.Context, opts v1.DeleteOpti
 // Patch applies the patch and returns the patched nodeUnit.
 func (c *FakeNodeUnits) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *sitev1.NodeUnit, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(nodeunitsResource, c.ns, name, pt, data, subresources...), &sitev1.NodeUnit{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(nodeunitsResource, name, pt, data, subresources...), &sitev1.NodeUnit{})
 	if obj == nil {
 		return nil, err
 	}

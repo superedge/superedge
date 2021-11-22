@@ -30,8 +30,9 @@ type NodeUnitLister interface {
 	// List lists all NodeUnits in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.NodeUnit, err error)
-	// NodeUnits returns an object that can list and get NodeUnits.
-	NodeUnits(namespace string) NodeUnitNamespaceLister
+	// Get retrieves the NodeUnit from the index for a given name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*v1.NodeUnit, error)
 	NodeUnitListerExpansion
 }
 
@@ -53,41 +54,9 @@ func (s *nodeUnitLister) List(selector labels.Selector) (ret []*v1.NodeUnit, err
 	return ret, err
 }
 
-// NodeUnits returns an object that can list and get NodeUnits.
-func (s *nodeUnitLister) NodeUnits(namespace string) NodeUnitNamespaceLister {
-	return nodeUnitNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// NodeUnitNamespaceLister helps list and get NodeUnits.
-// All objects returned here must be treated as read-only.
-type NodeUnitNamespaceLister interface {
-	// List lists all NodeUnits in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.NodeUnit, err error)
-	// Get retrieves the NodeUnit from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.NodeUnit, error)
-	NodeUnitNamespaceListerExpansion
-}
-
-// nodeUnitNamespaceLister implements the NodeUnitNamespaceLister
-// interface.
-type nodeUnitNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all NodeUnits in the indexer for a given namespace.
-func (s nodeUnitNamespaceLister) List(selector labels.Selector) (ret []*v1.NodeUnit, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.NodeUnit))
-	})
-	return ret, err
-}
-
-// Get retrieves the NodeUnit from the indexer for a given namespace and name.
-func (s nodeUnitNamespaceLister) Get(name string) (*v1.NodeUnit, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the NodeUnit from the index for a given name.
+func (s *nodeUnitLister) Get(name string) (*v1.NodeUnit, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

@@ -42,10 +42,10 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // NodeGroups returns a NodeGroupInformer.
 func (v *version) NodeGroups() NodeGroupInformer {
-	return &nodeGroupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &nodeGroupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // NodeUnits returns a NodeUnitInformer.
 func (v *version) NodeUnits() NodeUnitInformer {
-	return &nodeUnitInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &nodeUnitInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
