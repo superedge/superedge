@@ -82,8 +82,8 @@ spec:
           command:
             - /usr/local/bin/site-manager
             - --hostname=$(NODE_NAME)
-            #- --kubeconfig=/var/lib/site-manager-config/kubeconfig.conf
             - v=9
+            #- --kubeconfig=/var/lib/site-manager-config/kubeconfig.conf
           env:
             - name: NODE_NAME
               valueFrom:

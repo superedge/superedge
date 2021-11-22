@@ -50,6 +50,11 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyNodes = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
 
+	//dg, err = siteManager.crdClient.SiteV1().NodeUnits("").Update()
+	//if err != nil && !errors.IsConflict(err) {
+	//	return err
+	//}
+
 	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 
 	siteManager.enqueueNodeUnit(nodeUnit)

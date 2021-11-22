@@ -133,7 +133,7 @@ func runController(parent context.Context,
 
 	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(
 		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.NodeUnitInformer,
-		controllerConfig.NodeGroupInformer, controllerConfig.ServiceInformer, kubeClient, hostName, hosts)
+		controllerConfig.NodeGroupInformer, controllerConfig.ServiceInformer, kubeClient, crdClient, hostName, hosts)
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
