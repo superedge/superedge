@@ -19,6 +19,7 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - pods
       - nodes
       - services
       - secrets
@@ -77,12 +78,12 @@ spec:
       containers:
         - name: site-manager
           image: ccr.ccs.tencentyun.com/superedge/site-manager-amd64:v1
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command:
             - /usr/local/bin/site-manager
             - --hostname=$(NODE_NAME)
             #- --kubeconfig=/var/lib/site-manager-config/kubeconfig.conf
-            - v=6
+            - v=9
           env:
             - name: NODE_NAME
               valueFrom:
