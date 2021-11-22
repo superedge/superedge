@@ -17,10 +17,12 @@ limitations under the License.
 package storage
 
 import (
+	"os"
+
+	"k8s.io/klog/v2"
+
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
-	"k8s.io/klog/v2"
-	"os"
 )
 
 type Storage interface {
