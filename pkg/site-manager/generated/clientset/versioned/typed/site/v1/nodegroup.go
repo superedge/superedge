@@ -32,7 +32,7 @@ import (
 // NodeGroupsGetter has a method to return a NodeGroupInterface.
 // A group's client should implement this interface.
 type NodeGroupsGetter interface {
-	NodeGroups(namespace string) NodeGroupInterface
+	NodeGroups() NodeGroupInterface
 }
 
 // NodeGroupInterface has methods to work with NodeGroup resources.
@@ -52,14 +52,12 @@ type NodeGroupInterface interface {
 // nodeGroups implements NodeGroupInterface
 type nodeGroups struct {
 	client rest.Interface
-	ns     string
 }
 
 // newNodeGroups returns a NodeGroups
-func newNodeGroups(c *SiteV1Client, namespace string) *nodeGroups {
+func newNodeGroups(c *SiteV1Client) *nodeGroups {
 	return &nodeGroups{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -67,7 +65,6 @@ func newNodeGroups(c *SiteV1Client, namespace string) *nodeGroups {
 func (c *nodeGroups) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.NodeGroup, err error) {
 	result = &v1.NodeGroup{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -84,7 +81,6 @@ func (c *nodeGroups) List(ctx context.Context, opts metav1.ListOptions) (result 
 	}
 	result = &v1.NodeGroupList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -101,7 +97,6 @@ func (c *nodeGroups) Watch(ctx context.Context, opts metav1.ListOptions) (watch.
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -112,7 +107,6 @@ func (c *nodeGroups) Watch(ctx context.Context, opts metav1.ListOptions) (watch.
 func (c *nodeGroups) Create(ctx context.Context, nodeGroup *v1.NodeGroup, opts metav1.CreateOptions) (result *v1.NodeGroup, err error) {
 	result = &v1.NodeGroup{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(nodeGroup).
@@ -125,7 +119,6 @@ func (c *nodeGroups) Create(ctx context.Context, nodeGroup *v1.NodeGroup, opts m
 func (c *nodeGroups) Update(ctx context.Context, nodeGroup *v1.NodeGroup, opts metav1.UpdateOptions) (result *v1.NodeGroup, err error) {
 	result = &v1.NodeGroup{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		Name(nodeGroup.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -140,7 +133,6 @@ func (c *nodeGroups) Update(ctx context.Context, nodeGroup *v1.NodeGroup, opts m
 func (c *nodeGroups) UpdateStatus(ctx context.Context, nodeGroup *v1.NodeGroup, opts metav1.UpdateOptions) (result *v1.NodeGroup, err error) {
 	result = &v1.NodeGroup{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		Name(nodeGroup.Name).
 		SubResource("status").
@@ -154,7 +146,6 @@ func (c *nodeGroups) UpdateStatus(ctx context.Context, nodeGroup *v1.NodeGroup, 
 // Delete takes name of the nodeGroup and deletes it. Returns an error if one occurs.
 func (c *nodeGroups) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		Name(name).
 		Body(&opts).
@@ -169,7 +160,6 @@ func (c *nodeGroups) DeleteCollection(ctx context.Context, opts metav1.DeleteOpt
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("nodegroups").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -182,7 +172,6 @@ func (c *nodeGroups) DeleteCollection(ctx context.Context, opts metav1.DeleteOpt
 func (c *nodeGroups) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.NodeGroup, err error) {
 	result = &v1.NodeGroup{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("nodegroups").
 		Name(name).
 		SubResource(subresources...).

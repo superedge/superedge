@@ -34,12 +34,12 @@ type SiteV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SiteV1Client) NodeGroups(namespace string) NodeGroupInterface {
-	return newNodeGroups(c, namespace)
+func (c *SiteV1Client) NodeGroups() NodeGroupInterface {
+	return newNodeGroups(c)
 }
 
-func (c *SiteV1Client) NodeUnits(namespace string) NodeUnitInterface {
-	return newNodeUnits(c, namespace)
+func (c *SiteV1Client) NodeUnits() NodeUnitInterface {
+	return newNodeUnits(c)
 }
 
 // NewForConfig creates a new SiteV1Client for the given config.

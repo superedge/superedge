@@ -27,12 +27,12 @@ type FakeSiteV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSiteV1) NodeGroups(namespace string) v1.NodeGroupInterface {
-	return &FakeNodeGroups{c, namespace}
+func (c *FakeSiteV1) NodeGroups() v1.NodeGroupInterface {
+	return &FakeNodeGroups{c}
 }
 
-func (c *FakeSiteV1) NodeUnits(namespace string) v1.NodeUnitInterface {
-	return &FakeNodeUnits{c, namespace}
+func (c *FakeSiteV1) NodeUnits() v1.NodeUnitInterface {
+	return &FakeNodeUnits{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

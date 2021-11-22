@@ -32,7 +32,7 @@ import (
 // NodeUnitsGetter has a method to return a NodeUnitInterface.
 // A group's client should implement this interface.
 type NodeUnitsGetter interface {
-	NodeUnits(namespace string) NodeUnitInterface
+	NodeUnits() NodeUnitInterface
 }
 
 // NodeUnitInterface has methods to work with NodeUnit resources.
@@ -52,14 +52,12 @@ type NodeUnitInterface interface {
 // nodeUnits implements NodeUnitInterface
 type nodeUnits struct {
 	client rest.Interface
-	ns     string
 }
 
 // newNodeUnits returns a NodeUnits
-func newNodeUnits(c *SiteV1Client, namespace string) *nodeUnits {
+func newNodeUnits(c *SiteV1Client) *nodeUnits {
 	return &nodeUnits{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -67,7 +65,6 @@ func newNodeUnits(c *SiteV1Client, namespace string) *nodeUnits {
 func (c *nodeUnits) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.NodeUnit, err error) {
 	result = &v1.NodeUnit{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -84,7 +81,6 @@ func (c *nodeUnits) List(ctx context.Context, opts metav1.ListOptions) (result *
 	}
 	result = &v1.NodeUnitList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -101,7 +97,6 @@ func (c *nodeUnits) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -112,7 +107,6 @@ func (c *nodeUnits) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 func (c *nodeUnits) Create(ctx context.Context, nodeUnit *v1.NodeUnit, opts metav1.CreateOptions) (result *v1.NodeUnit, err error) {
 	result = &v1.NodeUnit{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(nodeUnit).
@@ -125,7 +119,6 @@ func (c *nodeUnits) Create(ctx context.Context, nodeUnit *v1.NodeUnit, opts meta
 func (c *nodeUnits) Update(ctx context.Context, nodeUnit *v1.NodeUnit, opts metav1.UpdateOptions) (result *v1.NodeUnit, err error) {
 	result = &v1.NodeUnit{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		Name(nodeUnit.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -140,7 +133,6 @@ func (c *nodeUnits) Update(ctx context.Context, nodeUnit *v1.NodeUnit, opts meta
 func (c *nodeUnits) UpdateStatus(ctx context.Context, nodeUnit *v1.NodeUnit, opts metav1.UpdateOptions) (result *v1.NodeUnit, err error) {
 	result = &v1.NodeUnit{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		Name(nodeUnit.Name).
 		SubResource("status").
@@ -154,7 +146,6 @@ func (c *nodeUnits) UpdateStatus(ctx context.Context, nodeUnit *v1.NodeUnit, opt
 // Delete takes name of the nodeUnit and deletes it. Returns an error if one occurs.
 func (c *nodeUnits) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		Name(name).
 		Body(&opts).
@@ -169,7 +160,6 @@ func (c *nodeUnits) DeleteCollection(ctx context.Context, opts metav1.DeleteOpti
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("nodeunits").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -182,7 +172,6 @@ func (c *nodeUnits) DeleteCollection(ctx context.Context, opts metav1.DeleteOpti
 func (c *nodeUnits) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.NodeUnit, err error) {
 	result = &v1.NodeUnit{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("nodeunits").
 		Name(name).
 		SubResource(subresources...).

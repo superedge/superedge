@@ -21,14 +21,6 @@ package v1
 // NodeGroupLister.
 type NodeGroupListerExpansion interface{}
 
-// NodeGroupNamespaceListerExpansion allows custom methods to be added to
-// NodeGroupNamespaceLister.
-type NodeGroupNamespaceListerExpansion interface{}
-
 // NodeUnitListerExpansion allows custom methods to be added to
 // NodeUnitLister.
 type NodeUnitListerExpansion interface{}
-
-// NodeUnitNamespaceListerExpansion allows custom methods to be added to
-// NodeUnitNamespaceLister.
-type NodeUnitNamespaceListerExpansion interface{}
