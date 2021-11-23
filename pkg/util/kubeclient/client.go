@@ -244,21 +244,24 @@ func CheckNodeLabel(kubeClient *kubernetes.Clientset, nodeName string, labels ma
 	return true, nil
 }
 
-func GetNodeStatus(nodes []corev1.Node) (readyNodes []string, notReadyNodes []string) {
+func GetNodeListStatus(nodes []corev1.Node) (readyNodes []string, notReadyNodes []string) {
 	for _, node := range nodes {
-		var alreadyAdd bool = false
-		for _, condition := range node.Status.Conditions {
-			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-				readyNodes = append(readyNodes, node.Name)
-				alreadyAdd = true
-				break
-			}
-		}
-		if !alreadyAdd {
+		if IsReadyNode(&node) {
+			readyNodes = append(readyNodes, node.Name)
+		} else {
 			notReadyNodes = append(notReadyNodes, node.Name)
 		}
 	}
 	return
+}
+
+func IsReadyNode(node *corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 func GetClusterInfo(kubeconfigFile string) (*api.Cluster, error) {

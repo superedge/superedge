@@ -156,6 +156,16 @@ func GetNodeUnitNodes(kubeclient clientset.Interface, nodeUnit *sitev1.NodeUnit)
 		nodes = append(nodes, *node)
 	}
 
-	readyNodes, notReadyNodes = utilkube.GetNodeStatus(nodes) // get all readynode and notReadyNodes
+	readyNodes, notReadyNodes = utilkube.GetNodeListStatus(nodes) // get all readynode and notReadyNodes
 	return util.RemoveDuplicateElement(readyNodes), util.RemoveDuplicateElement(notReadyNodes), nil
+}
+
+func NodeUitReadyRateAdd(nodeUnit *sitev1.NodeUnit) string {
+	unitStatus := nodeUnit.Status
+	return fmt.Sprintf("%d/%d", len(unitStatus.ReadyNodes), len(unitStatus.ReadyNodes)+len(unitStatus.NotReadyNodes)+1)
+}
+
+func GetNodeUitReadyRate(nodeUnit *sitev1.NodeUnit) string {
+	unitStatus := nodeUnit.Status
+	return fmt.Sprintf("%d/%d", len(unitStatus.ReadyNodes), len(unitStatus.ReadyNodes)+len(unitStatus.NotReadyNodes))
 }

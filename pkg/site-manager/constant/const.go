@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The SuperEdge Authors.
+Copyright 2021 The SuperEdge Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,27 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package constant
 
-import (
-	"encoding/json"
-	"fmt"
+// Annotations
+const (
+	NodeUnitSuperedge = "nodeunits.superedge.io"
 )
-
-func OutPutMessage(msg string) {
-	fmt.Printf("\033[1;31;40m%s\033[0m\n", msg)
-}
-
-func OutSuccessMessage(msg string) {
-	fmt.Printf("\033[1;32;40m%s\033[0m\n", msg)
-}
-
-func ToJson(v interface{}) string {
-	json, _ := json.Marshal(v)
-	return string(json)
-}
-
-func ToJsonForm(v interface{}) string {
-	json, _ := json.MarshalIndent(v, "", "   ")
-	return string(json)
-}
