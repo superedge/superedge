@@ -22,6 +22,7 @@ import (
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
 	"github.com/superedge/superedge/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientset "k8s.io/client-go/kubernetes"
@@ -50,10 +51,11 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyNodes = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
 
-	//dg, err = siteManager.crdClient.SiteV1().NodeUnits("").Update()
-	//if err != nil && !errors.IsConflict(err) {
-	//	return err
-	//}
+	_, err = siteManager.crdClient.SiteV1().NodeUnits().Update(context.TODO(), nodeUnit, metav1.UpdateOptions{})
+	if err != nil && !errors.IsConflict(err) {
+		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
+		return
+	}
 
 	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 
@@ -81,6 +83,13 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	nodeUnitStatus.Nodes = nodeAll
 	nodeUnitStatus.ReadyNodes = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
+
+	curNodeUnit, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), curNodeUnit, metav1.UpdateOptions{})
+	if err != nil && !errors.IsConflict(err) {
+		klog.Errorf("Update nodeUnit: %s error: %#v", curNodeUnit.Name, err)
+		return
+	}
+	klog.V(4).Infof("Updated======= nodeUnit: %s success", util.ToJson(curNodeUnit))
 
 	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 	siteManager.enqueueNodeUnit(curNodeUnit)
