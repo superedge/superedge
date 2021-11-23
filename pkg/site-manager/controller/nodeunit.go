@@ -20,13 +20,11 @@ import (
 	"context"
 	"fmt"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
-	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 )
@@ -39,7 +37,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		return
 	}
 
-	readyNodes, notReadyNodes, err := GetNodeUnitNodes(siteManager.kubeClient, nodeUnit)
+	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, nodeUnit)
 	if err != nil {
 		klog.Errorf("Get NodeUnit Nodes error: %v", err)
 		return
@@ -72,7 +70,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		return
 	}
 
-	readyNodes, notReadyNodes, err := GetNodeUnitNodes(siteManager.kubeClient, curNodeUnit)
+	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, curNodeUnit)
 	if err != nil {
 		klog.Errorf("Get NodeUnit Nodes error: %v", err)
 		return
@@ -112,60 +110,25 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 
 	// todo: delete set node
 
-	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
-	siteManager.enqueueNodeUnit(nodeUnit) //todo dele?
-}
-
-func GetNodeUnitNodes(kubeclient clientset.Interface, nodeUnit *sitev1.NodeUnit) (readyNodes, notReadyNodes []string, err error) {
-	selector := nodeUnit.Spec.Selector
-	var nodes []corev1.Node
-
-	// Get Nodes by selector
-	if selector != nil {
-		if len(selector.MatchLabels) > 0 || len(selector.MatchExpressions) > 0 {
-			labelSelector := &metav1.LabelSelector{
-				MatchLabels:      selector.MatchLabels,
-				MatchExpressions: selector.MatchExpressions,
-			}
-			selector, err := metav1.LabelSelectorAsSelector(labelSelector)
-			if err != nil {
-				return readyNodes, notReadyNodes, err
-			}
-			listOptions := metav1.ListOptions{LabelSelector: selector.String()}
-			nodeList, err := kubeclient.CoreV1().Nodes().List(context.TODO(), listOptions)
-			if err != nil {
-				klog.Errorf("Get nodes by selector, error: %v", err)
-				return readyNodes, notReadyNodes, err
-			}
-			nodes = append(nodes, nodeList.Items...)
-		}
-
-		if len(selector.Annotations) > 0 { //todo: add Annotations selector
-
-		}
+	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, nodeUnit)
+	if err != nil {
+		klog.Errorf("Get NodeUnit Nodes error: %v", err)
+		return
 	}
-
-	// Get Nodes by nodeName
-	nodeNames := nodeUnit.Spec.Nodes
+	nodeNames := append(readyNodes, notReadyNodes...)
 	for _, nodeName := range nodeNames {
-		node, err := kubeclient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		node, err := siteManager.kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			klog.Errorf("Get nodes by node name, error: %v", err)
-			return readyNodes, notReadyNodes, err
+			klog.Errorf("Get Node: %s, error: %#v", nodeName, err)
+			continue
 		}
-		nodes = append(nodes, *node)
+
+		// todo: 删除有错 不能更新
+		if err := utils.RemoveNodeUnitAnnotations(siteManager.kubeClient, node, []string{nodeUnit.Name}); err != nil {
+			klog.Errorf("Remove node: %s annotations nodeunit: %s flags error: %#v", nodeName, nodeUnit.Name, err)
+			continue
+		}
 	}
 
-	readyNodes, notReadyNodes = utilkube.GetNodeListStatus(nodes) // get all readynode and notReadyNodes
-	return util.RemoveDuplicateElement(readyNodes), util.RemoveDuplicateElement(notReadyNodes), nil
-}
-
-func NodeUitReadyRateAdd(nodeUnit *sitev1.NodeUnit) string {
-	unitStatus := nodeUnit.Status
-	return fmt.Sprintf("%d/%d", len(unitStatus.ReadyNodes), len(unitStatus.ReadyNodes)+len(unitStatus.NotReadyNodes)+1)
-}
-
-func GetNodeUitReadyRate(nodeUnit *sitev1.NodeUnit) string {
-	unitStatus := nodeUnit.Status
-	return fmt.Sprintf("%d/%d", len(unitStatus.ReadyNodes), len(unitStatus.ReadyNodes)+len(unitStatus.NotReadyNodes))
+	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }

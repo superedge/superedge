@@ -22,6 +22,7 @@ import (
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	crdinformers "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site/v1"
 	crdv1listers "github.com/superedge/superedge/pkg/site-manager/generated/listers/site/v1"
+	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/common"
 	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
 	appsv1 "k8s.io/api/apps/v1"
@@ -139,6 +140,10 @@ func NewSitesManagerDaemonController(
 
 	siteController.nodeGroupLister = nodeGroupInformer.Lister()
 	siteController.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
+
+	if err := utils.InitUnitToNode(kubeClient, crdClient); err != nil {
+		klog.Errorf("Init unit info to node error: %#v", err)
+	}
 
 	klog.V(4).Infof("Site-manager set handler success")
 
