@@ -94,7 +94,7 @@ type NodeUnitStatus struct {
 	// Node that is ready in nodeunit
 	//+kubebuilder:default='1/1'
 	// +optional
-	ReadyNodes string `json:"readynodes" protobuf:"bytes,2,rep,name=readynodes"`
+	ReadyNodes string `json:"readynodes" protobuf:"bytes,4,rep,name=readynodes"`
 	// Node selected by nodeunit
 	// +optional
 	Nodes []string `json:"nodes" protobuf:"bytes,12,rep,name=nodes"`
@@ -104,12 +104,14 @@ type NodeUnitStatus struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=nu,scope=Cluster
-//+kubebuilder:printcolumn:name="TYPE",type=string,JSONPath=`.spec.type`
-//+kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.readyNodes`
+//+kubebuilder:resource:shortName=nu,scope=Cluster,path=nodeunits,categories=all
+//+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
+//+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readynodes`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeUnit is the Schema for the nodeunits API
 type NodeUnit struct {
