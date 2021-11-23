@@ -94,10 +94,10 @@ type NodeUnitStatus struct {
 	// Node that is ready in nodeunit
 	//+kubebuilder:default='1/1'
 	// +optional
-	ReadyNodes string `json:"readynodes" protobuf:"bytes,4,rep,name=readynodes"`
+	ReadyRate string `json:"readyrate" protobuf:"bytes,4,rep,name=readyrate"`
 	// Node selected by nodeunit
 	// +optional
-	Nodes []string `json:"nodes" protobuf:"bytes,12,rep,name=nodes"`
+	ReadyNodes []string `json:"readynodes" protobuf:"bytes,12,rep,name=readynodes"`
 	// Node that is not ready in nodeunit
 	// +optional
 	NotReadyNodes []string `json:"notreadynodes" protobuf:"bytes,12,rep,name=notreadynodes"`
@@ -107,11 +107,10 @@ type NodeUnitStatus struct {
 // +genclient:nonNamespaced
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=nu,scope=Cluster,path=nodeunits,categories=all
+//+kubebuilder:resource:shortName=nu,scope=Cluster
 //+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
-//+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readynodes`
+//+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readyrate`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeUnit is the Schema for the nodeunits API
 type NodeUnit struct {
