@@ -47,8 +47,8 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	// todo: set node
 
 	nodeUnitStatus := &nodeUnit.Status
-	nodeUnitStatus.Nodes = nodeAll
-	nodeUnitStatus.ReadyNodes = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
+	nodeUnitStatus.ReadyNodes = nodeAll
+	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
 
 	_, err = siteManager.crdClient.SiteV1().NodeUnits().Update(context.TODO(), nodeUnit, metav1.UpdateOptions{})
@@ -80,8 +80,8 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	// todo: set node
 
 	nodeUnitStatus := &curNodeUnit.Status
-	nodeUnitStatus.Nodes = nodeAll
-	nodeUnitStatus.ReadyNodes = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
+	nodeUnitStatus.ReadyNodes = nodeAll
+	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(nodeAll)-len(notReadyNodes), len(nodeAll))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
 
 	curNodeUnit, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), curNodeUnit, metav1.UpdateOptions{})

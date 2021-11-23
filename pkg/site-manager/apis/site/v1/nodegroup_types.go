@@ -89,9 +89,11 @@ type NodeGroupStatus struct {
 // +genclient:nonNamespaced
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=ng,scope=Cluster
-//+kubebuilder:printcolumn:name="UNITS",type="integer",JSONPath=".status.unitNumber"
+//+kubebuilder:resource:shortName=nu,scope=Cluster,path=nodeunits,categories=all
+//+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
+//+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readyNodes`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeGroup is the Schema for the nodegroups API
 type NodeGroup struct {
