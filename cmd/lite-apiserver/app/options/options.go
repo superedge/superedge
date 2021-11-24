@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package options contains all of the primary arguments for a kubelet.
+// Package options contains all the primary arguments for a kubelet.
 package options
 
 import (
+	cliflag "k8s.io/component-base/cli/flag"
+
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/options"
-
-	cliflag "k8s.io/component-base/cli/flag"
 )
 
 // ServerRunOptions runs a lite api server.
