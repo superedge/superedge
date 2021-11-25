@@ -1,19 +1,19 @@
-///*
-//Copyright 2020 The SuperEdge Authors.
-//
-//Licensed under the Apache License, Version 2.0 (the "License");
-//you may not use this file except in compliance with the License.
-//You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-//Unless required by applicable law or agreed to in writing, software
-//distributed under the License is distributed on an "AS IS" BASIS,
-//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//See the License for the specific language governing permissions and
-//limitations under the License.
-//*/
-//
+/*
+Copyright 2021 The SuperEdge Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
@@ -27,6 +27,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"strings"
 )
 
 func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
@@ -37,10 +38,15 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		return
 	}
 
-	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, nodeUnit)
+	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
 	if err != nil {
-		klog.Errorf("Get NodeUnit Nodes error: %v", err)
-		return
+		if strings.Contains(err.Error(), "not found") {
+			readyNodes, notReadyNodes = []string{}, []string{}
+			klog.Warningf("Get unit: %s node nil", nodeUnit.Name)
+		} else {
+			klog.Errorf("Get NodeUnit Nodes error: %v", err)
+			return
+		}
 	}
 
 	// todo: set node
@@ -49,16 +55,19 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-
 	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
 	if err != nil && !errors.IsConflict(err) {
 		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
 		return
 	}
 
-	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
+	nodeNames := append(readyNodes, notReadyNodes...)
+	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name}); err != nil {
+		klog.Errorf("Add nodes annotations: %s, error: %#v", nodeUnit.Name, err)
+		return
+	}
 
-	siteManager.enqueueNodeUnit(nodeUnit) //todo dele?
+	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 }
 
 func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj interface{}) {
@@ -70,10 +79,24 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		return
 	}
 
-	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, curNodeUnit)
+	/*
+		oldNodeUnit
+	*/
+	nodeNames := append(oldNodeUnit.Status.ReadyNodes, oldNodeUnit.Status.NotReadyNodes...)
+	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{oldNodeUnit.Name})
+
+	/*
+		curNodeUnit
+	*/
+	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, curNodeUnit)
 	if err != nil {
-		klog.Errorf("Get NodeUnit Nodes error: %v", err)
-		return
+		if strings.Contains(err.Error(), "not found") {
+			readyNodes, notReadyNodes = []string{}, []string{}
+			klog.Warningf("Get unit: %s node nil", curNodeUnit.Name)
+		} else {
+			klog.Errorf("Get NodeUnit Nodes error: %v", err)
+			return
+		}
 	}
 
 	// todo: set node
@@ -82,15 +105,19 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-
 	curNodeUnit, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), curNodeUnit, metav1.UpdateOptions{})
 	if err != nil && !errors.IsConflict(err) {
 		klog.Errorf("Update nodeUnit: %s error: %#v", curNodeUnit.Name, err)
 		return
 	}
-	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 
-	siteManager.enqueueNodeUnit(curNodeUnit) //todo dele?
+	nodeNames = append(readyNodes, notReadyNodes...)
+	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{curNodeUnit.Name}); err != nil {
+		klog.Errorf("Add nodes annotations: %s, error: %#v", curNodeUnit.Name, err)
+		return
+	}
+
+	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
 
 func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{}) {
@@ -110,25 +137,18 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 
 	// todo: delete set node
 
-	readyNodes, notReadyNodes, err := utils.GetNodeUnitNodes(siteManager.kubeClient, nodeUnit)
+	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
 	if err != nil {
-		klog.Errorf("Get NodeUnit Nodes error: %v", err)
-		return
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Get unit: %s node nil", nodeUnit.Name)
+			return
+		} else {
+			klog.Errorf("Get NodeUnit Nodes error: %v", err)
+			return
+		}
 	}
 	nodeNames := append(readyNodes, notReadyNodes...)
-	for _, nodeName := range nodeNames {
-		node, err := siteManager.kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
-		if err != nil {
-			klog.Errorf("Get Node: %s, error: %#v", nodeName, err)
-			continue
-		}
-
-		// todo: 删除有错 不能更新
-		if err := utils.RemoveNodeUnitAnnotations(siteManager.kubeClient, node, []string{nodeUnit.Name}); err != nil {
-			klog.Errorf("Remove node: %s annotations nodeunit: %s flags error: %#v", nodeName, nodeUnit.Name, err)
-			continue
-		}
-	}
+	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name})
 
 	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }

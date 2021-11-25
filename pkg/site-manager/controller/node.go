@@ -67,7 +67,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 			} else {
 				unitStatus.NotReadyNodes = append(unitStatus.NotReadyNodes, node.Name)
 			}
-			unitStatus.ReadyRate = utils.NodeUitReadyRateAdd(&nodeunit)
+			unitStatus.ReadyRate = utils.AddNodeUitReadyRate(&nodeunit)
 
 			_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), &nodeunit, metav1.UpdateOptions{})
 			if err != nil && !errors.IsConflict(err) {
@@ -78,8 +78,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 		}
 	}
 
-	// todo: 集群中已经存在node Annotations 如何设置
-	if err := utils.AddNodeUnitAnnotations(siteManager.kubeClient, node, needUpdateNodeUnit); err != nil {
+	if err := utils.AddNodesAnnotations(siteManager.kubeClient, []string{node.Name}, needUpdateNodeUnit); err != nil {
 		klog.Errorf("Set node: %s annotations error: %#v", node.Name, err)
 		return
 	}
@@ -96,12 +95,15 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 		return
 	}
 
-	nodeUnits, err := utils.GetNodeUnitByNode(siteManager.crdClient, curNode)
+	nodeUnits, err := utils.GetUnitsByNode(siteManager.crdClient, curNode)
 	if err != nil {
 		klog.Errorf("Get nodeUnit by node, error： %#v", err)
 		return
 	}
 
+	/*
+	 only node status
+	*/
 	for _, nodeUnit := range nodeUnits {
 		unitStatus := &nodeUnit.Status
 		if utilkube.IsReadyNode(oldNode) {
@@ -121,6 +123,9 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 		}
 		klog.V(6).Infof("Updated nodeUnit: %s success", nodeUnit.Name)
 	}
+	/*
+		todo: if update node annotations, such as nodeunit annotations deleted
+	*/
 
 	klog.V(4).Infof("Node: %s status update with update nodeUnit success", curNode.Name)
 }
@@ -140,13 +145,11 @@ func (siteManager *SitesManagerDaemonController) deleteNode(obj interface{}) {
 		}
 	}
 
-	nodeUnits, err := utils.GetNodeUnitByNode(siteManager.crdClient, node)
+	nodeUnits, err := utils.GetUnitsByNode(siteManager.crdClient, node)
 	if err != nil {
 		klog.Errorf("Get nodeUnit by node, error： %#v", err)
 		return
 	}
-
-	//todo： nodeunit node 全部移除需不要删除nodeunit??? no?
 
 	for _, nodeUnit := range nodeUnits {
 		unitStatus := &nodeUnit.Status
