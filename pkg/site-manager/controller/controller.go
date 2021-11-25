@@ -117,6 +117,12 @@ func NewSitesManagerDaemonController(
 		DeleteFunc: siteController.deleteNodeUnit,
 	})
 
+	nodeGroupInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    siteController.addNodeGroup,
+		UpdateFunc: siteController.updateNodeGroup,
+		DeleteFunc: siteController.deleteNodeGroup,
+	})
+
 	//serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 	//	AddFunc:    siteManager.addService,
 	//	UpdateFunc: siteManager.updateService,
@@ -124,16 +130,16 @@ func NewSitesManagerDaemonController(
 	//})
 
 	//siteController.syncHandler = siteController.syncDnsHosts
-	siteController.enqueueNodeUnit = siteController.enqueue
+	//siteController.enqueueNodeUnit = siteController.enqueue
 
-	siteController.podLister = podInformer.Lister()
-	siteController.podListerSynced = podInformer.Informer().HasSynced
+	//siteController.podLister = podInformer.Lister()
+	//siteController.podListerSynced = podInformer.Informer().HasSynced
 
 	siteController.nodeLister = nodeInformer.Lister()
 	siteController.nodeListerSynced = nodeInformer.Informer().HasSynced
 
-	siteController.serviceLister = serviceInformer.Lister()
-	siteController.serviceListerSynced = serviceInformer.Informer().HasSynced
+	//siteController.serviceLister = serviceInformer.Lister()
+	//siteController.serviceListerSynced = serviceInformer.Informer().HasSynced
 
 	siteController.nodeUnitLister = nodeUnitInformer.Lister()
 	siteController.nodeUnitListerSynced = nodeUnitInformer.Informer().HasSynced
@@ -160,8 +166,7 @@ func (siteManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole 
 	defer klog.V(1).Infof("Shutting down site-manager daemon")
 
 	if !cache.WaitForNamedCacheSync("site-manager-daemon", stopCh,
-		siteManager.nodeListerSynced, siteManager.podListerSynced,
-		siteManager.nodeUnitListerSynced, siteManager.nodeGroupListerSynced, siteManager.serviceListerSynced) {
+		siteManager.nodeListerSynced, siteManager.nodeUnitListerSynced, siteManager.nodeGroupListerSynced) {
 		return
 	}
 
@@ -170,7 +175,7 @@ func (siteManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole 
 		klog.V(4).Infof("Site-manager set worker-%d success", i)
 	}
 
-	// sync dns hosts as a whole
+	//sync dns hosts as a whole
 	//go wait.Until(siteManager.syncDnsHostsAsWhole, time.Duration(syncPeriodAsWhole)*time.Second, stopCh)
 	<-stopCh
 }
