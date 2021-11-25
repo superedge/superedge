@@ -23,12 +23,14 @@ import (
 type WorkloadType string
 
 const (
-	WorkloadPod          WorkloadType = "pod"
-	WorkloadJob          WorkloadType = "job"
-	WorkloadDeploy       WorkloadType = "deploy"
-	WorkloadService      WorkloadType = "service"
-	WorkloadDaemonset    WorkloadType = "daemonset"
-	WorkloadStatuefulset WorkloadType = "statuefulset"
+	WorkloadPod          WorkloadType = "Pod"
+	WorkloadJob          WorkloadType = "Job"
+	WorkloadCronjob      WorkloadType = "CronJob"
+	WorkloadDeploy       WorkloadType = "Deployment"
+	WorkloadService      WorkloadType = "Service"
+	WorkloadReplicaSet   WorkloadType = "ReplicaSet"
+	WorkloadDaemonset    WorkloadType = "DaemonSet"
+	WorkloadStatuefulset WorkloadType = "StatuefulSet"
 )
 
 type Workload struct {
