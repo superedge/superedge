@@ -56,7 +56,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
 	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
 		return
 	}
@@ -66,6 +66,8 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		klog.Errorf("Add nodes annotations: %s, error: %#v", nodeUnit.Name, err)
 		return
 	}
+
+	//todo: Add nodegroup ?
 
 	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 }
@@ -117,6 +119,8 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		return
 	}
 
+	//todo: update nodegroup ?
+
 	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
 
@@ -149,6 +153,8 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 	}
 	nodeNames := append(readyNodes, notReadyNodes...)
 	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name})
+
+	//todo: delete nodegroup ?
 
 	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }

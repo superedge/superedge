@@ -76,7 +76,7 @@ type NodeGroupStatus struct {
 	// NodeUnit that is number in nodegroup
 	//+kubebuilder:default=0
 	// +optional
-	UnitNumber int64 `json:"unitnumber" protobuf:"bytes,2,rep,name=unitnumber"`
+	UnitNumber int `json:"unitnumber" protobuf:"bytes,2,rep,name=unitnumber"`
 	// Nodeunit contained in nodegroup
 	// +optional
 	NodeUnits []string `json:"nodeunits" protobuf:"bytes,12,rep,name=nodeunits"`
