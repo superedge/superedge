@@ -147,7 +147,9 @@ func NewSitesManagerDaemonController(
 	siteController.nodeGroupLister = nodeGroupInformer.Lister()
 	siteController.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
 
-	// todo: support master, cloud-node, edge-node, all-node unit
+	// todo: create master, cloud-node, edge-node, all-node unit
+	// todo: node watch need add node ? no
+	// todo: add leabel to unit master, cloud-node, edge-node, all-node
 
 	if err := utils.InitUnitToNode(kubeClient, crdClient); err != nil {
 		klog.Errorf("Init unit info to node error: %#v", err)

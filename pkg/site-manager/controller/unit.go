@@ -67,7 +67,27 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		return
 	}
 
-	//todo: Add nodegroup ?
+	/*
+	 nodeGroup action
+	*/
+	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, nodeUnit.Name)
+	if err != nil {
+		klog.Errorf("Get NodeGroups error: %v", err)
+		return
+	}
+
+	// Update nodegroups
+	for _, nodeGroup := range nodeGroups {
+		nodeGroupStatus := &nodeGroup.Status
+		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, nodeUnit.Name)
+		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
+		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
+		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
+			continue
+		}
+	}
 
 	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 }
@@ -119,7 +139,27 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		return
 	}
 
-	//todo: update nodegroup ?
+	/*
+	 nodeGroup action
+	*/
+	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, curNodeUnit.Name)
+	if err != nil {
+		klog.Errorf("Get NodeGroups error: %v", err)
+		return
+	}
+
+	// Update nodegroups
+	for _, nodeGroup := range nodeGroups {
+		nodeGroupStatus := &nodeGroup.Status
+		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, curNodeUnit.Name)
+		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
+		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
+		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
+			continue
+		}
+	}
 
 	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
@@ -139,6 +179,9 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 		}
 	}
 
+	/*
+	 node action
+	*/
 	// todo: delete set node
 
 	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
@@ -154,7 +197,26 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 	nodeNames := append(readyNodes, notReadyNodes...)
 	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name})
 
-	//todo: delete nodegroup ?
+	/*
+	 nodeGroup action
+	*/
+	nodeGroups, err := utils.GetNodeGroupsByUnit(siteManager.crdClient, nodeUnit.Name)
+	if err != nil {
+		klog.Errorf("Get NodeGroups error: %v", err)
+		return
+	}
+
+	// Update nodegroups
+	for _, nodeGroup := range nodeGroups {
+		nodeGroupStatus := &nodeGroup.Status
+		nodeGroupStatus.NodeUnits = util.DeleteSliceElement(nodeGroupStatus.NodeUnits, nodeUnit.Name)
+		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
+		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
+			continue
+		}
+	}
 
 	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }
