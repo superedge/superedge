@@ -48,10 +48,10 @@ func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *sitev1.
 		unit, err := siteClient.SiteV1().NodeUnits().Get(context.TODO(), unitName, metav1.GetOptions{})
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
-				klog.Warningf("Get node: %s nil", nodeGroup.Name)
+				klog.Warningf("Get nodeGroup: %s unit nil", nodeGroup.Name)
 				continue
 			} else {
-				klog.Errorf("Get nodes by node name, error: %v", err)
+				klog.Errorf("Get unit by nodeGroup, error: %v", err)
 				return nodeUnits, err
 			}
 		}
@@ -59,4 +59,55 @@ func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *sitev1.
 	}
 
 	return util.RemoveDuplicateElement(nodeUnits), nil
+}
+
+func GetNodeGroupsByUnit(siteClient *siteClientset.Clientset, unitName string) (nodeGroups []*sitev1.NodeGroup, err error) {
+	allNodeGroups, err := siteClient.SiteV1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Unit:%s does not belong to any nodeGroup", unitName)
+			return
+		} else {
+			klog.Errorf("Get nodeGroup by unit, error: %v", err)
+			return nil, err
+		}
+	}
+
+	for _, nodeGroup := range allNodeGroups.Items {
+		for _, unit := range nodeGroup.Status.NodeUnits {
+			if unit == unitName {
+				nodeGroups = append(nodeGroups, &nodeGroup)
+			}
+		}
+	}
+	return nodeGroups, nil
+}
+
+func UnitMatchNodeGroups(siteClient *siteClientset.Clientset, unitName string) (nodeGroups []*sitev1.NodeGroup, err error) {
+	allNodeGroups, err := siteClient.SiteV1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Unit:%s does not belong to any nodeGroup", unitName)
+			return
+		} else {
+			klog.Errorf("Get nodeGroup by unit, error: %v", err)
+			return nil, err
+		}
+	}
+
+	for _, nodeGroup := range allNodeGroups.Items {
+		units, err := GetUnitsByNodeGroup(siteClient, &nodeGroup)
+		if err != nil {
+			klog.Errorf("Get NodeGroup unit error: %v", err)
+			continue
+		}
+
+		for _, unit := range units {
+			if unit == unitName {
+				nodeGroups = append(nodeGroups, &nodeGroup)
+			}
+		}
+	}
+
+	return nodeGroups, nil
 }

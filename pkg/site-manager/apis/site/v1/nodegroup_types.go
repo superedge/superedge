@@ -64,13 +64,13 @@ type NodeGroupSpec struct {
 type WorkloadStatus struct {
 	// workload Name
 	// +optional
-	WorkloadName string `json:"workloadname" protobuf:"bytes,12,rep,name=workloadname"`
+	WorkloadName string `json:"workloadname,omitempty" protobuf:"bytes,12,opt,name=workloadname"`
 	// workload Ready Units
 	// +optional
-	ReadyUnit []string `json:"readyunit" protobuf:"bytes,12,rep,name=readyunit"`
+	ReadyUnit []string `json:"readyunit,omitempty" protobuf:"bytes,12,opt,name=readyunit"`
 	// workload NotReady Units
 	// +optional
-	NotReadyUnit []string `json:"notreadyunit" protobuf:"bytes,12,rep,name=notreadyunit"`
+	NotReadyUnit []string `json:"notreadyunit,omitempty" protobuf:"bytes,12,opt,name=notreadyunit"`
 }
 
 // NodeGroupStatus defines the observed state of NodeGroup
@@ -81,19 +81,18 @@ type NodeGroupStatus struct {
 	UnitNumber int `json:"unitnumber" protobuf:"bytes,2,rep,name=unitnumber"`
 	// Nodeunit contained in nodegroup
 	// +optional
-	NodeUnits []string `json:"nodeunits" protobuf:"bytes,12,rep,name=nodeunits"`
+	NodeUnits []string `json:"nodeunits,omitempty" protobuf:"bytes,12,opt,name=nodeunits"`
 	// The status of the workload in the nodegroup in each nodeunit
 	// +optional
-	WorkloadStatus []WorkloadStatus `json:"workloadstatus" protobuf:"bytes,12,rep,name=workloadstatus"`
+	WorkloadStatus []WorkloadStatus `json:"workloadstatus,omitempty" protobuf:"bytes,12,opt,name=workloadstatus"`
 }
 
 // +genclient
 // +genclient:nonNamespaced
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=nu,scope=Cluster,path=nodeunits,categories=all
-//+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
-//+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readyNodes`
+//+kubebuilder:resource:shortName=ng,scope=Cluster,path=nodegroups,categories=all
+//+kubebuilder:printcolumn:name="UNITS",type="integer",JSONPath=`.status.unitnumber`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
