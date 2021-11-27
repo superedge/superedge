@@ -43,7 +43,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	// Master Node Unit
 	masterUnitSelector := &sitev1.Selector{
 		MatchLabels: map[string]string{
-			"node-role.kubernetes.io/master": "",
+			KubernetesMasterNodeRoleKey: "",
 		},
 	}
 	masterUnit := &sitev1.NodeUnit{
@@ -66,7 +66,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	// Cloud Node Unit
 	cloudNodeUnitSelector := &sitev1.Selector{
 		MatchLabels: map[string]string{
-			"node-role.kubernetes.io/cloud": "",
+			KubernetesCloudNodeRoleKey: "",
 		},
 	}
 	cloudNnodeUnit := &sitev1.NodeUnit{
@@ -89,7 +89,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	// Edge Node Unit
 	edgedNodeUnitSelector := &sitev1.Selector{
 		MatchLabels: map[string]string{
-			"node-role.kubernetes.io/edge": "",
+			KubernetesEdgeNodeRoleKey: "",
 		},
 	}
 	edgeNnodeUnit := &sitev1.NodeUnit{
