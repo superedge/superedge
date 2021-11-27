@@ -90,7 +90,10 @@ func (s *LiteServer) Run() error {
 	mux := http.NewServeMux()
 	mux.Handle("/", edgeServerHandler)
 	mux.HandleFunc("/debug/flags/v", util.UpdateLogLevel)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	// register for pprof
+	if s.ServerConfig.Profiling {
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	}
 
 	caCrt, err := ioutil.ReadFile(s.ServerConfig.CAFile)
 	if err != nil {
