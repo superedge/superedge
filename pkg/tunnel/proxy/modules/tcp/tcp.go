@@ -46,7 +46,7 @@ func (tcp *TcpProxy) Start(mode string) {
 	if mode == util.CLOUD {
 		for front, backend := range conf.TunnelConf.TunnlMode.Cloud.Tcp {
 			go func(front, backend string) {
-				ln, err := net.Listen("tcp", front)
+				ln, err := net.Listen(util.TCP, front)
 				if err != nil {
 					klog.Errorf("cloud proxy start %s fail ,error = %s", front, err)
 					return
