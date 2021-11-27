@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -165,6 +166,42 @@ func ResetNodeUnitAnnotations(kubeclient clientset.Interface, node *corev1.Node,
 	if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
 		klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
 		return err
+	}
+
+	return nil
+}
+
+const (
+	KubernetesEdgeNodeRoleKey   = "node-role.kubernetes.io/Edge"
+	KubernetesCloudNodeRoleKey  = "node-role.kubernetes.io/Cloud"
+	KubernetesMasterNodeRoleKey = "node-role.kubernetes.io/Master"
+)
+
+func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
+	if node.Labels == nil {
+		node.Labels = make(map[string]string)
+	}
+
+	if _, ok := node.Labels[edgeadmConstant.EdgeNodeLabelKey]; ok {
+		edgeNodeLabel := map[string]string{
+			KubernetesEdgeNodeRoleKey: "",
+		}
+		if err := utilkube.AddNodeLabel(kubeClient, node.Name, edgeNodeLabel); err != nil {
+			klog.Errorf("Add edge Node role label error: %v", err)
+			return err
+		}
+		return nil
+	}
+
+	if _, ok := node.Labels[edgeadmConstant.CloudNodeLabelKey]; ok {
+		cloudNodeLabel := map[string]string{
+			KubernetesCloudNodeRoleKey: "",
+		}
+		if err := utilkube.AddNodeLabel(kubeClient, node.Name, cloudNodeLabel); err != nil {
+			klog.Errorf("Add Cloud node label error: %v", err)
+			return err
+		}
+		return nil
 	}
 
 	return nil

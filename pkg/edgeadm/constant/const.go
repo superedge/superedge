@@ -80,8 +80,9 @@ const (
 
 // label
 const (
-	EdgeNodeLabelKey     = "superedge.io/edge-node"
-	EdgeMasterLabelKey   = "superedge.io/edge-master"
+	EdgeNodeLabelKey     = "superedge.io/node-edge"
+	CloudNodeLabelKey    = "superedge.io/node-cloud"
+	EdgeMasterLabelKey   = "superedge.io/node-master"
 	EdgeChangeLabelKey   = "superedge.io/change"
 	EdgehostnameLabelKey = "superedge.io.hostname"
 	EdgeLocalHost        = "superedge.io/local-endpoint"

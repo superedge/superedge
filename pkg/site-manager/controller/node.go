@@ -37,6 +37,11 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 		return
 	}
 
+	// set node role
+	if err := utils.SetNodeRole(siteManager.kubeClient, node); err != nil {
+		klog.Errorf("Set node: %s role error: %#v", err)
+	}
+
 	// 1. get all nodeunit
 	allNodeUnit, err := siteManager.crdClient.SiteV1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !errors.IsConflict(err) {
@@ -93,6 +98,11 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 	}
 	if utilkube.IsReadyNode(oldNode) == utilkube.IsReadyNode(curNode) {
 		return
+	}
+
+	// set node role
+	if err := utils.SetNodeRole(siteManager.kubeClient, curNode); err != nil {
+		klog.Errorf("Set node: %s role error: %#v", err)
 	}
 
 	nodeUnits, err := utils.GetUnitsByNode(siteManager.crdClient, curNode)
