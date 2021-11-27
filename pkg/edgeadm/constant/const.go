@@ -81,12 +81,14 @@ const (
 // label
 const (
 	EdgeNodeLabelKey     = "superedge.io/edge-node"
+	CloudNodeLabelKey    = "superedge.io/node-cloud"
 	EdgeMasterLabelKey   = "superedge.io/edge-master"
 	EdgeChangeLabelKey   = "superedge.io/change"
 	EdgehostnameLabelKey = "superedge.io.hostname"
 	EdgeLocalHost        = "superedge.io/local-endpoint"
 	EdgeLocalPort        = "superedge.io/local-port"
 
+	CloudNodeLabelValueEnable  = "enable"
 	EdgeNodeLabelValueEnable   = "enable"
 	EdgeMasterLabelValueEnable = "enable"
 	EdgeChangeLabelValueEnable = "enable"
@@ -94,7 +96,7 @@ const (
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
 
-	EdgeNodeAffinityAction = "Exists"
+	EdgeNodeAffinityAction     = "Exists"
 	EdgeNodeAntiAffinityAction = "DoesNotExist"
 
 	//topolvm
