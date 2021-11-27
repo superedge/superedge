@@ -151,6 +151,9 @@ func NewSitesManagerDaemonController(
 	// todo: node watch need add node ? no
 	// todo: add leabel to unit master, cloud-node, edge-node, all-node
 
+	if err := utils.CreateDefaultUnit(crdClient); err != nil {
+		klog.Errorf("Create default unit error: %#v", err)
+	}
 	if err := utils.InitUnitToNode(kubeClient, crdClient); err != nil {
 		klog.Errorf("Init unit info to node error: %#v", err)
 	}

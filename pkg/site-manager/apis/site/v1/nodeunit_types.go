@@ -24,8 +24,10 @@ import (
 type NodeUnitType string
 
 const (
-	EdgeNodeUnit  NodeUnitType = "edge"
-	CloudNodeUnit NodeUnitType = "cloud"
+	EdgeNodeUnit   NodeUnitType = "edge"
+	CloudNodeUnit  NodeUnitType = "cloud"
+	MasterNodeUnit NodeUnitType = "master"
+	OtherNodeUnit  NodeUnitType = "other"
 )
 
 // NodeUnitSpec defines the desired state of NodeUnit
@@ -38,23 +40,23 @@ type NodeSelector struct {
 type Selector struct {
 	// matchLabels is a map of {key,value} pairs.
 	// +optional
-	MatchLabels map[string]string `json:"matchLabels,omitempty" protobuf:"bytes,1,rep,name=matchLabels"`
+	MatchLabels map[string]string `json:"matchLabels,omitempty" protobuf:"bytes,1,opt,name=matchLabels"`
 	// matchExpressions is a list of label selector requirements. The requirements are ANDed.
 	// +optional
-	MatchExpressions []metav1.LabelSelectorRequirement `json:"matchExpressions,omitempty" protobuf:"bytes,2,rep,name=matchExpressions"`
+	MatchExpressions []metav1.LabelSelectorRequirement `json:"matchExpressions,omitempty" protobuf:"bytes,2,opt,name=matchExpressions"`
 	//If specified, select node to join nodeUnit according to Annotations
 	// +optional
-	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,opt,name=annotations"`
 }
 
 type SetNode struct {
 	//If specified, set labels to all nodes of nodeunit
 	// +optional
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,opt,name=labels"`
 
 	//If specified, set annotations to all nodes of nodeunit
 	// +optional
-	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,opt,name=annotations"`
 
 	// If specified, set taints to all nodes of nodeunit
 	// +optional
@@ -66,7 +68,7 @@ type NodeUnitSpec struct {
 	// Type of nodeunit， vaule: Cloud、Edge
 	// +optional
 	//+kubebuilder:default=edge
-	Type NodeUnitType `json:"type,omitempty" protobuf:"bytes,2,rep,name=type"`
+	Type NodeUnitType `json:"type" protobuf:"bytes,2,rep,name=type"`
 
 	// Unschedulable controls nodeUnit schedulability of new workwolads. By default, nodeUnit is schedulable.
 	// +optional
@@ -75,15 +77,15 @@ type NodeUnitSpec struct {
 
 	// If specified, If node exists, join nodeunit directly
 	// +optional
-	Nodes []string `json:"nodes" protobuf:"bytes,12,rep,name=nodes"`
+	Nodes []string `json:"nodes,omitempty" protobuf:"bytes,12,opt,name=nodes"`
 
 	// If specified, Label selector for nodes.
 	// +optional
-	Selector *Selector `json:"selector" protobuf:"bytes,2,opt,name=selector"`
+	Selector *Selector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
 	// If specified, set the relevant properties to the node of nodeunit.
 	// +optional
-	SetNode SetNode `json:"setnode" protobuf:"bytes,12,opt,name=setnode"`
+	SetNode SetNode `json:"setnode,omitempty" protobuf:"bytes,12,opt,name=setnode"`
 	// If specified, allow to set taints to nodeunit for the scheduler to choose
 	// +optional
 	Taints []corev1.Taint `json:"taints,omitempty" protobuf:"bytes,5,opt,name=taints"`
@@ -97,10 +99,10 @@ type NodeUnitStatus struct {
 	ReadyRate string `json:"readyrate" protobuf:"bytes,4,rep,name=readyrate"`
 	// Node selected by nodeunit
 	// +optional
-	ReadyNodes []string `json:"readynodes" protobuf:"bytes,12,rep,name=readynodes"`
+	ReadyNodes []string `json:"readynodes,omitempty" protobuf:"bytes,12,opt,name=readynodes"`
 	// Node that is not ready in nodeunit
 	// +optional
-	NotReadyNodes []string `json:"notreadynodes" protobuf:"bytes,12,rep,name=notreadynodes"`
+	NotReadyNodes []string `json:"notreadynodes,omitempty" protobuf:"bytes,12,opt,name=notreadynodes"`
 }
 
 // +genclient
