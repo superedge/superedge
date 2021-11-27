@@ -250,7 +250,7 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
 
 	// Add edge node label
-	joinRunner.AppendPhase(steps.NewAddEdgeNodeLabelPhase(edgeConfig))
+	joinRunner.AppendPhase(steps.NewAddNodeLabelPhase(edgeConfig))
 
 	// sets the data builder function, that will be used by the runner
 	// both when running the entire workflow or single phases
