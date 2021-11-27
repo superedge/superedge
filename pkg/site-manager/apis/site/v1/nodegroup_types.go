@@ -49,15 +49,15 @@ type Workload struct {
 type NodeGroupSpec struct {
 	// If specified, If nodeUnit exists, join NodeGroup directly
 	// +optional
-	NodeUnits []string `json:"nodeunits" protobuf:"bytes,12,rep,name=nodeunits"`
+	NodeUnits []string `json:"nodeunits,omitempty" protobuf:"bytes,12,opt,name=nodeunits"`
 
 	// If specified, Label selector for nodeUnit.
 	// +optional
-	Selector *Selector `json:"selector" protobuf:"bytes,2,opt,name=selector"`
+	Selector *Selector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
 	// If specified, Nodegroup bound workload
 	// +optional
-	Workload []Workload `json:"workload" protobuf:"bytes,12,rep,name=workload"`
+	Workload []Workload `json:"workload,omitempty" protobuf:"bytes,12,opt,name=workload"`
 }
 
 // NodeGroupStatus defines the observed state of NodeGroup
