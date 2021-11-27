@@ -18,17 +18,17 @@ package app
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/version"
-	"github.com/superedge/superedge/pkg/version/verflag"
 	"io"
-
-	"github.com/moby/term"
-	"github.com/spf13/cobra"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
+	"github.com/spf13/cobra"
+	"github.com/moby/term"
+
+	"github.com/superedge/superedge/pkg/version/verflag"
+	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
 	"github.com/superedge/superedge/pkg/lite-apiserver/server"
 	"github.com/superedge/superedge/pkg/util"
