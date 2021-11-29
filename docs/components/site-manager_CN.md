@@ -130,7 +130,7 @@ type NodeUnitStatus struct {
     }
     ```
 
--   Taints []corev1.Taint是K8s原生的aints，可以为NodeUnit设置Taints，从而影响应用的调度。（todo）
+-   Taints []corev1.Taint是K8s原生的Taints，可以为NodeUnit设置Taints，从而影响应用的调度。
 
 ### 2.2 NodeGroup
 
@@ -156,51 +156,23 @@ type NodeGroupSpec struct {
 	// +optional
 	Workload []Workload `json:"workload,omitempty"`
 }
-
-// NodeGroupStatus defines the observed state of NodeGroup
-type WorkloadStatus struct {
-	// workload Name
-	// +optional
-	WorkloadName string `json:"workloadname,omitempty"`
-	// workload Ready Units
-	// +optional
-	ReadyUnit []string `json:"readyunit,omitempty" `
-	// workload NotReady Units
-	// +optional
-	NotReadyUnit []string `json:"notreadyunit,omitempty"`
-}
 ```
 
 -   Selector *Selector的结构体同NodeUnit, 不过现在是对符合条件的NodeUnit进行选择，同样支持填写NodeUnit的Name给NodeGroupSpec.NodeUnits。同样只要NodeUnit存在并能满足NodeGroupSpec.Selector和NodeGroupSpec.NodeUnits 之一，就会被自动加入。
 
--   Workload []Workload：本NodeGroup中应用的数组 (todo)
+-   Workload []Workload：本NodeGroup中应用的数组 
 
-    和ServerGroup结合，将应用信息填入Workload进项绑定，其中Selector设计同NodeUnit, 不过含义是进行引用选择。
+    和ServerGroup结合，将应用信息填入Workload进项绑定，其中Selector设计同NodeUnit, 不过含义是进行NodeUite选择。自定位结构体,不是[]string数组，为是后续扩展。
 
     ```go
     type Workload struct {
     	// workload name
     	// +optional
     	Name string `json:"name"`
-    	// workload type, Value can be pod, deploy, ds, service, job, st
-    	// +optional
-    	Type WorkloadType `json:"type"`
-    	// If specified, Label selector for workload.
-    	// +optional
-    	Selector *Selector `json:"selector"`
     }
-    
-    const (
-    	WorkloadPod          WorkloadType = "Pod"
-    	WorkloadJob          WorkloadType = "Job"
-    	WorkloadCronjob      WorkloadType = "CronJob"
-    	WorkloadDeploy       WorkloadType = "Deployment"
-    	WorkloadService      WorkloadType = "Service"
-    	WorkloadReplicaSet   WorkloadType = "ReplicaSet"
-    	WorkloadDaemonset    WorkloadType = "DaemonSet"
-    	WorkloadStatuefulset WorkloadType = "StatuefulSet"
-    )
     ```
+
+ `注意：`  NodeGroupSpec.Workload 只负责记录NodeGroup绑定的应用有那些，并不负责维护Workload的状态。NodeGroup是资源范畴，应用范畴由其他组件维护。
 
 ## 3.效果展示
 
@@ -343,13 +315,12 @@ type WorkloadStatus struct {
           nodeunit: demo
       workload:
       - name: demo
-        type: Deployment
     ```
-
+    
 -   显示
 
     ```yaml
-    attlee➜ kubectl get ng                                
+    attlee➜ kubectl get ng (ng是nodegroup的简写)                              
     NAME             UNITS   AGE
     nodegroup-demo   2       3m7s ## 此NodeGroup有选中了两个NodeUnit
     ```
@@ -371,7 +342,6 @@ type WorkloadStatus struct {
           nodeunit: demo
       workload:
       - name: demo
-        type: Deployment
     status:
       nodeunits:         ## 选中了两个nodeunits
       - nodeunit-demo
