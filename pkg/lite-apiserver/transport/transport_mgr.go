@@ -26,10 +26,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
-	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"k8s.io/client-go/util/connrotation"
 	"k8s.io/klog/v2"
+
+	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
+	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 )
 
 const (
