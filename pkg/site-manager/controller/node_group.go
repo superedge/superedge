@@ -19,14 +19,16 @@ package controller
 import (
 	"context"
 	"fmt"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
-	"github.com/superedge/superedge/pkg/site-manager/utils"
-	"github.com/superedge/superedge/pkg/util"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"strings"
+
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	"github.com/superedge/superedge/pkg/site-manager/utils"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {

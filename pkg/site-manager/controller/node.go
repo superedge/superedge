@@ -19,15 +19,17 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/superedge/superedge/pkg/site-manager/utils"
-	"github.com/superedge/superedge/pkg/util"
-	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+
+	"github.com/superedge/superedge/pkg/site-manager/utils"
+	"github.com/superedge/superedge/pkg/util"
+	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {

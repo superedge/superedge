@@ -33,17 +33,15 @@ const (
 )
 
 type Options struct {
-	Master            string
-	Kubeconfig        string
-	QPS               float32
 	Burst             int
-	FeatureGates      map[string]bool
 	SyncPeriod        int
 	SyncPeriodAsWhole int
 	Worker            int
+	QPS               float32
+	Master            string
+	Kubeconfig        string
+	FeatureGates      map[string]bool
 	config.LeaderElectionConfiguration
-	HostName string
-	HostPath string
 }
 
 func NewSiteManagerDaemonOptions() *Options {
@@ -52,21 +50,20 @@ func NewSiteManagerDaemonOptions() *Options {
 	featureGates["EndpointSlice"] = true
 
 	return &Options{
-		QPS:               float32(1000),
-		Burst:             1000,
 		SyncPeriod:        30,
 		SyncPeriodAsWhole: 30,
+		Burst:             1000,
+		QPS:               float32(1000),
 		Worker:            runtime.NumCPU(),
 		LeaderElectionConfiguration: config.LeaderElectionConfiguration{
-			ResourceName:      SiteManagerDaemonUserAgent,
+			ResourceLock:      "site-manager",
 			ResourceNamespace: metav1.NamespaceSystem,
-			ResourceLock:      "endpoints",
+			ResourceName:      SiteManagerDaemonUserAgent,
+			RetryPeriod:       metav1.Duration{Duration: time.Second * time.Duration(2)},
 			LeaseDuration:     metav1.Duration{Duration: time.Second * time.Duration(15)},
 			RenewDeadline:     metav1.Duration{Duration: time.Second * time.Duration(10)},
-			RetryPeriod:       metav1.Duration{Duration: time.Second * time.Duration(2)},
 		},
 		FeatureGates: featureGates,
-		HostPath:     "/data/edge/hosts",
 	}
 }
 
@@ -107,6 +104,4 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ResourceNamespace, "leader-elect-resource-namespace", o.ResourceNamespace, ""+
 		"The namespace of resource object that is used for locking during "+
 		"leader election.")
-	fs.StringVar(&o.HostName, "hostname", o.HostName, "hostname for statefulset-grid-daemon")
-	fs.StringVar(&o.HostPath, "hostpath", o.HostPath, "dns hostpath for statefulset-grid-daemon")
 }
