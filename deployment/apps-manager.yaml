@@ -1,0 +1,126 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: apps-manager-service-account
+  namespace: edge-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: apps-manager-cluster-role
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - nodes
+      - services
+      - secrets
+      - namespaces
+      - events
+    verbs:
+      - "*"
+  - apiGroups:
+      - apps.superedge.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apps-manager-cluster-role-binding
+  namespace: edge-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: apps-manager-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: apps-manager-service-account
+    namespace: edge-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apps-manager-config
+  namespace: edge-system
+data:
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apps-manager
+  namespace: edge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apps-manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: apps-manager
+    spec:
+      containers:
+        - name: apps-manager
+          image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v1
+          imagePullPolicy: Always
+          command:
+            - /usr/local/bin/apps-manager
+            - --hostname=$(NODE_NAME)
+            - v=9
+            #- --kubeconfig=/var/lib/apps-manager-config/kubeconfig.conf
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 50m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /data/edge
+              name: hosts
+            - mountPath: /var/lib/apps-manager-config
+              name: apps-manager-config
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: apps-manager-service-account
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: apps-manager-config
+          name: apps-manager-config
+        - hostPath:
+            path: /data/edge
+            type: DirectoryOrCreate
+          name: hosts
