@@ -214,7 +214,7 @@ type NodeGroupSpec struct {
     cvm-q984rksk   NotReady   Cloud    5d17h   v1.18.2
     ```
 
--   UodeUnit Demo
+-   NodeUnit Demo
 
     ```yaml
     apiVersion: site.superedge.io/v1
