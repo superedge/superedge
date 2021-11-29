@@ -18,17 +18,10 @@ package app
 
 import (
 	"context"
-	"github.com/spf13/cobra"
-	"github.com/superedge/superedge/cmd/site-manager/app/options"
-	"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
+	"os"
+	"time"
 
-	"github.com/superedge/superedge/pkg/site-manager/config"
-	"github.com/superedge/superedge/pkg/site-manager/controller"
-	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
-	//"github.com/superedge/superedge/pkg/statefulset-grid-daemon/hosts"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/version"
-	"github.com/superedge/superedge/pkg/version/verflag"
+	"github.com/spf13/cobra"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientset "k8s.io/client-go/kubernetes"
@@ -40,8 +33,14 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"os"
-	"time"
+
+	"github.com/superedge/superedge/cmd/site-manager/app/options"
+	"github.com/superedge/superedge/pkg/site-manager/config"
+	"github.com/superedge/superedge/pkg/site-manager/controller"
+	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 )
 
 func NewSiteManagerDaemonCommand() *cobra.Command {
@@ -51,12 +50,12 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
 
-			klog.Infof("Versions: %#v\n", version.Get())
+			klog.Infof("Site-manager Versions: %#v\n", version.Get())
 			util.PrintFlags(cmd.Flags())
 
 			kubeconfig, err := clientcmd.BuildConfigFromFlags(siteOptions.Master, siteOptions.Kubeconfig)
 			if err != nil {
-				klog.Fatalf("failed to create kubeconfig: %v", err)
+				klog.Fatalf("Failed to create kubconfig: %#v", err)
 			}
 
 			kubeconfig.QPS = siteOptions.QPS
@@ -64,20 +63,15 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 			kubeClient := clientset.NewForConfigOrDie(kubeconfig)
 			crdClient := crdClientset.NewForConfigOrDie(kubeconfig)
 
-			hosts := hosts.NewHosts(siteOptions.HostPath)
-			if _, err := hosts.LoadHosts(); err != nil {
-				klog.Fatalf("init load hosts file err: %v", err)
-			}
-
 			// not leade elect
 			if !siteOptions.LeaderElect {
-				runController(context.TODO(), kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole, siteOptions.HostName, hosts)
-				panic("unreachable")
+				runController(context.TODO(), kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole)
+				panic("Start site-manager failed\n")
 			}
 
 			hostname, err := os.Hostname()
 			if err != nil {
-				klog.Fatalf("failed to get hostname %v", err)
+				klog.Fatalf("Failed to get hostname %#v", err)
 			}
 			identityId := hostname + "_" + string(uuid.NewUUID())
 
@@ -93,7 +87,7 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 					EventRecorder: createRecorder(kubeClient, options.SiteManagerDaemonUserAgent),
 				})
 			if err != nil {
-				klog.Fatalf("error creating lock: %v", err)
+				klog.Fatalf("Creating leader elect lock error %#v", err)
 			}
 
 			// leader running controller
@@ -106,16 +100,16 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 				RetryPeriod:   siteOptions.RetryPeriod.Duration,
 				Callbacks: leaderelection.LeaderCallbacks{
 					OnStartedLeading: func(ctx context.Context) {
-						runController(ctx, kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole, siteOptions.HostName, hosts)
+						runController(ctx, kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole)
 					},
 					OnStoppedLeading: func() {
-						klog.Fatalf("leaderelection lost")
+						klog.Fatalf("Leader election lost")
 					},
 				},
 				WatchDog: electionChecker,
 				Name:     options.SiteManagerDaemonUserAgent,
 			})
-			panic("unreachable")
+			panic("Start site-manager failed\n")
 		},
 	}
 
@@ -125,15 +119,12 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 	return cmd
 }
 
-func runController(parent context.Context,
-	kubeClient *clientset.Clientset, crdClient *crdClientset.Clientset,
-	workerNum, syncPeriod, syncPeriodAsWhole int, hostName string, hosts *hosts.Hosts) {
+func runController(parent context.Context, kubeClient *clientset.Clientset,
+	crdClient *crdClientset.Clientset, workerNum, syncPeriod, syncPeriodAsWhole int) {
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
-
-	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(
-		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.NodeUnitInformer,
-		controllerConfig.NodeGroupInformer, controllerConfig.ServiceInformer, kubeClient, crdClient, hostName, hosts)
+	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(controllerConfig.NodeInformer,
+		controllerConfig.NodeUnitInformer, controllerConfig.NodeGroupInformer, kubeClient, crdClient)
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()

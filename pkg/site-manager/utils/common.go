@@ -37,7 +37,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 		},
 	}
 	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), allNnodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Errorf("Create default %s unit error : %#v", AllNodeUnit, err)
+		klog.Warningf("Create default %s unit error : %#v", AllNodeUnit, err)
 	}
 
 	// Master Node Unit
@@ -60,7 +60,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 		},
 	}
 	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), masterUnit, metav1.CreateOptions{}); err != nil {
-		klog.Errorf("Create default %s unit error : %#v", MasterNodeUnit, err)
+		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
 	}
 
 	// Cloud Node Unit
@@ -83,7 +83,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 		},
 	}
 	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), cloudNnodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Errorf("Create default %s unit error : %#v", MasterNodeUnit, err)
+		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
 	}
 
 	// Edge Node Unit
@@ -106,7 +106,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 		},
 	}
 	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), edgeNnodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Errorf("Create default %s unit error : %#v", EdgeNodeUnit, err)
+		klog.Warningf("Create default %s unit error : %#v", EdgeNodeUnit, err)
 	}
 
 	return nil

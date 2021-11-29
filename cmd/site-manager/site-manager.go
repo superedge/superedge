@@ -60,7 +60,7 @@ func klogSet() {
 	pflag.CommandLine.MarkHidden("log-file-max-size")
 	pflag.CommandLine.MarkHidden("log-flush-frequency")
 
-	flag.Set("v", "8")
+	flag.Set("v", "4")
 	flag.Set("logtostderr", "false")
 	flag.Set("alsologtostderr", "true")
 }

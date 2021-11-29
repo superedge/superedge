@@ -77,19 +77,13 @@ spec:
     spec:
       containers:
         - name: site-manager
-          image: ccr.ccs.tencentyun.com/superedge/site-manager-amd64:v1
+          image: ccr.ccs.tencentyun.com/superedge/site-manager-amd64:v0.6.0
+          #image: superedge.tencentcloudcr.com/superedge/site-manager:v0.6.0
           imagePullPolicy: Always
           command:
             - /usr/local/bin/site-manager
-            - --hostname=$(NODE_NAME)
-            - v=9
+            - v=4
             #- --kubeconfig=/var/lib/site-manager-config/kubeconfig.conf
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: spec.nodeName
           resources:
             limits:
               cpu: 50m
