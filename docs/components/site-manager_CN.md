@@ -9,7 +9,8 @@
       * [3.1 部署](#31-部署)
       * [3.1 NodeUnit demo](#31-nodeunit-demo)
       * [3.2 NodeGroup demo](#32-nodegroup-demo)
-   * [4. 后续计划](#4-后续计划)
+   * [4.site-manager的动作说明](#4site-manager的动作说明)
+   * [5. 后续计划](#5-后续计划)
 
 ## 1. 背景
 
@@ -349,7 +350,20 @@ type NodeGroupSpec struct {
       unitnumber: 2
     ```
 
-## 4. 后续计划
+## 4.site-manager的动作说明
+
+-   添加和更新NodeUnit 
+    -   Ndoe节点：会将符合每个NodeUnit Selector条件的节点加入到相应的NodeUnit中去；
+    -   NodeGroup：将符合NodeGroup Selector条件的NodeUnit加入到NodeGroup的NodeUnit列表中；
+-   删除NodeUnit
+    -   Ndoe节点：会将NodeUnit绑定到每个Node的SetNode属性和此NodeUnit的Name从node的相应属性中移除；
+    -   NodeGroup：会将本NodeUnit从所有NodeGroup的NodeUnit列表中移除；
+-   添加和更新Node
+    -   NodeUnit：添加和更新的Node后，符合某个NodeUnit Selector，会将Node加入到对应的NodeUnit中去，并将相应NodeUnit的SetNode属性设置到这个新的Node上
+-   删除Node
+    -   会将此Node从所有包含此Node的NodeUnit中移除；
+
+## 5. 后续计划
 
 -   演示文档中标识todo部分还在实现中，是确定会提供的功能；
 
