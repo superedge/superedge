@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -241,6 +242,26 @@ func CheckNodeLabel(kubeClient *kubernetes.Clientset, nodeName string, labels ma
 		}
 	}
 	return true, nil
+}
+
+func GetNodeListStatus(nodes []corev1.Node) (readyNodes []string, notReadyNodes []string) {
+	for _, node := range nodes {
+		if IsReadyNode(&node) {
+			readyNodes = append(readyNodes, node.Name)
+		} else {
+			notReadyNodes = append(notReadyNodes, node.Name)
+		}
+	}
+	return
+}
+
+func IsReadyNode(node *corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 func GetClusterInfo(kubeconfigFile string) (*api.Cluster, error) {

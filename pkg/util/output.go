@@ -17,8 +17,10 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	_ "strings"
 )
 
 func OutPutMessage(msg string) {
@@ -37,4 +39,14 @@ func ToJson(v interface{}) string {
 func ToJsonForm(v interface{}) string {
 	json, _ := json.MarshalIndent(v, "", "   ")
 	return string(json)
+}
+
+func DisableEscapeJson(data interface{}) (string, error) {
+	bf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(bf)
+	jsonEncoder.SetEscapeHTML(false)
+	if err := jsonEncoder.Encode(data); err != nil {
+		return "", err
+	}
+	return bf.String(), nil
 }
