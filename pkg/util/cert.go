@@ -204,7 +204,7 @@ func GenerateCA(organization string) (caBundle string, caCert *x509.Certificate,
 	}
 	caPEM := new(bytes.Buffer)
 	pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
+		Type:  CertificateBlockType,
 		Bytes: caBytes,
 	})
 	caBundle = base64.StdEncoding.EncodeToString(caPEM.Bytes())
