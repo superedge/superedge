@@ -54,36 +54,65 @@ metadata:
   name: apps-manager-config
   namespace: edge-system
 data:
+  kubeconfig.conf: |
+    apiVersion: v1
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://127.0.0.1:51003
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    kind: Config
+    preferences: {}
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
+  labels:
+    k8s-app: apps-manager
   name: apps-manager
   namespace: edge-system
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: apps-manager
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
+      k8s-app: apps-manager
+  updateStrategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
   template:
     metadata:
       labels:
-        app: apps-manager
+        k8s-app: apps-manager
     spec:
+      serviceAccount: apps-manager-service-account # todo
+      serviceAccountName: apps-manager-service-account # todo
+      priorityClassName: system-node-critical     # todo
+      hostNetwork: true
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: cvm-lstmy4di # TODO select edge node
       containers:
         - name: apps-manager
-          image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v1
-          imagePullPolicy: Always
+          image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v0.6.0
+          imagePullPolicy: Always # todo IfNotPresent
           command:
             - /usr/local/bin/apps-manager
+            - --kubeconfig=/var/lib/apps-manager/kubeconfig.conf
+            - --master=127.0.0.1:51006
             - --hostname=$(NODE_NAME)
             - v=9
-            #- --kubeconfig=/var/lib/apps-manager-config/kubeconfig.conf
+            # - --notify-channel-size=10000 # todo IfNotPresent
           env:
             - name: NODE_NAME
               valueFrom:
@@ -97,30 +126,26 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
           securityContext:
             privileged: true
           volumeMounts:
-            - mountPath: /data/edge
-              name: hosts
-            - mountPath: /var/lib/apps-manager-config
+            - mountPath: /var/lib/apps-manager
               name: apps-manager-config
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      serviceAccountName: apps-manager-service-account
-      schedulerName: default-scheduler
-      terminationGracePeriodSeconds: 30
-      tolerations:
-        - key: "node-role.kubernetes.io/master"
-          operator: "Exists"
-          effect: "NoSchedule"
+            - mountPath: /etc/kubernetes/manifests/
+              name: kube-manifests
+            - mountPath: /etc/kubernetes/edge-manifests/
+              name: edge-manifests
       volumes:
         - configMap:
             defaultMode: 420
             name: apps-manager-config
           name: apps-manager-config
         - hostPath:
-            path: /data/edge
+            path: /etc/kubernetes/edge-manifests/
             type: DirectoryOrCreate
-          name: hosts
+          name: edge-manifests
+        - hostPath:
+            path: /etc/kubernetes/manifests/
+            type: DirectoryOrCreate
+          name: kube-manifests
+

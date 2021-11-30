@@ -64,9 +64,9 @@ func NewAppsManagerDaemonCommand() *cobra.Command {
 			crdClient := crdClientset.NewForConfigOrDie(kubeconfig)
 
 			hosts := hosts.NewHosts(siteOptions.HostPath)
-			if _, err := hosts.LoadHosts(); err != nil {
-				klog.Fatalf("init load hosts file err: %v", err)
-			}
+			//if _, err := hosts.LoadHosts(); err != nil {
+			//	klog.Fatalf("init load hosts file err: %v", err)
+			//}
 
 			// not leade elect
 			if !siteOptions.LeaderElect {
