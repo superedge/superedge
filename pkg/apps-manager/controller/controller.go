@@ -42,10 +42,10 @@ import (
 
 var (
 	KeyFunc        = cache.DeletionHandlingMetaNamespaceKeyFunc
-	controllerKind = appsv1.SchemeGroupVersion.WithKind("StatefulSet")
+	controllerKind = appsv1.SchemeGroupVersion.WithKind("apps-manager")
 )
 
-type SitesManagerDaemonController struct {
+type SitesManagerController struct {
 	hostName string
 	hosts    *hosts.Hosts
 
@@ -77,7 +77,7 @@ func NewAppsManagerDaemonController(
 	serviceInformer coreinformers.ServiceInformer,
 	kubeClient clientset.Interface,
 	crdClient *crdClientset.Clientset,
-	hostName string, hosts *hosts.Hosts) *SitesManagerDaemonController {
+	hostName string, hosts *hosts.Hosts) *SitesManagerController {
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
@@ -85,7 +85,7 @@ func NewAppsManagerDaemonController(
 		Interface: kubeClient.CoreV1().Events(""),
 	})
 
-	appsController := &SitesManagerDaemonController{
+	appsManager := &SitesManagerController{
 		hostName:      hostName,
 		hosts:         hosts,
 		kubeClient:    kubeClient,
@@ -101,21 +101,21 @@ func NewAppsManagerDaemonController(
 	})
 
 	//podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-	//	AddFunc:    siteManager.addPod,
-	//	UpdateFunc: siteManager.updatePod,
-	//	DeleteFunc: siteManager.deletePod,
+	//	AddFunc:   appsManager.addPod,
+	//	UpdateFunc:appsManager.updatePod,
+	//	DeleteFunc:appsManager.deletePod,
 	//})
 
 	edeployUnitInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		//AddFunc:    siteController.addNodeUnit,
+		AddFunc: appsManager.addEDeploy,
 		//UpdateFunc: siteController.updateNodeUnit,
 		//DeleteFunc: siteController.deleteNodeUnit,
 	})
 
 	//serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-	//	AddFunc:    siteManager.addService,
-	//	UpdateFunc: siteManager.updateService,
-	//	DeleteFunc: siteManager.deleteService,
+	//	AddFunc:   appsManager.addService,
+	//	UpdateFunc:appsManager.updateService,
+	//	DeleteFunc:appsManager.deleteService,
 	//})
 
 	//siteController.syncHandler = siteController.syncDnsHosts
@@ -124,21 +124,21 @@ func NewAppsManagerDaemonController(
 	//siteController.podLister = podInformer.Lister()
 	//siteController.podListerSynced = podInformer.Informer().HasSynced
 
-	appsController.nodeLister = nodeInformer.Lister()
-	appsController.nodeListerSynced = nodeInformer.Informer().HasSynced
+	appsManager.nodeLister = nodeInformer.Lister()
+	appsManager.nodeListerSynced = nodeInformer.Informer().HasSynced
 
 	//siteController.serviceLister = serviceInformer.Lister()
 	//siteController.serviceListerSynced = serviceInformer.Informer().HasSynced
 
-	appsController.eDeploymentLister = edeployUnitInformer.Lister()
-	appsController.nodeUnitListerSynced = edeployUnitInformer.Informer().HasSynced
+	appsManager.eDeploymentLister = edeployUnitInformer.Lister()
+	appsManager.nodeUnitListerSynced = edeployUnitInformer.Informer().HasSynced
 
 	klog.V(4).Infof("Site-manager set handler success")
 
-	return appsController
+	return appsManager
 }
 
-func (appsManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
+func (appsManager *SitesManagerController) Run(workers, syncPeriodAsWhole int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer appsManager.queue.ShutDown()
 
@@ -160,50 +160,50 @@ func (appsManager *SitesManagerDaemonController) Run(workers, syncPeriodAsWhole 
 	<-stopCh
 }
 
-func (appsManager *SitesManagerDaemonController) worker() {
+func (appsManager *SitesManagerController) worker() {
 	for appsManager.processNextWorkItem() {
 	}
 }
 
-func (appsManager *SitesManagerDaemonController) processNextWorkItem() bool {
+func (appsManager *SitesManagerController) processNextWorkItem() bool {
 	key, quit := appsManager.queue.Get()
 	if quit {
 		return false
 	}
 	defer appsManager.queue.Done(key)
-	klog.V(4).Infof("Get siteManager queue key: %s", key)
+	klog.V(4).Infof("GetappsManager queue key: %s", key)
 
-	//err := siteManager.syncHandler(key.(string))
-	//klog.V(4).Infof("Get siteManager syncHandler error: %#v", err)
+	//err :=appsManager.syncHandler(key.(string))
+	//klog.V(4).Infof("GetappsManager syncHandler error: %#v", err)
 
 	appsManager.handleErr(nil, key)
 
 	return true
 }
 
-func (siteManager *SitesManagerDaemonController) handleErr(err error, key interface{}) {
+func (appsManager *SitesManagerController) handleErr(err error, key interface{}) {
 	if err == nil {
-		siteManager.queue.Forget(key)
+		appsManager.queue.Forget(key)
 		return
 	}
 
-	if siteManager.queue.NumRequeues(key) < common.MaxRetries {
+	if appsManager.queue.NumRequeues(key) < common.MaxRetries {
 		klog.V(2).Infof("Error syncing statefulset %v: %v", key, err)
-		siteManager.queue.AddRateLimited(key)
+		appsManager.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
 	klog.V(2).Infof("Dropping statefulset %q out of the queue: %v", key, err)
-	siteManager.queue.Forget(key)
+	appsManager.queue.Forget(key)
 }
 
-func (siteManager *SitesManagerDaemonController) enqueue(nodeunit *sitev1.EDeployment) {
+func (appsManager *SitesManagerController) enqueue(nodeunit *sitev1.EDeployment) {
 	key, err := KeyFunc(nodeunit)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", nodeunit, err))
 		return
 	}
 
-	siteManager.queue.Add(key)
+	appsManager.queue.Add(key)
 }
