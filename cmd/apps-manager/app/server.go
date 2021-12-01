@@ -69,7 +69,7 @@ func NewAppsManagerDaemonCommand() *cobra.Command {
 			//}
 
 			// not leade elect
-			if !siteOptions.LeaderElect {
+			if !siteOptions.LeaderElect { // todo: 不能再选主，每个node都只处理自己的node的任务
 				runController(context.TODO(), kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole, siteOptions.HostName, hosts)
 				panic("unreachable")
 			}

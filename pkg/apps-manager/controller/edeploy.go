@@ -32,46 +32,51 @@ import (
 )
 
 func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
-	nodeUnit := obj.(*appsv1.NodeUnit)
-	klog.V(4).Infof("Get Add nodeUnit: %s", util.ToJson(nodeUnit))
-	if nodeUnit.DeletionTimestamp != nil {
-		siteManager.deleteNodeUnit(nodeUnit) //todo
+	edeploy := obj.(*appsv1.EDeployment)
+	klog.V(4).Infof("Get Add edge deploy: %s", util.ToJson(edeploy))
+
+	if edeploy.DeletionTimestamp != nil {
+		appsManager.deleteNodeUnit(edeploy) //todo
 		return
 	}
 
-	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
+	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, edeploy)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			readyNodes, notReadyNodes = []string{}, []string{}
-			klog.Warningf("Get unit: %s node nil", nodeUnit.Name)
+			klog.Warningf("Get unit: %s node nil", edeploy.Name)
 		} else {
 			klog.Errorf("Get NodeUnit Nodes error: %v", err)
 			return
 		}
 	}
 
+	// 1. edploy to node yaml
+
+	// 2. check
+
 	// todo: set node
 
-	nodeUnitStatus := &nodeUnit.Status
+	nodeUnitStatus := &edeploy.Status
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
+	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), edeploy, metav1.UpdateOptions{})
 	if err != nil {
-		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
+		klog.Errorf("Update nodeUnit: %s error: %#v", edeploy.Name, err)
 		return
 	}
 
 	nodeNames := append(readyNodes, notReadyNodes...)
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name}); err != nil {
-		klog.Errorf("Add nodes annotations: %s, error: %#v", nodeUnit.Name, err)
+	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{edeploy.Name}); err != nil {
+		klog.Errorf("Add nodes annotations: %s, error: %#v", edeploy.Name, err)
 		return
 	}
 
 	/*
 	 nodeGroup action
 	*/
-	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, nodeUnit.Name)
+	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, edeploy.Name)
 	if err != nil {
 		klog.Errorf("Get NodeGroups error: %v", err)
 		return
@@ -80,7 +85,7 @@ func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
 	// Update nodegroups
 	for _, nodeGroup := range nodeGroups {
 		nodeGroupStatus := &nodeGroup.Status
-		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, nodeUnit.Name)
+		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, edeploy.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
 		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
@@ -90,7 +95,7 @@ func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
 		}
 	}
 
-	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
+	klog.V(4).Infof("Add nodeUnit: %s success.", edeploy.Name)
 }
 
 func (appsManager *SitesManagerController) updateNodeUnit(oldObj, newObj interface{}) {
@@ -162,7 +167,7 @@ func (appsManager *SitesManagerController) updateNodeUnit(oldObj, newObj interfa
 	//	}
 	//}
 
-	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
+	// klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
 
 func (appsManager *SitesManagerController) deleteNodeUnit(obj interface{}) {
@@ -219,5 +224,5 @@ func (appsManager *SitesManagerController) deleteNodeUnit(obj interface{}) {
 	//	}
 	//}
 
-	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
+	// klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }
