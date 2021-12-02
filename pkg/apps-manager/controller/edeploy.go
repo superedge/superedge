@@ -17,18 +17,12 @@ limitations under the License.
 package controller
 
 import (
-	"context"
-	"fmt"
 	appsv1 "github.com/superedge/superedge/pkg/apps-manager/apis/apps/v1"
-
+	"github.com/superedge/superedge/pkg/apps-manager/constant"
 	"github.com/superedge/superedge/pkg/apps-manager/utils"
+
 	"github.com/superedge/superedge/pkg/util"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"strings"
 )
 
 func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
@@ -40,60 +34,37 @@ func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
 		return
 	}
 
-	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, edeploy)
+	// 1. 是否符合自己的node // todo: 每个node只处理自己的
+	selectedNodes, err := utils.SchedulableNode(appsManager.kubeClient, edeploy)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			readyNodes, notReadyNodes = []string{}, []string{}
-			klog.Warningf("Get unit: %s node nil", edeploy.Name)
-		} else {
-			klog.Errorf("Get NodeUnit Nodes error: %v", err)
+		klog.Errorf("Edeploy: %s selecter node error: %#v", edeploy.Name, err)
+		return
+	}
+	if len(selectedNodes) == 0 {
+		klog.V(1).Infof("Edeploy: %s selecter node nil", edeploy.Name)
+		return
+	}
+
+	dstNode := appsManager.hostName
+	for index, node := range selectedNodes {
+		if node.Name == dstNode {
+			break
+		}
+		if index == len(selectedNodes)-1 {
+			klog.V(1).Infof("Edeploy: %s selecter not select node: %s", edeploy.Name, dstNode)
 			return
 		}
 	}
 
-	// 1. edploy to node yaml
+	// 2. edploy to node yaml
+	if err := utils.WriteEdeployToStaticPod(appsManager.kubeClient, edeploy, constant.KubeManifestsDir); err != nil {
+		klog.Errorf("Write edeploy: %s to static pod， error: %#v", edeploy.Name, err)
+		return
+	}
 
-	// 2. check
+	// 3. check 反馈状态
 
 	// todo: set node
-
-	nodeUnitStatus := &edeploy.Status
-	nodeUnitStatus.ReadyNodes = readyNodes
-	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
-	nodeUnitStatus.NotReadyNodes = notReadyNodes
-	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), edeploy, metav1.UpdateOptions{})
-	if err != nil {
-		klog.Errorf("Update nodeUnit: %s error: %#v", edeploy.Name, err)
-		return
-	}
-
-	nodeNames := append(readyNodes, notReadyNodes...)
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{edeploy.Name}); err != nil {
-		klog.Errorf("Add nodes annotations: %s, error: %#v", edeploy.Name, err)
-		return
-	}
-
-	/*
-	 nodeGroup action
-	*/
-	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, edeploy.Name)
-	if err != nil {
-		klog.Errorf("Get NodeGroups error: %v", err)
-		return
-	}
-
-	// Update nodegroups
-	for _, nodeGroup := range nodeGroups {
-		nodeGroupStatus := &nodeGroup.Status
-		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, edeploy.Name)
-		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
-		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
-		if err != nil {
-			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
-			continue
-		}
-	}
 
 	klog.V(4).Infof("Add nodeUnit: %s success.", edeploy.Name)
 }

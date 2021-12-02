@@ -16,7 +16,7 @@ limitations under the License.
 
 package constant
 
-// Annotations
 const (
-	NodeUnitSuperedge = "nodeunits.superedge.io"
+	KubeManifestsDir = "/etc/kubernetes/manifests/"
+	EdgeManifestsDir = "/etc/kubernetes/edge-manifests/"
 )

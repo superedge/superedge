@@ -101,7 +101,7 @@ spec:
       hostNetwork: true
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: cvm-lstmy4di # TODO select edge node
+        kubernetes.io/hostname: cvm-28yw14bw # TODO select edge node
       containers:
         - name: apps-manager
           image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v0.6.0

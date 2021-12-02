@@ -131,7 +131,7 @@ func runController(parent context.Context,
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
 
 	appsManagerDaemonController := controller.NewAppsManagerDaemonController(
-		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.EDeploymentInformer,
+		controllerConfig.NodeInformer, controllerConfig.PodInformer, controllerConfig.EDeployInformer,
 		controllerConfig.ServiceInformer, kubeClient, crdClient, hostName, hosts)
 
 	ctx, cancel := context.WithCancel(parent)
