@@ -35,7 +35,7 @@ func (s SSH) Start(mode string) {
 	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.SSH, handlers.DirectHandler)
 	context.GetContext().RegisterHandler(util.CLOSED, util.SSH, handlers.DirectHandler)
 	if mode == util.CLOUD {
-		listener, err := net.Listen("tcp", "0.0.0.0:22")
+		listener, err := net.Listen(util.TCP, "0.0.0.0:22")
 		if err != nil {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
 			return
