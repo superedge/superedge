@@ -55,6 +55,7 @@ type interceptorServer struct {
 	endpointSliceWatchCh              <-chan watch.Event
 	mediaSerializer                   []runtime.SerializerInfo
 	serviceAutonomyEnhancementAddress string
+	supportEndpointSlice              bool
 }
 
 func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions, supportEndpointSlice bool) *interceptorServer {
@@ -76,6 +77,7 @@ func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster b
 		endpointSliceWatchCh:              endpointSliceCh,
 		mediaSerializer:                   scheme.Codecs.SupportedMediaTypes(),
 		serviceAutonomyEnhancementAddress: serviceAutonomyEnhancement.NeighborStatusSvc,
+		supportEndpointSlice:              supportEndpointSlice,
 	}
 
 	return server
@@ -157,26 +159,29 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 	nodeInformer := nodeInformerFactory.Core().V1().Nodes().Informer()
 	serviceInformer := informerFactory.Core().V1().Services().Informer()
 	endpointsInformer := informerFactory.Core().V1().Endpoints().Informer()
-	endpointSliceInformer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
 
-	/*
-	 */
 	nodeInformer.AddEventHandlerWithResyncPeriod(s.cache.NodeEventHandler(), resyncPeriod)
 	serviceInformer.AddEventHandlerWithResyncPeriod(s.cache.ServiceEventHandler(), resyncPeriod)
 	endpointsInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointsEventHandler(), resyncPeriod)
-	endpointSliceInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceEventHandler(), resyncPeriod)
 
 	go nodeInformer.Run(stop)
 	go serviceInformer.Run(stop)
 	go endpointsInformer.Run(stop)
-	go endpointSliceInformer.Run(stop)
 
 	if !cache.WaitForNamedCacheSync("node", stop,
 		nodeInformer.HasSynced,
 		serviceInformer.HasSynced,
-		endpointsInformer.HasSynced,
-		endpointSliceInformer.HasSynced) {
+		endpointsInformer.HasSynced) {
 		return fmt.Errorf("can't sync informers")
+	}
+
+	if s.supportEndpointSlice {
+		endpointSliceInformer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
+		endpointSliceInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceEventHandler(), resyncPeriod)
+		go endpointSliceInformer.Run(stop)
+		if !cache.WaitForNamedCacheSync("node", stop, endpointSliceInformer.HasSynced) {
+			return fmt.Errorf("can't sync endpointslice informers")
+		}
 	}
 
 	return nil
