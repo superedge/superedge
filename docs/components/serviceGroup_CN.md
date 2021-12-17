@@ -315,9 +315,9 @@ servicegrid-demo-svc   ClusterIP   192.168.21.99   <none>        80/TCP    21h
 ...
 ```
 
-**注意：在各NodeUnit内通过service访问本组服务时，对应clusterIP不能设置成None，暂不支持此种情况下的闭环访问**
+**注意：使用Headless service搭配StatefulSetGrid时，暂时不支持在各NodeUnit内通过service名直接访问情况下的闭环访问，这里与DeploymentGrid有所不同**
 
-除了采用service访问statefulset负载，StatefulSetGrid还支持使用headless service的方式进行访问，如下所示：
+除了采用非Headless service访问statefulset负载外，StatefulSetGrid目前支持使用Headless service**配合pod FQDN**的方式进行闭环访问，如下所示：
 
 ![](../img/statefulsetgrid.png)
 
