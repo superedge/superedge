@@ -51,8 +51,6 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		}
 	}
 
-	// todo: set node
-
 	nodeUnitStatus := &nodeUnit.Status
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
@@ -91,6 +89,9 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		}
 	}
 
+	// todo: set node
+	utils.SetNodeToNodes(siteManager.kubeClient, nodeUnit.Spec.SetNode, nodeNames)
+
 	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
 }
 
@@ -123,8 +124,6 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		}
 	}
 
-	// todo: set node
-
 	nodeUnitStatus := &curNodeUnit.Status
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
@@ -142,7 +141,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	}
 
 	/*
-	 nodeGroup action
+	   nodeGroup action
 	*/
 	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, curNodeUnit.Name)
 	if err != nil {
@@ -162,7 +161,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 			continue
 		}
 	}
-
+	utils.UpdtateNodeFromSetNode(siteManager.kubeClient, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode, nodeNames)
 	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
 
@@ -220,5 +219,6 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 		}
 	}
 
+	utils.DeleteNodesFromSetNode(siteManager.kubeClient, nodeUnit.Spec.SetNode, nodeNames)
 	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }

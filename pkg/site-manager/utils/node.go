@@ -206,3 +206,196 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 
 	return nil
 }
+
+func SetNodeToNodes(kubeClient clientset.Interface, setNode sitev1.SetNode, nodeNames []string) {
+	for _, nodeName := range nodeNames {
+		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				klog.Warningf("Get node: %s nil", node.Name)
+				continue
+			}
+		}
+
+		if setNode.Labels != nil {
+			if node.Labels == nil {
+				node.Labels = make(map[string]string)
+				node.Labels = setNode.Labels
+			} else {
+				for key, val := range setNode.Labels {
+					node.Labels[key] = val
+				}
+			}
+		}
+		if setNode.Annotations != nil {
+			if node.Annotations == nil {
+				node.Annotations = make(map[string]string)
+				node.Annotations = setNode.Annotations
+			} else {
+				for key, val := range setNode.Annotations {
+					node.Annotations[key] = val
+				}
+			}
+		}
+		if setNode.Taints != nil {
+			if node.Spec.Taints == nil {
+				node.Spec.Taints = []corev1.Taint{}
+			}
+			node.Spec.Taints = append(node.Spec.Taints, setNode.Taints...)
+		}
+		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
+			continue
+		}
+	}
+}
+
+func DeleteNodesFromSetNode(kubeClient clientset.Interface, setNode sitev1.SetNode, nodeNames []string) {
+	for _, nodeName := range nodeNames {
+		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				klog.Warningf("Get node: %s nil", node.Name)
+				continue
+			}
+		}
+
+		if setNode.Labels != nil {
+			if node.Labels != nil {
+				for k, _ := range setNode.Labels {
+					delete(node.Labels, k)
+				}
+			}
+		}
+
+		if setNode.Annotations != nil {
+			if node.Annotations != nil {
+				for k, _ := range setNode.Annotations {
+					delete(node.Annotations, k)
+				}
+			}
+		}
+		node.Spec.Taints = deleteTaintItems(node.Spec.Taints, setNode.Taints)
+
+		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
+			continue
+		}
+	}
+}
+
+func SetUpdatedValue(oldValues map[string]string, curValues map[string]string, modifyValues *map[string]string) {
+
+	if oldValues != nil && curValues != nil {
+		// 获取新旧同时存在的label
+		for k, _ := range oldValues {
+			if _, found := (*modifyValues)[k]; found {
+				delete((*modifyValues), k)
+			}
+		}
+		// 获取更新后的label
+		for k, v := range curValues {
+			(*modifyValues)[k] = v
+		}
+	} else if oldValues != nil && (curValues == nil || len(curValues) == 0) {
+		for k, _ := range oldValues {
+			if _, found := (*modifyValues)[k]; found {
+				delete((*modifyValues), k)
+			}
+		}
+	} else if (oldValues == nil || len(oldValues) == 0) && curValues != nil {
+		for k, v := range curValues {
+			(*modifyValues)[k] = v
+		}
+	}
+}
+
+func UpdtateNodeFromSetNode(kubeClient clientset.Interface, oldSetNode sitev1.SetNode, curSetNode sitev1.SetNode, nodeNames []string) {
+	for _, nodeName := range nodeNames {
+		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				klog.Warningf("Get node: %s nil", node.Name)
+				continue
+			}
+		}
+
+		if node.Labels == nil {
+			node.Labels = make(map[string]string)
+			node.Labels = curSetNode.Labels
+		} else {
+			SetUpdatedValue(oldSetNode.Labels, curSetNode.Labels, &node.Labels)
+		}
+
+		if node.Annotations == nil {
+			node.Annotations = make(map[string]string)
+			node.Annotations = curSetNode.Annotations
+		} else {
+			SetUpdatedValue(oldSetNode.Annotations, curSetNode.Annotations, &node.Annotations)
+		}
+
+		if node.Spec.Taints == nil {
+			node.Spec.Taints = []corev1.Taint{}
+			node.Spec.Taints = append(node.Spec.Taints, curSetNode.Taints...)
+		} else {
+			node.Spec.Taints = updateTaintItems(node.Spec.Taints, oldSetNode.Taints, curSetNode.Taints)
+		}
+
+		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
+			continue
+		}
+	}
+}
+
+func updateTaintItems(currTaintItems []corev1.Taint, oldTaintItems []corev1.Taint, newTaintItems []corev1.Taint) []corev1.Taint {
+
+	deletedResults := []corev1.Taint{}
+	Results := []corev1.Taint{}
+
+	newMap := make(map[string]bool)
+	for _, s := range newTaintItems {
+		newMap[s.Key] = true
+	}
+
+	deleteMap := make(map[string]bool)
+	for _, s := range oldTaintItems {
+		deleteMap[s.Key] = true
+	}
+	//过滤旧的
+	for _, val := range currTaintItems {
+		// 旧的有 新没有
+		if _, ok := deleteMap[val.Key]; ok {
+			continue
+		}
+		deletedResults = append(deletedResults, val)
+	}
+	// 过滤新的
+	for _, val := range deletedResults {
+		if _, ok := newMap[val.Key]; ok {
+			continue
+		}
+		Results = append(Results, val)
+	}
+
+	Results = append(Results, newTaintItems...)
+	return Results
+}
+
+func deleteTaintItems(currentTaintItems, deleteTaintItems []corev1.Taint) []corev1.Taint {
+	result := []corev1.Taint{}
+	deleteMap := make(map[string]bool)
+	for _, s := range deleteTaintItems {
+		deleteMap[s.Key] = true
+	}
+
+	for _, val := range currentTaintItems {
+		// 删除旧的
+		if _, ok := deleteMap[val.Key]; ok {
+			continue
+		} else {
+			result = append(result, val)
+		}
+	}
+	return result
+}
