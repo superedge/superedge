@@ -49,6 +49,7 @@ func CreateStorage(config *config.LiteServerConfig) Storage {
 		return NewBoltStorage(config.BoltCacheFile)
 	default:
 		// error type, use FileStorage
+		klog.Errorf("%s is not supported, use default %s cache storage", config.CacheType, constant.FileStorage)
 		return NewFileStorage(config.FileCachePath)
 	}
 }

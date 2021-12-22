@@ -45,8 +45,8 @@ type Options struct {
 
 func NewApplicationGridControllerOptions() *Options {
 	featureGates := make(map[string]bool)
-	featureGates["ServiceTopology"] = true
-	featureGates["EndpointSlice"] = true
+	//featureGates["ServiceTopology"] = true
+	featureGates["EndpointSlice"] = false
 
 	return &Options{
 		QPS:        float32(1000),

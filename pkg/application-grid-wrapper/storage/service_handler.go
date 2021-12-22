@@ -45,13 +45,20 @@ func (sh *serviceHandler) add(service *v1.Service) {
 		keys: getTopologyKeys(&service.ObjectMeta),
 	}
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 
@@ -83,12 +90,20 @@ func (sh *serviceHandler) update(service *v1.Service) {
 
 	serviceContainer.keys = newTopologyKeys
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 
@@ -105,13 +120,20 @@ func (sh *serviceHandler) delete(service *v1.Service) {
 	}
 	delete(sc.servicesMap, serviceKey)
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 

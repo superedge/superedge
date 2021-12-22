@@ -92,7 +92,10 @@ func (s *LiteServer) Run() error {
 	mux.HandleFunc("/debug/flags/v", util.UpdateLogLevel)
 	// register for pprof
 	if s.ServerConfig.Profiling {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
 		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	}
 
 	caCrt, err := ioutil.ReadFile(s.ServerConfig.CAFile)
