@@ -46,7 +46,7 @@ func NewGridWrapperOptions() *Options {
 			UpdateInterval:    30,
 			NeighborStatusSvc: "http://localhost:51005/localinfo",
 		},
-		SupportEndpointSlice: true,
+		SupportEndpointSlice: false,
 	}
 }
 
