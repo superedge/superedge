@@ -38,7 +38,7 @@ func NewWrapperProxyCommand() *cobra.Command {
 			util.PrintFlags(cmd.Flags())
 
 			server := server.NewInterceptorServer(o.KubeConfig, o.HostName, o.WrapperInCluster,
-				o.NotifyChannelSize, o.ServiceAutonomyEnhancementOption)
+				o.NotifyChannelSize, o.ServiceAutonomyEnhancementOption, o.SupportEndpointSlice)
 			if server == nil {
 				return
 			}

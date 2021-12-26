@@ -28,7 +28,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	corev1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -49,9 +48,20 @@ func (sgc *ServiceGridController) reconcile(g *crdv1.ServiceGrid, svcList []*cor
 	for _, svc := range svcList {
 		if svc.Name == sgTargetSvcName {
 			isExistingSvc = true
-			template := util.KeepConsistence(g, svc)
-			if !apiequality.Semantic.DeepEqual(template, svc) {
-				updates = append(updates, template)
+
+			SvcToUpdate := util.CreateService(g)
+
+			scheme := scheme.Scheme
+			scheme.Default(SvcToUpdate)
+
+			if !commonutil.DeepContains(svc.Spec, SvcToUpdate.Spec) {
+				klog.Infof("svc %s template changed", svc.Name)
+				out, _ := json.Marshal(SvcToUpdate.Spec)
+				klog.V(5).Infof("svcToUpdate is %s", string(out))
+				out, _ = json.Marshal(svc.Spec)
+				klog.V(5).Infof("svc is %s", string(out))
+				updates = append(updates, SvcToUpdate)
+				continue
 			}
 		} else {
 			deletes = append(deletes, svc)

@@ -18,6 +18,30 @@ package app
 
 import (
 	"context"
+	"k8s.io/component-base/featuregate"
+	"os"
+	"sync"
+	"time"
+
+	"k8s.io/api/core/v1"
+	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	clientset "k8s.io/client-go/kubernetes"
+	clientgokubescheme "k8s.io/client-go/kubernetes/scheme"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
+
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/application-grid-controller/app/options"
 	superedge "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io"
@@ -29,32 +53,13 @@ import (
 	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset"
 	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
 	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	controllerutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
-	"k8s.io/api/core/v1"
-	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/uuid"
-	clientset "k8s.io/client-go/kubernetes"
-	clientgokubescheme "k8s.io/client-go/kubernetes/scheme"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/leaderelection"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
-	"os"
-	"time"
-
-	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
 )
 
 func NewGridControllerManagerCommand() *cobra.Command {
@@ -72,6 +77,9 @@ func NewGridControllerManagerCommand() *cobra.Command {
 			//	klog.Errorf("failed to set feature gate, %v", err)
 			//}
 			var parentCrdClient *crdClientset.Clientset
+			var once   sync.Once
+			var electionChecker *leaderelection.HealthzAdaptor
+
 			kubeconfig, err := clientcmd.BuildConfigFromFlags(o.Master, o.Kubeconfig)
 			if err != nil {
 				klog.Fatalf("failed to create kubeconfig: %v", err)
@@ -96,7 +104,13 @@ func NewGridControllerManagerCommand() *cobra.Command {
 				parentCrdClient = crdClientset.NewForConfigOrDie(parentKubeconfig)
 			}
 
-			var electionChecker *leaderelection.HealthzAdaptor
+			once.Do(func() {
+				if o.FeatureGates["EndpointSlice"] == true {
+					common.DefaultKubernetesFeatureGates[common.EndpointSlice] = featuregate.FeatureSpec{Default: true, PreRelease: featuregate.Beta}
+				}
+				runtime.Must(utilfeature.DefaultMutableFeatureGate.Add(common.DefaultKubernetesFeatureGates))
+			})
+
 			if !o.LeaderElect {
 				runController(context.TODO(), apiextensionClient, kubeClient, crdClient, parentCrdClient, o.Worker, o.SyncPeriod, dedicatedNameSpace)
 				panic("unreachable")
@@ -128,8 +142,6 @@ func NewGridControllerManagerCommand() *cobra.Command {
 				RetryPeriod:   o.RetryPeriod.Duration,
 				Callbacks: leaderelection.LeaderCallbacks{
 					OnStartedLeading: func(ctx context.Context) {
-						/*
-						 */
 						runController(ctx, apiextensionClient, kubeClient, crdClient, parentCrdClient, o.Worker, o.SyncPeriod, dedicatedNameSpace)
 					},
 					OnStoppedLeading: func() {

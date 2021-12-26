@@ -9,19 +9,16 @@ require (
 	github.com/caddyserver/caddy v1.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2103.2
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
-	github.com/imdario/mergo v0.3.10 // indirect
 	github.com/lithammer/dedent v1.1.0
 	github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
-	github.com/onsi/ginkgo v1.14.1 // indirect
-	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
@@ -29,25 +26,24 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
-	google.golang.org/appengine v1.6.6 // indirect
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.20.5
-	k8s.io/apiextensions-apiserver v0.20.5
-	k8s.io/apimachinery v0.20.5
+	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery v0.22.2
 	k8s.io/apiserver v0.20.5
 	k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go v0.20.5
+	k8s.io/client-go v0.22.2
 	k8s.io/cluster-bootstrap v0.0.0
 	k8s.io/code-generator v0.20.5
-	k8s.io/component-base v0.20.5
+	k8s.io/component-base v0.22.2
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
 	k8s.io/system-validators v1.4.0 // indirect
-	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10 // indirect
+	sigs.k8s.io/controller-runtime v0.10.3
 	sigs.k8s.io/yaml v1.2.0
 )
 
