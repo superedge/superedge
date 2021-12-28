@@ -101,7 +101,7 @@ On *master nodes*,
 
 ### 1.4 Let kube-apiserver using Tunnel
 
-Point the DNS resolution of kube-apiserver to tunnel-CoreDNS. Through DNS hijacking, tunnel proxies the traffic from kube-apiserver to edge nodes. This solves the problem that kube-apiserver ususally can't connect to edge nodes directly.
+Point the DNS resolution of kube-apiserver to tunnel-CoreDNS. Through DNS hijacking, tunnel proxies the traffic from kube-apiserver to edge nodes. This solves the problem that kube-apiserver usually can't connect to edge nodes directly.
 
 ```bash
 #Get tunnel-coredns's Cluster IP
