@@ -122,18 +122,18 @@ func CustomConfig() string {
 }
 
 func IsOverK8sVersion(baseK8sVersion, k8sVersion string) (bool, error) {
-	drtK8sVerion, err := k8sVerisonInt(k8sVersion)
+	drtK8sVersion, err := k8sVersionInt(k8sVersion)
 	if err != nil {
 		return false, err
 	}
-	srcK8sVerion, err := k8sVerisonInt(baseK8sVersion)
+	srcK8sVersion, err := k8sVersionInt(baseK8sVersion)
 	if err != nil {
 		return false, err
 	}
-	return srcK8sVerion >= drtK8sVerion, nil
+	return srcK8sVersion >= drtK8sVersion, nil
 }
 
-func k8sVerisonInt(version string) (int, error) {
+func k8sVersionInt(version string) (int, error) {
 	if strings.Contains(version, "-") {
 		v := strings.Split(version, "-")[0]
 		version = v
