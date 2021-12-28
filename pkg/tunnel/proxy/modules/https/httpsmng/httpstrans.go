@@ -33,7 +33,7 @@ func NetRead(conn net.Conn, uid string, node context.Node, stop, complete chan s
 		msg := &proto.StreamMsg{
 			Node:     node.GetName(),
 			Category: util.HTTPS,
-			Type:     util.TRANSNMISSION,
+			Type:     util.TRANSMISSION,
 			Topic:    uid,
 			Data:     rbyte[:n],
 		}
@@ -90,7 +90,7 @@ func IoRead(body io.ReadWriteCloser, uid string, node context.Node, stop, comple
 		msg := &proto.StreamMsg{
 			Node:     node.GetName(),
 			Category: util.HTTPS,
-			Type:     util.TRANSNMISSION,
+			Type:     util.TRANSMISSION,
 			Topic:    uid,
 			Data:     rbyte[:n],
 		}
