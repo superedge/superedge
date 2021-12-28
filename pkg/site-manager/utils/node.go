@@ -286,27 +286,15 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, setNode sitev1.SetNo
 
 func SetUpdatedValue(oldValues map[string]string, curValues map[string]string, modifyValues *map[string]string) {
 
-	if oldValues != nil && curValues != nil {
-		// 获取新旧同时存在的label
-		for k, _ := range oldValues {
-			if _, found := (*modifyValues)[k]; found {
-				delete((*modifyValues), k)
-			}
+	// delete old values
+	for k, _ := range oldValues {
+		if _, found := (*modifyValues)[k]; found {
+			delete((*modifyValues), k)
 		}
-		// 获取更新后的label
-		for k, v := range curValues {
-			(*modifyValues)[k] = v
-		}
-	} else if oldValues != nil && (curValues == nil || len(curValues) == 0) {
-		for k, _ := range oldValues {
-			if _, found := (*modifyValues)[k]; found {
-				delete((*modifyValues), k)
-			}
-		}
-	} else if (oldValues == nil || len(oldValues) == 0) && curValues != nil {
-		for k, v := range curValues {
-			(*modifyValues)[k] = v
-		}
+	}
+	// set new values
+	for k, v := range curValues {
+		(*modifyValues)[k] = v
 	}
 }
 
@@ -362,15 +350,15 @@ func updateTaintItems(currTaintItems []corev1.Taint, oldTaintItems []corev1.Tain
 	for _, s := range oldTaintItems {
 		deleteMap[s.Key] = true
 	}
-	//过滤旧的
+
+	// filter old values
 	for _, val := range currTaintItems {
-		// 旧的有 新没有
 		if _, ok := deleteMap[val.Key]; ok {
 			continue
 		}
 		deletedResults = append(deletedResults, val)
 	}
-	// 过滤新的
+	// filter new values
 	for _, val := range deletedResults {
 		if _, ok := newMap[val.Key]; ok {
 			continue
@@ -390,7 +378,6 @@ func deleteTaintItems(currentTaintItems, deleteTaintItems []corev1.Taint) []core
 	}
 
 	for _, val := range currentTaintItems {
-		// 删除旧的
 		if _, ok := deleteMap[val.Key]; ok {
 			continue
 		} else {
