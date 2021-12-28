@@ -36,7 +36,7 @@ func (https *Https) Start(mode string) {
 	context.GetContext().RegisterHandler(util.CONNECTING, util.HTTPS, httpsmsg.ConnectingHandler)
 	context.GetContext().RegisterHandler(util.CONNECTED, util.HTTPS, httpsmsg.ConnectedAndTransmission)
 	context.GetContext().RegisterHandler(util.CLOSED, util.HTTPS, httpsmsg.ConnectedAndTransmission)
-	context.GetContext().RegisterHandler(util.TRANSNMISSION, util.HTTPS, httpsmsg.ConnectedAndTransmission)
+	context.GetContext().RegisterHandler(util.TRANSMISSION, util.HTTPS, httpsmsg.ConnectedAndTransmission)
 	if mode == util.CLOUD {
 		go httpsmng.StartServer()
 	}

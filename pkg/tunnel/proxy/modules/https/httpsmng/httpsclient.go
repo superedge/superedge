@@ -141,7 +141,7 @@ func handleClientHttp(resp *http.Response, rawResponse *bytes.Buffer, httpConn n
 				rrunning = false
 				respMsg.Type = util.CLOSED
 			} else {
-				respMsg.Type = util.TRANSNMISSION
+				respMsg.Type = util.TRANSMISSION
 				buf.Reset()
 			}
 			read <- respMsg
@@ -180,7 +180,7 @@ func handleClientSwitchingProtocols(httpConn net.Conn, rawResponse *bytes.Buffer
 	node.Send2Node(&proto.StreamMsg{
 		Node:     msg.Node,
 		Category: util.HTTPS,
-		Type:     util.TRANSNMISSION,
+		Type:     util.TRANSMISSION,
 		Topic:    msg.Topic,
 		Data:     rawResponse.Bytes(),
 	})
