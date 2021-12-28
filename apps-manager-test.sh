@@ -9,7 +9,7 @@ make push IMAGES="apps-manager" PLATFORMS="linux_amd64" REGISTRY_PREFIX="ccr.ccs
 
 kubectl -n edge-system apply  -f deployment/apps-manager.yaml
 
-kubectl -n edge-system delete pod --all
+# kubectl -n edge-system delete pod --all
 
 
 #kubectl delete -f pkg/apps-manager/crd/apps_v1_edeployment_damo.yaml
