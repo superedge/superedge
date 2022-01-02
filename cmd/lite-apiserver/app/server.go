@@ -24,14 +24,14 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
-	"github.com/spf13/cobra"
 	"github.com/moby/term"
+	"github.com/spf13/cobra"
 
-	"github.com/superedge/superedge/pkg/version/verflag"
-	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/cmd/lite-apiserver/app/options"
 	"github.com/superedge/superedge/pkg/lite-apiserver/server"
 	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/version"
+	"github.com/superedge/superedge/pkg/version/verflag"
 )
 
 var ComponentName = "lite-apiserver"
@@ -118,6 +118,7 @@ func TerminalSize(w io.Writer) (int, int, error) {
 	}
 	winsize, err := term.GetWinsize(outFd)
 	if err != nil {
+		klog.Errorf("get window size error: %v", err)
 		return 0, 0, err
 	}
 	return int(winsize.Width), int(winsize.Height), nil
