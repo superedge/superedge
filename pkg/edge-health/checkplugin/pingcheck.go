@@ -36,6 +36,10 @@ func (p PingCheckPlugin) Name() string {
 	return "PingCheck"
 }
 
+func (p PingCheckPlugin) Enable() bool {
+	return p.Enabled
+}
+
 func (p *PingCheckPlugin) Set(s string) error {
 	var (
 		err error

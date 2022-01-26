@@ -17,7 +17,9 @@ limitations under the License.
 package checkplugin
 
 import (
+	"github.com/google/uuid"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 )
@@ -76,5 +78,67 @@ func TestPingDo(t *testing.T) {
 		if result != tc.result {
 			t.Fatal("unexpected error, actual result and err is", tc.result, err)
 		}
+	}
+}
+
+type mockPlugin struct {
+	uuid string
+}
+
+func (p *mockPlugin) Name() string {
+	return p.uuid
+}
+
+func (p *mockPlugin) CheckExecute(wg *sync.WaitGroup) {
+
+}
+
+func (p *mockPlugin) SetWeight(s float64) {
+
+}
+func (p *mockPlugin) GetWeight() float64 {
+	return 1.0
+}
+
+func NewMockRegistry() Registry {
+	uuid := uuid.New().String()
+	r := make(map[string]PluginFactory)
+	testfunc := func() (CheckPlugin, error) {
+		return &mockPlugin{uuid}, nil
+	}
+	r[uuid] = testfunc
+	return r
+}
+func TestMerge(t *testing.T) {
+	m1 := NewMockRegistry()
+	m2 := NewMockRegistry()
+	testcases := []struct {
+		description     string
+		registryToMerge []Registry
+		expected        int
+	}{
+		{
+			description:     "only one mock registry",
+			registryToMerge: []Registry{m1},
+			expected:        1,
+		},
+		{
+			description:     "two mock registry",
+			registryToMerge: []Registry{m1, m2},
+			expected:        3,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Log("Prepare to run", tc.description)
+		for _, v := range tc.registryToMerge {
+			Merge(v)
+		}
+		PluginInfo = NewPluginInfo()
+		t.Log(len(PluginInfo.Plugins))
+		if len(PluginInfo.Plugins) != tc.expected {
+			t.Fatal("unexpected plugins result")
+		}
+
 	}
 }
