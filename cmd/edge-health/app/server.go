@@ -20,6 +20,7 @@ import (
 	"context"
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
+	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/daemon"
 	"github.com/superedge/superedge/pkg/util"
@@ -28,7 +29,9 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
+type ExtendOptions func() checkplugin.Registry
+
+func NewEdgeHealthCommand(ctx context.Context, registryOptions ...ExtendOptions) *cobra.Command {
 	o := options.NewEdgeHealthOptions()
 	cmd := &cobra.Command{
 		Use: common.CmdName,
@@ -43,7 +46,7 @@ func NewEdgeHealthCommand(ctx context.Context) *cobra.Command {
 				klog.Fatalf("options validate err: %v", errs)
 			}
 
-			daemon.NewEdgeHealthDaemon(completedOptions).Run(ctx)
+			daemon.NewEdgeHealthDaemon(completedOptions, registryOptions...).Run(ctx)
 		},
 	}
 	fs := cmd.Flags()

@@ -18,6 +18,7 @@ package daemon
 
 import (
 	"context"
+	"github.com/superedge/superedge/cmd/edge-health/app"
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
 	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
@@ -45,9 +46,10 @@ type EdgeDaemon struct {
 	MasterUrl             string
 	KubeconfigPath        string
 	HostName              string
+	ExtendOptions         []app.ExtendOptions
 }
 
-func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
+func NewEdgeHealthDaemon(o options.CompletedOptions, registryOptions ...app.ExtendOptions) Daemon {
 	return EdgeDaemon{
 		HealthCheckPeriod:     o.CheckOptions.HealthCheckPeriod,
 		HealthCheckScoreLine:  o.CheckOptions.HealthCheckScoreLine,
@@ -60,14 +62,19 @@ func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
 		MasterUrl:             o.NodeOptions.MasterUrl,
 		KubeconfigPath:        o.NodeOptions.KubeconfigPath,
 		HostName:              o.NodeOptions.HostName,
+		ExtendOptions:         registryOptions,
 	}
 }
 
 func (d EdgeDaemon) Run(ctx context.Context) {
-
 	wg := sync.WaitGroup{}
 
 	initialize(d.MasterUrl, d.KubeconfigPath, d.HostName)
+
+	for _, extendoptions := range d.ExtendOptions {
+		registry := extendoptions()
+		checkplugin.Merge(registry)
+	}
 
 	check := checkpkg.NewCheckEdge(checkplugin.PluginInfo.Plugins, d.HealthCheckPeriod, d.HealthCheckScoreLine)
 

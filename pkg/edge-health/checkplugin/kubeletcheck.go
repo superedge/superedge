@@ -36,6 +36,10 @@ func (p KubeletCheckPlugin) Name() string {
 	return "KubeletCheck"
 }
 
+func (p KubeletCheckPlugin) Enable() bool {
+	return p.Enabled
+}
+
 func (p *KubeletCheckPlugin) Set(s string) error {
 	var (
 		err error
