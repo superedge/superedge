@@ -21,7 +21,6 @@ import (
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"testing"
@@ -31,17 +30,17 @@ func TestApplicationgrid(t *testing.T) {
 	ctx := context.Background()
 	clientSet, crdclient := initClient(t)
 	var selector map[string]string
+	var err error
 	selector = make(map[string]string)
 	selector["appGrid"] = "echo"
-	// check node label
-	// need to prepare two nodes with zone1=nodeunit1  and zone1=nodeunit2
+
 	sharedInformerFactory := informers.NewSharedInformerFactory(clientSet, 0)
 	nodeInformer := sharedInformerFactory.Core().V1().Nodes()
 
-	nodelist, err := ReadyNodes(ctx, clientSet, nodeInformer, "zone1=nodeunit1 ")
+	nodelist, err := ReadyNodes(ctx, clientSet, nodeInformer, "zone1=nodeunit1")
 	t.Log(len(nodelist))
 	if err != nil {
-		t.Fatal("check node list fail")
+		t.Fatal("check node list fail", err)
 	}
 
 	deploymentGridObj := &crdv1.DeploymentGrid{
@@ -64,33 +63,29 @@ func TestApplicationgrid(t *testing.T) {
 						Containers: []v1.Container{{
 							Name:            "pause",
 							ImagePullPolicy: "Always",
-							Image:           "kubernetes/pause",
-							Ports:           []v1.ContainerPort{{ContainerPort: 80}},
+							//Image:           "kubernetes/pause",
+							Image: "gcr.io/kubernetes-e2e-test-images/echoserver:2.2",
+							Ports: []v1.ContainerPort{{ContainerPort: 8080, Protocol: "TCP"}},
 						}},
 					},
 				},
 			},
 		},
 	}
-	_, err = crdclient.SuperedgeV1().DeploymentGrids("default").Get(ctx, "deploymentgrid-e2e", metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Log("not our expect DeploymentGrids, prepare to create now")
-		// new DeploymentGrid "deploymentgrid-e2e" and apply to cluster
-		_, err = crdclient.SuperedgeV1().DeploymentGrids("default").Create(ctx, deploymentGridObj, metav1.CreateOptions{})
-		if err != nil {
-			t.Fatal("create DeploymentGrids fail")
-		}
-	} else {
-		t.Fatal(err)
+
+	_, err = crdclient.SuperedgeV1().DeploymentGrids("default").Create(ctx, deploymentGridObj, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal("create DeploymentGrids fail", err)
 	}
+	defer crdclient.SuperedgeV1().DeploymentGrids("default").Delete(ctx, "deploymentgrid-e2e", metav1.DeleteOptions{})
 
 	// check is it have deployment deploymentgrid-e2e-nodeunitname
 	result, err := waitForDeployment(t, ctx, "default", "deploymentgrid-e2e-nodeunit1", clientSet)
 	if !result {
-		t.Fatal("deployment deploymentgrid-e2e-nodeunit1 not found")
-		t.Fatal(err)
+		t.Fatal("deployment deploymentgrid-e2e-nodeunit1 not found", err)
 	}
-	//new ServiceGrid "servicegrid-e2e" and apply to cluster
+
+	// new ServiceGrid "servicegrid-e2e" and apply to cluster
 	svcGridObj := &crdv1.ServiceGrid{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "servicegrid-e2e",
@@ -100,20 +95,21 @@ func TestApplicationgrid(t *testing.T) {
 			GridUniqKey: "zone1",
 			Template: v1.ServiceSpec{
 				Selector: selector,
+				Ports:    []v1.ServicePort{{Port: 8080, Protocol: "TCP"}},
 			},
 		},
 	}
-	// make sure the service create success
-	_, err = crdclient.SuperedgeV1().ServiceGrids("default").Get(ctx, "servicegrid-e2e", metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Log("not our expect DeploymentGrids, prepare to create now")
-		// new DeploymentGrid "deploymentgrid-e2e" and apply to cluster
-		_, err = crdclient.SuperedgeV1().ServiceGrids("default").Create(ctx, svcGridObj, metav1.CreateOptions{})
-		if err != nil {
-			t.Fatal("create svcGridObj fail")
-		}
-	} else {
-		t.Fatal(err)
+
+	// new ServiceGrids "servicegrid-e2e" and apply to cluster
+	_, err = crdclient.SuperedgeV1().ServiceGrids("default").Create(ctx, svcGridObj, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal("create svcGridObj fail", err)
 	}
-	//	try to connect svc
+
+	defer crdclient.SuperedgeV1().ServiceGrids("default").Delete(ctx, "servicegrid-e2e", metav1.DeleteOptions{})
+	// make sure the service create success
+	result, err = waitForSVC(t, ctx, "default", "servicegrid-e2e-svc", clientSet)
+	if !result {
+		t.Fatal("deployment deploymentgrid-e2e-nodeunit1 not found", err)
+	}
 }

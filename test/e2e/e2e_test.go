@@ -31,7 +31,7 @@ import (
 )
 
 func initClient(t *testing.T) (*kubernetes.Clientset, *crdClientset.Clientset) {
-	config, err := clientcmd.BuildConfigFromFlags("", "/Users/jane/.kube/config")
+	config, err := clientcmd.BuildConfigFromFlags("", "/tmp/config")
 	if err != nil {
 		t.Fatal("can not init build k8s config")
 	}
@@ -63,29 +63,24 @@ func waitForDeployment(t *testing.T, ctx context.Context, namespace string, depl
 	}
 }
 
-/**
-func waitForNodesReady(ctx context.Context, t *testing.T, clientSet kubernetes.Interface, nodeInformer coreinformers.NodeInformer) {
-	if err := wait.PollImmediate(5*time.Second, 30*time.Second, func() (bool, error) {
-		nodeList, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return false, err
+func waitForSVC(t *testing.T, ctx context.Context, namespace string, svcname string, clientSet *kubernetes.Clientset) (bool, error) {
+	timeout := time.After(3 * time.Minute)
+	tick := time.Tick(5 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			t.Log("Timeout, still restart count not as expected")
+			return false, fmt.Errorf("timeout Error")
+		case <-tick:
+			_, err := clientSet.CoreV1().Services(namespace).Get(ctx, svcname, metav1.GetOptions{})
+			if err == nil {
+				t.Log("Service get as expected")
+				return true, nil
+			}
 		}
-
-		readyNodes, err := ReadyNodes(ctx, clientSet, nodeInformer, "")
-		if err != nil {
-			return false, err
-		}
-		if len(nodeList.Items) != len(readyNodes) {
-			t.Logf("%v/%v nodes are ready. Waiting for all nodes to be ready...", len(readyNodes), len(nodeList.Items))
-			return false, nil
-		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatalf("Error waiting for nodes to be ready: %v", err)
 	}
 }
-*/
+
 func ReadyNodes(ctx context.Context, client kubernetes.Interface, nodeInformer coreinformers.NodeInformer, nodeSelector string) ([]*v1.Node, error) {
 	ns, err := labels.Parse(nodeSelector)
 	if err != nil {
