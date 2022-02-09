@@ -208,6 +208,8 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 
 	joinConfigFlags(cmd.Flags(), edgeConfig)
 	joinInstallHAFlag(cmd.Flags(), edgeConfig)
+	initContainerRuntimeFlags(cmd.Flags(), edgeConfig)
+
 	addJoinConfigFlags(cmd.Flags(), joinOptions.externalcfg, joinOptions.joinControlPlane)
 	addJoinOtherFlags(cmd.Flags(), joinOptions)
 
@@ -233,6 +235,16 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 			klog.Errorf("Unzip package: %s, error: %v", edgeConfig.InstallPkgPath, err)
 			return err
 		}
+		// set edgeadm crisocket for runtime
+		switch edgeConfig.ContainerRuntime {
+		case constant.ContainerRuntimeDocker:
+			joinOptions.externalcfg.NodeRegistration.CRISocket = constant.DefaultDockerCRISocket
+		case constant.ContainerRuntimeContainerd:
+			joinOptions.externalcfg.NodeRegistration.CRISocket = constant.DefaultContainerdCRISocket
+		default:
+			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s", edgeConfig.ContainerRuntime)
+		}
+
 		return nil
 	}
 
