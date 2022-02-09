@@ -18,9 +18,11 @@ package test
 
 import (
 	"fmt"
+	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 // BuildTestNode creates a node with specified capacity.
@@ -94,4 +96,32 @@ func BuildTestConfigmap(name string, namespace string, data map[string]string) *
 		Data: data,
 	}
 	return cm
+}
+
+func BuildTestDeployment(name string, namespace string, replicas int, selector map[string]string) *apps.Deployment {
+	return &apps.Deployment{
+		TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
+		ObjectMeta: metav1.ObjectMeta{
+			UID:         uuid.NewUUID(),
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: make(map[string]string),
+		},
+		Spec: apps.DeploymentSpec{
+			Replicas: func() *int32 { i := int32(replicas); return &i }(),
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: selector,
+				},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "foo/bar",
+						},
+					},
+				},
+			},
+		},
+	}
 }
