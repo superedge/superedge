@@ -17,23 +17,13 @@ limitations under the License.
 package stream
 
 import (
-	ctx "context"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
-	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
-	connect2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
-	"github.com/superedge/superedge/pkg/tunnel/util"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/channelz/grpc_channelz_v1"
 	"k8s.io/klog/v2"
-	"os"
-	"testing"
-	"time"
 )
 
+/**
 func Test_StreamServer(t *testing.T) {
 	err := conf.InitConf(util.CLOUD, "../../../../../conf/cloud_mode.toml")
 	if err != nil {
@@ -47,6 +37,7 @@ func Test_StreamServer(t *testing.T) {
 	module.ShutDown()
 
 }
+*/
 
 func StreamDebugHandler(msg *proto.StreamMsg) error {
 	klog.Infof("received the msg node = %s uuid = %s data = %s", msg.Node, msg.Topic, string(msg.Data))
@@ -64,6 +55,7 @@ func StreamDebugHandler(msg *proto.StreamMsg) error {
 	return nil
 }
 
+/**
 func Test_StreamClient(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
 	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
@@ -94,7 +86,9 @@ func Test_StreamClient(t *testing.T) {
 	module.ShutDown()
 
 }
+*/
 
+/**
 func Test_ChannelzSever(t *testing.T) {
 	os.Setenv(util.NODE_NAME_ENV, "node1")
 	err := conf.InitConf(util.EDGE, "../../../../../conf/edge_mode.toml")
@@ -135,6 +129,9 @@ func Test_ChannelzSever(t *testing.T) {
 	cancle()
 }
 
+*/
+
+/**
 func Test_ChannelzClient(t *testing.T) {
 	cliContext := ctx.Background()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
@@ -169,3 +166,4 @@ func Test_ChannelzClient(t *testing.T) {
 	conn.Close()
 
 }
+*/
