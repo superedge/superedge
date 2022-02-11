@@ -16,30 +16,28 @@
 
 set -o errexit
 set -o nounset
-set -o pipefail
 
-SuperEdge_ROOT=$(dirname "${BASH_SOURCE}")/..
+GO_VERSION=$(go version)
 
-GO_VERSION=($(go version))
-
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.14|go1.15|go1.16') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.14|go1.15|go1.16|go1.17') ]]; then
   echo "Unknown go version '${GO_VERSION[2]}', skipping gofmt."
   exit 1
 fi
-
-cd "${SuperEdge_ROOT}"
 
 find_files() {
   find . -not \( \
       \( \
         -wholename './output' \
         -o -wholename './_output' \
-        -o -wholename './release' \
-        -o -wholename './target' \
+        -o -wholename './docs' \
+        -o -wholename './hack' \
         -o -wholename './.git' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/Godeps/*' \
-        -o -wholename '*/vendor/*' \
+        -o -wholename '*/examples/*' \
+        -o -wholename '*/sample/*' \
+        -o -wholename '*/build/*' \
+        -o -wholename '*/CHANGELOG/*' \
       \) -prune \
     \) -name '*.go'
 }
