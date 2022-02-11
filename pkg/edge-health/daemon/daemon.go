@@ -18,12 +18,12 @@ package daemon
 
 import (
 	"context"
-	"github.com/superedge/superedge/cmd/edge-health/app"
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
 	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/communicate"
+	"github.com/superedge/superedge/pkg/edge-health/registry"
 	"github.com/superedge/superedge/pkg/edge-health/vote"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sync"
@@ -46,10 +46,10 @@ type EdgeDaemon struct {
 	MasterUrl             string
 	KubeconfigPath        string
 	HostName              string
-	ExtendOptions         []app.ExtendOptions
+	ExtendOptions         []registry.ExtendOptions
 }
 
-func NewEdgeHealthDaemon(o options.CompletedOptions, registryOptions ...app.ExtendOptions) Daemon {
+func NewEdgeHealthDaemon(o options.CompletedOptions, registryOptions ...registry.ExtendOptions) Daemon {
 	return EdgeDaemon{
 		HealthCheckPeriod:     o.CheckOptions.HealthCheckPeriod,
 		HealthCheckScoreLine:  o.CheckOptions.HealthCheckScoreLine,

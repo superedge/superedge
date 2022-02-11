@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"k8s.io/klog/v2"
+        "k8s.io/klog/v2"
 	"net"
 	"strconv"
 	"strings"
@@ -67,9 +67,11 @@ func (p *PingCheckPlugin) Set(s string) error {
 		}
 		(*p).PluginName = p.Name()
 	}
-	PluginInfo = NewPluginInfo()
-	PluginInfo.AddPlugin(p)
-	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	if p.Enable() {
+		PluginInfo = NewPluginInfo()
+		PluginInfo.AddPlugin(p)
+		klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	}
 	return err
 }
 

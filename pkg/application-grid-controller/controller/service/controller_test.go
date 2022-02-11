@@ -17,12 +17,11 @@ limitations under the License.
 package service
 
 import (
-	"testing"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func newServiceGrid(name string, gridUniqKey string, selector map[string]string,  port int) *crdv1.ServiceGrid {
+func newServiceGrid(name string, gridUniqKey string, selector map[string]string, port int) *crdv1.ServiceGrid {
 	serviceGrid := crdv1.ServiceGrid{
 		TypeMeta: metav1.TypeMeta{APIVersion: "superedge.io/v1", Kind: "ServiceGrid"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -30,15 +29,7 @@ func newServiceGrid(name string, gridUniqKey string, selector map[string]string,
 			Namespace:   metav1.NamespaceDefault,
 			Annotations: make(map[string]string),
 		},
-		Spec: crdv1.ServiceGridSpec{
-
-		},
+		Spec: crdv1.ServiceGridSpec{},
 	}
 	return &serviceGrid
-}
-
-func TestSyncServiceGrid(t *testing.T)  {
-	f := newFixture(t)
-	
-	s := newServiceGrid("foo")
 }

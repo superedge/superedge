@@ -3,6 +3,7 @@ module github.com/superedge/superedge
 go 1.14
 
 require (
+        github.com/google/uuid v1.1.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/TarsCloud/TarsGo v1.1.7-0.20210519070617-e2dc06be2b59
