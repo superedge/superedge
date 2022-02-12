@@ -123,7 +123,7 @@ func UpdateKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 		return err
 	}
 
-	if err := PatchKubeProxy(kubeClient); err != nil{
+	if err := PatchKubeProxy(kubeClient); err != nil {
 		return err
 	}
 
@@ -238,9 +238,9 @@ func PatchKubeProxy(clientSet kubernetes.Interface) error {
 func RecoverKubeProxy(clientSet kubernetes.Interface) error {
 	if _, err := clientSet.AppsV1().DaemonSets(constant.NamespaceKubeSystem).Patch(
 		context.TODO(), constant.KubeProxy, types.JSONPatchType, []byte(constant.KubeProxyRecoverJson), metav1.PatchOptions{}); err != nil {
-			return fmt.Errorf("Patching daemonset: %s, error: %v\n", constant.KubeProxy, err)
-		}
-		return nil
+		return fmt.Errorf("Patching daemonset: %s, error: %v\n", constant.KubeProxy, err)
+	}
+	return nil
 }
 func RecoverKubeConfig(client *kubernetes.Clientset) error {
 	if err := RecoverKubeProxyKubeconfig(client); err != nil {
@@ -270,11 +270,11 @@ func RecoverKubeProxyKubeconfig(kubeClient kubernetes.Interface) error {
 		return err
 	}
 	if err := kubeClient.CoreV1().ServiceAccounts(
-		constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil{
+		constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	if err := RecoverKubeProxy(kubeClient); err != nil{
+	if err := RecoverKubeProxy(kubeClient); err != nil {
 		return err
 	}
 

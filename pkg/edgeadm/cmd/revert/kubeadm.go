@@ -177,7 +177,7 @@ func (r *revertAction) deleteNodeLabel() error {
 func (r *revertAction) revertKubeProxyKubeconfig() error {
 	kubeClient := r.clientSet
 
-	if err := kubeClient.AppsV1().DaemonSets(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{});err != nil{
+	if err := kubeClient.AppsV1().DaemonSets(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
@@ -185,11 +185,11 @@ func (r *revertAction) revertKubeProxyKubeconfig() error {
 		return err
 	}
 
-	if err := kubeClient.CoreV1().ServiceAccounts(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil{
+	if err := kubeClient.CoreV1().ServiceAccounts(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	if err := common.RecoverKubeProxy(kubeClient); err != nil{
+	if err := common.RecoverKubeProxy(kubeClient); err != nil {
 		return err
 	}
 

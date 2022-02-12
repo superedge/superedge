@@ -77,7 +77,7 @@ func NewGridControllerManagerCommand() *cobra.Command {
 			//	klog.Errorf("failed to set feature gate, %v", err)
 			//}
 			var parentCrdClient *crdClientset.Clientset
-			var once   sync.Once
+			var once sync.Once
 			var electionChecker *leaderelection.HealthzAdaptor
 
 			kubeconfig, err := clientcmd.BuildConfigFromFlags(o.Master, o.Kubeconfig)

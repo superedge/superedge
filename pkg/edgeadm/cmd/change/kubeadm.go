@@ -402,14 +402,14 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 
 	kubeProxySA, err := kubeClient.CoreV1().ServiceAccounts(
 		constant.NamespaceKubeSystem).Get(context.TODO(), constant.KubeProxy, metav1.GetOptions{})
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	edgeKubeProxySA := kubeProxySA.DeepCopy()
 	edgeKubeProxySA.Namespace = constant.NamespaceEdgeSystem
 	edgeKubeProxySA.ResourceVersion = ""
 	if _, err := kubeClient.CoreV1().ServiceAccounts(
-		constant.NamespaceEdgeSystem).Create(context.TODO(), edgeKubeProxySA, metav1.CreateOptions{}); err != nil{
+		constant.NamespaceEdgeSystem).Create(context.TODO(), edgeKubeProxySA, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -424,8 +424,8 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 	edgeKubeProxyDS.Namespace = constant.NamespaceEdgeSystem
 	edgeKubeProxyDS.ResourceVersion = ""
 	edgeKubeProxyDS.Spec.Template.Spec.PriorityClassName = ""
-	for _, v := range edgeKubeProxyDS.Spec.Template.Spec.Volumes{
-		if v.Name == constant.KubeProxy{
+	for _, v := range edgeKubeProxyDS.Spec.Template.Spec.Volumes {
+		if v.Name == constant.KubeProxy {
 			v.ConfigMap.Name = constant.EdgeKubeProxy
 		}
 	}
@@ -434,7 +434,7 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 		constant.NamespaceKubeSystem).Create(context.TODO(), edgeKubeProxyDS, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if err := common.PatchKubeProxy(kubeClient); err != nil{
+	if err := common.PatchKubeProxy(kubeClient); err != nil {
 		return err
 	}
 	return nil
