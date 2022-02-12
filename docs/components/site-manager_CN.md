@@ -7,8 +7,8 @@
       * [2.2 NodeGroup](#22-nodegroup)
    * [3.效果展示](#3效果展示)
       * [3.1 部署](#31-部署)
-      * [3.1 NodeUnit demo](#31-nodeunit-demo)
-      * [3.2 NodeGroup demo](#32-nodegroup-demo)
+      * [3.2 NodeUnit demo](#32-nodeunit-demo)
+      * [3.2 NodeGroup demo](#33-nodegroup-demo)
    * [4.site-manager的动作说明](#4site-manager的动作说明)
    * [5. 后续计划](#5-后续计划)
 
@@ -179,27 +179,27 @@ type NodeGroupSpec struct {
 
 ### 3.1 部署
 
--   提交CRD
-
-    -   NodeUnit
-
-    ```powershell
-    kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/sites-manager/pkg/site-manager/crd/site.superedge.io_nodeunits.yaml
-    ```
-
-    -   NodeGroup
-
-    ```powershell
-    kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/sites-manager/pkg/site-manager/crd/site.superedge.io_nodegroups.yaml
-    ```
-
 -   部署site-manager（NodeUnit 和NodeGroup的controller)
 
-    ```powershell
-    kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/site-manager.yaml
-    ```
+```shell
+kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/deployment/site-manager.yaml
+```
 
-### 3.1 NodeUnit demo
+默认会往K8s集群中提交NodeUnit和NodeGroup，分开提交可把site-manager的`--ensure-crd`置为false, 然后可可分别执行如下命令提交NodeUnit和NodeGroup的定义。
+
+-   NodeUnit
+
+```powershell
+kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/pkg/site-manager/crd/site.superedge.io_nodeunits.yaml
+```
+
+-   NodeGroup
+
+```powershell
+kubectl apply -f https://raw.githubusercontent.com/superedge/superedge/main/pkg/site-manager/crd/site.superedge.io_nodegroups.yaml
+```
+
+### 3.2 NodeUnit demo
 
 -   集群node的情况
 
@@ -299,7 +299,7 @@ type NodeGroupSpec struct {
     ...
     ```
 
-### 3.2 NodeGroup demo
+### 3.3 NodeGroup demo
 
 -   提交demo
 
