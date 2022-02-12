@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"encoding/json"
 	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
@@ -110,18 +109,20 @@ func AddNodeAnnotations(kubeclient clientset.Interface, node *corev1.Node, annot
 	}
 
 	var nodeUnits []string
-	value, ok := node.Annotations[constant.NodeUnitSuperedge]
-	if ok && value != "\"\"" && value != "null" { // nil annotations Unmarshal can be failed
-		if err := json.Unmarshal(json.RawMessage(value), &nodeUnits); err != nil {
-			klog.Errorf("Unmarshal node: %s annotations: %s, error: %#v", node.Name, util.ToJson(value), err)
-			return err
+	for k, v := range node.Annotations {
+		if v == constant.NodeUnitSuperedge {
+			nodeUnits = append(nodeUnits, k)
+			delete(node.Annotations, k)
 		}
 	}
 
 	nodeUnits = append(nodeUnits, annotations...)
 	nodeUnits = util.RemoveDuplicateElement(nodeUnits)
 	nodeUnits = util.DeleteSliceElement(nodeUnits, "")
-	node.Annotations[constant.NodeUnitSuperedge] = util.ToJson(nodeUnits)
+	for _, val := range nodeUnits {
+		node.Annotations[val] = constant.NodeUnitSuperedge
+	}
+
 	if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
 		klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
 		return err
@@ -136,19 +137,20 @@ func RemoveNodeAnnotations(kubeclient clientset.Interface, node *corev1.Node, an
 	}
 
 	var nodeUnits []string
-	value, ok := node.Annotations[constant.NodeUnitSuperedge]
-	if ok && value != "\"\"" && value != "null" { // nil annotations Unmarshal can be failed
-		if err := json.Unmarshal(json.RawMessage(value), &nodeUnits); err != nil {
-			klog.Errorf("Unmarshal node: %s annotations: %s, error: %#v", node.Name, util.ToJson(value), err)
-			return err
+	for k, v := range node.Annotations {
+		if v == constant.NodeUnitSuperedge {
+			nodeUnits = append(nodeUnits, k)
+			delete(node.Annotations, k)
 		}
 	}
-
 	for _, annotation := range annotations {
 		nodeUnits = util.DeleteSliceElement(nodeUnits, annotation)
 	}
+
 	nodeUnits = util.DeleteSliceElement(nodeUnits, "")
-	node.Annotations[constant.NodeUnitSuperedge] = util.ToJson(nodeUnits)
+	for _, val := range nodeUnits {
+		node.Annotations[val] = constant.NodeUnitSuperedge
+	}
 	if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
 		klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
 		return err
@@ -161,8 +163,16 @@ func ResetNodeUnitAnnotations(kubeclient clientset.Interface, node *corev1.Node,
 	if node.Annotations == nil {
 		node.Annotations = make(map[string]string)
 	}
+	for k, v := range node.Annotations {
+		if v == constant.NodeUnitSuperedge {
+			delete(node.Annotations, k)
+		}
+	}
+
 	annotations = util.DeleteSliceElement(annotations, "")
-	node.Annotations[constant.NodeUnitSuperedge] = util.ToJson(annotations)
+	for _, val := range annotations {
+		node.Annotations[val] = constant.NodeUnitSuperedge
+	}
 	if _, err := kubeclient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
 		klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
 		return err
