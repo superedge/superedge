@@ -26,7 +26,7 @@ import (
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
-        "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 )
 
 func NewEdgeHealthCommand(ctx context.Context, registryOptions ...registry.ExtendOptions) *cobra.Command {
