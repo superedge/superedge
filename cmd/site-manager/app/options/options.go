@@ -40,6 +40,7 @@ type Options struct {
 	QPS               float32
 	Master            string
 	Kubeconfig        string
+	EnsureCrd         bool
 	FeatureGates      map[string]bool
 	config.LeaderElectionConfiguration
 }
@@ -70,6 +71,8 @@ func NewSiteManagerDaemonOptions() *Options {
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Master, "master", o.Master, "apiserver master address")
 	fs.StringVar(&o.Kubeconfig, "kubeconfig", o.Kubeconfig, "kubeconfig path, empty path means in cluster mode")
+	fs.BoolVar(&o.EnsureCrd, "ensure-crd", true, "auto apply all crd definition")
+
 	fs.Float32Var(&o.QPS, "kube-qps", o.QPS, "kubeconfig qps setting")
 	fs.IntVar(&o.Burst, "kube-burst", o.Burst, "kubeconfig burst setting")
 	fs.Var(cliflag.NewMapStringBool(&o.FeatureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
