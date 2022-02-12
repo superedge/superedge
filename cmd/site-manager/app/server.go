@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	crdclientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -41,6 +40,7 @@ import (
 	"github.com/superedge/superedge/pkg/site-manager/config"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/site-manager/controller"
+	crdclientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	"github.com/superedge/superedge/pkg/util"
 	utilkubeclient "github.com/superedge/superedge/pkg/util/kubeclient"
 	"github.com/superedge/superedge/pkg/version"
