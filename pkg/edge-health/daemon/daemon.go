@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/communicate"
+	"github.com/superedge/superedge/pkg/edge-health/registry"
 	"github.com/superedge/superedge/pkg/edge-health/vote"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sync"
@@ -45,9 +46,10 @@ type EdgeDaemon struct {
 	MasterUrl             string
 	KubeconfigPath        string
 	HostName              string
+	ExtendOptions         []registry.ExtendOptions
 }
 
-func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
+func NewEdgeHealthDaemon(o options.CompletedOptions, registryOptions ...registry.ExtendOptions) Daemon {
 	return EdgeDaemon{
 		HealthCheckPeriod:     o.CheckOptions.HealthCheckPeriod,
 		HealthCheckScoreLine:  o.CheckOptions.HealthCheckScoreLine,
@@ -60,14 +62,19 @@ func NewEdgeHealthDaemon(o options.CompletedOptions) Daemon {
 		MasterUrl:             o.NodeOptions.MasterUrl,
 		KubeconfigPath:        o.NodeOptions.KubeconfigPath,
 		HostName:              o.NodeOptions.HostName,
+		ExtendOptions:         registryOptions,
 	}
 }
 
 func (d EdgeDaemon) Run(ctx context.Context) {
-
 	wg := sync.WaitGroup{}
 
 	initialize(d.MasterUrl, d.KubeconfigPath, d.HostName)
+
+	for _, extendoptions := range d.ExtendOptions {
+		registry := extendoptions()
+		checkplugin.Merge(registry)
+	}
 
 	check := checkpkg.NewCheckEdge(checkplugin.PluginInfo.Plugins, d.HealthCheckPeriod, d.HealthCheckScoreLine)
 

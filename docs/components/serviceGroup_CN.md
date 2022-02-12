@@ -376,7 +376,7 @@ templates：NodeUnit和其使用的templatePool中的template的映射关系，�
 
 defaultTemplateName：默认使用的template，如果不填写或者使用"default"就采用spec.template
 
-autoDeleteUnusedTemplate：默认为false，如果设置为ture，会自动删除templatePool中既不在templates中也不在spec.template中的template模板
+autoDeleteUnusedTemplate：默认为false，如果设置为true，会自动删除templatePool中既不在templates中也不在spec.template中的template模板
 
 ### 使用相同的template创建workload
 和上面的DeploymentGrid和StatefulsetGrid例子完全一致，如果不需要使用灰度功能，则无需添加额外字段
