@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
-
+	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -87,6 +87,13 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
 		}
+	}
+
+	if nodeUnit.Spec.SetNode.Labels == nil {
+		nodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	}
+	if nodeUnit.Name != "" {
+		nodeUnit.Spec.SetNode.Labels[nodeUnit.Name] = constant.NodeUnitSuperedge
 	}
 
 	// todo: set node
@@ -161,6 +168,13 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 			continue
 		}
 	}
+
+	if curNodeUnit.Spec.SetNode.Labels == nil {
+		curNodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	}
+	if oldNodeUnit.Name != "" {
+		curNodeUnit.Spec.SetNode.Labels[oldNodeUnit.Name] = constant.NodeUnitSuperedge
+	}
 	utils.UpdtateNodeFromSetNode(siteManager.kubeClient, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode, nodeNames)
 	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
 }
@@ -217,6 +231,13 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
 		}
+	}
+
+	if nodeUnit.Spec.SetNode.Labels == nil {
+		nodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	}
+	if nodeUnit.Name != "" {
+		nodeUnit.Spec.SetNode.Labels[nodeUnit.Name] = constant.NodeUnitSuperedge
 	}
 
 	utils.DeleteNodesFromSetNode(siteManager.kubeClient, nodeUnit.Spec.SetNode, nodeNames)
