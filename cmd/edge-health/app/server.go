@@ -20,18 +20,16 @@ import (
 	"context"
 	"github.com/spf13/cobra"
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
-	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/daemon"
+	"github.com/superedge/superedge/pkg/edge-health/registry"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/klog/v2"
 )
 
-type ExtendOptions func() checkplugin.Registry
-
-func NewEdgeHealthCommand(ctx context.Context, registryOptions ...ExtendOptions) *cobra.Command {
+func NewEdgeHealthCommand(ctx context.Context, registryOptions ...registry.ExtendOptions) *cobra.Command {
 	o := options.NewEdgeHealthOptions()
 	cmd := &cobra.Command{
 		Use: common.CmdName,

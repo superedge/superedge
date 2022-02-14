@@ -69,7 +69,7 @@ func NewDetachEdgexCMD() *cobra.Command {
 }
 
 func (a *addonAction) runAddonedgex() error {
-	var ser = make([]bool, constant.SerCount + 1)
+	var ser = make([]bool, constant.SerCount+1)
 	ser[constant.App] = a.app
 	ser[constant.Core] = a.core
 	ser[constant.Support] = a.support
@@ -88,7 +88,7 @@ func (a *addonAction) runAddonedgex() error {
 }
 
 func (a *addonAction) runDetachedgex() error {
-	var ser = make([]bool, constant.SerCount + 1)
+	var ser = make([]bool, constant.SerCount+1)
 	ser[constant.App] = a.app
 	ser[constant.Core] = a.core
 	ser[constant.Support] = a.support
