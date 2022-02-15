@@ -28,7 +28,7 @@ import (
 
 var (
 	dockerExample = cmdutil.Examples(`
-		# Install docker container runtime.
+		# Install container runtime.
 		  kubeadm init phase container`)
 )
 
@@ -36,20 +36,26 @@ var (
 func NewContainerPhase() workflow.Phase {
 	return workflow.Phase{
 		Name:         "container",
-		Short:        "Install docker container runtime",
-		Long:         "Install docker container runtime",
+		Short:        "Install container runtime",
+		Long:         "Install container runtime",
 		Example:      dockerExample,
 		Run:          installContainer,
-		InheritFlags: []string{},
+		InheritFlags: []string{constant.ContainerRuntime},
 	}
 }
 
 func installContainer(c workflow.RunData) error {
-	err := installDocker()
-	if err != nil {
-		return err
+	switch EdgeadmConf.ContainerRuntime {
+	case constant.ContainerRuntimeDocker:
+		if err := installDocker(); err != nil {
+			return err
+		}
+	case constant.ContainerRuntimeContainerd:
+		if err := installContainerd(); err != nil {
+			return err
+		}
 	}
-	klog.Info("Installed docker container runtime successfully")
+	klog.Infof("Installed container runtime %s successfully", EdgeadmConf.ContainerRuntime)
 
 	return nil
 }
@@ -69,5 +75,23 @@ func installDocker() error {
 	}
 
 	klog.V(4).Infof("Install docker container runtime success")
+	return nil
+}
+
+func installContainerd() error {
+	klog.V(4).Infof("Start install containerd runtime")
+	//unzip containerd Package
+	if err := common.UnzipPackage(EdgeadmConf.WorkerPath+constant.ContainerdZipPath, EdgeadmConf.WorkerPath+constant.UnZipContainerDstPath); err != nil {
+		klog.Errorf("Unzip containerd runtime Package: %s, error: %v", EdgeadmConf.WorkerPath+constant.UnZipContainerDstPath, err)
+		return err
+	}
+
+	if _, _, err := util.RunLinuxCommand(EdgeadmConf.WorkerPath + constant.ContainerdInstallShell); err != nil {
+		klog.Errorf("Run containerd install shell: %s, error: %v",
+			EdgeadmConf.WorkerPath+constant.UnZipContainerDstPath, err)
+		return err
+	}
+
+	klog.V(4).Infof("Install containerd runtime success")
 	return nil
 }

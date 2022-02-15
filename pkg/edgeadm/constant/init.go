@@ -30,9 +30,13 @@ const (
 	// install conf dir
 	KubeSchedulerConf = InstallConfDir + "kube-scheduler/"
 
-	// container runtime dir
+	// docker runtime dir
 	ZipContainerPath   = UnZipContainerDstPath + "docker-*.tgz"
 	DockerInstallShell = UnZipContainerDstPath + "docker/install"
+
+	// containerd runtime dir
+	ContainerdZipPath      = UnZipContainerDstPath + "containerd-*.tgz"
+	ContainerdInstallShell = UnZipContainerDstPath + "containerd/install"
 
 	// script dir
 	ScriptShellPath = InstallDir + "script/"

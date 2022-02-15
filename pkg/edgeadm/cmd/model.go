@@ -10,4 +10,5 @@ type EdgeadmConfig struct {
 	TunnelCoreDNSClusterIP string
 	KubeVIPInterface       string
 	DefaultHA              string
+	ContainerRuntime       string
 }
