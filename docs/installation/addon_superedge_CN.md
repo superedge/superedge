@@ -167,7 +167,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，可使用`./edgeadm reset`命令回滚加入节点的操作，重新 join。
 
->    提示：边缘节点 join 成功后都会被打上标签: `superedge.io/edge-node=enable`，方便后续应用通过 nodeSelector 选择应用调度到边缘节点；
+>    提示：边缘节点 join 成功后都会被打上标签: `superedge.io/node-edge=enable`，方便后续应用通过 nodeSelector 选择应用调度到边缘节点；
 
 以上操作如有问题，可以加入到SuperEdge的[Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw)、[Google论坛](https://groups.google.com/g/superedge)、[微信群](https://github.com/superedge/superedge)和我们进行交流，也可在社区提[Issues](https://github.com/superedge/superedge/issues)给我们反馈问题。
 
