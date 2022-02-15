@@ -166,6 +166,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	// One-click install of flags for cluster
 	initClusterFlags(cmd.Flags(), edgeConfig)
 	initInstallHAFlag(cmd.Flags(), edgeConfig)
+	initContainerRuntimeFlags(cmd.Flags(), edgeConfig)
 
 	// adds flags to the init command
 	// init command local flags could be eventually inherited by the sub-commands automatically generated for phases
@@ -210,6 +211,16 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		moveKubeSchedulerConf := fmt.Sprintf("mv -f %s %s", edgeConfig.WorkerPath+constant.KubeSchedulerConf, kubeSchedulerConfDir)
 		if _, _, err := util.RunLinuxCommand(moveKubeSchedulerConf); err != nil {
 			return err
+		}
+
+		// set edgeadm crisocket for runtime
+		switch edgeConfig.ContainerRuntime {
+		case constant.ContainerRuntimeDocker:
+			initOptions.externalInitCfg.NodeRegistration.CRISocket = constant.DefaultDockerCRISocket
+		case constant.ContainerRuntimeContainerd:
+			initOptions.externalInitCfg.NodeRegistration.CRISocket = constant.DefaultContainerdCRISocket
+		default:
+			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s", edgeConfig.ContainerRuntime)
 		}
 
 		// set one-click install kubernetes config
@@ -273,6 +284,13 @@ func initClusterFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 		&edgeConfig.ManifestsDir, constant.ManifestsDir, "", "Manifests document of edge kubernetes cluster.",
 	)
 
+}
+
+func initContainerRuntimeFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
+	flagSet.StringVar(
+		&edgeConfig.ContainerRuntime, constant.ContainerRuntime,
+		constant.ContainerRuntimeDocker, "Container runtime support docker and containerd.",
+	)
 }
 
 func initInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
