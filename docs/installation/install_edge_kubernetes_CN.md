@@ -259,7 +259,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 执行过程中如果出现问题会直接返回相应的错误信息，并中断节点的添加，可使用`./edgeadm reset`命令回滚加入节点的操作，重新join。
 
->    提示：要是join的边缘节点，边缘节点join成功后都会给边缘节点打一个label: `superedge.io/edge-node=enable`，方便后续应用用nodeSelector选择应用调度到边缘节点；
+>    提示：要是join的边缘节点，边缘节点join成功后都会给边缘节点打一个label: `superedge.io/node-edge=enable`，方便后续应用用nodeSelector选择应用调度到边缘节点；
 >
 >   原生Kubernetes节点和kubeadm的join一样，不会做任何操作。
 

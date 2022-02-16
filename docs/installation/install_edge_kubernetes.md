@@ -247,7 +247,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 If there is a problem during the execution, the corresponding error message will be returned directly, and the addition of the node will be interrupted. You can use the `./edgeadm reset` command to roll back the operation of joining the node and rejoin.
 
-> Tip: If the edge node is joined, after the edge node joins successfully, the edge node will be labeled with a label: `superedge.io/edge-node=enable`, which is convenient for subsequent applications to use nodeSelector to select the application and schedule to the edge node;
+> Tip: If the edge node is joined, after the edge node joins successfully, the edge node will be labeled with a label: `superedge.io/node-edge=enable`, which is convenient for subsequent applications to use nodeSelector to select the application and schedule to the edge node;
 >
 > Native Kubernetes nodes, like kubeadm's join, do not do anything.
 
