@@ -72,6 +72,11 @@ spec:
                 items:
                   type: string
                 type: array
+              autofindnodekeys:
+                description: If specified, create new NodeUnits based on node have same label keys, for different values will create different nodeunites
+                items:
+                  type: string
+                type: array
               selector:
                 description: If specified, Label selector for nodeUnit.
                 properties:

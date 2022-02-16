@@ -2,7 +2,7 @@ package utils
 
 import (
 	"context"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -25,7 +25,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	}
 	allNnodeUnit := &sitev1.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1",
+			APIVersion: "site.superedge.io/v1alpha1",
 			Kind:       "NodeUnit",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -36,7 +36,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			Selector: allNodeUnitSelector,
 		},
 	}
-	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), allNnodeUnit, metav1.CreateOptions{}); err != nil {
+	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), allNnodeUnit, metav1.CreateOptions{}); err != nil {
 		klog.Warningf("Create default %s unit error : %#v", AllNodeUnit, err)
 	}
 
@@ -48,7 +48,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	}
 	masterUnit := &sitev1.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1",
+			APIVersion: "site.superedge.io/v1alpha1",
 			Kind:       "NodeUnit",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -59,7 +59,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			Selector: masterUnitSelector,
 		},
 	}
-	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), masterUnit, metav1.CreateOptions{}); err != nil {
+	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), masterUnit, metav1.CreateOptions{}); err != nil {
 		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
 	}
 
@@ -71,7 +71,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	}
 	cloudNnodeUnit := &sitev1.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1",
+			APIVersion: "site.superedge.io/v1alpha1",
 			Kind:       "NodeUnit",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,7 +82,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			Selector: cloudNodeUnitSelector,
 		},
 	}
-	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), cloudNnodeUnit, metav1.CreateOptions{}); err != nil {
+	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), cloudNnodeUnit, metav1.CreateOptions{}); err != nil {
 		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
 	}
 
@@ -94,7 +94,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 	}
 	edgeNnodeUnit := &sitev1.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1",
+			APIVersion: "site.superedge.io/v1alpha1",
 			Kind:       "NodeUnit",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -105,7 +105,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			Selector: edgedNodeUnitSelector,
 		},
 	}
-	if _, err := crdClient.SiteV1().NodeUnits().Create(context.TODO(), edgeNnodeUnit, metav1.CreateOptions{}); err != nil {
+	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), edgeNnodeUnit, metav1.CreateOptions{}); err != nil {
 		klog.Warningf("Create default %s unit error : %#v", EdgeNodeUnit, err)
 	}
 

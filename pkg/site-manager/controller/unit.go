@@ -27,7 +27,7 @@ import (
 	"k8s.io/klog/v2"
 	"strings"
 
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
 )
@@ -55,7 +55,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-	_, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
+	_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
 		return
@@ -82,7 +82,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
@@ -135,7 +135,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-	curNodeUnit, err = siteManager.crdClient.SiteV1().NodeUnits().UpdateStatus(context.TODO(), curNodeUnit, metav1.UpdateOptions{})
+	curNodeUnit, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), curNodeUnit, metav1.UpdateOptions{})
 	if err != nil && !errors.IsConflict(err) {
 		klog.Errorf("Update nodeUnit: %s error: %#v", curNodeUnit.Name, err)
 		return
@@ -162,7 +162,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, curNodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
@@ -226,7 +226,7 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 		nodeGroupStatus := &nodeGroup.Status
 		nodeGroupStatus.NodeUnits = util.DeleteSliceElement(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
