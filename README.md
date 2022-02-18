@@ -44,11 +44,11 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 
 -   Download the installation package
 > Choose installation package according to your installation node CPU architecture [amd64, arm64]
+
 ```shell
 arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
-> If you want install containerd runtime, please add `--runtime=containerd` flags.
 -   Install edge Kubernetes master node
 ```shell
 ./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true

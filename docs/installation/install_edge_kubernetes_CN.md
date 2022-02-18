@@ -175,6 +175,9 @@ arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-12
 
     >   要是superedge.tencentcloudcr.com/superedge 比较慢，可换成其他加速镜像仓库，只要能Pull下来kube-apiserver，kube-controller-manager，kube-scheduler，kube-proxy，etcd， pause……镜像就可以。
 
+-  --runtime: 节点安装的容器运行时
+    >   如果需要安装containerd运行时则需要替换添加`--runtime=containerd`参数，且替换连接为`https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-containerd-$arch-$version.tgz`
+
 其他参数和kubeadm含义完全相同，可按kubeadm的要求进行配置。
 
 >    也可用kubeadm.config配置kubeadm的原参数，通过`edgeadm init --config kubeadm.config --install-pkg-path ./kube-linux-*.tar.gz `来创建边缘Kubernetes集群。
