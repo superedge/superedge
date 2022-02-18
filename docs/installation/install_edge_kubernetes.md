@@ -164,6 +164,9 @@ On：
 
     >   If superedge.tencentcloudcr.com/superedge is slower, you can switch to other accelerated mirror warehouses, as long as you can pull down kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, etcd, pause, etc. mirrors.
 
+-  --runtime: node container runtime to install
+    >   If you want install containerd runtime, please add `--runtime=containerd` flags, and replace offline package url `https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-containerd-$arch-$version.tgz`
+
 Other parameters have the same meaning as Kubeadm and can be configured according to kubeadm's requirements.
 
 >   You can also use kubeadm.config to configure the original parameters of kubeadm, and create an edge Kubernetes cluster through `edgeadm init --config kubeadm.config --install-pkg-path ./kube-linux-*.tar.gz `.
