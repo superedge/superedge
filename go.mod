@@ -3,14 +3,15 @@ module github.com/superedge/superedge
 go 1.14
 
 require (
-        github.com/google/uuid v1.1.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/TarsCloud/TarsGo v1.1.7-0.20210519070617-e2dc06be2b59
 	github.com/caddyserver/caddy v1.0.5 // indirect
+	github.com/cockroachdb/pebble v0.0.0-20220218191007-13f8f7cee6ef
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/golang/protobuf v1.5.2
+	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
@@ -27,7 +28,7 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
+	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools v2.2.0+incompatible
