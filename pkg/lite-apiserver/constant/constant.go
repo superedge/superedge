@@ -35,3 +35,8 @@ const (
 	VerbList  = "list"
 	VerbWatch = "watch"
 )
+
+const (
+	Json = "application/json"
+	Yaml = "application/yaml"
+)

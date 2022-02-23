@@ -127,6 +127,8 @@ spec:
       labels:
         k8s-app: application-grid-wrapper-node
     spec:
+      tolerations:
+      - operator: Exists
       serviceAccount: application-grid-wrapper
       serviceAccountName: application-grid-wrapper
       priorityClassName: system-node-critical
@@ -134,7 +136,7 @@ spec:
       restartPolicy: Always
       nodeSelector:
         kubernetes.io/os: linux 
-        superedge.io/edge-node: enable   # TODO select nodes labeled as edges
+        superedge.io/node-edge: enable   # TODO select nodes labeled as edges
       containers:
         - name: application-grid-wrapper
           image: superedge.tencentcloudcr.com/superedge/application-grid-wrapper:v0.6.0
