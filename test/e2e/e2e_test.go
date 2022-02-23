@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	crdClientset "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	siteClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,7 +31,7 @@ import (
 	"time"
 )
 
-func initClient(t *testing.T) (*kubernetes.Clientset, *crdClientset.Clientset) {
+func initClient(t *testing.T) (*kubernetes.Clientset, *crdClientset.Clientset, *siteClientset.Clientset) {
 	config, err := clientcmd.BuildConfigFromFlags("", "/tmp/config")
 	if err != nil {
 		t.Fatal("can not init build k8s config")
@@ -41,8 +42,8 @@ func initClient(t *testing.T) (*kubernetes.Clientset, *crdClientset.Clientset) {
 		t.Fatal("can not init clientset")
 	}
 	crdClient := crdClientset.NewForConfigOrDie(config)
-
-	return clientset, crdClient
+	siteClient := siteClientset.NewForConfigOrDie(config)
+	return clientset, crdClient, siteClient
 }
 
 func waitForDeployment(t *testing.T, ctx context.Context, namespace string, deploymentname string, clientSet *kubernetes.Clientset) (bool, error) {
@@ -75,6 +76,23 @@ func waitForSVC(t *testing.T, ctx context.Context, namespace string, svcname str
 			_, err := clientSet.CoreV1().Services(namespace).Get(ctx, svcname, metav1.GetOptions{})
 			if err == nil {
 				t.Log("Service get as expected")
+				return true, nil
+			}
+		}
+	}
+}
+func waitForNodeUnit(t *testing.T, ctx context.Context, name string, crdClient *siteClientset.Clientset) (bool, error) {
+	timeout := time.After(3 * time.Minute)
+	tick := time.Tick(5 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			t.Log("Timeout, still restart count not as expected")
+			return false, fmt.Errorf("timeout Error")
+		case <-tick:
+			_, err := crdClient.SiteV1alpha1().NodeGroups().Get(ctx, name, metav1.GetOptions{})
+			if err == nil {
+				t.Log("nodeunit get as expected")
 				return true, nil
 			}
 		}

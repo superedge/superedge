@@ -26,7 +26,7 @@ import (
 
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	crdFactory "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions"
-	crdv1 "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site/v1"
+	crdv1 "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site.superedge.io/v1alpha1"
 )
 
 type ControllerConfig struct {
@@ -41,8 +41,8 @@ func NewControllerConfig(k8sClient *kubernetes.Clientset, crdClient *crdClientse
 
 	return &ControllerConfig{
 		NodeInformer:      k8sFactory.Core().V1().Nodes(),
-		NodeUnitInformer:  crdFactory.Site().V1().NodeUnits(),
-		NodeGroupInformer: crdFactory.Site().V1().NodeGroups(),
+		NodeUnitInformer:  crdFactory.Site().V1alpha1().NodeUnits(),
+		NodeGroupInformer: crdFactory.Site().V1alpha1().NodeGroups(),
 	}
 }
 

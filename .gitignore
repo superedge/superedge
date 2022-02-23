@@ -25,6 +25,7 @@
 .version-defs
 cover.out
 vendor
-
+ven
+deepcopy-gen
 kubelet.config
 

@@ -28,7 +28,7 @@ import (
 
 func TestApplicationgrid(t *testing.T) {
 	ctx := context.Background()
-	clientSet, crdclient := initClient(t)
+	clientSet, crdclient, _ := initClient(t)
 	var selector map[string]string
 	var err error
 	selector = make(map[string]string)
