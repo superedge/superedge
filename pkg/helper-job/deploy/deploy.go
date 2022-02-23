@@ -23,6 +23,7 @@ import (
 	"k8s.io/klog/v2"
 
 	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/helper-job/constant"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
@@ -33,17 +34,17 @@ func Run() error {
 		return err
 	}
 
-	nodeName := os.Getenv("NODE_NAME")
+	nodeName := os.Getenv(constant.NODE_NAME)
 	if nodeName == "" {
 		return errors.New("Get ENV NODE_NAME nil\n")
 	}
 
-	nodeRole := os.Getenv("NODE_ROLE")
+	nodeRole := os.Getenv(constant.NODE_ROLE)
 	if nodeRole == "" {
 		return errors.New("Get ENV NODE_ROLE nil\n")
 	}
 
-	action := os.Getenv("ACTION")
+	action := os.Getenv(constant.ACTION)
 	if nodeRole == "" {
 		return errors.New("Get ENV ACTION nil\n")
 	}

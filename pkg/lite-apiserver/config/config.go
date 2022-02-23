@@ -41,6 +41,10 @@ type LiteServerConfig struct {
 	// if <=0, use default timeout
 	BackendTimeout int
 
+	// Profiling pprof for the lite-apiserver.
+	// default false
+	Profiling bool
+
 	TLSConfig []TLSKeyPair
 
 	ModifyRequestAccept bool

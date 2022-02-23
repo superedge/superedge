@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -30,6 +31,7 @@ import (
 
 type fileStorage struct {
 	filePath string
+	seedMu   sync.Mutex
 	seed     *rand.Rand
 }
 
@@ -99,7 +101,9 @@ func (fs *fileStorage) randomString(l int) string {
 	bytes := []byte(str)
 	var result []byte
 	for i := 0; i < l; i++ {
+		fs.seedMu.Lock()
 		result = append(result, bytes[fs.seed.Intn(len(bytes))])
+		fs.seedMu.Unlock()
 	}
 	return string(result)
 }

@@ -53,8 +53,8 @@ const (
 
 const (
 	CMKubeConfig               = "kubeconfig.conf"
-	CMKubeProxy                = "kube-proxy"
-	CMKubeProxyNoEdge          = "kube-proxy-no-edge"
+	KubeProxy                  = "kube-proxy"
+	EdgeKubeProxy              = "edge-kube-proxy"
 	KubernetesEndpoint         = "kubernetes"
 	KubernetesEndpointNoEdge   = "kubernetes-no-edge"
 	ConfigMapClusterInfoNoEdge = "cluster-info-no-edge"
@@ -80,19 +80,25 @@ const (
 
 // label
 const (
-	EdgeNodeLabelKey     = "superedge.io/edge-node"
-	EdgeMasterLabelKey   = "superedge.io/edge-master"
+	EdgeNodeLabelKey   = "superedge.io/node-edge"
+	CloudNodeLabelKey  = "superedge.io/node-cloud"
+	EdgeMasterLabelKey = "superedge.io/node-master"
+
 	EdgeChangeLabelKey   = "superedge.io/change"
 	EdgehostnameLabelKey = "superedge.io.hostname"
 	EdgeLocalHost        = "superedge.io/local-endpoint"
 	EdgeLocalPort        = "superedge.io/local-port"
 
+	CloudNodeLabelValueEnable  = "enable"
 	EdgeNodeLabelValueEnable   = "enable"
 	EdgeMasterLabelValueEnable = "enable"
 	EdgeChangeLabelValueEnable = "enable"
 
 	UpdateKubeProxyTime        = "superedge.update.kube-proxy"
 	KubernetesDefaultRoleLabel = "node-role.kubernetes.io/master"
+
+	EdgeNodeAffinityAction     = "Exists"
+	EdgeNodeAntiAffinityAction = "DoesNotExist"
 
 	//topolvm
 	TopolvmWebookMatchExpressionsKey   = "topolvm.cybozu.com/webhook"

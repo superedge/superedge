@@ -315,9 +315,9 @@ servicegrid-demo-svc   ClusterIP   192.168.21.99   <none>        80/TCP    21h
 ...
 ```
 
-**注意：在各NodeUnit内通过service访问本组服务时，对应clusterIP不能设置成None，暂不支持此种情况下的闭环访问**
+**注意：使用Headless service搭配StatefulSetGrid时，暂时不支持在各NodeUnit内通过service名直接访问情况下的闭环访问，这里与DeploymentGrid有所不同**
 
-除了采用service访问statefulset负载，StatefulSetGrid还支持使用headless service的方式进行访问，如下所示：
+除了采用非Headless service访问statefulset负载外，StatefulSetGrid目前支持使用Headless service**配合pod FQDN**的方式进行闭环访问，如下所示：
 
 ![](../img/statefulsetgrid.png)
 
@@ -376,7 +376,7 @@ templates：NodeUnit和其使用的templatePool中的template的映射关系，�
 
 defaultTemplateName：默认使用的template，如果不填写或者使用"default"就采用spec.template
 
-autoDeleteUnusedTemplate：默认为false，如果设置为ture，会自动删除templatePool中既不在templates中也不在spec.template中的template模板
+autoDeleteUnusedTemplate：默认为false，如果设置为true，会自动删除templatePool中既不在templates中也不在spec.template中的template模板
 
 ### 使用相同的template创建workload
 和上面的DeploymentGrid和StatefulsetGrid例子完全一致，如果不需要使用灰度功能，则无需添加额外字段

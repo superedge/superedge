@@ -19,17 +19,14 @@ package revert
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (r *revertAction) runKubeamdRevert() error {
@@ -180,50 +177,19 @@ func (r *revertAction) deleteNodeLabel() error {
 func (r *revertAction) revertKubeProxyKubeconfig() error {
 	kubeClient := r.clientSet
 
-	kubeProxyCM, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
-	if err != nil {
+	if err := kubeClient.AppsV1().DaemonSets(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	proxyConfig, ok := kubeProxyCM.Data["kubeconfig.conf"]
-	if !ok {
-		return errors.New("Get kube-proxy kubeconfig.conf nil\n")
-	}
-
-	config, err := clientcmd.Load([]byte(proxyConfig))
-	if err != nil {
+	if err := kubeClient.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.EdgeKubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	masterIps, err := common.GetMasterIps(r.clientSet)
-	if err != nil {
-		return err
-	}
-	if len(masterIps) < 1 {
-		return errors.New("Get master ip nil\n")
-	}
-
-	for key := range config.Clusters {
-		config.Clusters[key].Server = "https://" + masterIps[0] + ":6443"
-	}
-
-	content, err := clientcmd.Write(*config)
-	if err != nil {
-		return err
-	}
-	kubeProxyCM.Data["kubeconfig.conf"] = string(content)
-
-	if _, err := kubeClient.CoreV1().ConfigMaps("kube-system").Update(context.TODO(), kubeProxyCM, metav1.UpdateOptions{}); err != nil {
+	if err := kubeClient.CoreV1().ServiceAccounts(constant.NamespaceEdgeSystem).Delete(context.TODO(), constant.KubeProxy, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	daemonSets, err := kubeClient.AppsV1().DaemonSets("kube-system").Get(context.TODO(), "kube-proxy", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	delete(daemonSets.Spec.Template.Annotations, constant.UpdateKubeProxyTime)
-	if _, err := kubeClient.AppsV1().DaemonSets("kube-system").Update(context.TODO(), daemonSets, metav1.UpdateOptions{}); err != nil {
+	if err := common.RecoverKubeProxy(kubeClient); err != nil {
 		return err
 	}
 

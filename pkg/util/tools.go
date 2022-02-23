@@ -147,3 +147,25 @@ func SplitHostPortWithDefaultPort(v string, defaultPort string) (addr string, po
 	}
 	return addr, port, err
 }
+
+func RemoveDuplicateElement(slice []string) []string {
+	result := make([]string, 0, len(slice))
+	temp := map[string]struct{}{}
+	for _, item := range slice {
+		if _, ok := temp[item]; !ok {
+			temp[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func DeleteSliceElement(slice []string, element string) []string {
+	ret := make([]string, 0, len(slice))
+	for _, val := range slice {
+		if val != element {
+			ret = append(ret, val)
+		}
+	}
+	return ret
+}

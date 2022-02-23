@@ -170,6 +170,6 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 If there is a problem in the execution process, the corresponding error message will be directly returned, and the addition of the node will be interrupted. You can use the `./edgeadm reset` command to roll back the operation of joining the node and rejoin.
 
->    Tips: After successful join, the edge node will be labeled: `superedge.io/edge-node=enable`, which is convenient for subsequent applications to select application scheduling to the edge node through nodeSelector;
+>    Tips: After successful join, the edge node will be labeled: `superedge.io/node-edge=enable`, which is convenient for subsequent applications to select application scheduling to the edge node through nodeSelector;
 
 If you have any problems with the above operations, you can join SuperEdge's [Slack](https://join.slack.com/t/superedge-workspace/shared_invite/zt-ldxnm7er-ptdpCXthOct_dYrzyXM3pw), [Google Forum](https://groups .google.com/g/superedge), WeChat group to communicate with us, and you can also submit [Issues](https://github.com/superedge/superedge/issues) to give us feedback on issues in the community.

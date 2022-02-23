@@ -125,5 +125,8 @@ func ParseToken(token string) (*Token, error) {
 func ParseLine(line string, m map[string]string) {
 	line = util.ReplaceString(line)
 	kv := strings.Split(line, ":")
+	if len(kv) < 2 {
+		return
+	}
 	m[kv[0]] = kv[1]
 }

@@ -197,7 +197,7 @@ func TestDeploymentControllerRefManager(t *testing.T) {
 	}
 
 	if len(claimed) != len(claimedObjects) {
-		t.Errorf("claimed objects lenght expect %d got %d", len(claimed), len(claimedObjects))
+		t.Errorf("claimed objects length expect %d got %d", len(claimed), len(claimedObjects))
 		return
 	}
 

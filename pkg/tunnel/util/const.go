@@ -39,10 +39,10 @@ const (
 )
 
 const (
-	CONNECTING    = "connecting"
-	CONNECTED     = "connected"
-	TRANSNMISSION = "transmission"
-	CLOSED        = "closed"
+	CONNECTING   = "connecting"
+	CONNECTED    = "connected"
+	TRANSMISSION = "transmission"
+	CLOSED       = "closed"
 )
 
 const (
