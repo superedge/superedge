@@ -55,7 +55,7 @@ func TestApplyNodeGroup(t *testing.T) {
 	defer crdclient.SiteV1alpha1().NodeGroups().Delete(ctx, "nodegroup-e2e", metav1.DeleteOptions{})
 
 	// check is it have deployment deploymentgrid-e2e-nodeunitname
-	result, err := waitForNodeUnit(t, ctx, "zone1-nodeunit1", crdclient)
+	result, err := waitForNodeUnit(t, ctx, "nodeunit1", crdclient)
 	if !result {
 		t.Fatal("nodeunit not found", err)
 	}

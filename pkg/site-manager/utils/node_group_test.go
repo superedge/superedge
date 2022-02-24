@@ -34,7 +34,18 @@ func TestCheckifcontains(t *testing.T) {
 			},
 			keyslices:     []string{"localzone"},
 			expectinclude: true,
-			expectresult:  "localzone-eu-west-1",
+			expectresult:  "eu-west-1",
+		},
+		{
+			nodelabel: map[string]string{
+				"localzone":              "eu-west-2",
+				"kubernetes.io/arch":     "arm64",
+				"kubernetes.io/hostname": "vm-111-centos",
+				"kubernetes.io/os":       "linux",
+			},
+			keyslices:     []string{"kubernetes.io/hostname", "kubernetes.io/os"},
+			expectinclude: true,
+			expectresult:  "vm-111-centos-linux",
 		},
 		{
 			nodelabel: map[string]string{
@@ -47,10 +58,9 @@ func TestCheckifcontains(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		include, result := checkifcontains(tc.nodelabel, tc.keyslices)
+		include, result, _ := checkifcontains(tc.nodelabel, tc.keyslices)
 		if include != tc.expectinclude || result != tc.expectresult {
 			t.Fatal("not as expected", include, tc.expectinclude, result, tc.expectresult)
 		}
 	}
-
 }
