@@ -40,7 +40,7 @@ func WriteEdeployToStaticPod(kubeClient clientset.Interface, edeploy *appsv1.EDe
 	replicas := *edeploy.Spec.Replicas
 	podTemplate := &edeploy.Spec.Template
 	for i := 1; i < int(replicas)+1; i++ {
-		podTemplate.Name = podTemplate.Name + "-" + strconv.Itoa(int(i))
+		podTemplate.Name = edeploy.Name + "-" + strconv.Itoa(int(i))
 		staticPod := &corev1.Pod{}
 		staticPod.TypeMeta = metav1.TypeMeta{
 			Kind:       "Pod",
@@ -49,6 +49,8 @@ func WriteEdeployToStaticPod(kubeClient clientset.Interface, edeploy *appsv1.EDe
 		podTemplate.Spec.DeepCopyInto(&staticPod.Spec)
 		podTemplate.ObjectMeta.DeepCopyInto(&staticPod.ObjectMeta)
 		podData, err := util.PodToYaml(staticPod)
+
+		staticPodDir = staticPodDir + podTemplate.Name + ".yaml"
 		if err = util.WriteWithBufio(staticPodDir, string(podData)); err != nil {
 			klog.Errorf("Write file: %s error: %v", staticPodDir, err)
 			continue
