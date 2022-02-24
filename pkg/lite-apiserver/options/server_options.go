@@ -39,6 +39,7 @@ type RunServerOptions struct {
 	FileCachePath       string
 	BadgerCachePath     string
 	BoltCacheFile       string
+	NetworkInterface  string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -62,6 +63,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.FileCachePath = s.FileCachePath
 	c.BadgerCachePath = s.BadgerCachePath
 	c.BoltCacheFile = s.BoltCacheFile
+	c.NetworkInterface = s.NetworkInterface
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -121,4 +123,5 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
 	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
 	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
+	fs.StringVar(&s.NetworkInterface, "network-interface", "", "the network interface list of node, separated by commas")
 }

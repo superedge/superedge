@@ -27,7 +27,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
-    name: v1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: NodeGroup is the Schema for the nodegroups API
@@ -49,6 +49,11 @@ spec:
             properties:
               nodeunits:
                 description: If specified, If nodeUnit exists, join NodeGroup directly
+                items:
+                  type: string
+                type: array
+              autofindnodekeys:
+                description: If specified, create new NodeUnits based on node have same label keys, for different values will create different nodeunites
                 items:
                   type: string
                 type: array

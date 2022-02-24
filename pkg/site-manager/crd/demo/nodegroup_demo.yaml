@@ -1,4 +1,4 @@
-apiVersion: site.superedge.io/v1
+apiVersion: site.superedge.io/v1alpha1
 kind: NodeGroup
 metadata:
   name: nodegroup-demo

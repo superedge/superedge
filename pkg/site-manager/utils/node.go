@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/util"
 	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"

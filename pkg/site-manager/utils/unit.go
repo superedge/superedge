@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -13,7 +13,7 @@ import (
 
 //  GetUnitsByNode
 func GetUnitsByNode(crdClient *crdClientset.Clientset, node *corev1.Node) (nodeUnits []sitev1.NodeUnit, err error) {
-	allNodeUnit, err := crdClient.SiteV1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
+	allNodeUnit, err := crdClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
 	if err != nil && !errors.IsConflict(err) {
 		klog.Errorf("List nodeUnit error: %#v", err)
 		return nil, err
