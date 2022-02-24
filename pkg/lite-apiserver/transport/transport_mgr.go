@@ -23,19 +23,24 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/connrotation"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cert"
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	"github.com/superedge/superedge/pkg/util"
 )
 
 const (
-	DefaultTimeout   = 10
-	DefaultKeepAlive = 30
+	DefaultTimeout          = 10
+	DefaultKeepAlive        = 30
+	healthCheckDuration     = 1 * time.Second
+	defaultNetworkInterface = "default"
 )
 
 type TransportManager struct {
@@ -78,16 +83,16 @@ func (tm *TransportManager) Init() error {
 	tm.rootCertPool = rootCertPool
 
 	// init default transport
-	tm.defaultTransport = makeTransport(&tls.Config{RootCAs: tm.rootCertPool}, tm.timeout)
+	tm.defaultTransport = tm.makeTransport(&tls.Config{RootCAs: tm.rootCertPool}, nil)
 
 	// init transportMap
-	for commonName, _ := range tm.certManager.GetCertMap() {
-		tlsConfig, err := tm.makeTlsConfig(commonName)
+	for commonName := range tm.certManager.GetCertMap() {
+		t, err := tm.getTransport(commonName)
 		if err != nil {
-			klog.Errorf("make tls config error, commonName=%s: %v", commonName, err)
+			klog.Errorf("get transport error, commonName=%s: %v", commonName, err)
 			continue
 		}
-		tm.updateTransport(commonName, makeTransport(tlsConfig, tm.timeout))
+		tm.updateTransport(commonName, t)
 	}
 
 	return nil
@@ -108,12 +113,12 @@ func (tm *TransportManager) Start() {
 				if !ok {
 					// new cert
 					klog.Infof("receive cert %s update", commonName)
-					tlsConfig, err := tm.makeTlsConfig(commonName)
+					t, err := tm.getTransport(commonName)
 					if err != nil {
-						klog.Errorf("make tls config error, commonName=%s: %v", commonName, err)
+						klog.Errorf("get transport error, commonName=%s: %v", commonName, err)
 						break
 					}
-					tm.updateTransport(commonName, makeTransport(tlsConfig, tm.timeout))
+					tm.updateTransport(commonName, t)
 
 					// inform handler to create new EdgeReverseProxy
 					tm.transportChannel <- commonName
@@ -125,6 +130,29 @@ func (tm *TransportManager) Start() {
 			}
 		}
 	}()
+
+	// Check the nic periodically，then update transport
+	if tm.config.NetworkInterface != "" {
+		go wait.Forever(func() {
+			for commonName := range tm.certManager.GetCertMap() {
+				old, ok := tm.transportMap[commonName]
+				if !ok {
+					continue
+				}
+				t, err := tm.getTransport(commonName)
+				if err != nil {
+					continue
+				}
+				// if transport changed, inform handler to create new EdgeReverseProxy
+				if t.NetworkInterface != old.NetworkInterface {
+					tm.updateTransport(commonName, t)
+					tm.transportChannel <- commonName
+					klog.V(4).Infof("update transport, commonName [%s], network interface changed from [%s] to [%s]",
+						commonName, old.NetworkInterface, t.NetworkInterface)
+				}
+			}
+		}, healthCheckDuration)
+	}
 }
 
 func (tm *TransportManager) GetTransport(commonName string) *EdgeTransport {
@@ -175,6 +203,115 @@ func (tm *TransportManager) makeTlsConfig(commonName string) (*tls.Config, error
 	return tlsConfig, nil
 }
 
+func (tm *TransportManager) makeTransport(tlsClientConfig *tls.Config, localAddr net.Addr) *EdgeTransport {
+	if tm.timeout == 0 {
+		tm.timeout = DefaultTimeout
+	}
+
+	dialer := &net.Dialer{
+		Timeout:   time.Duration(tm.timeout) * time.Second,
+		KeepAlive: DefaultKeepAlive * time.Second,
+	}
+
+	if localAddr != nil {
+		dialer.LocalAddr = localAddr
+	}
+
+	d := connrotation.NewDialer(dialer.DialContext)
+	return &EdgeTransport{
+		d: d,
+		// TODO enable http2 if using go1.15
+		// the params are same with http.DefaultTransport
+		Transport: &http.Transport{
+			DialContext:           d.DialContext,
+			Proxy:                 http.ProxyFromEnvironment,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig:       tlsClientConfig,
+		},
+	}
+}
+
+func (tm *TransportManager) getTransport(commonName string) (*EdgeTransport, error) {
+	// default transport
+	tlsConfig, err := tm.makeTlsConfig(commonName)
+	if err != nil {
+		return nil, fmt.Errorf("make tls config error, commonName=%s: %v", commonName, err)
+	}
+	defaultTransport := tm.makeTransport(tlsConfig, nil)
+
+	// get healthy transport
+	if tm.config.NetworkInterface != "" {
+		url := tm.config.KubeApiserverUrl
+		port := tm.config.KubeApiserverPort
+
+		isHealthy, err := tm.checkApiserverHealth(defaultTransport.Transport, url, port)
+		if err != nil {
+			klog.Errorf("failed to check apiserver health by default interface, err: %v", err)
+		}
+		if isHealthy {
+			defaultTransport.NetworkInterface = defaultNetworkInterface
+			return defaultTransport, nil
+		}
+
+		netIfList := strings.Split(tm.config.NetworkInterface, ",")
+		if len(netIfList) == 1 && netIfList[0] == "" {
+			return nil, fmt.Errorf("the network interface invalid")
+		}
+		for _, netIf := range netIfList {
+			localAddr, err := util.GetLocalAddrByInterface(netIf)
+			if err != nil {
+				klog.Errorf("failed to get localAddr by interface [%s], err: %v", netIf, err)
+				continue
+			}
+
+			healthyTransport := tm.makeTransport(tlsConfig, localAddr)
+			isHealthy, err := tm.checkApiserverHealth(healthyTransport.Transport, url, port)
+			if err != nil {
+				klog.Errorf("failed to check apiserver health by interface [%s], err: %v", netIf, err)
+				continue
+			}
+			klog.V(8).Infof("check apiserver health by interface [%s]", netIf)
+			if isHealthy {
+				healthyTransport.NetworkInterface = netIf
+				return healthyTransport, nil
+			}
+		}
+	}
+
+	return defaultTransport, nil
+}
+
+func (tm *TransportManager) checkApiserverHealth(transport *http.Transport, url string, port int) (bool, error) {
+	if transport == nil {
+		return false, fmt.Errorf("http client is invalid")
+	}
+
+	client := &http.Client{Transport: transport}
+	resp, err := client.Get(fmt.Sprintf("https://%s:%d/healthz", url, port))
+	if err != nil {
+		return false, err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return false, fmt.Errorf("failed to read response of cluster healthz, %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("response status code is %d", resp.StatusCode)
+	}
+
+	if strings.ToLower(string(b)) != "ok" {
+		return false, fmt.Errorf("cluster healthz is %s", string(b))
+	}
+
+	return true, nil
+}
+
 func getRootCertPool(caFile string) (*x509.CertPool, error) {
 	caCrt, err := ioutil.ReadFile(caFile)
 	if err != nil {
@@ -190,29 +327,4 @@ func getRootCertPool(caFile string) (*x509.CertPool, error) {
 	}
 
 	return pool, nil
-}
-
-func makeTransport(tlsClientConfig *tls.Config, timeout int) *EdgeTransport {
-	if timeout == 0 {
-		timeout = DefaultTimeout
-	}
-
-	d := connrotation.NewDialer((&net.Dialer{
-		Timeout:   time.Duration(timeout) * time.Second,
-		KeepAlive: DefaultKeepAlive * time.Second}).DialContext)
-
-	return &EdgeTransport{
-		d: d,
-		// TODO enable http2 if using go1.15
-		// the params are same with http.DefaultTransport
-		Transport: &http.Transport{
-			DialContext:           d.DialContext,
-			Proxy:                 http.ProxyFromEnvironment,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-			TLSClientConfig:       tlsClientConfig,
-		},
-	}
 }

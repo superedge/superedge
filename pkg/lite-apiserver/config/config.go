@@ -53,6 +53,7 @@ type LiteServerConfig struct {
 	FileCachePath   string
 	BadgerCachePath string
 	BoltCacheFile   string
+	NetworkInterface string
 }
 
 type TLSKeyPair struct {
