@@ -36,6 +36,5 @@ func TestYaml(t *testing.T) {
 		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), objBytes, objCrd); err != nil {
 			t.Error("err")
 		}
-		t.Logf("%v", objCrd.Spec.Validation.OpenAPIV3Schema.Properties)
 	}
 }

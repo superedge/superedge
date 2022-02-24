@@ -15,7 +15,7 @@
 ## Prerequisite
 
 1. Use kubeadm build a kubernestes cluster, no less than one master node and one worker node, Hardware >= 2C2G every node（required by kubeadm）。
-2. Kubernetes version >= 1.18 is recommended(We did detailed testing for version 1.18.2)。
+2. Kubernetes version >= 1.18 is recommended(We did detailed testing for version 1.18.2)
 3. Make sure that kube-api-server and kubelet have privilege containers enabled. You can set --allow-privileged=true for kube-api-server and kubelet, and restart them two to enable privilege.
 4. Make sure that Kubernetes cluster and nodes working normally.
 

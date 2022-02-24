@@ -26,6 +26,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	discovery "k8s.io/api/discovery/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -277,6 +278,97 @@ func (s *interceptorServer) interceptEndpointsRequest(handler http.Handler) http
 				}
 
 				if len(s.endpointsWatchCh) == 0 {
+					flusher.Flush()
+				}
+			}
+		}
+	})
+}
+
+func (s *interceptorServer) interceptEndpointSliceRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || !strings.HasPrefix(r.URL.Path, "/apis/discovery.k8s.io/v1beta1/endpointslices") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		queries := r.URL.Query()
+		acceptType := r.Header.Get("Accept")
+		info, found := s.parseAccept(acceptType, s.mediaSerializer)
+		if !found {
+			klog.Errorf("can't find %s serializer", acceptType)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		encoder := scheme.Codecs.EncoderForVersion(info.Serializer, discovery.SchemeGroupVersion)
+		// list request
+		if queries.Get("watch") == "" {
+			w.Header().Set("Content-Type", info.MediaType)
+			allEndpointSlices := s.cache.GetEndpointSlice()
+			epsItems := make([]discovery.EndpointSlice, 0, len(allEndpointSlices))
+			for _, eps := range allEndpointSlices {
+				epsItems = append(epsItems, *eps)
+			}
+
+			epsList := &discovery.EndpointSliceList{
+				Items: epsItems,
+			}
+
+			err := encoder.Encode(epsList, w)
+			if err != nil {
+				klog.Errorf("can't marshal endpointSlice list, %v", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			return
+		}
+
+		// watch request
+		timeoutSecondsStr := r.URL.Query().Get("timeoutSeconds")
+		timeout := time.Minute
+		if timeoutSecondsStr != "" {
+			timeout, _ = time.ParseDuration(fmt.Sprintf("%ss", timeoutSecondsStr))
+		}
+
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			klog.Errorf("unable to start watch - can't get http.Flusher: %#v", w)
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		e := restclientwatch.NewEncoder(
+			streaming.NewEncoder(info.StreamSerializer.Framer.NewFrameWriter(w),
+				scheme.Codecs.EncoderForVersion(info.StreamSerializer, v1.SchemeGroupVersion)),
+			encoder)
+		if info.MediaType == runtime.ContentTypeProtobuf {
+			w.Header().Set("Content-Type", runtime.ContentTypeProtobuf+";stream=watch")
+		} else {
+			w.Header().Set("Content-Type", runtime.ContentTypeJSON)
+		}
+		w.Header().Set("Transfer-Encoding", "chunked")
+		w.WriteHeader(http.StatusOK)
+		flusher.Flush()
+		for {
+			select {
+			case <-r.Context().Done():
+				return
+			case <-timer.C:
+				return
+			case evt := <-s.endpointSliceWatchCh:
+				klog.V(4).Infof("Send endpointSlice watch event: %+#v", evt)
+				err := e.Encode(&evt)
+				if err != nil {
+					klog.Errorf("can't encode watch event, %v", err)
+					return
+				}
+
+				if len(s.endpointSliceWatchCh) == 0 {
 					flusher.Flush()
 				}
 			}

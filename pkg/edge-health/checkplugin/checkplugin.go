@@ -30,6 +30,22 @@ type CheckPlugin interface {
 	SetWeight(float64)
 	GetWeight() float64
 }
+type PluginFactory = func() (CheckPlugin, error)
+
+type Registry map[string]PluginFactory
+
+func Merge(outOfTree Registry) error {
+	for name, factory := range outOfTree {
+		checkplugin, err := factory()
+		if err != nil {
+			return err
+		}
+		PluginInfo = NewPluginInfo()
+		PluginInfo.AddPlugin(checkplugin)
+		klog.V(4).Info("add plugin success", name)
+	}
+	return nil
+}
 
 type BasePlugin struct {
 	PluginName            string
@@ -37,6 +53,7 @@ type BasePlugin struct {
 	HealthCheckRetryTime  int
 	Weight                float64 //ex:0.3
 	Port                  int
+	Enabled               bool
 }
 
 func (p BasePlugin) SetWeight(weight float64) {
@@ -79,6 +96,8 @@ func NewPluginInfo() Plugin {
 func (p *Plugin) AddPlugin(plugin CheckPlugin) {
 	PluginMu.Lock()
 	defer PluginMu.Unlock()
+	// TODO: should check plugin is it exist or not, now have a logic bug
+	// plugins can be add many times since it is only a slice, you could check on the ut TestMerge
 	p.Plugins = append(p.Plugins, plugin)
 	klog.V(4).Info("add ok")
 }

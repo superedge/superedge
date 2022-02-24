@@ -34,17 +34,18 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site/v1"
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
-	crdinformers "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site/v1"
-	crdv1listers "github.com/superedge/superedge/pkg/site-manager/generated/listers/site/v1"
+	crdinformers "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site.superedge.io/v1alpha1"
+	crdv1listers "github.com/superedge/superedge/pkg/site-manager/generated/listers/site.superedge.io/v1alpha1"
 	"github.com/superedge/superedge/pkg/site-manager/utils"
 )
 
 var (
 	KeyFunc        = cache.DeletionHandlingMetaNamespaceKeyFunc
 	controllerKind = appsv1.SchemeGroupVersion.WithKind("site-manager-daemon")
+	finalizerID    = "site.superedge.io/finalizer"
 )
 
 type SitesManagerDaemonController struct {
@@ -116,10 +117,6 @@ func NewSitesManagerDaemonController(
 
 	siteController.nodeGroupLister = nodeGroupInformer.Lister()
 	siteController.nodeGroupListerSynced = nodeGroupInformer.Informer().HasSynced
-
-	if err := utils.CreateDefaultUnit(crdClient); err != nil {
-		klog.Errorf("Create default unit error: %#v", err)
-	}
 
 	if err := utils.InitUnitToNode(kubeClient, crdClient); err != nil {
 		klog.Errorf("Init unit info to node error: %#v", err)

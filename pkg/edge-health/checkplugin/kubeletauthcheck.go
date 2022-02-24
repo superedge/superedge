@@ -38,6 +38,10 @@ func (p KubeletAuthCheckPlugin) Name() string {
 	return "KubeletAuthCheck"
 }
 
+func (p KubeletAuthCheckPlugin) Enable() bool {
+	return p.Enabled
+}
+
 func (p *KubeletAuthCheckPlugin) Set(s string) error {
 	var (
 		err error
@@ -66,9 +70,11 @@ func (p *KubeletAuthCheckPlugin) Set(s string) error {
 		}
 		(*p).PluginName = p.Name()
 	}
-	PluginInfo = NewPluginInfo()
-	PluginInfo.AddPlugin(p)
-	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	if p.Enable() {
+		PluginInfo = NewPluginInfo()
+		PluginInfo.AddPlugin(p)
+		klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	}
 	return err
 }
 

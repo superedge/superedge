@@ -52,15 +52,23 @@ func CreateService(sg *crdv1.ServiceGrid) *corev1.Service {
 					}
 				}
 			}(),
-			Annotations: make(map[string]string),
+			Annotations: func() map[string]string {
+				keys := make([]string, 1)
+				keys[0] = sg.Spec.GridUniqKey
+				keyData, _ := json.Marshal(keys)
+				if sg.Annotations != nil {
+					newAnnotation := sg.Annotations
+					newAnnotation[common.TopologyAnnotationsKey] = string(keyData)
+					return newAnnotation
+				} else {
+					return map[string]string{
+						common.TopologyAnnotationsKey: string(keyData),
+					}
+				}
+			}(),
 		},
 		Spec: sg.Spec.Template,
 	}
-
-	keys := make([]string, 1)
-	keys[0] = sg.Spec.GridUniqKey
-	keyData, _ := json.Marshal(keys)
-	svc.Annotations[common.TopologyAnnotationsKey] = string(keyData)
 
 	return svc
 }

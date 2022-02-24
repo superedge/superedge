@@ -48,3 +48,9 @@ const (
 const (
 	CHANGE_KUBELET_KUBECONFIG_ARGS = `KUBELET_KUBECONFIG_ARGS="--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/edge/kubelet.config"`
 )
+
+const (
+	NODE_NAME = "NODE_NAME"
+	NODE_ROLE = "NODE_ROLE"
+	ACTION    = "ACTION"
+)

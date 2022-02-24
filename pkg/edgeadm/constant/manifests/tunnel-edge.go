@@ -94,7 +94,7 @@ spec:
     spec:
       hostNetwork: true
       nodeSelector:
-        superedge.io/edge-node: enable
+        superedge.io/node-edge: enable
       containers:
         - name: tunnel-edge
           image: superedge.tencentcloudcr.com/superedge/tunnel:v0.6.0

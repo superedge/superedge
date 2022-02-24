@@ -23,7 +23,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	clientgokubescheme "k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -36,9 +38,12 @@ import (
 
 	"github.com/superedge/superedge/cmd/site-manager/app/options"
 	"github.com/superedge/superedge/pkg/site-manager/config"
+	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/site-manager/controller"
-	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
+	crdclientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
+	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
+	utilkubeclient "github.com/superedge/superedge/pkg/util/kubeclient"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 )
@@ -61,7 +66,27 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 			kubeconfig.QPS = siteOptions.QPS
 			kubeconfig.Burst = siteOptions.Burst
 			kubeClient := clientset.NewForConfigOrDie(kubeconfig)
-			crdClient := crdClientset.NewForConfigOrDie(kubeconfig)
+			crdClient := crdclientset.NewForConfigOrDie(kubeconfig)
+			extensionsClient, err := apiextensionsclient.NewForConfig(kubeconfig)
+			if err != nil {
+				klog.Fatalf("Error instantiating apiextensions client: %s", err.Error())
+			}
+
+			runConfig := func(ctx context.Context) {
+				stop := ctx.Done()
+				if siteOptions.EnsureCrd {
+					wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
+						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, "")
+						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, "")
+						time.Sleep(5 * time.Second)
+						if err := utils.CreateDefaultUnit(crdClient); err != nil {
+							klog.Errorf("Create default unit error: %#v", err)
+						}
+						return true, nil
+					}, stop)
+				}
+			}
+			go runConfig(context.TODO())
 
 			// not leade elect
 			if !siteOptions.LeaderElect {
@@ -120,7 +145,7 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 }
 
 func runController(parent context.Context, kubeClient *clientset.Clientset,
-	crdClient *crdClientset.Clientset, workerNum, syncPeriod, syncPeriodAsWhole int) {
+	crdClient *crdclientset.Clientset, workerNum, syncPeriod, syncPeriodAsWhole int) {
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
 	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(controllerConfig.NodeInformer,

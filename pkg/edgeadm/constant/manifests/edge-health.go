@@ -106,7 +106,7 @@ spec:
       dnsPolicy: ClusterFirst
       hostNetwork: true
       nodeSelector:
-        superedge.io/edge-node: enable
+        superedge.io/node-edge: enable
       restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30
