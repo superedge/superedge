@@ -34,7 +34,6 @@ func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
 		return
 	}
 
-	// 1. 是否符合自己的node // todo: 每个node只处理自己的
 	selectedNodes, err := utils.SchedulableNode(appsManager.kubeClient, edeploy)
 	if err != nil {
 		klog.Errorf("Edeploy: %s selecter node error: %#v", edeploy.Name, err)
@@ -46,27 +45,16 @@ func (appsManager *SitesManagerController) addEDeploy(obj interface{}) {
 	}
 
 	dstNode := appsManager.hostName
-	for index, node := range selectedNodes {
+	for _, node := range selectedNodes {
 		if node.Name == dstNode {
-			break
-		}
-		if index == len(selectedNodes)-1 {
-			klog.V(1).Infof("Edeploy: %s selecter not select node: %s", edeploy.Name, dstNode)
+			if err := utils.WriteEdeployToStaticPod(appsManager.kubeClient, edeploy, constant.KubeManifestsDir); err != nil {
+				klog.Errorf("Write edeploy: %s to static pod， error: %#v", edeploy.Name, err)
+				return
+			}
 			return
 		}
 	}
-
-	// 2. edploy to node yaml
-	if err := utils.WriteEdeployToStaticPod(appsManager.kubeClient, edeploy, constant.KubeManifestsDir); err != nil {
-		klog.Errorf("Write edeploy: %s to static pod， error: %#v", edeploy.Name, err)
-		return
-	}
-
-	// 3. check 反馈状态
-
-	// todo: set node
-
-	klog.V(4).Infof("Add nodeUnit: %s success.", edeploy.Name)
+	klog.V(4).Infof("Add EDeploy nodeUnit: %s success.", edeploy.Name)
 }
 
 func (appsManager *SitesManagerController) updateEDeploy(oldObj, newObj interface{}) {
@@ -89,27 +77,16 @@ func (appsManager *SitesManagerController) updateEDeploy(oldObj, newObj interfac
 	}
 
 	dstNode := appsManager.hostName
-	for index, node := range selectedNodes {
+	for _, node := range selectedNodes {
 		if node.Name == dstNode {
-			break
-		}
-		if index == len(selectedNodes)-1 {
-			klog.V(1).Infof("Edeploy: %s selecter not select node: %s", curEDeployment.Name, dstNode)
+			if err := utils.UpdateEdeployToStaticPod(appsManager.kubeClient, oldEDeployment, curEDeployment, constant.KubeManifestsDir); err != nil {
+				klog.Errorf("Update edeploy: %s to static pod， error: %#v", curEDeployment.Name, err)
+				return
+			}
 			return
 		}
 	}
-
-	// 2. edploy to node yaml
-	if err := utils.UpdateEdeployToStaticPod(appsManager.kubeClient, oldEDeployment, curEDeployment, constant.KubeManifestsDir); err != nil {
-		klog.Errorf("Update edeploy: %s to static pod， error: %#v", curEDeployment.Name, err)
-		return
-	}
-
-	// 3. check 反馈状态
-
-	// todo: set node
-
-	klog.V(4).Infof("Add nodeUnit: %s success.", curEDeployment.Name)
+	klog.V(4).Infof("update EDeploy nodeUnit: %s success.", curEDeployment.Name)
 }
 
 func (appsManager *SitesManagerController) deleteEDeploy(obj interface{}) {
@@ -119,7 +96,6 @@ func (appsManager *SitesManagerController) deleteEDeploy(obj interface{}) {
 		return
 	}
 
-	// 1. 是否符合自己的node // todo: 每个node只处理自己的
 	selectedNodes, err := utils.SchedulableNode(appsManager.kubeClient, edeploy)
 	if err != nil {
 		klog.Errorf("Edeploy: %s selecter node error: %#v", edeploy.Name, err)
@@ -131,21 +107,17 @@ func (appsManager *SitesManagerController) deleteEDeploy(obj interface{}) {
 	}
 
 	dstNode := appsManager.hostName
-	for index, node := range selectedNodes {
+	for _, node := range selectedNodes {
 		if node.Name == dstNode {
-			break
-		}
-		if index == len(selectedNodes)-1 {
-			klog.V(1).Infof("Edeploy: %s selecter not select node: %s", edeploy.Name, dstNode)
+			// 2. edploy to node yaml
+			if err := utils.DeleteStaticPodFromEdeploy(appsManager.kubeClient, edeploy, constant.KubeManifestsDir); err != nil {
+				klog.Errorf("Delete edeploy: %s to static pod， error: %#v", edeploy.Name, err)
+				return
+			}
 			return
 		}
 	}
-
-	// 2. edploy to node yaml
-	if err := utils.DeleteStaticPodFromEdeploy(appsManager.kubeClient, edeploy, constant.KubeManifestsDir); err != nil {
-		klog.Errorf("Delete edeploy: %s to static pod， error: %#v", edeploy.Name, err)
-		return
-	}
+	klog.V(4).Infof("delete EDeploy nodeUnit: %s success.", edeploy.Name)
 }
 
 func (appsManager *SitesManagerController) updateNodeUnit(oldObj, newObj interface{}) {

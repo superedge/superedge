@@ -64,11 +64,10 @@ func UpdateEdeployToStaticPod(kubeClient clientset.Interface, oldEDeployment, cu
 	oldReplicas := *oldEDeployment.Spec.Replicas
 	curReplicas := *curEDeployment.Spec.Replicas
 	// delete old static pod
-	oldPodTemplate := &oldEDeployment.Spec.Template
 	if oldReplicas > curReplicas {
-		deleteNum := oldReplicas - curReplicas
-		for i := int(oldReplicas); i > int(deleteNum); i-- {
-			tempStaticPodDir := staticPodDir + oldPodTemplate.Name + ".yaml"
+		for i := int(oldReplicas); i > int(curReplicas); i-- {
+			podName := oldEDeployment.Name + "-" + strconv.Itoa(int(i))
+			tempStaticPodDir := staticPodDir + podName + ".yaml"
 			if b, _ := PathExists(tempStaticPodDir); b {
 				if err := os.Remove(tempStaticPodDir); err != nil {
 					return err
