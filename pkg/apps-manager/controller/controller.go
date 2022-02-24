@@ -107,9 +107,9 @@ func NewAppsManagerDaemonController(
 	//})
 
 	edeployUnitInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: appsManager.addEDeploy,
-		//UpdateFunc: siteController.updateNodeUnit,
-		//DeleteFunc: siteController.deleteNodeUnit,
+		AddFunc:    appsManager.addEDeploy,
+		UpdateFunc: appsManager.updateEDeploy,
+		DeleteFunc: appsManager.deleteEDeploy,
 	})
 
 	//serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

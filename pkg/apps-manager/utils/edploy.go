@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"os"
 	"strconv"
 )
 
@@ -50,10 +51,76 @@ func WriteEdeployToStaticPod(kubeClient clientset.Interface, edeploy *appsv1.EDe
 		podTemplate.ObjectMeta.DeepCopyInto(&staticPod.ObjectMeta)
 		podData, err := util.PodToYaml(staticPod)
 
-		staticPodDir = staticPodDir + podTemplate.Name + ".yaml"
-		if err = util.WriteWithBufio(staticPodDir, string(podData)); err != nil {
-			klog.Errorf("Write file: %s error: %v", staticPodDir, err)
+		tempStaticPodDir := staticPodDir + podTemplate.Name + ".yaml"
+		if err = util.WriteWithBufio(tempStaticPodDir, string(podData)); err != nil {
+			klog.Errorf("Write file: %s error: %v", tempStaticPodDir, err)
 			continue
+		}
+	}
+	return nil
+}
+
+func UpdateEdeployToStaticPod(kubeClient clientset.Interface, oldEDeployment, curEDeployment *appsv1.EDeployment, staticPodDir string) error {
+	oldReplicas := *oldEDeployment.Spec.Replicas
+	curReplicas := *curEDeployment.Spec.Replicas
+	// delete old static pod
+	oldPodTemplate := &oldEDeployment.Spec.Template
+	if oldReplicas > curReplicas {
+		deleteNum := oldReplicas - curReplicas
+		for i := int(oldReplicas); i > int(deleteNum); i-- {
+			tempStaticPodDir := staticPodDir + oldPodTemplate.Name + ".yaml"
+			if b, _ := PathExists(tempStaticPodDir); b {
+				if err := os.Remove(tempStaticPodDir); err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+
+	// create new static pod
+	podTemplate := &curEDeployment.Spec.Template
+	for i := 1; i < int(curReplicas)+1; i++ {
+		podTemplate.Name = curEDeployment.Name + "-" + strconv.Itoa(int(i))
+		staticPod := &corev1.Pod{}
+		staticPod.TypeMeta = metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		}
+		podTemplate.Spec.DeepCopyInto(&staticPod.Spec)
+		podTemplate.ObjectMeta.DeepCopyInto(&staticPod.ObjectMeta)
+		podData, err := util.PodToYaml(staticPod)
+
+		tempStaticPodDir := staticPodDir + podTemplate.Name + ".yaml"
+		if err = util.WriteWithBufio(tempStaticPodDir, string(podData)); err != nil {
+			klog.Errorf("Write file: %s error: %v", tempStaticPodDir, err)
+			continue
+		}
+	}
+	return nil
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func DeleteStaticPodFromEdeploy(kubeClient clientset.Interface, edeploy *appsv1.EDeployment, staticPodDir string) error {
+	replicas := *edeploy.Spec.Replicas
+	podTemplate := &edeploy.Spec.Template
+	for i := 1; i < int(replicas)+1; i++ {
+		podTemplate.Name = edeploy.Name + "-" + strconv.Itoa(int(i))
+		tempStaticPodDir := staticPodDir + podTemplate.Name + ".yaml"
+		if b, _ := PathExists(tempStaticPodDir); b {
+			if err := os.Remove(tempStaticPodDir); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
