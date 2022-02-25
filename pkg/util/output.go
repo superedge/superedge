@@ -21,6 +21,9 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "strings"
+
+	corev1 "k8s.io/api/core/v1"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
 func OutPutMessage(msg string) {
@@ -49,4 +52,16 @@ func DisableEscapeJson(data interface{}) (string, error) {
 		return "", err
 	}
 	return bf.String(), nil
+}
+
+func PodToYaml(pod *corev1.Pod) ([]byte, error) {
+	podJson, err := json.Marshal(pod)
+	if err != nil {
+		return nil, err
+	}
+	data, err := k8syaml.JSONToYAML(podJson)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
