@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	siteClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	sitecrdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
@@ -48,7 +49,7 @@ func AutoFindNodeKeysbyNodeGroup(kubeclient clientset.Interface, crdClient *site
 		result, res, sel := checkifcontains(node.Labels, nodeGroup.Spec.AutoFindNodeKeys)
 		if result && len(sel) > 0 {
 			matchNodes = append(matchNodes, node)
-			newNodeUnit(crdClient, nodeGroup, res, sel, nodeGroup.Namespace, node.Name)
+			newNodeUnit(crdClient, nodeGroup, res, sel)
 		}
 	}
 }
@@ -82,7 +83,7 @@ func withCheckSize(name string) bool {
 	return false
 }
 
-func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.NodeGroup, name string, sel map[string]string, namespace string, Nodes string) error {
+func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.NodeGroup, name string, sel map[string]string) error {
 	newname := filterString(name)
 	klog.Info("prepare to ceate nodeunite ", newname)
 	klog.Info("selector is ", sel)
@@ -93,10 +94,14 @@ func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.Node
 	}
 	klog.Info("kind, apiversion, name, uid is ", ng.Kind, ng.APIVersion, nodeGroup.Name, ng.UID)
 
+	var nuLabel = make(map[string]string)
+	nuLabel[nodeGroup.Name] = "autofindnodekeys"
+
 	newNodeUnit := &v1alpha1.NodeUnit{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        newname,
 			Annotations: sel,
+			Labels:      nuLabel,
 			OwnerReferences: []metav1.OwnerReference{{
 				Kind:       "NodeGroup",
 				APIVersion: "site.superedge.io/v1alpha1",
@@ -122,13 +127,6 @@ func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.Node
 			return err
 		}
 
-		ng.Status.NodeUnits = append(ng.Status.NodeUnits, newname)
-		ng.Status.UnitNumber = ng.Status.UnitNumber + 1
-		klog.Info("prepare to update nodegroup json is ", util.ToJson(ng))
-		_, err = crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), ng, metav1.UpdateOptions{})
-		if err != nil {
-			klog.Error("error to update nodegroup status", err)
-		}
 	} else if err == nil {
 		tmpSel := &v1alpha1.Selector{
 			MatchLabels: sel,
@@ -136,6 +134,7 @@ func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.Node
 		if get.Spec.Selector != tmpSel {
 			get.Spec.Selector = tmpSel
 		}
+		get.Labels = nuLabel
 		tmpOwner := metav1.OwnerReference{
 			Kind:       "NodeGroup",
 			APIVersion: "site.superedge.io/v1alpha1",
@@ -238,8 +237,19 @@ func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *v1alpha
 		nodeUnits = append(nodeUnits, unit.Name)
 	}
 
-	// todo: Get units by AutoFindNodeKeys
-	//siteClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
+	if len(nodeGroup.Spec.AutoFindNodeKeys) > 0 {
+		nulist, err := siteClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: fmt.Sprintf(nodeGroup.Name + "=autofindnodekeys"),
+		})
+		if err != nil {
+			klog.Errorf("Get unit by nodeGroup, error: %v", err)
+		}
+
+		klog.Info("Get unit by nodeGroup number is ", len(nulist.Items))
+		for _, nu := range nulist.Items {
+			nodeUnits = append(nodeUnits, nu.Name)
+		}
+	}
 
 	return util.RemoveDuplicateElement(nodeUnits), nil
 }
