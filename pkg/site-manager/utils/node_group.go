@@ -18,6 +18,8 @@ package utils
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	siteClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	sitecrdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
@@ -40,70 +42,152 @@ func AutoFindNodeKeysbyNodeGroup(kubeclient clientset.Interface, crdClient *site
 	matchNodes := []v1.Node{}
 
 	for _, node := range allnodes.Items {
-		result, res := checkifcontains(node.Labels, nodeGroup.Spec.AutoFindNodeKeys)
-		if result {
+		if len(node.Labels) == 0 {
+			continue
+		}
+		result, res, sel := checkifcontains(node.Labels, nodeGroup.Spec.AutoFindNodeKeys)
+		if result && len(sel) > 0 {
 			matchNodes = append(matchNodes, node)
-			newNodeUnit(crdClient, nodeGroup, res, nodeGroup.Namespace, node.Name)
+			newNodeUnit(crdClient, nodeGroup, res, sel, nodeGroup.Namespace, node.Name)
 		}
 	}
 }
 
-func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.NodeGroup, name string, namespace string, Nodes string) error {
+func filterString(name string) string {
+	if withCheckContains(name) || withCheckSize(name) {
+		return hashString(name)
+	}
+	return name
+}
+
+func hashString(name string) string {
+	h := sha1.New()
+	h.Write([]byte(name))
+	sha1_hash := hex.EncodeToString(h.Sum(nil))
+	return sha1_hash
+}
+
+func withCheckContains(name string) bool {
+	if strings.Contains(name, "/") {
+		return true
+	}
+	return false
+}
+
+// check size is it more than 64
+func withCheckSize(name string) bool {
+	if len(name) >= 64 {
+		return true
+	}
+	return false
+}
+
+func newNodeUnit(crdClient *sitecrdClientset.Clientset, nodeGroup *v1alpha1.NodeGroup, name string, sel map[string]string, namespace string, Nodes string) error {
+	newname := filterString(name)
+	klog.Info("prepare to ceate nodeunite ", newname)
+	klog.Info("selector is ", sel)
+
+	ng, err := crdClient.SiteV1alpha1().NodeGroups().Get(context.TODO(), nodeGroup.Name, metav1.GetOptions{})
+	if err != nil {
+		klog.Error("get nodegroup fail", err)
+	}
+	klog.Info("kind, apiversion, name, uid is ", ng.Kind, ng.APIVersion, nodeGroup.Name, ng.UID)
+
 	newNodeUnit := &v1alpha1.NodeUnit{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:        newname,
+			Annotations: sel,
 			OwnerReferences: []metav1.OwnerReference{{
-				Kind:       nodeGroup.Kind,
-				APIVersion: nodeGroup.APIVersion,
+				Kind:       "NodeGroup",
+				APIVersion: "site.superedge.io/v1alpha1",
 				Name:       nodeGroup.Name,
-				UID:        nodeGroup.UID,
+				UID:        ng.UID,
 			},
 			},
 		},
 		Spec: v1alpha1.NodeUnitSpec{
-			Type:  EdgeNodeUnit,
-			Nodes: []string{Nodes},
+			Type: EdgeNodeUnit,
+			Selector: &v1alpha1.Selector{
+				MatchLabels: sel,
+			},
 		},
 	}
-	get, err := crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), name, metav1.GetOptions{})
+	klog.Info("create nodeunit json is ", util.ToJson(newNodeUnit))
+	get, err := crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), newname, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		klog.Warning("obj not found, will create nodeunit now")
 		_, err = crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), newNodeUnit, metav1.CreateOptions{})
 		if err != nil {
 			klog.Warningf("error to create nodeunites", err)
+			return err
 		}
+
+		ng.Status.NodeUnits = append(ng.Status.NodeUnits, newname)
+		ng.Status.UnitNumber = ng.Status.UnitNumber + 1
+		klog.Info("prepare to update nodegroup json is ", util.ToJson(ng))
+		_, err = crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), ng, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Error("error to update nodegroup status", err)
+		}
+	} else if err == nil {
+		tmpSel := &v1alpha1.Selector{
+			MatchLabels: sel,
+		}
+		if get.Spec.Selector != tmpSel {
+			get.Spec.Selector = tmpSel
+		}
+		tmpOwner := metav1.OwnerReference{
+			Kind:       "NodeGroup",
+			APIVersion: "site.superedge.io/v1alpha1",
+			Name:       nodeGroup.Name,
+			UID:        ng.UID,
+		}
+		if !checkOwnerReferenceContains(tmpOwner, get.OwnerReferences) {
+			get.OwnerReferences = append(get.OwnerReferences, metav1.OwnerReference{
+				Kind:       "NodeGroup",
+				APIVersion: "site.superedge.io/v1alpha1",
+				Name:       nodeGroup.Name,
+				UID:        ng.UID,
+			})
+		}
+
+		crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), get, metav1.UpdateOptions{})
 	} else {
 		return err
 	}
-	get.Spec.Nodes = append(get.Spec.Nodes)
 
-	get.OwnerReferences = append(get.OwnerReferences, metav1.OwnerReference{
-		Kind:       nodeGroup.Kind,
-		APIVersion: nodeGroup.APIVersion,
-		Name:       nodeGroup.Name,
-		UID:        nodeGroup.UID,
-	})
-	crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), get, metav1.UpdateOptions{})
 	return nil
-
 }
 
-func checkifcontains(nodelabel map[string]string, keyslices []string) (bool, string) {
-	//tmplabel := map[string]string{}
+func checkOwnerReferenceContains(owner metav1.OwnerReference, tmpSlice []metav1.OwnerReference) bool {
+	for _, value := range tmpSlice {
+		if value == owner {
+			return true
+		}
+	}
+	return false
+}
+
+func checkifcontains(nodelabel map[string]string, keyslices []string) (bool, string, map[string]string) {
 	var res string
+	var sel = make(map[string]string)
 	sort.Strings(keyslices)
 	for _, value := range keyslices {
 		if _, ok := nodelabel[value]; ok {
-			//tmplabel[value] = nodelabel[value]
-			res = res + value + "-" + nodelabel[value]
+			sel[value] = nodelabel[value]
+			if res == "" {
+				res = nodelabel[value]
+			} else {
+				res = res + "-" + nodelabel[value]
+			}
+
 			continue
 		} else {
-			return false, ""
+			return false, "", sel
 		}
 	}
 
-	return true, res
+	return true, res, sel
 }
 
 func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *v1alpha1.NodeGroup) (nodeUnits []string, err error) {
@@ -153,6 +237,9 @@ func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *v1alpha
 		}
 		nodeUnits = append(nodeUnits, unit.Name)
 	}
+
+	// todo: Get units by AutoFindNodeKeys
+	//siteClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
 
 	return util.RemoveDuplicateElement(nodeUnits), nil
 }

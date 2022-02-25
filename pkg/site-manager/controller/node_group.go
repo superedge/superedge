@@ -54,10 +54,6 @@ func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {
 		}
 	}
 
-	if len(nodeGroup.Spec.AutoFindNodeKeys) > 0 {
-		utils.AutoFindNodeKeysbyNodeGroup(siteManager.kubeClient, siteManager.crdClient, nodeGroup)
-	}
-
 	// todo: set unit
 
 	nodeGroupStatus := &nodeGroup.Status
@@ -69,7 +65,9 @@ func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {
 		return
 	}
 
-	//todo: Add nodegroup annotations to unit
+	if len(nodeGroup.Spec.AutoFindNodeKeys) > 0 {
+		utils.AutoFindNodeKeysbyNodeGroup(siteManager.kubeClient, siteManager.crdClient, nodeGroup)
+	}
 
 	klog.V(4).Infof("Add nodeGroup: %s success.", nodeGroup.Name)
 }
@@ -92,9 +90,6 @@ func (siteManager *SitesManagerDaemonController) updateNodeGroup(oldObj, newObj 
 		return
 	}
 
-	if len(curNodeGroup.Spec.AutoFindNodeKeys) > 0 {
-		utils.AutoFindNodeKeysbyNodeGroup(siteManager.kubeClient, siteManager.crdClient, curNodeGroup)
-	}
 	/*
 		curNodeGroup
 	*/
@@ -109,8 +104,6 @@ func (siteManager *SitesManagerDaemonController) updateNodeGroup(oldObj, newObj 
 		}
 	}
 
-	// todo: set unit
-
 	nodeGroupStatus := &curNodeGroup.Status
 	nodeGroupStatus.NodeUnits = units
 	nodeGroupStatus.UnitNumber = len(units)
@@ -118,6 +111,9 @@ func (siteManager *SitesManagerDaemonController) updateNodeGroup(oldObj, newObj 
 	if err != nil {
 		klog.Errorf("Update nodeGroup: %s error: %#v", curNodeGroup.Name, err)
 		return
+	}
+	if len(curNodeGroup.Spec.AutoFindNodeKeys) > 0 {
+		utils.AutoFindNodeKeysbyNodeGroup(siteManager.kubeClient, siteManager.crdClient, curNodeGroup)
 	}
 
 	// todo: delete nodeGroup from oldNodeUnit And Add nodegroup annotations to curNodeUnit
