@@ -21,6 +21,7 @@ const (
 	MemoryStorage = "memory"
 	BadgerStorage = "badger"
 	BoltStorage   = "bolt"
+	PebbleStorage = "pebble"
 )
 
 const (
