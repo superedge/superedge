@@ -49,10 +49,13 @@ type LiteServerConfig struct {
 
 	ModifyRequestAccept bool
 
-	CacheType       string
-	FileCachePath   string
-	BadgerCachePath string
-	BoltCacheFile   string
+	CacheType        string
+	FileCachePath    string
+	BadgerCachePath  string
+	BoltCacheFile    string
+	PebbleCachePath  string
+	NetworkInterface string
+
 }
 
 type TLSKeyPair struct {

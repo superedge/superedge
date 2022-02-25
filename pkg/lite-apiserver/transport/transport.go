@@ -25,6 +25,7 @@ import (
 type EdgeTransport struct {
 	d         *connrotation.Dialer
 	Transport *http.Transport
+	NetworkInterface string
 }
 
 func (t EdgeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
