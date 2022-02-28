@@ -47,7 +47,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
-    name: v1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: NodeGroup is the Schema for the nodegroups API
