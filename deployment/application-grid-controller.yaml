@@ -82,7 +82,7 @@ spec:
       serviceAccountName: application-grid-controller
       containers:
         - name: application-grid-controller
-          image: superedge.tencentcloudcr.com/superedge/application-grid-controller:v0.6.0
+          image: superedge.tencentcloudcr.com/superedge/application-grid-controller:v0.7.0
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-controller

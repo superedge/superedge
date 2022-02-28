@@ -64,7 +64,7 @@ Advantages of this program:
 Execute the following command to download the edgeadm static installation package, and pay attention to modify the "arch=amd64" parameter, currently supports [amd64, arm64], download the corresponding architecture of your own machine, and other parameters remain unchanged  
 
 ```shell
-arch=amd64 version=v0.6.0-beta.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.7.0-beta.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
 Reference to install an edge cluster:[One-click to install an edge independent Kubernetes clusters.](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes.md)  
