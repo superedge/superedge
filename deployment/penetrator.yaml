@@ -129,7 +129,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-          image: superedge.tencentcloudcr.com/superedge/penetrator-controller:v0.6.0
+          image: superedge.tencentcloudcr.com/superedge/penetrator-controller:v0.7.0
           imagePullPolicy: IfNotPresent
           name: penetrator
           ports:
@@ -219,7 +219,7 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: superedge.tencentcloudcr.com/superedge/penetrator-job:v0.6.0
+              image: superedge.tencentcloudcr.com/superedge/penetrator-job:v0.7.0
               imagePullPolicy: IfNotPresent
               env:
                 - name: JOB_NAMESPACE
@@ -297,7 +297,7 @@ data:
               - penetrator-job
               - --secret-path=/etc/superedge/penetrator/job/secret/
               - --jobconf-path=/etc/superedge/penetrator/job/conf/
-              image: superedge.tencentcloudcr.com/superedge/penetrator-job:v0.6.0
+              image: superedge.tencentcloudcr.com/superedge/penetrator-job:v0.7.0
               imagePullPolicy: IfNotPresent
               env:
                 - name: JOB_NAMESPACE

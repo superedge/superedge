@@ -69,7 +69,7 @@ spec:
       hostPID: true
       containers:
         - name: helper
-          image: superedge.tencentcloudcr.com/superedge/helper-job:v0.6.0
+          image: superedge.tencentcloudcr.com/superedge/helper-job:v0.7.0
           command:
             - /bin/sh
             - -c

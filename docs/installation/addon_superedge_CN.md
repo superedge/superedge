@@ -55,7 +55,7 @@
 >   注意修改"arch=amd64"参数，目前支持[amd64, arm64], 下载自己机器对应的体系结构，其他参数不变
 
 ```powershell
-arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.7.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 >   目前支持amd64、arm64两个体系，其他体系可自行编译edgeadm和制作相应体系安装包，具体可参考 [一键安装边缘Kubernetes集群](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md)中的5. 自定义Kubernetes静态安装包
 
