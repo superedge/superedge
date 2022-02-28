@@ -37,13 +37,13 @@ jobs:
           sudo mv ./kubectl /usr/bin/kubectl
 
       - name: download edgeadm-linux package
-        run: mkdir workspace && cd workspace && arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && pwd
+        run: mkdir workspace && cd workspace && arch=amd64 version=v0.7.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && pwd
 
       - name: get master ip and set env
         run: echo "GITHUB_SHA_MASTER=$(ifconfig eth0 | grep inet | grep -v inet6 | awk -F' ' '{print $2}')" >> $GITHUB_ENV
 
       - name: Create single node cluster
-        run: sudo /usr/local/bin/edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./workspace/edgeadm-linux-amd64-v0.6.0/kube-linux-*.tar.gz --enable-edge=true --apiserver-cert-extra-sans=${{ env.GITHUB_SHA_MASTER }} --apiserver-advertise-address=${{ env.GITHUB_SHA_MASTER }}
+        run: sudo /usr/local/bin/edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./workspace/edgeadm-linux-amd64-v0.7.0/kube-linux-*.tar.gz --enable-edge=true --apiserver-cert-extra-sans=${{ env.GITHUB_SHA_MASTER }} --apiserver-advertise-address=${{ env.GITHUB_SHA_MASTER }}
 
       - name: Get Cluster status
         run: |

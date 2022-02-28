@@ -125,7 +125,7 @@ spec:
         kubernetes.io/hostname: cvm-r6faknja # TODO select edge node
       containers:
         - name: apps-manager
-          image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v0.6.0
+          image: ccr.ccs.tencentyun.com/superedge/apps-manager-amd64:v0.7.0
           imagePullPolicy: Always # todo IfNotPresent
           command:
             - /usr/local/bin/apps-manager
