@@ -55,22 +55,33 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 	nodeLabels := node.Labels
 	var needUpdateNodeUnit []string
 	for _, nodeunit := range allNodeUnit.Items {
-		var matchNum int = 0
+		var matchName bool = false
+		// Selector match
 		nodeunitSelector := nodeunit.Spec.Selector
-		if nodeunitSelector != nil {
-			break
-		}
-		for key, value := range nodeunitSelector.MatchLabels { //todo: MatchExpressions && Annotations
-			labelsValue, ok := nodeLabels[key]
-			if !ok || labelsValue != value {
-				break
+		if nodeunitSelector != nil && nodeunitSelector.MatchLabels == nil {
+			var matchNum int = 0
+			for key, value := range nodeunitSelector.MatchLabels { //todo: MatchExpressions && Annotations
+				labelsValue, ok := nodeLabels[key]
+				if !ok || labelsValue != value {
+					break
+				}
+				if ok || labelsValue == value {
+					matchNum++
+				}
 			}
-			if ok || labelsValue == value {
-				matchNum++
+			if len(nodeunitSelector.MatchLabels) == matchNum {
+				matchName = true
 			}
 		}
 
-		if len(nodeunitSelector.MatchLabels) == matchNum {
+		// nodeName match
+		for _, nodeName := range nodeunit.Spec.Nodes {
+			if nodeName == node.Name {
+				matchName = true
+			}
+		}
+
+		if matchName {
 			unitStatus := &nodeunit.Status
 			if utilkube.IsReadyNode(node) {
 				unitStatus.ReadyNodes = append(unitStatus.ReadyNodes, node.Name)
