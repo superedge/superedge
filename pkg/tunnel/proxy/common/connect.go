@@ -17,7 +17,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 )
 

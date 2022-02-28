@@ -22,7 +22,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 	"net/http"
 	"strings"
