@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func (dgc *DeploymentGridController) addNameSpace(obj interface{}) {
