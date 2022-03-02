@@ -10,7 +10,7 @@
   - [二、edgeadm 命令介绍](#二edgeadm-命令介绍)
     - [1. change 命令](#1-change-命令)
     - [2. revert 命令](#2-revert-命令)
-    - [3. mainfests 命令](#3-mainfests-命令)
+    - [3. manifests 命令](#3-manifests-命令)
 
 ## 前提
 
@@ -81,7 +81,7 @@ Kubeadm Cluster Change To Edge cluster Success!
 
 -   注意点：
 
-    <1>. 转化的镜像默认是从docker hub superedge 仓库拉取的，目前支持amd64和arm64体系，其他体系可自行编译，按mainfests命令方式替换执行。
+    <1>. 转化的镜像默认是从docker hub superedge 仓库拉取的，目前支持amd64和arm64体系，其他体系可自行编译，按manifests命令方式替换执行。
 
     <2>. 默认读取kubeconfig的顺序是：--kubeconfig > Env KUBECONFIG > ~/.kube/config 
 
@@ -116,7 +116,7 @@ Kubeadm Cluster Revert To Edge Cluster Success!
 要有问题会直接返回相应的错误，并中断集群的恢复。
 
 ---
-### 3. mainfests 命令
+### 3. manifests 命令
 
 - 含义
 > 输出edge集群所有的yaml文件到特定文件下

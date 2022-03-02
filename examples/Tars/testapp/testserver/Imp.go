@@ -17,7 +17,7 @@ func (imp *HelloImp) Init() error {
 	return nil
 }
 
-// Destroy servant destory
+// Destroy servant destroy
 func (imp *HelloImp) Destroy() {
 }
 
