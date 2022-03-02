@@ -183,7 +183,7 @@ func runController(parent context.Context,
 		Version: superedge.Version,
 		Kind:    serviceutil.ControllerKind.Kind,
 	}); err != nil {
-		klog.Fatalf("Create and wait for CRDs ready failed: %v", err)
+		klog.Errorf("Create and wait for CRDs ready failed: %v", err)
 	}
 
 	utilruntime.Must(scheme.AddToScheme(scheme.Scheme))
