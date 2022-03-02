@@ -47,8 +47,8 @@ We have verified the Topovlm function in SuperEdge's edge cluster and integrated
 
 Execute the following command to download the edgeadm static installation package, pay attention to modify the "arch=amd64" parameter, currently supports [amd64, arm64], download the corresponding architecture of your own machine, other parameters remain unchanged
 
-```powershell
-arch=amd64 version=v0.7.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
 ```
 
 To install an edge cluster, please refer to: [Install an edge independent Kubernetes cluster with one click. ](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes.md)
