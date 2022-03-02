@@ -220,7 +220,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		case constant.ContainerRuntimeContainerd:
 			initOptions.externalInitCfg.NodeRegistration.CRISocket = constant.DefaultContainerdCRISocket
 		default:
-			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s", edgeConfig.ContainerRuntime)
+			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s\n", edgeConfig.ContainerRuntime)
 		}
 
 		// set one-click install kubernetes config
@@ -335,8 +335,10 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		if len(schedulerConfig.ExtraArgs) == 0 {
 			schedulerConfig.ExtraArgs = make(map[string]string)
 		}
-		schedulerConfig.ExtraArgs["config"] = constant.SchedulerConfig
-		schedulerConfig.ExtraArgs["policy-config-file"] = constant.SchedulerPolicy
+		//In order to be compatible with more K8s versions, remove the topolvm extended scheduler configuration.
+		//Because 1.20 and above does not have a KubeSchedulerConfiguration object. Edge into manual support.
+		//schedulerConfig.ExtraArgs["config"] = constant.SchedulerConfig
+		//schedulerConfig.ExtraArgs["policy-config-file"] = constant.SchedulerPolicy
 		schedulerConfig.ExtraVolumes = append(schedulerConfig.ExtraVolumes, []kubeadmapiv1beta2.HostPathMount{
 			{
 				"kube-scheduler-config",
