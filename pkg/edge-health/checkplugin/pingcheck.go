@@ -36,6 +36,10 @@ func (p PingCheckPlugin) Name() string {
 	return "PingCheck"
 }
 
+func (p PingCheckPlugin) Enable() bool {
+	return p.Enabled
+}
+
 func (p *PingCheckPlugin) Set(s string) error {
 	var (
 		err error
@@ -63,9 +67,11 @@ func (p *PingCheckPlugin) Set(s string) error {
 		}
 		(*p).PluginName = p.Name()
 	}
-	PluginInfo = NewPluginInfo()
-	PluginInfo.AddPlugin(p)
-	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	if p.Enable() {
+		PluginInfo = NewPluginInfo()
+		PluginInfo.AddPlugin(p)
+		klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+	}
 	return err
 }
 

@@ -32,6 +32,7 @@ type Options struct {
 	NotifyChannelSize                int
 	Debug                            bool
 	ServiceAutonomyEnhancementOption ServiceAutonomyEnhancementOptions
+	SupportEndpointSlice             bool
 }
 
 func NewGridWrapperOptions() *Options {
@@ -45,6 +46,7 @@ func NewGridWrapperOptions() *Options {
 			UpdateInterval:    30,
 			NeighborStatusSvc: "http://localhost:51005/localinfo",
 		},
+		SupportEndpointSlice: false,
 	}
 }
 
@@ -63,4 +65,5 @@ func (sc *Options) AddFlags(fs *pflag.FlagSet) {
 		"channel size for service and endpoints sent")
 	fs.BoolVar(&sc.Debug, "debug", sc.Debug, "enable pprof handler")
 	fs.Var(&sc.ServiceAutonomyEnhancementOption, "service-autonomy-enhancement", "service-autonomy-enhancement")
+	fs.BoolVar(&sc.SupportEndpointSlice, "support-endpointslice", sc.SupportEndpointSlice, "support EndpointSlice")
 }

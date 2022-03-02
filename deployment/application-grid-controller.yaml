@@ -86,6 +86,7 @@ spec:
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/application-grid-controller
+            - --feature-gates=EndpointSlice=true
           resources:
             limits:
               cpu: 50m

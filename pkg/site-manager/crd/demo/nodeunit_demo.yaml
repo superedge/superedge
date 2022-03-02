@@ -1,0 +1,17 @@
+apiVersion: site.superedge.io/v1alpha1
+kind: NodeUnit
+metadata:
+  name: nodeunit-demo
+spec:
+  type: edge
+  unschedulable: false
+  nodes:
+    - nodename
+  selector:
+    matchLabels:
+      kubernetes.io/hostname: nodename
+  setnode:
+    labels:
+      nodeunit: demo
+
+

@@ -108,7 +108,7 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 			return nil
 		}
 		klog.V(8).Infof("mediaType is %s", mediaType)
-		if mediaType != "application/json" && mediaType != "application/yaml" {
+		if mediaType != constant.Json && mediaType != constant.Yaml {
 			return nil
 		}
 	}

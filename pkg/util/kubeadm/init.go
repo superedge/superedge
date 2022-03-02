@@ -166,6 +166,7 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	// One-click install of flags for cluster
 	initClusterFlags(cmd.Flags(), edgeConfig)
 	initInstallHAFlag(cmd.Flags(), edgeConfig)
+	initContainerRuntimeFlags(cmd.Flags(), edgeConfig)
 
 	// adds flags to the init command
 	// init command local flags could be eventually inherited by the sub-commands automatically generated for phases
@@ -210,6 +211,16 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		moveKubeSchedulerConf := fmt.Sprintf("mv -f %s %s", edgeConfig.WorkerPath+constant.KubeSchedulerConf, kubeSchedulerConfDir)
 		if _, _, err := util.RunLinuxCommand(moveKubeSchedulerConf); err != nil {
 			return err
+		}
+
+		// set edgeadm crisocket for runtime
+		switch edgeConfig.ContainerRuntime {
+		case constant.ContainerRuntimeDocker:
+			initOptions.externalInitCfg.NodeRegistration.CRISocket = constant.DefaultDockerCRISocket
+		case constant.ContainerRuntimeContainerd:
+			initOptions.externalInitCfg.NodeRegistration.CRISocket = constant.DefaultContainerdCRISocket
+		default:
+			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s", edgeConfig.ContainerRuntime)
 		}
 
 		// set one-click install kubernetes config
@@ -275,6 +286,13 @@ func initClusterFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 
 }
 
+func initContainerRuntimeFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
+	flagSet.StringVar(
+		&edgeConfig.ContainerRuntime, constant.ContainerRuntime,
+		constant.ContainerRuntimeDocker, "Container runtime support docker and containerd.",
+	)
+}
+
 func initInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 	flagSet.StringVar(
 		&edgeConfig.DefaultHA, constant.DefaultHA,
@@ -289,7 +307,10 @@ func initInstallHAFlag(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmConfig) error {
 	// edgeadm default value
 	initOptions.externalClusterCfg.APIServer.ExtraArgs = map[string]string{
-		"kubelet-preferred-address-types": "Hostname",
+		"kubelet-preferred-address-types":  "Hostname",
+		"service-account-issuer":           "https://kubernetes.default",
+		"service-account-key-file":         "/etc/kubernetes/pki/sa.pub",
+		"service-account-signing-key-file": "/etc/kubernetes/pki/sa.key",
 	}
 
 	clusterConfig := initOptions.externalClusterCfg

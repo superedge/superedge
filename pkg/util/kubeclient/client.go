@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -121,18 +122,18 @@ func CustomConfig() string {
 }
 
 func IsOverK8sVersion(baseK8sVersion, k8sVersion string) (bool, error) {
-	drtK8sVerion, err := k8sVerisonInt(k8sVersion)
+	drtK8sVersion, err := k8sVersionInt(k8sVersion)
 	if err != nil {
 		return false, err
 	}
-	srcK8sVerion, err := k8sVerisonInt(baseK8sVersion)
+	srcK8sVersion, err := k8sVersionInt(baseK8sVersion)
 	if err != nil {
 		return false, err
 	}
-	return srcK8sVerion >= drtK8sVerion, nil
+	return srcK8sVersion >= drtK8sVersion, nil
 }
 
-func k8sVerisonInt(version string) (int, error) {
+func k8sVersionInt(version string) (int, error) {
 	if strings.Contains(version, "-") {
 		v := strings.Split(version, "-")[0]
 		version = v
@@ -241,6 +242,26 @@ func CheckNodeLabel(kubeClient *kubernetes.Clientset, nodeName string, labels ma
 		}
 	}
 	return true, nil
+}
+
+func GetNodeListStatus(nodes []corev1.Node) (readyNodes []string, notReadyNodes []string) {
+	for _, node := range nodes {
+		if IsReadyNode(&node) {
+			readyNodes = append(readyNodes, node.Name)
+		} else {
+			notReadyNodes = append(notReadyNodes, node.Name)
+		}
+	}
+	return
+}
+
+func IsReadyNode(node *corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 func GetClusterInfo(kubeconfigFile string) (*api.Cluster, error) {

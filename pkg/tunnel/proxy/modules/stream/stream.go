@@ -72,6 +72,7 @@ func InitStream(mode string) {
 		err := token.InitTokenCache(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.TokenFile)
 		if err != nil {
 			klog.Error("Error loading token file ！")
+			return
 		}
 	} else {
 		err := connect.InitToken(os.Getenv(util.NODE_NAME_ENV), conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.Token)

@@ -11,7 +11,7 @@ set_file_content() {
 	local file=$1
 	local pattern=$2
 	local content=$3
-	grep -Pq "$pattern" $file && sed -i "s;$pattern;$content;g" $file|| echo "content" >> $file
+	grep -Pq "$pattern" $file && sed -i "s;$pattern;$content;g" $file|| echo "$content" >> $file
 }
 
 command_exists() {

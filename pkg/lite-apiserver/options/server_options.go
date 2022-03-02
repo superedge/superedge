@@ -18,6 +18,7 @@ package options
 
 import (
 	"fmt"
+
 	"github.com/spf13/pflag"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
@@ -28,6 +29,7 @@ type RunServerOptions struct {
 	KubeApiserverPort   int
 	Port                int
 	BackendTimeout      int
+	Profiling           bool
 	CAFile              string
 	CertFile            string
 	KeyFile             string
@@ -37,6 +39,7 @@ type RunServerOptions struct {
 	FileCachePath       string
 	BadgerCachePath     string
 	BoltCacheFile       string
+	NetworkInterface  string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -52,6 +55,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.KubeApiserverPort = s.KubeApiserverPort
 	c.Port = s.Port
 	c.BackendTimeout = s.BackendTimeout
+	c.Profiling = s.Profiling
 
 	c.ModifyRequestAccept = s.ModifyRequestAccept
 
@@ -59,6 +63,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.FileCachePath = s.FileCachePath
 	c.BadgerCachePath = s.BadgerCachePath
 	c.BoltCacheFile = s.BoltCacheFile
+	c.NetworkInterface = s.NetworkInterface
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -110,6 +115,7 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on")
 	fs.IntVar(&s.BackendTimeout, "timeout", 3, "timeout for proxy to backend")
+	fs.BoolVar(&s.Profiling, "profiling", false, "profiling for lite-apiserver on /debug/pprof/profile")
 
 	fs.BoolVar(&s.ModifyRequestAccept, "modify-request-accept", true, "whether modify client request Accept to default(application/json), default is true")
 
@@ -117,4 +123,5 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.FileCachePath, "file-cache-path", "/data/lite-apiserver/cache", "the path for file storage")
 	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
 	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
+	fs.StringVar(&s.NetworkInterface, "network-interface", "", "the network interface list of node, separated by commas")
 }

@@ -164,6 +164,9 @@ On：
 
     >   If superedge.tencentcloudcr.com/superedge is slower, you can switch to other accelerated mirror warehouses, as long as you can pull down kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, etcd, pause, etc. mirrors.
 
+-  --runtime: node container runtime to install
+    >   If you want install containerd runtime, please add `--runtime=containerd` flags, and replace offline package url `https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-containerd-$arch-$version.tgz`
+
 Other parameters have the same meaning as Kubeadm and can be configured according to kubeadm's requirements.
 
 >   You can also use kubeadm.config to configure the original parameters of kubeadm, and create an edge Kubernetes cluster through `edgeadm init --config kubeadm.config --install-pkg-path ./kube-linux-*.tar.gz `.
@@ -247,7 +250,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 If there is a problem during the execution, the corresponding error message will be returned directly, and the addition of the node will be interrupted. You can use the `./edgeadm reset` command to roll back the operation of joining the node and rejoin.
 
-> Tip: If the edge node is joined, after the edge node joins successfully, the edge node will be labeled with a label: `superedge.io/edge-node=enable`, which is convenient for subsequent applications to use nodeSelector to select the application and schedule to the edge node;
+> Tip: If the edge node is joined, after the edge node joins successfully, the edge node will be labeled with a label: `superedge.io/node-edge=enable`, which is convenient for subsequent applications to use nodeSelector to select the application and schedule to the edge node;
 >
 > Native Kubernetes nodes, like kubeadm's join, do not do anything.
 

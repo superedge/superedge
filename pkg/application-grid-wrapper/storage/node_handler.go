@@ -39,13 +39,21 @@ func (nh *nodeHandler) add(node *v1.Node) {
 		node:   node,
 		labels: node.Labels,
 	}
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
 
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 
@@ -71,13 +79,20 @@ func (nh *nodeHandler) update(node *v1.Node) {
 	}
 	nodeContainer.labels = node.Labels
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 
@@ -90,13 +105,20 @@ func (nh *nodeHandler) delete(node *v1.Node) {
 	klog.Infof("Deleting node %v", nodeKey)
 	delete(sc.nodesMap, nodeKey)
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 

@@ -231,7 +231,7 @@ func startLiteAPIServer() error {
 	return nil
 }
 
-func NewAddEdgeNodeLabelPhase(config *cmd.EdgeadmConfig) workflow.Phase {
+func NewAddNodeLabelPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 	return workflow.Phase{
 		Name:   "lite-apiserver init",
 		Short:  "Install lite-apiserver on edge node",
@@ -241,6 +241,9 @@ func NewAddEdgeNodeLabelPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 			data, ok := c.(phases.JoinData)
 			if !ok {
 				return false, errors.New("installLiteAPIServer phase invoked with an invalid data struct")
+			}
+			if data.Cfg().ControlPlane == nil && !config.IsEnableEdge {
+				addCloudNodeLabel(c)
 			}
 			return config.IsEnableEdge && data.Cfg().ControlPlane == nil, nil
 		},
@@ -269,6 +272,29 @@ func addEdgeNodeLabel(c workflow.RunData) error {
 
 	if err := kubeclient.AddNodeLabel(clientSet, data.Cfg().NodeRegistration.Name, masterLabel); err != nil {
 		klog.Errorf("Add edged Node node label error: %v", err)
+		return err
+	}
+	return nil
+}
+
+// addCloudNodeLabel IsEnableEdge is false, add superedge.io/node-cloud logic.
+func addCloudNodeLabel(c workflow.RunData) error {
+	data, ok := c.(phases.JoinData)
+	if !ok {
+		return errors.New("addCloudNodeLabel phase invoked with an invalid data struct")
+	}
+
+	kubeletConf := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletKubeConfigFileName)
+	clientSet, err := kubeclient.GetClientSet(kubeletConf)
+	if err != nil {
+		return err
+	}
+	masterLabel := map[string]string{
+		constant.CloudNodeLabelKey: constant.CloudNodeLabelValueEnable,
+	}
+
+	if err := kubeclient.AddNodeLabel(clientSet, data.Cfg().NodeRegistration.Name, masterLabel); err != nil {
+		klog.Errorf("Add Cloud Node node label error: %v", err)
 		return err
 	}
 	return nil

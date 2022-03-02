@@ -1,0 +1,115 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tunnel-edge
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tunnel-edge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tunnel-edge
+subjects:
+  - kind: ServiceAccount
+    name: tunnel-edge
+    namespace: edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tunnel-edge
+  namespace: edge
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tunnel-edge-conf
+  namespace: edge
+data:
+  tunnel_edge.toml: |
+    [mode]
+      [mode.edge]
+        [mode.edge.stream]
+          [mode.edge.stream.client]
+            token = "BpLnfgDsc2WD8F2qNfHK5a84jjJkwzDk"
+            cert = "/etc/superedge/tunnel/certs/tunnel-ca.crt"
+            dns = "tunnel.cloud.io"
+            servername = "10.0.0.9:31673"
+            logport = 51000
+---
+apiVersion: v1
+data:
+  tunnel-ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1EUXdNakF6TXpJeE1Wb1hEVE14TURNek1UQXpNekl4TVZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTHNDCkNIVy9CdFc0SVpVWVNuMGdWSTJWeG5TQUdhQlBHUXpvVW9hRXp3aVhlc0hHbjJkMmZ0aHdMVlFTNzB3eFF5WFoKaXkrSHUyaVJSWXArSDgrUTdhRnRqWjZ2OXF0YlZxYS8rNEN1TFRCN2JINVIzKzhzcTdtNkhvL0lHZTFqbHVjNwp0WVQ3dElTNzlRTmF1NVRTUmtkaDJleGt5a2JOK1o1bi9xQmIxRVc0aHhOeXFUSmRmc2N6bis1MlZMQXBUei9sCkF4emhVbzNoWTVuL1M1MXo0cnJTVVBGenlhMitMNWJSUlBmZGdlcGxPM3BEengyUW03cWw0YWd0M1NzOTVUb3YKSHJYc3J1RTlSdVlKQTNHSGs2UDM4Q3pzc1lud1ozTFVDY1dtZXI5czM2TXVUS013cUJsdEFJdGVJOFJ5ZlplaApxZ044ZU8yL3poZkIrL1BhNXVzQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFLRUlISFcvYXRWQm5CUTQvQ0NYem9YVzkzRUYKclFhL29HU3BTQTF3c2VVbUNhc2dSWDZ1L3RuSUtaOVVjYjZNdjhyNkhpRHVXQ2RRZlN5T2FDL0FJbXdDZm9CUQpJM1p5R2dLVjRWektuLzRRR3RGL3dJOHZkZ3gvTk0xUHhBU3pOaG1jc1pPY1FmUFZUQVpNai9hbndGUmZtZ21WClpGYyt0QWxCMjJDUndTd2llS1RXU3E0SzdIanBiUVlLa0NOM055UE5EWW9oZitmNjFnV1lKM2NZRlZIRDBxRVUKYWoxdUZtVS9TOFF4UDFkcXFtaldGMU5rVlBxL0xBKzZjdmxMYU96THc4aUQ1Q3VqRkRzS2ZEN3Y5Y20wWSs5cwo4MmhDei8zcG5pQk1pSGNzVVpNN2tvMUVqOHhIbklqVWVJTG16cFdCSGxQZXk2aWV0QWR1MWpWTmVSdz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+kind: Secret
+metadata:
+  name: tunnel-edge-cert
+  namespace: edge
+type: Opaque
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tunnel-edge
+  namespace: edge
+spec:
+  selector:
+    matchLabels:
+      app: tunnel-edge
+  template:
+    metadata:
+      labels:
+        app: tunnel-edge
+    spec:
+      hostNetwork: true
+      containers:
+        - name: tunnel-edge
+          image: superedge/tunnel:v0.2.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /edge/healthz
+              port: 51010
+            initialDelaySeconds: 10
+            periodSeconds: 180
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 20m
+              memory: 20Mi
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          command:
+            - /usr/local/bin/tunnel
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          args:
+            - --m=edge
+            - --c=/etc/superedge/tunnel/conf/tunnel_edge.toml
+            - --log-dir=/var/log/tunnel
+            - --alsologtostderr
+          volumeMounts:
+            - name: certs
+              mountPath: /etc/superedge/tunnel/certs
+            - name: conf
+              mountPath: /etc/superedge/tunnel/conf
+      volumes:
+        - secret:
+            secretName: tunnel-edge-cert
+          name: certs
+        - configMap:
+            name: tunnel-edge-conf
+          name: conf

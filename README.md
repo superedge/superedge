@@ -29,7 +29,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 ### Cloud components:
 
 * [**tunnel-cloud**](docs/components/tunnel.md): Maintains a persistent network connection to `tunnel-edge` services. Supports TCP/HTTP/HTTPS network proxies.
-* [**application-grid controller**](docs/components/service-group.md): A Kubernetes CRD controller as part of ServiceGroup. It manages DeploymentGrids, StatefulSetGrids and ServiceGrids CRDs and control applications and network traffic on edge worker nodes.
+* [**application-grid controller**](docs/components/serviceGroup.md): A Kubernetes CRD controller as part of ServiceGroup. It manages DeploymentGrids, StatefulSetGrids and ServiceGrids CRDs and control applications and network traffic on edge worker nodes.
 * [**edge-health admission**](docs/components/edge-health.md): Assists Kubernetes controllers by providing real-time health check status from `edge-health` services distributed on all edge worker nodes.
 
 ### Edge components:
@@ -44,6 +44,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 
 -   Download the installation package
 > Choose installation package according to your installation node CPU architecture [amd64, arm64]
+
 ```shell
 arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
@@ -68,10 +69,10 @@ Other installation, deployment, and administration, see our [**Tutorial**](docs/
 ## Contact
 
 For any question or support, feel free to contact us via:
-- [Slack](https://app.slack.com/client/T01GSLDPQG7/C01H7KT4PMZ)
-- [Discussion Forum](https://groups.google.com/g/superedge)
+- Join [#SuperEdge Slack channel](https://cloud-native.slack.com/archives/C02M1G0MWQ2) (Need to join [CNCF Slack](https://slack.cncf.io/) first)
+- Join [SuperEdge Discussion Forum](https://groups.google.com/g/superedge)
 - [Meeting agenda and notes](https://docs.qq.com/doc/DSFVJbHVFUnVKdFlE)
-- WeChat Group
+- Join WeChat Group Discussion
 
 <div align="center">
   <img src="docs/img/wechat-group.png" width=20% title="SuperEdge WeChat group">
@@ -88,4 +89,3 @@ If you encounter any failure in the process of using SuperEdge, you can use [Con
 ## License
 
 [**Apache License 2.0**](./LICENSE)
-

@@ -1,0 +1,17 @@
+name: FOSSA
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run FOSSA scan and upload build data
+        uses: fossa-contrib/fossa-action@v1
+        with:
+          fossa-api-key: 144139335ff605656e22b341a01e6e7d

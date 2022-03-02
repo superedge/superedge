@@ -21,6 +21,7 @@ const (
 	MemoryStorage = "memory"
 	BadgerStorage = "badger"
 	BoltStorage   = "bolt"
+	PebbleStorage = "pebble"
 )
 
 const (
@@ -34,4 +35,9 @@ const (
 	VerbGet   = "get"
 	VerbList  = "list"
 	VerbWatch = "watch"
+)
+
+const (
+	Json = "application/json"
+	Yaml = "application/yaml"
 )

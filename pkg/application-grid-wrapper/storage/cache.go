@@ -22,6 +22,7 @@ import (
 
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
+	discovery "k8s.io/api/discovery/v1beta1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -33,18 +34,22 @@ type storageCache struct {
 	hostName                          string
 	wrapperInCluster                  bool
 	serviceAutonomyEnhancementEnabled bool
+	supportEndpointSlice              bool
 
 	// mu lock protect the following map structure
-	mu            sync.RWMutex
-	servicesMap   map[types.NamespacedName]*serviceContainer
-	endpointsMap  map[types.NamespacedName]*endpointsContainer
-	nodesMap      map[types.NamespacedName]*nodeContainer
-	localNodeInfo map[string]data.ResultDetail
+	mu               sync.RWMutex
+	servicesMap      map[types.NamespacedName]*serviceContainer
+	endpointsMap     map[types.NamespacedName]*endpointsContainer
+	endpointSliceMap map[types.NamespacedName]*endpointSliceContainer
+	nodesMap         map[types.NamespacedName]*nodeContainer
+	localNodeInfo    map[string]data.ResultDetail
 
 	// service watch channel
 	serviceChan chan<- watch.Event
 	// endpoints watch channel
 	endpointsChan chan<- watch.Event
+	// endpointSlice watch channel
+	endpointSliceChan chan<- watch.Event
 }
 
 // serviceContainer stores kubernetes service and its topologyKeys
@@ -65,18 +70,27 @@ type endpointsContainer struct {
 	modified  *v1.Endpoints
 }
 
+// endpointSliceContainer stores original kubernetes endpointSlice and relevant modified serviceTopology endpointSlice
+type endpointSliceContainer struct {
+	endpointSlice *discovery.EndpointSlice
+	modified      *discovery.EndpointSlice
+}
+
 var _ Cache = &storageCache{}
 
-func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event) *storageCache {
+func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event, endpointSliceNotifier chan watch.Event, supportEndpointSlice bool) *storageCache {
 	msc := &storageCache{
 		hostName:                          hostName,
 		wrapperInCluster:                  wrapperInCluster,
 		serviceAutonomyEnhancementEnabled: serviceAutonomyEnhancementEnabled,
+		supportEndpointSlice:              supportEndpointSlice,
 		servicesMap:                       make(map[types.NamespacedName]*serviceContainer),
 		endpointsMap:                      make(map[types.NamespacedName]*endpointsContainer),
+		endpointSliceMap:                  make(map[types.NamespacedName]*endpointSliceContainer),
 		nodesMap:                          make(map[types.NamespacedName]*nodeContainer),
 		serviceChan:                       serviceNotifier,
 		endpointsChan:                     endpointsNotifier,
+		endpointSliceChan:                 endpointSliceNotifier,
 		localNodeInfo:                     make(map[string]data.ResultDetail),
 	}
 
@@ -93,6 +107,10 @@ func (sc *storageCache) ServiceEventHandler() cache.ResourceEventHandler {
 
 func (sc *storageCache) EndpointsEventHandler() cache.ResourceEventHandler {
 	return &endpointsHandler{cache: sc}
+}
+
+func (sc *storageCache) EndpointSliceEventHandler() cache.ResourceEventHandler {
+	return &endpointSliceHandler{cache: sc}
 }
 
 func (sc *storageCache) GetServices() []*v1.Service {
@@ -115,6 +133,17 @@ func (sc *storageCache) GetEndpoints() []*v1.Endpoints {
 		epList = append(epList, v.modified)
 	}
 	return epList
+}
+
+func (sc *storageCache) GetEndpointSlice() []*discovery.EndpointSlice {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+
+	epsList := make([]*discovery.EndpointSlice, 0, len(sc.endpointSliceMap))
+	for _, v := range sc.endpointSliceMap {
+		epsList = append(epsList, v.modified)
+	}
+	return epsList
 }
 
 func (sc *storageCache) GetNodes() []*v1.Node {
@@ -158,13 +187,20 @@ func (sc *storageCache) SetLocalNodeInfo(info map[string]data.ResultDetail) {
 	sc.mu.Lock()
 	sc.localNodeInfo = info
 
-	// update endpoints
-	changedEps := sc.rebuildEndpointsMap()
-
-	sc.mu.Unlock()
-
-	for _, eps := range changedEps {
-		sc.endpointsChan <- eps
+	if sc.supportEndpointSlice {
+		// update endpointSlice
+		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSlice {
+			sc.endpointSliceChan <- eps
+		}
+	} else {
+		// update endpoints
+		changedEps := sc.rebuildEndpointsMap()
+		sc.mu.Unlock()
+		for _, eps := range changedEps {
+			sc.endpointsChan <- eps
+		}
 	}
 }
 
@@ -177,6 +213,23 @@ func (sc *storageCache) rebuildEndpointsMap() []watch.Event {
 			continue
 		}
 		sc.endpointsMap[name].modified = newEps
+		evts = append(evts, watch.Event{
+			Type:   watch.Modified,
+			Object: newEps,
+		})
+	}
+	return evts
+}
+
+// rebuildEndpointSliceMap updates all endpoints stored in storageCache.endpointSliceMap dynamically and constructs relevant modified events
+func (sc *storageCache) rebuildEndpointSliceMap() []watch.Event {
+	evts := make([]watch.Event, 0)
+	for name, endpointSliceContainer := range sc.endpointSliceMap {
+		newEps := pruneEndpointSlice(sc.hostName, sc.nodesMap, sc.servicesMap, endpointSliceContainer.endpointSlice, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
+		if apiequality.Semantic.DeepEqual(newEps, endpointSliceContainer.modified) {
+			continue
+		}
+		sc.endpointSliceMap[name].modified = newEps
 		evts = append(evts, watch.Event{
 			Type:   watch.Modified,
 			Object: newEps,

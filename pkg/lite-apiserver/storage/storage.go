@@ -17,10 +17,12 @@ limitations under the License.
 package storage
 
 import (
+	"os"
+
+	"k8s.io/klog/v2"
+
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
-	"k8s.io/klog/v2"
-	"os"
 )
 
 type Storage interface {
@@ -45,8 +47,11 @@ func CreateStorage(config *config.LiteServerConfig) Storage {
 		return NewBadgerStorage(config.BadgerCachePath)
 	case constant.BoltStorage:
 		return NewBoltStorage(config.BoltCacheFile)
+	case constant.PebbleStorage:
+		return NewPebbleStorage(config.PebbleCachePath)
 	default:
 		// error type, use FileStorage
+		klog.Errorf("%s is not supported, use default %s cache storage", config.CacheType, constant.FileStorage)
 		return NewFileStorage(config.FileCachePath)
 	}
 }

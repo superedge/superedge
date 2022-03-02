@@ -1,0 +1,16 @@
+apiVersion: site.superedge.io/v1alpha1
+kind: NodeGroup
+metadata:
+  name: nodegroup-demo
+spec:
+  nodeunits:
+  - unit-node-edge
+  selector:
+    matchLabels:
+      nodeunit: demo
+  workload:
+  - name: demo
+    type: Deployment
+
+
+
