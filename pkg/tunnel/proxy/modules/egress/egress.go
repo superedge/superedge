@@ -38,6 +38,10 @@ func (e EgressSelector) Start(mode string) {
 	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.EGRESS, handlers.DirectHandler)
 	context.GetContext().RegisterHandler(util.CLOSED, util.EGRESS, handlers.DirectHandler)
 	if mode == util.CLOUD {
+		if conf.TunnelConf.TunnlMode.Cloud.Egress == nil {
+			klog.Info("Please configure the egress module")
+			return
+		}
 		indexers.InitCache(e.stop)
 		cert, err := tls.LoadX509KeyPair(conf.TunnelConf.TunnlMode.Cloud.Egress.ServerCert, conf.TunnelConf.TunnlMode.Cloud.Egress.ServerKey)
 		if err != nil {
