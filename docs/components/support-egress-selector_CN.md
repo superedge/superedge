@@ -139,17 +139,7 @@ metadata:
   namespace: edge-system
 ```
 
-## 2.4 修改tunnel镜像版本
-
-### tunnel-cloud
-
-修改**edge-system/tunnel-cloud**的deployment的镜像版本
-
-### tunnel-edge
-
-修改**edge-system/tunnel-edge**的daemonset的镜像版本
-
-## 2.5 在tunnel-cloud的SVC中添加8000端口
+## 2.4 在tunnel-cloud的SVC中添加8000端口
 
 ```yaml
   - name: egress
