@@ -46,7 +46,7 @@ SuperEdge具有如下特性:
 ## 快速入门指南
 
 -   下载安装包
-> 注意修改"arch=amd64"参数，目前支持[amd64, arm64], kubernetes版本可选[1.20.6, 1.22.6, 1.18.2], 注意下载自己机器对应的体系结构，其他参数不变
+> 注意修改"arch=amd64"参数，目前支持[amd64, arm64], kubernetes版本可选[1.20.6, 1.18.2], 注意下载自己机器对应的体系结构，其他参数不变
 
 ```shell
 arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
