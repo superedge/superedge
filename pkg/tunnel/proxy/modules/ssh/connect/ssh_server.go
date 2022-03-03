@@ -16,16 +16,12 @@ package connect
 import (
 	"bufio"
 	"bytes"
-	uuid "github.com/satori/go.uuid"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
-	"strings"
 )
 
 const (
@@ -43,66 +39,12 @@ func HandleServerConn(proxyConn net.Conn) {
 		return
 	}
 	if request.Method == util.HttpMethod {
-		nodeinfo := strings.Split(request.Host, ":")
-		node := context.GetContext().GetNode(nodeinfo[0])
-		if node == nil {
-			addrs, err := net.LookupHost(nodeinfo[0])
-			if err != nil {
-				klog.Errorf("DNS parsing error: %v", err)
-				_, err = proxyConn.Write([]byte(util.InternalServerError))
-				if err != nil {
-					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				}
-				return
-			}
-
-			if len(addrs) == 0 {
-				klog.Errorf("Node：%s is not connected", nodeinfo[0])
-				_, err = proxyConn.Write([]byte(util.BadGateway))
-				if err != nil {
-					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				}
-				return
-			}
-
-			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
-				klog.Errorf("Loop forwarding")
-				return
-			}
-
-			remoteConn, err := net.Dial("tcp", addrs[0]+":22")
-			if err != nil {
-				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
-				return
-			}
-			defer remoteConn.Close()
-			_, err = remoteConn.Write(rawRequest.Bytes())
-			if err != nil {
-				klog.Errorf("Failed to write data to remoteConn, error: %v", err)
-				return
-			}
-			go func() {
-				_, writeErr := io.Copy(remoteConn, proxyConn)
-				if writeErr != nil {
-					klog.Errorf("Failed to copy data to remoteConn, error: %v", err)
-				}
-			}()
-			_, err = io.Copy(proxyConn, remoteConn)
-			if err != nil {
-				klog.Errorf("Failed to read data from remoteConn, error: %v", err)
-			}
-		} else {
-			uid := uuid.NewV4().String()
-			ch := context.GetContext().AddConn(uid)
-			node.BindNode(uid)
-			_, err = proxyConn.Write([]byte(util.ConnectMsg))
-			if err != nil {
-				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				return
-			}
-
-			go common.Read(proxyConn, node, util.TCP_FRONTEND, uid, "127.0.0.1:"+nodeinfo[1])
-			common.Write(proxyConn, ch)
+		host, port, err := net.SplitHostPort(request.Host)
+		if err != nil {
+			klog.Errorf("Failed to obtain the login destination node and SSH server port, module: %s, error: %v", util.SSH, err)
+			proxyConn.Write([]byte("Failed to obtain the login destination node and SSH server port"))
+			return
 		}
+		common.ProxyEdgeNode(host, "127.0.0.1", port, util.SSH, proxyConn, rawRequest)
 	}
 }
