@@ -70,7 +70,7 @@ func (tcp *TcpProxy) Start(mode string) {
 					tcpConn := context.GetContext().AddConn(uuid)
 					nodeConn := context.GetContext().GetNode(node)
 					nodeConn.BindNode(uuid)
-					go common.Read(rawConn, nodeConn, util.TCP_FRONTEND, uuid, backend)
+					go common.Read(rawConn, nodeConn, util.TCP, util.TCP_FRONTEND, uuid, backend)
 					go common.Write(rawConn, tcpConn)
 				}
 			}(front, backend)

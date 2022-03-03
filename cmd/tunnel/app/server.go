@@ -21,6 +21,7 @@ import (
 	"github.com/superedge/superedge/cmd/tunnel/app/options"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/egress"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream"
@@ -48,6 +49,7 @@ func NewTunnelCommand() *cobra.Command {
 			}
 			module.InitModules(*option.TunnelMode)
 			stream.InitStream(*option.TunnelMode)
+			egress.InitEgress()
 			tcp.InitTcp()
 			https.InitHttps()
 			ssh.InitSSH()
