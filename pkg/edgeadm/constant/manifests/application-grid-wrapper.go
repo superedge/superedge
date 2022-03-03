@@ -147,6 +147,7 @@ spec:
             - --bind-address=127.0.0.1:51006
             - --hostname=$(NODE_NAME)
             - --notify-channel-size=10000
+            - --support-endpointslice=true
           env:
             - name: NODE_NAME
               valueFrom:
@@ -251,6 +252,7 @@ spec:
             - --hostname=$(NODE_NAME)
             - --wrapper-in-cluster=false
             - --notify-channel-size=10000
+            - --support-endpointslice=true
           env:
             - name: NODE_NAME
               valueFrom:
