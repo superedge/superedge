@@ -45,6 +45,11 @@ func UpdateKubeConfig(client *kubernetes.Clientset) error {
 		return err
 	}
 
+	if err := UpdateKubernetesEndpointSlice(client); err != nil {
+		klog.Errorf("Update kubernetes endpointSlice, error: %s", err)
+		return err
+	}
+
 	klog.Infof("Update Kubernetes cluster config support marginal autonomy success")
 
 	return nil
@@ -214,6 +219,34 @@ func UpdateKubernetesEndpoint(clientSet kubernetes.Interface) error {
 	endpoint.Annotations = annotations
 	if _, err := clientSet.CoreV1().Endpoints(
 		constant.NamespaceDefault).Update(context.TODO(), endpoint, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateKubernetesEndpointSlice(clientSet kubernetes.Interface) error {
+	endpointSlice, err := clientSet.DiscoveryV1beta1().EndpointSlices(
+		constant.NamespaceDefault).Get(context.TODO(), constant.KubernetesEndpoint, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// backup original ConfigMap
+	oldEndpointSlice := endpointSlice.DeepCopy()
+	oldEndpointSlice.Name = constant.KubernetesEndpointNoEdge
+	oldEndpointSlice.ResourceVersion = ""
+	if _, err := clientSet.DiscoveryV1beta1().EndpointSlices(
+		constant.NamespaceDefault).Create(context.TODO(), oldEndpointSlice, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	annotations := make(map[string]string)
+	annotations[constant.EdgeLocalPort] = "51003"
+	annotations[constant.EdgeLocalHost] = "127.0.0.1"
+	endpointSlice.Annotations = annotations
+	if _, err := clientSet.DiscoveryV1beta1().EndpointSlices(
+		constant.NamespaceDefault).Update(context.TODO(), endpointSlice, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 

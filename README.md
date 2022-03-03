@@ -43,7 +43,7 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 [One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
 
 -   Download the installation package
-> Your can choose CPU arch [amd64, arm64], kubernetes version [1.20.6, 1.22.6, 1.18.2];
+> Your can choose CPU arch [amd64, arm64], kubernetes version [1.20.6, 1.18.2];
 
 ```shell
 arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
