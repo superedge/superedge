@@ -36,6 +36,7 @@ type TunnelCloud struct {
 	Https  *HttpsServer      `toml:"https"`
 	Stream *StreamCloud      `toml:"stream"`
 	Tcp    map[string]string `toml:"tcp"`
+	Egress *EgressServer     `toml:"egress"`
 }
 
 type HttpsServer struct {
@@ -57,6 +58,13 @@ type StreamServer struct {
 	LogPort      int    `toml:"logport"`
 	MetricsPort  int    `toml:"metricsport"`
 	ChannelzAddr string `toml:"channelzaddr"`
+}
+
+type EgressServer struct {
+	ServerCert string `toml:"servercert"`
+	ServerKey  string `toml:"serverkey"`
+	KubeConfig string `toml:"kubeconfig"`
+	EgressPort string `toml:"egressport"`
 }
 
 type Dns struct {
