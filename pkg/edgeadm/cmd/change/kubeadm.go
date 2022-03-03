@@ -18,7 +18,7 @@ package change
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
@@ -347,7 +347,7 @@ func (c *changeAction) getServiceCert(commonName string, dns []string, ips []str
 	return serverCertData, serverKeyData, err
 }
 
-func (c *changeAction) getCertAndKey() (*x509.Certificate, *rsa.PrivateKey, error) {
+func (c *changeAction) getCertAndKey() (*x509.Certificate, crypto.Signer, error) {
 	caCert, caKey, err := common.GetRootCartAndKey(c.caCertFile, c.caKeyFile)
 	if err != nil {
 		return nil, nil, err

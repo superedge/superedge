@@ -17,7 +17,7 @@ limitations under the License.
 package common
 
 import (
-	"crypto/rsa"
+	"crypto"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -55,13 +55,13 @@ func GetClientCert(commonName, certPath, keyPath string) ([]byte, []byte, error)
 	return clientCertData, clientKeyData, err
 }
 
-func ParseCertAndKey(ca, key []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
+func ParseCertAndKey(ca, key []byte) (*x509.Certificate, crypto.Signer, error) {
 	//Transform cacer and key
 	caCert, err := util.ParseCertsPEM([]byte(ca))
 	if err != nil {
 		return nil, nil, err
 	}
-	caKey, err := util.ParsePrivateKeyPEMRSA([]byte(key))
+	caKey, err := util.ParsePrivateKeyPEM([]byte(key))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,7 +133,7 @@ func GetServiceCert(commonName, caCertFile, caKeyFile string, dns []string, ips 
 	return serverCertData, serverKeyData, err
 }
 
-func GetCertAndKey(caCertFile, caKeyFile string) (*x509.Certificate, *rsa.PrivateKey, error) {
+func GetCertAndKey(caCertFile, caKeyFile string) (*x509.Certificate, crypto.Signer, error) {
 	caCert, caKey, err := GetRootCartAndKey(caCertFile, caKeyFile)
 	if err != nil {
 		return nil, nil, err
