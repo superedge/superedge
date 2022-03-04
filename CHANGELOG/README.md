@@ -6,3 +6,4 @@
 - [CHANGELOG-0.4.md](./CHANGELOG-0.4.md)
 - [CHANGELOG-0.5.md](./CHANGELOG-0.5.md)
 - [CHANGELOG-0.6.md](./CHANGELOG-0.6.md)
+- [CHANGELOG-0.7.md](./CHANGELOG-0.7.md)
