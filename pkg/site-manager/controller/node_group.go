@@ -57,7 +57,7 @@ func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {
 			return
 		}
 	}
-	
+
 	nodeGroup.Status.NodeUnits = units
 	nodeGroup.Status.UnitNumber = len(units)
 	_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})

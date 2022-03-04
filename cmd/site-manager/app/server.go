@@ -78,10 +78,12 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 					wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
 						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, "")
 						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, "")
+						utils.CreateDefaultNodeGroup(crdClient)
 						time.Sleep(5 * time.Second)
 						if err := utils.CreateDefaultUnit(crdClient); err != nil {
 							klog.Errorf("Create default unit error: %#v", err)
 						}
+
 						return true, nil
 					}, stop)
 				}
