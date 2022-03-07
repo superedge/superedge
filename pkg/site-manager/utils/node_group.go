@@ -189,7 +189,7 @@ func checkifcontains(nodelabel map[string]string, keyslices []string) (bool, str
 	return true, res, sel
 }
 
-func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *v1alpha1.NodeGroup) (nodeUnits []string, err error) {
+func GetUnitsByNodeGroup(kubeClient clientset.Interface, siteClient *siteClientset.Clientset, nodeGroup *v1alpha1.NodeGroup) (nodeUnits []string, err error) {
 	// Get units by selector
 	var unitList *v1alpha1.NodeUnitList
 	selector := nodeGroup.Spec.Selector
@@ -237,6 +237,14 @@ func GetUnitsByNodeGroup(siteClient *siteClientset.Clientset, nodeGroup *v1alpha
 		nodeUnits = append(nodeUnits, unit.Name)
 	}
 
+	klog.Info("node units is ", nodeUnits)
+
+	copyNodeUnits := make([]string, len(nodeUnits))
+	copy(copyNodeUnits, nodeUnits)
+
+	klog.Info("copy node unit is ", copyNodeUnits)
+	UpdateNodeLabels(kubeClient, siteClient, copyNodeUnits, nodeGroup.Name)
+
 	if len(nodeGroup.Spec.AutoFindNodeKeys) > 0 {
 		nulist, err := siteClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{
 			LabelSelector: fmt.Sprintf(nodeGroup.Name + "=autofindnodekeys"),
@@ -276,7 +284,7 @@ func GetNodeGroupsByUnit(siteClient *siteClientset.Clientset, unitName string) (
 	return nodeGroups, nil
 }
 
-func UnitMatchNodeGroups(siteClient *siteClientset.Clientset, unitName string) (nodeGroups []*v1alpha1.NodeGroup, err error) {
+func UnitMatchNodeGroups(kubeClient clientset.Interface, siteClient *siteClientset.Clientset, unitName string) (nodeGroups []*v1alpha1.NodeGroup, err error) {
 	allNodeGroups, err := siteClient.SiteV1alpha1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -289,7 +297,7 @@ func UnitMatchNodeGroups(siteClient *siteClientset.Clientset, unitName string) (
 	}
 
 	for _, nodeGroup := range allNodeGroups.Items {
-		units, err := GetUnitsByNodeGroup(siteClient, &nodeGroup)
+		units, err := GetUnitsByNodeGroup(kubeClient, siteClient, &nodeGroup)
 		if err != nil {
 			klog.Errorf("Get NodeGroup unit error: %v", err)
 			continue
@@ -303,4 +311,27 @@ func UnitMatchNodeGroups(siteClient *siteClientset.Clientset, unitName string) (
 	}
 
 	return nodeGroups, nil
+}
+
+func UpdateNodeLabels(kubeClient clientset.Interface, crdClient *siteClientset.Clientset, units []string, nodeGroup string) {
+	klog.Info("prepare to update nodeunits, ", units)
+	for _, nuName := range units {
+		obj, err := crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), nuName, metav1.GetOptions{})
+		if err != nil {
+			klog.Error("Get nodeunit fail, ", err)
+		}
+
+		var tmpLabel = make(map[string]string)
+		tmpLabel[nodeGroup] = nuName
+		if obj.Spec.SetNode.Labels == nil {
+			obj.Spec.SetNode.Labels = tmpLabel
+		} else {
+			obj.Spec.SetNode.Labels[nodeGroup] = nuName
+		}
+
+		_, err = crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), obj, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Error("Update NodeUnit fail ", err)
+		}
+	}
 }

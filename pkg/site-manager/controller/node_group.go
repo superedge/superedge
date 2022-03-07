@@ -47,7 +47,7 @@ func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {
 		utils.AutoFindNodeKeysbyNodeGroup(siteManager.kubeClient, siteManager.crdClient, nodeGroup)
 	}
 
-	units, err := utils.GetUnitsByNodeGroup(siteManager.crdClient, nodeGroup)
+	units, err := utils.GetUnitsByNodeGroup(siteManager.kubeClient, siteManager.crdClient, nodeGroup)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			units = []string{}
@@ -57,7 +57,7 @@ func (siteManager *SitesManagerDaemonController) addNodeGroup(obj interface{}) {
 			return
 		}
 	}
-	
+
 	nodeGroup.Status.NodeUnits = units
 	nodeGroup.Status.UnitNumber = len(units)
 	_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
@@ -93,7 +93,8 @@ func (siteManager *SitesManagerDaemonController) updateNodeGroup(oldObj, newObj 
 	/*
 		curNodeGroup
 	*/
-	units, err := utils.GetUnitsByNodeGroup(siteManager.crdClient, curNodeGroup)
+
+	units, err := utils.GetUnitsByNodeGroup(siteManager.kubeClient, siteManager.crdClient, curNodeGroup)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			units = []string{}
@@ -132,9 +133,21 @@ func (siteManager *SitesManagerDaemonController) deleteNodeGroup(obj interface{}
 		}
 	}
 
-	// todo: delete set unit
+	// check all nodes, if which have the label with nodegroup name then remove
+	for _, nu := range nodeGroup.Status.NodeUnits {
 
-	// todo: delete nodegroup annotations set in unit
+		obj, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), nu, metav1.GetOptions{})
+		if err != nil {
+			klog.Error("List nodeunit fail ", err)
+		}
+		if obj.Spec.SetNode.Labels != nil {
+			delete(obj.Spec.SetNode.Labels, nodeGroup.Name)
+		}
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), obj, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Error("Update nodeunit fail ", err)
+		}
+	}
 
 	klog.V(4).Infof("Delete NodeGroup: %s succes.", nodeGroup.Name)
 	return
