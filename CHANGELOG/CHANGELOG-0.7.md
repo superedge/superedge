@@ -9,7 +9,7 @@
 
 ## 1. Features and Enhancements
 
--   Support nodeunit and Nodegroup CRD to manage edge site resources. ([#289](https://github.com/superedge/superedge/pull/289) [@attlee-wang](https://github.com/attlee-wang))
+-   Support NodeUnit and Nodegroup CRD to manage edge site resources. ([#289](https://github.com/superedge/superedge/pull/289) [@attlee-wang](https://github.com/attlee-wang))
     -   Nodeunit add setnode attribute and nodeunit label to node.  ([#306](https://github.com/superedge/superedge/pull/306) [#327](https://github.com/superedge/superedge/pull/327) [@luhaopei](https://github.com/luhaopei))
     -   Add default apply NodeUnit and NodeGroup crd and default nodeunit. ([#325](https://github.com/superedge/superedge/pull/325) [@attlee-wang](https://github.com/attlee-wang))
     -   support nodegroup autofindnodekeys to automatically create nodeunits in batches  ([#334](https://github.com/superedge/superedge/pull/334)  [@JaneLiuL](https://github.com/JaneLiuL))
@@ -18,9 +18,8 @@
 -   Edge-health supports user-defined edge node health check plugins.  ([#317](https://github.com/superedge/superedge/pull/317)  [@JaneLiuL](https://github.com/JaneLiuL))
 -   Add Superedge support k8s v1.20.6 ([#271](https://github.com/superedge/superedge/pull/271) [@attlee-wang](https://github.com/attlee-wang))
 -   Support containerd runtime install in edgeadm. ( [#322](https://github.com/superedge/superedge/pull/322) [@malc0lm](https://github.com/malc0lm))
--   Edgeadm support proxy edge nodes and non-edge nodes through patch kube-porxy. ([#282](https://github.com/superedge/superedge/pull/282) [@luhaopei](https://github.com/luhaopei))
-
--    Lite-apiserver supports specifying multiple network cards to establish connections with the cloud. ([#263](https://github.com/superedge/superedge/pull/263)  [@huweihuang](https://github.com/huweihuang))
+-   Support adding edge nodes and native K8s nodes to SuperEdge edge clusters. ([#282](https://github.com/superedge/superedge/pull/282) [@luhaopei](https://github.com/luhaopei))
+-   Lite-apiserver supports specifying multiple network interfaces to establish connections with the cloud. ([#263](https://github.com/superedge/superedge/pull/263)  [@huweihuang](https://github.com/huweihuang))
 -   Lite-apiserver support use pebble as storage.  ( [#340](https://github.com/superedge/superedge/pull/340) [#341](https://github.com/superedge/superedge/pull/341) [ctlove0523](https://github.com/ctlove0523))
 -   Lite-apiserver support pprof debugging. ([#271](https://github.com/superedge/superedge/pull/272) [@00pf00](https://github.com/00pf00)  [#286](https://github.com/superedge/superedge/pull/286) [wangchenglong01](https://github.com/wangchenglong01))
 
