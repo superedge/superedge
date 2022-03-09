@@ -140,17 +140,7 @@ metadata:
   namespace: edge-system
 ```
 
-## 2.4 Modify the tunnel image version
-
-### tunnel-cloud
-
-Modify the image version of the deployment of **edge-system/tunnel-cloud**
-
-### tunnel-edge
-
-Modify the mirror version of the daemonset of **edge-system/tunnel-edge**
-
-## 2.5 Add port 8000 in SVC of tunnel-cloud
+## 2.4 Add port 8000 in SVC of tunnel-cloud
 
 ```yaml
   - name: egress
