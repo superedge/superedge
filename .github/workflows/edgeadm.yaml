@@ -43,7 +43,7 @@ jobs:
         run: echo "GITHUB_SHA_MASTER=$(ifconfig eth0 | grep inet | grep -v inet6 | awk -F' ' '{print $2}')" >> $GITHUB_ENV
 
       - name: Create single node cluster
-        run: sudo /usr/local/bin/edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./workspace/edgeadm-linux-amd64-v0.7.0/kube-linux-*.tar.gz --enable-edge=true --apiserver-cert-extra-sans=${{ env.GITHUB_SHA_MASTER }} --apiserver-advertise-address=${{ env.GITHUB_SHA_MASTER }}
+        run: sudo /usr/local/bin/edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./workspace/edgeadm-linux-amd64-v0.7.0-*/kube-linux-*.tar.gz --enable-edge=true --apiserver-cert-extra-sans=${{ env.GITHUB_SHA_MASTER }} --apiserver-advertise-address=${{ env.GITHUB_SHA_MASTER }}
 
       - name: Get Cluster status
         run: |
