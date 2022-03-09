@@ -8,7 +8,7 @@ SuperEdge是Kubernetes原生的边缘容器方案，它将Kubernetes强大的容
 
 SuperEdge可以帮助您很方便地把分布在各处的计算资源放到一个Kubernetes集群中管理，包括但不限于：边缘云计算资源、私有云资源、现场设备，打造属于您的边缘PaaS平台。 
 
-SuperEdge支持所有Kubernetes资源类型、API接口、使用方式、运维工具，无额外的学习成本。也兼容其他云原生项目，如：Promethues，使用者可以结合其他所需的云原生项目一起使用。
+SuperEdge支持所有Kubernetes资源类型、API接口、使用方式、运维工具，无额外的学习成本。也兼容其他云原生项目，如：Prometheus，使用者可以结合其他所需的云原生项目一起使用。
 
 SuperEdge项目由以下公司共同发起：腾讯、Intel、VMware、虎牙直播、寒武纪、首都在线和美团。
 

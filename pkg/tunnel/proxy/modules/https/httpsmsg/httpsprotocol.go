@@ -21,7 +21,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	httpsmng2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/https/httpsmng"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func ConnectingHandler(msg *proto.StreamMsg) error {

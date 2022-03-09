@@ -17,7 +17,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 )
 
@@ -25,7 +25,7 @@ const (
 	BuferSize = 1 * 1024
 )
 
-func Read(conn net.Conn, node context.Node, handleType, uuid, addr string) {
+func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr string) {
 	defer func() {
 		node.UnbindNode(uuid)
 		context.GetContext().RemoveConn(uuid)
@@ -39,7 +39,7 @@ func Read(conn net.Conn, node context.Node, handleType, uuid, addr string) {
 			if ch != nil {
 				ch.Send2Conn(&proto.StreamMsg{
 					Node:     node.GetName(),
-					Category: util.SSH,
+					Category: category,
 					Type:     util.CLOSED,
 					Topic:    uuid,
 				})
@@ -49,13 +49,12 @@ func Read(conn net.Conn, node context.Node, handleType, uuid, addr string) {
 		}
 		node.Send2Node(&proto.StreamMsg{
 			Node:     node.GetName(),
-			Category: util.SSH,
+			Category: category,
 			Type:     handleType,
 			Topic:    uuid,
 			Data:     rb[:n],
 			Addr:     addr,
 		})
-
 	}
 }
 

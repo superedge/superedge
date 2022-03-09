@@ -18,7 +18,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 )
 
@@ -37,7 +37,7 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 	ch := context.GetContext().AddConn(msg.Topic)
 	node.BindNode(msg.Topic)
 	ch.Send2Conn(msg)
-	go common.Read(conn, node, util.TCP_BACKEND, msg.Topic, msg.Addr)
+	go common.Read(conn, node, msg.Category, util.TCP_BACKEND, msg.Topic, msg.Addr)
 	go common.Write(conn, ch)
 	return nil
 }

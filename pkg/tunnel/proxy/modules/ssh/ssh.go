@@ -19,7 +19,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"net"
 )
 

@@ -71,7 +71,7 @@ arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && 
 - [SuperEdge 云边隧道新特性：从云端SSH运维边缘节点](https://mp.weixin.qq.com/s/J-sxkiL62FAjGBRHERPbKg)
 - [Addon SuperEdge 让原生 K8s 集群可管理边缘应用和节点](https://mp.weixin.qq.com/s/1CnvqASzLnOShj8Hoh-Trw)
 - [配置tunnel-cloud HPA](./components/tunnel-cloud-hpa_CN.md)
-- [如何使用Promethues采集边缘metrics](./components/deploy_monitor_CN.md)
+- [如何使用Prometheus采集边缘metrics](./components/deploy_monitor_CN.md)
 
 #### 2. 技术文章
 
