@@ -48,33 +48,6 @@ subjects:
     name: apps-manager-service-account
     namespace: edge-system
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: apps-manager-config
-  namespace: edge-system
-data:
-  kubeconfig.conf: |
-    apiVersion: v1
-    clusters:
-    - cluster:
-        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        server: https://127.0.0.1:51003
-      name: default
-    contexts:
-    - context:
-        cluster: default
-        namespace: default
-        user: default
-      name: default
-    current-context: default
-    kind: Config
-    preferences: {}
-    users:
-    - name: default
-      user:
-        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -106,8 +79,6 @@ spec:
           imagePullPolicy: IfNotPresent
           command:
             - /usr/local/bin/apps-manager
-            - --kubeconfig=/var/lib/apps-manager/kubeconfig.conf
-            - --master=127.0.0.1:51006
             - --hostname=$(NODE_NAME)
             - v=4
           env:
@@ -126,17 +97,11 @@ spec:
           securityContext:
             privileged: true
           volumeMounts:
-            - mountPath: /var/lib/apps-manager
-              name: apps-manager-config
             - mountPath: /etc/kubernetes/manifests/
               name: kube-manifests
             - mountPath: /etc/kubernetes/edge-manifests/
               name: edge-manifests
       volumes:
-        - configMap:
-            defaultMode: 420
-            name: apps-manager-config
-          name: apps-manager-config
         - hostPath:
             path: /etc/kubernetes/edge-manifests/
             type: DirectoryOrCreate
