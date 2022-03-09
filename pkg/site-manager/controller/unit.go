@@ -70,7 +70,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	/*
 	 nodeGroup action
 	*/
-	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, nodeUnit.Name)
+	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.kubeClient, siteManager.crdClient, nodeUnit.Name)
 	if err != nil {
 		klog.Errorf("Get NodeGroups error: %v", err)
 		return
@@ -150,7 +150,7 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 	/*
 	   nodeGroup action
 	*/
-	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.crdClient, curNodeUnit.Name)
+	nodeGroups, err := utils.UnitMatchNodeGroups(siteManager.kubeClient, siteManager.crdClient, curNodeUnit.Name)
 	if err != nil {
 		klog.Errorf("Get NodeGroups error: %v", err)
 		return
