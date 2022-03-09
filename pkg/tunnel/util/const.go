@@ -31,6 +31,12 @@ const (
 	TCP    = "tcp"
 	HTTPS  = "https"
 	SSH    = "ssh"
+	EGRESS = "egress"
+)
+
+const (
+	PODIP_INDEXER    = "PodIP"
+	METANAME_INDEXER = "MeatName"
 )
 
 const (

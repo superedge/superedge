@@ -101,6 +101,21 @@ func GetKubeConfig(kubeConfigPath string) (*restclient.Config, error) {
 	return config, nil
 }
 
+func GetInclusterClientSet(kubeConfigPath string) (*kubernetes.Clientset, error) {
+	clientConfig, err := GetKubeConfig(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		klog.Errorf("Get kube client error: %v", err)
+		return nil, err
+	}
+
+	return kubeClient, nil
+
+}
+
 func CustomConfig() string {
 	kubeConf, err := base64.StdEncoding.DecodeString(os.Getenv("KUBECONFIG"))
 	if err != nil {

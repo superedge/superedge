@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog/v2"
@@ -28,7 +29,7 @@ const (
 	RequestCache = 10 * 1024
 )
 
-func HandleServerConn(proxyConn net.Conn) {
+func HandleEgressConn(proxyConn net.Conn) {
 	defer proxyConn.Close()
 	rawRequest := bytes.NewBuffer(make([]byte, RequestCache))
 	rawRequest.Reset()
@@ -41,10 +42,28 @@ func HandleServerConn(proxyConn net.Conn) {
 	if request.Method == util.HttpMethod {
 		host, port, err := net.SplitHostPort(request.Host)
 		if err != nil {
-			klog.Errorf("Failed to obtain the login destination node and SSH server port, module: %s, error: %v", util.SSH, err)
-			proxyConn.Write([]byte("Failed to obtain the login destination node and SSH server port"))
+			klog.Errorf("Failed to get host and port, module: %s, error: %v", util.EGRESS, err)
+			proxyConn.Write([]byte("Failed to get host and port"))
 			return
 		}
-		common.ProxyEdgeNode(host, "127.0.0.1", port, util.SSH, proxyConn, rawRequest)
+		ip := net.ParseIP(host)
+		if ip == nil {
+			internalIp, err := indexers.GetNodeIPByName(host)
+			if err != nil {
+				klog.Errorf("Failed to get internalIp of node, error: %v", err)
+				common.ProxyEdgeNode(host, "127.0.0.1", port, util.EGRESS, proxyConn, rawRequest)
+			} else {
+				common.ProxyEdgeNode(host, internalIp, port, util.EGRESS, proxyConn, rawRequest)
+			}
+
+		} else {
+			//Request pods on edge nodes
+			node, err := indexers.GetNodeByPodIP(host)
+			if err != nil {
+				klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", util.EGRESS, err)
+				return
+			}
+			common.ProxyEdgeNode(node, host, port, util.EGRESS, proxyConn, rawRequest)
+		}
 	}
 }
