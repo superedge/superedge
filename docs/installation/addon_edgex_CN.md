@@ -65,7 +65,7 @@ EdgeX Foundry 是一个开源的边缘设备管理平台，可以部署在网络
 执行以下命令下载 edgeadm 静态安装包，注意修改"arch=amd64"参数，目前支持[amd64, arm64]，下载自己机器对应的体系结构，其他参数不变  
 
 ```shell
-arch=amd64 version=v0.7.0-beta.0 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.7.0-beta.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tar.gz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
 ```
 
 安装一个边缘集群可参考：[一键安装边缘独立Kubernetes 集群。](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md) 
