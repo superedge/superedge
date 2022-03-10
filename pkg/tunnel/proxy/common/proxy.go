@@ -47,7 +47,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		if err != nil {
 			if dnsErr, ok := err.(*net.DNSError); ok {
 				if dnsErr.IsNotFound {
-					remoteConn, err = net.Dial("tcp", host+":"+port)
+					remoteConn, err = net.Dial(util.TCP, host+":"+port)
 					if err != nil {
 						klog.Errorf("Failed to send request from tunnel-cloud, error: %v", err)
 						return
@@ -87,7 +87,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 				addr = addrs[0] + ":22"
 			}
 
-			remoteConn, err = net.Dial("tcp", addr)
+			remoteConn, err = net.Dial(util.TCP, addr)
 			if err != nil {
 				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
 				return
