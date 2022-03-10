@@ -17,10 +17,14 @@ limitations under the License.
 package steps
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
@@ -29,6 +33,11 @@ import (
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 
+	superedge "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io"
+	deploymentutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
+	serviceutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/service/util"
+	statefulsetutil "github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
+	"github.com/superedge/superedge/pkg/application-grid-controller/prepare"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -53,6 +62,15 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 				Short:          "Install all the edge-apps addons to edge Kubernetes cluster",
 				InheritFlags:   getAddonPhaseFlags("all"),
 				RunAllSiblings: true,
+			},
+			{
+				Name:         "init-cluster",
+				Short:        "init edge Kubernetes cluster",
+				InheritFlags: getAddonPhaseFlags("init-cluster"),
+				RunIf: func(data workflow.RunData) (bool, error) {
+					return config.IsEnableEdge, nil
+				},
+				Run: runInitCluster,
 			},
 			{
 				Name:         "tunnel",
@@ -124,6 +142,8 @@ func getAddonPhaseFlags(name string) []string {
 			options.CertificatesDir,
 		)
 	}
+	if name == "all" || name == "init-cluster" {
+	}
 	if name == "all" || name == "edge-health" {
 	}
 	if name == "all" || name == "service-group" {
@@ -148,6 +168,38 @@ func getInitData(c workflow.RunData) (*kubeadmapi.InitConfiguration, *cmd.Edgead
 		return nil, nil, nil, err
 	}
 	return data.Cfg(), EdgeadmConf, client, err
+}
+
+func runInitCluster(c workflow.RunData) error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	data, ok := c.(phases.InitData)
+	if !ok {
+		return errors.New("Run init cluster phase invoked with an invalid data struct\n")
+	}
+
+	// Init default crd edge kubernetes
+	restClient, err := clientcmd.BuildConfigFromFlags("", data.KubeConfigPath())
+	extensionsClinet := apiextensions.NewForConfigOrDie(restClient)
+	crdP := prepare.NewCRDPreparator(extensionsClinet)
+	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    deploymentutil.ControllerKind.Kind,
+	}, schema.GroupVersionKind{
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    statefulsetutil.ControllerKind.Kind,
+	}, schema.GroupVersionKind{
+		Group:   superedge.GroupName,
+		Version: superedge.Version,
+		Kind:    serviceutil.ControllerKind.Kind,
+	}); err != nil {
+		klog.Errorf("Create and wait for CRDs ready failed: %v", err)
+	}
+
+	return err
 }
 
 func runTunnelAddon(c workflow.RunData) error {
@@ -287,6 +339,11 @@ func updateKubeConfig(c workflow.RunData) error {
 
 	if err := common.UpdateKubernetesEndpoint(client); err != nil {
 		klog.Errorf("Update kubernetes endpoint, error: %s", err)
+		return err
+	}
+
+	if err := common.UpdateKubernetesEndpointSlice(client); err != nil {
+		klog.Errorf("Update kubernetes endpointSlice, error: %s", err)
 		return err
 	}
 

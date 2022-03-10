@@ -40,7 +40,7 @@ spec:
         - --v=4
         - --file-cache-path=/data/lite-apiserver/cache
         - --timeout=3
-      image: superedge.tencentcloudcr.com/superedge/lite-apiserver:v0.6.0
+      image: superedge.tencentcloudcr.com/superedge/lite-apiserver:v0.7.0
       imagePullPolicy: IfNotPresent
       name: lite-apiserver
       volumeMounts:

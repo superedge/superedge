@@ -77,7 +77,7 @@ spec:
     spec:
       containers:
         - name: site-manager
-          image: superedge.tencentcloudcr.com/superedge/site-manager:v0.6.0
+          image: superedge.tencentcloudcr.com/superedge/site-manager:v0.7.0
           imagePullPolicy: Always
           command:
             - /usr/local/bin/site-manager

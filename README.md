@@ -43,15 +43,15 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 [One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
 
 -   Download the installation package
-> Choose installation package according to your installation node CPU architecture [amd64, arm64]
+> Your can choose CPU arch [amd64, arm64], kubernetes version [1.20.6, 1.18.2];
 
 ```shell
-arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
 ```
 
 -   Install edge Kubernetes master node
 ```shell
-./edgeadm init --kubernetes-version=1.18.2 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true
+./edgeadm init --kubernetes-version=1.20.6 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true
 ```
 
 -   Join edge node

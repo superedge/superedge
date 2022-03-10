@@ -54,8 +54,8 @@ Download the edgeadm static installation package on any Master node, and copy it
 
 >   Pay attention to modify the "arch=amd64" parameter, currently supports [amd64, arm64], download the corresponding architecture of your own machine, and other parameters remain unchanged
 
-```powershell
-arch=amd64 version=v0.6.0 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version && ./edgeadm
+```
+arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://attlee-1251707795.cos.ap-chengdu.myqcloud.com/superedge/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
 ```
 >   Currently supports amd64 and arm64 systems. For other systems, you can compile edgeadm and make corresponding system installation packages. For details, please refer to [One-click installation of edge Kubernetes cluster](https://github.com/superedge/superedge/blob/main/ docs/installation/install_edge_kubernetes_CN.md) 5. Customize the Kubernetes static installation package
 
