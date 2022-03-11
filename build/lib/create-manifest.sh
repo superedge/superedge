@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 REGISTRY_PREFIX=${REGISTRY_PREFIX:-"superedge"}
-PLATFORMS=${PLATFORMS:-"linux_amd64 linux_arm64 linux_arm32"}
+PLATFORMS=${PLATFORMS:-"linux_amd64 linux_arm64 linux_arm"}
 
 if [ -z ${IMAGE} ]; then
   echo "Please provide IMAGE."

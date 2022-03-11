@@ -24,11 +24,11 @@ Options:
   BINS         The binaries to build. Default is all of cmd.
                This option is available when using: make build/build.multiarch
                Example: make build BINS="lite-apiserver edgeadm"
-               Example: make build.multiarch BINS="lite-apiserver edgeadm" PLATFORMS="linux_amd64 linux_arm64" VERSION="v2.0.0"
+               Example: make build.multiarch BINS="lite-apiserver edgeadm" PLATFORMS="linux_amd64 linux_arm64 linux_arm" VERSION="v2.0.0"
   IMAGES       Backend images to make. Default is all of cmd.
                This option is available when using: make image/image.multiarch/push/push.multiarch
                Example: make image IMAGES="application-grid-controller application-grid-wrapper"
-  PLATFORMS    The multiple platforms to build. Default is linux_amd64、linux_arm64 and linux_arm32
+  PLATFORMS    The multiple platforms to build. Default is linux_amd64、linux_arm64 and linux_arm
                This option is available when using: make image.multiarch/manifest.multiarch
                Example: make image.multiarch IMAGES="application-grid-controller application-grid-wrapper" PLATFORMS="linux_amd64 linux_arm64" VERSION="v2.0.0"
                Example: make manifest.multiarch IMAGES="application-grid-wrapper application-grid-controller" PLATFORMS="linux_amd64 linux_arm64" REGISTRY_PREFIX="superedge" VERSION="v2.0.0"
