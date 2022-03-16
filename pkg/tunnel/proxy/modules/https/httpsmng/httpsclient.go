@@ -20,14 +20,15 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"io"
+	"net"
+	"net/http"
+
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
 	"k8s.io/klog/v2"
-	"net"
-	"net/http"
 )
 
 func Request(msg *proto.StreamMsg) {
@@ -101,7 +102,7 @@ func getHttpConn(msg *proto.StreamMsg) (net.Conn, error) {
 		return nil, err
 	}
 	request.Header = requestMsg.Header
-	conn, err := tls.Dial("tcp", request.Host, &tls.Config{
+	conn, err := tls.Dial(util.TCP, request.Host, &tls.Config{
 		Certificates:       []tls.Certificate{cert},
 		InsecureSkipVerify: true,
 	})

@@ -28,7 +28,7 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 		chConn.Send2Conn(msg)
 		return nil
 	}
-	conn, err := net.Dial("tcp", msg.Addr)
+	conn, err := net.Dial(util.TCP, msg.Addr)
 	if err != nil {
 		klog.Errorf("The Edge TCP client failed to establish a TCP connection with the Edge Server, error: %v", err)
 		return err
