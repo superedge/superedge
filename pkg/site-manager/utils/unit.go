@@ -3,12 +3,15 @@ package utils
 import (
 	"context"
 	"fmt"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
-	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
+	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 )
 
 //  GetUnitsByNode
@@ -45,4 +48,48 @@ func AddNodeUitReadyRate(nodeUnit *sitev1.NodeUnit) string {
 func GetNodeUitReadyRate(nodeUnit *sitev1.NodeUnit) string {
 	unitStatus := nodeUnit.Status
 	return fmt.Sprintf("%d/%d", len(unitStatus.ReadyNodes), len(unitStatus.ReadyNodes)+len(unitStatus.NotReadyNodes))
+}
+
+func RemoveSetNode(kubeClient clientset.Interface, nodeUnit *sitev1.NodeUnit, nodes []string) error {
+	for _, nodeName := range nodes {
+		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("Get node error: %v", err)
+			continue
+		}
+
+		setNode := nodeUnit.Spec.SetNode
+		if setNode.Labels != nil && node.Labels != nil {
+			for labelKey, _ := range setNode.Labels {
+				if _, ok := node.Labels[labelKey]; ok {
+					delete(node.Labels, labelKey)
+				}
+			}
+		}
+		if setNode.Annotations != nil && node.Annotations != nil {
+			for annotationKey, _ := range setNode.Annotations {
+				if _, ok := node.Annotations[annotationKey]; ok {
+					delete(node.Annotations, annotationKey)
+				}
+			}
+		}
+		if setNode.Taints != nil && node.Spec.Taints != nil {
+			taints := make(map[string]bool, len(setNode.Taints))
+			for _, taint := range setNode.Taints {
+				taints[taint.Key] = true
+			}
+			var taintSlice []corev1.Taint
+			for _, taint := range node.Spec.Taints {
+				if _, ok := taints[taint.Key]; !ok {
+					taintSlice = append(taintSlice, taint)
+				}
+			}
+		}
+
+		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Remove setNode update node: %s, error: %#v", node.Name, err)
+			continue
+		}
+	}
+	return nil
 }

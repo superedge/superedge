@@ -49,13 +49,7 @@ func GetNodesByUnit(kubeclient clientset.Interface, nodeUnit *sitev1.NodeUnit) (
 	for _, nodeName := range nodeNames {
 		node, err := kubeclient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				klog.Warningf("Get node: %s nil", nodeUnit.Name)
-				continue
-			} else {
-				klog.Errorf("Get nodes by node name, error: %v", err)
-				return readyNodes, notReadyNodes, err
-			}
+			klog.Errorf("Get node: %s, error: %s", nodeUnit.Name, err)
 		}
 		nodes = append(nodes, *node)
 	}
@@ -208,15 +202,15 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 }
 
 func SetNodeToNodes(kubeClient clientset.Interface, setNode sitev1.SetNode, nodeNames []string) {
+	klog.V(4).Infof("SetNode to node is: %s", util.ToJson(setNode))
 	for _, nodeName := range nodeNames {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				klog.Warningf("Get node: %s nil", node.Name)
-				continue
-			}
+			klog.Errorf("SetNode to node get node: %s error: %v", node.Name, err)
+			continue
 		}
 
+		// set labels
 		if setNode.Labels != nil {
 			if node.Labels == nil {
 				node.Labels = make(map[string]string)
@@ -227,6 +221,9 @@ func SetNodeToNodes(kubeClient clientset.Interface, setNode sitev1.SetNode, node
 				}
 			}
 		}
+		klog.V(4).Infof("SetNode to node labels: %s", util.ToJson(node.Labels))
+
+		// setNode annotations
 		if setNode.Annotations != nil {
 			if node.Annotations == nil {
 				node.Annotations = make(map[string]string)
@@ -237,14 +234,17 @@ func SetNodeToNodes(kubeClient clientset.Interface, setNode sitev1.SetNode, node
 				}
 			}
 		}
+
+		// setNode taints
 		if setNode.Taints != nil {
 			if node.Spec.Taints == nil {
 				node.Spec.Taints = []corev1.Taint{}
 			}
 			node.Spec.Taints = append(node.Spec.Taints, setNode.Taints...)
 		}
+
 		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
-			klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
+			klog.Errorf("SetNode to node update Node: %s, error: %#v", node.Name, err)
 			continue
 		}
 	}
@@ -285,13 +285,13 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, setNode sitev1.SetNo
 }
 
 func SetUpdatedValue(oldValues map[string]string, curValues map[string]string, modifyValues *map[string]string) {
-
 	// delete old values
 	for k, _ := range oldValues {
 		if _, found := (*modifyValues)[k]; found {
 			delete((*modifyValues), k)
 		}
 	}
+
 	// set new values
 	for k, v := range curValues {
 		(*modifyValues)[k] = v
@@ -302,25 +302,19 @@ func UpdtateNodeFromSetNode(kubeClient clientset.Interface, oldSetNode sitev1.Se
 	for _, nodeName := range nodeNames {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				klog.Warningf("Get node: %s nil", node.Name)
-				continue
-			}
+			klog.Errorf("Get node: %s error: %s", node.Name, err)
+			continue
 		}
 
 		if node.Labels == nil {
 			node.Labels = make(map[string]string)
-			node.Labels = curSetNode.Labels
-		} else {
-			SetUpdatedValue(oldSetNode.Labels, curSetNode.Labels, &node.Labels)
 		}
+		SetUpdatedValue(oldSetNode.Labels, curSetNode.Labels, &node.Labels)
 
 		if node.Annotations == nil {
 			node.Annotations = make(map[string]string)
-			node.Annotations = curSetNode.Annotations
-		} else {
-			SetUpdatedValue(oldSetNode.Annotations, curSetNode.Annotations, &node.Annotations)
 		}
+		SetUpdatedValue(oldSetNode.Annotations, curSetNode.Annotations, &node.Annotations)
 
 		if node.Spec.Taints == nil {
 			node.Spec.Taints = []corev1.Taint{}
@@ -385,4 +379,20 @@ func deleteTaintItems(currentTaintItems, deleteTaintItems []corev1.Taint) []core
 		}
 	}
 	return result
+}
+
+func NeedUpdateNode(nodeNamesOld, nodeNamesCur []string) (removeNodes []string, updateNodes []string) {
+	curNodesMap := make(map[string]bool, len(nodeNamesCur))
+	for _, nodeName := range nodeNamesCur {
+		curNodesMap[nodeName] = true
+	}
+
+	for _, nodeName := range nodeNamesOld {
+		if ok := curNodesMap[nodeName]; ok {
+			updateNodes = append(updateNodes, nodeName)
+		} else {
+			removeNodes = append(removeNodes, nodeName)
+		}
+	}
+	return
 }

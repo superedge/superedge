@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +26,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
+	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
 	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
@@ -53,7 +54,8 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 
 	// 2.node match nodeunit
 	nodeLabels := node.Labels
-	var needUpdateNodeUnit []string
+	var setNode sitev1.SetNode
+	setNodeLables := make(map[string]string)
 	for _, nodeunit := range allNodeUnit.Items {
 		var matchName bool = false
 		// Selector match
@@ -78,6 +80,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 		for _, nodeName := range nodeunit.Spec.Nodes {
 			if nodeName == node.Name {
 				matchName = true
+				break
 			}
 		}
 
@@ -95,8 +98,14 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 				klog.Errorf("Update nodeUnit: %s error: %#v", nodeunit.Name, err)
 				return
 			}
-			needUpdateNodeUnit = append(needUpdateNodeUnit, nodeunit.Name)
+			if nodeunit.Spec.SetNode.Labels != nil {
+				for key, value := range nodeunit.Spec.SetNode.Labels {
+					setNodeLables[key] = value
+				}
+				setNode.Labels[nodeunit.Name] = constant.NodeUnitSuperedge
+			}
 		}
+		setNode.Labels = setNodeLables
 	}
 
 	allNodeGroup, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
@@ -122,11 +131,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 
 	}
 
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, []string{node.Name}, needUpdateNodeUnit); err != nil {
-		klog.Errorf("Set node: %s annotations error: %#v", node.Name, err)
-		return
-	}
-
+	utils.SetNodeToNodes(siteManager.kubeClient, setNode, []string{node.Name})
 	klog.V(1).Infof("Add node: %s to all match node-unit success.", node.Name)
 }
 
@@ -170,6 +175,7 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 			klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
 			return
 		}
+
 		klog.V(6).Infof("Updated nodeUnit: %s success", nodeUnit.Name)
 	}
 	/*
@@ -205,7 +211,6 @@ func (siteManager *SitesManagerDaemonController) deleteNode(obj interface{}) {
 		unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, node.Name)
 		unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, node.Name)
 		unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
-
 		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), &nodeUnit, metav1.UpdateOptions{})
 		if err != nil && !errors.IsConflict(err) {
 			klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)

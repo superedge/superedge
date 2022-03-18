@@ -135,15 +135,15 @@ func (siteManager *SitesManagerDaemonController) deleteNodeGroup(obj interface{}
 
 	// check all nodes, if which have the label with nodegroup name then remove
 	for _, nu := range nodeGroup.Status.NodeUnits {
-
-		obj, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), nu, metav1.GetOptions{})
+		nodeUnit, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), nu, metav1.GetOptions{})
 		if err != nil {
 			klog.Error("List nodeunit fail ", err)
 		}
-		if obj.Spec.SetNode.Labels != nil {
-			delete(obj.Spec.SetNode.Labels, nodeGroup.Name)
+		if nodeUnit.Spec.SetNode.Labels != nil {
+			delete(nodeUnit.Spec.SetNode.Labels, nodeGroup.Name)
 		}
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), obj, metav1.UpdateOptions{})
+
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), nodeUnit, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error("Update nodeunit fail ", err)
 		}
