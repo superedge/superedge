@@ -113,7 +113,18 @@ func (siteManager *SitesManagerDaemonController) updateNodeGroup(oldObj, newObj 
 		return
 	}
 
-	// todo: delete nodeGroup from oldNodeUnit And Add nodegroup annotations to curNodeUnit
+	// reomve old nodegroup label
+	removeUnit := []string{}
+	unitMap := make(map[string]bool)
+	for _, unit := range units {
+		unitMap[unit] = true
+	}
+	for _, unit := range oldNodeGroup.Status.NodeUnits {
+		if !unitMap[unit] {
+			removeUnit = append(removeUnit, unit)
+		}
+	}
+	utils.RemoveUnitSetNode(siteManager.crdClient, removeUnit, []string{curNodeGroup.Name})
 
 	klog.V(4).Infof("Updated nodeGroup: %s success", curNodeGroup.Name)
 }

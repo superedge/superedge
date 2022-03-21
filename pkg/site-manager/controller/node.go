@@ -102,7 +102,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 				for key, value := range nodeunit.Spec.SetNode.Labels {
 					setNodeLables[key] = value
 				}
-				setNode.Labels[nodeunit.Name] = constant.NodeUnitSuperedge
+				setNodeLables[nodeunit.Name] = constant.NodeUnitSuperedge
 			}
 		}
 		setNode.Labels = setNodeLables
