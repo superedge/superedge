@@ -50,6 +50,7 @@ func GetNodesByUnit(kubeclient clientset.Interface, nodeUnit *sitev1.NodeUnit) (
 		node, err := kubeclient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("Get node: %s, error: %s", nodeUnit.Name, err)
+			continue
 		}
 		nodes = append(nodes, *node)
 	}

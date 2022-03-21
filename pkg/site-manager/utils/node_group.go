@@ -226,6 +226,7 @@ func GetUnitsByNodeGroup(kubeClient clientset.Interface, siteClient *siteClients
 		unit, err := siteClient.SiteV1alpha1().NodeUnits().Get(context.TODO(), unitName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("Get unit by nodeGroup, error: %v", err)
+			continue
 		}
 		nodeUnits = append(nodeUnits, unit.Name)
 	}
@@ -255,13 +256,8 @@ func GetUnitsByNodeGroup(kubeClient clientset.Interface, siteClient *siteClients
 func GetNodeGroupsByUnit(siteClient *siteClientset.Clientset, unitName string) (nodeGroups []*v1alpha1.NodeGroup, err error) {
 	allNodeGroups, err := siteClient.SiteV1alpha1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			klog.Warningf("Unit:%s does not belong to any nodeGroup", unitName)
-			return
-		} else {
-			klog.Errorf("Get nodeGroup by unit, error: %v", err)
-			return nil, err
-		}
+		klog.Errorf("Get nodeGroup by unit, error: %v", err)
+		return nil, err
 	}
 
 	for _, nodeGroup := range allNodeGroups.Items {
