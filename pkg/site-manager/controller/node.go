@@ -47,7 +47,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 
 	// 1. get all nodeunit
 	allNodeUnit, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		klog.Errorf("List nodeUnit error: %#v", err)
 		return
 	}
@@ -67,7 +67,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 				if !ok || labelsValue != value {
 					break
 				}
-				if ok || labelsValue == value {
+				if ok && labelsValue == value {
 					matchNum++
 				}
 			}
@@ -109,7 +109,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 	}
 
 	allNodeGroup, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		klog.Errorf("List nodeGroup error: %#v", err)
 		return
 	}
@@ -140,9 +140,11 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
 		return
 	}
-	if utilkube.IsReadyNode(oldNode) == utilkube.IsReadyNode(curNode) {
-		return
-	}
+	klog.V(4).Infof("Get oldNode: %s", util.ToJson(oldNode))
+	klog.V(4).Infof("Get curNode: %s", util.ToJson(curNode))
+	//if utilkube.IsReadyNode(oldNode) == utilkube.IsReadyNode(curNode) {
+	//	return
+	//}
 
 	// set node role
 	if err := utils.SetNodeRole(siteManager.kubeClient, curNode); err != nil {

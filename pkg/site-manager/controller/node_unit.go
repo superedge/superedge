@@ -80,7 +80,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
@@ -102,8 +102,9 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj interface{}) {
 	oldNodeUnit := oldObj.(*sitev1.NodeUnit)
 	curNodeUnit := newObj.(*sitev1.NodeUnit)
+	klog.V(4).Infof("Get oldNodeUnit: %s", util.ToJson(oldNodeUnit))
+	klog.V(4).Infof("Get curNodeUnit: %s", util.ToJson(curNodeUnit))
 
-	klog.V(4).Infof("Get oldNodeUnit: %s, curNodeUnit: %s", util.ToJson(oldNodeUnit), util.ToJson(curNodeUnit))
 	if oldNodeUnit.ResourceVersion == curNodeUnit.ResourceVersion {
 		return
 	}
@@ -148,18 +149,21 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		klog.Errorf("Get NodeGroups error: %v", err)
 		return
 	}
+	klog.V(4).Infof("NodeUnit: %s contain NodeGroup: %s", curNodeUnit.Name, util.ToJson(nodeGroups))
 
+	// todo: old nodeGroup need remove from nodeUnit
 	setNode := &curNodeUnit.Spec.SetNode
 	if setNode.Labels == nil {
 		setNode.Labels = make(map[string]string)
 	}
 	// Update nodegroups
 	for _, nodeGroup := range nodeGroups {
-		nodeGroupStatus := &nodeGroup.Status
+		nodeGroupTemp := nodeGroup
+		nodeGroupStatus := &nodeGroupTemp.Status
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, curNodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
@@ -173,9 +177,11 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		klog.Errorf("Update nodeUnit: %s error: %#v", curNodeUnit.Name, err)
 		return
 	}
+
+	klog.V(4).Infof("NodeUnit: %s oldSetNode: %v, curSetNode: %v", curNodeUnit.Name, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode)
 	utils.UpdtateNodeFromSetNode(siteManager.kubeClient, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode, updateNodes)
 
-	klog.V(4).Infof("Add nodeUnit success: %s", util.ToJson(curNodeUnit))
+	klog.V(4).Infof("Update nodeUnit success: %s", util.ToJson(curNodeUnit))
 }
 
 func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{}) {
@@ -207,7 +213,7 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 		nodeGroupStatus := &nodeGroup.Status
 		nodeGroupStatus.NodeUnits = util.DeleteSliceElement(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue

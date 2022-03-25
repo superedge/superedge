@@ -185,7 +185,6 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 			klog.Errorf("Add edge Node role label error: %v", err)
 			return err
 		}
-		return nil
 	}
 
 	if _, ok := node.Labels[edgeadmConstant.CloudNodeLabelKey]; ok {
@@ -196,7 +195,6 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 			klog.Errorf("Add Cloud node label error: %v", err)
 			return err
 		}
-		return nil
 	}
 
 	return nil
