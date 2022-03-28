@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +26,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
+	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
+	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
 	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
@@ -38,6 +39,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 		siteManager.deleteNode(node)
 		return
 	}
+	klog.V(4).Infof("Add a new node: %s", node.Name)
 
 	// set node role
 	if err := utils.SetNodeRole(siteManager.kubeClient, node); err != nil {
@@ -46,26 +48,27 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 
 	// 1. get all nodeunit
 	allNodeUnit, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		klog.Errorf("List nodeUnit error: %#v", err)
 		return
 	}
 
 	// 2.node match nodeunit
 	nodeLabels := node.Labels
-	var needUpdateNodeUnit []string
+	var setNode sitev1.SetNode
+	setNodeLables := make(map[string]string)
 	for _, nodeunit := range allNodeUnit.Items {
 		var matchName bool = false
 		// Selector match
 		nodeunitSelector := nodeunit.Spec.Selector
-		if nodeunitSelector != nil && nodeunitSelector.MatchLabels == nil {
+		if nodeunitSelector != nil && nodeunitSelector.MatchLabels != nil {
 			var matchNum int = 0
 			for key, value := range nodeunitSelector.MatchLabels { //todo: MatchExpressions && Annotations
 				labelsValue, ok := nodeLabels[key]
 				if !ok || labelsValue != value {
 					break
 				}
-				if ok || labelsValue == value {
+				if ok && labelsValue == value {
 					matchNum++
 				}
 			}
@@ -78,9 +81,11 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 		for _, nodeName := range nodeunit.Spec.Nodes {
 			if nodeName == node.Name {
 				matchName = true
+				break
 			}
 		}
 
+		klog.V(4).Infof("Node: %s is match: %v NodeUnit: %s", node.Name, matchName, nodeunit.Name)
 		if matchName {
 			unitStatus := &nodeunit.Status
 			if utilkube.IsReadyNode(node) {
@@ -95,12 +100,18 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 				klog.Errorf("Update nodeUnit: %s error: %#v", nodeunit.Name, err)
 				return
 			}
-			needUpdateNodeUnit = append(needUpdateNodeUnit, nodeunit.Name)
+			if nodeunit.Spec.SetNode.Labels != nil {
+				for key, value := range nodeunit.Spec.SetNode.Labels {
+					setNodeLables[key] = value
+				}
+				setNodeLables[nodeunit.Name] = constant.NodeUnitSuperedge
+			}
 		}
+		setNode.Labels = setNodeLables
 	}
 
 	allNodeGroup, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		klog.Errorf("List nodeGroup error: %#v", err)
 		return
 	}
@@ -122,11 +133,7 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 
 	}
 
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, []string{node.Name}, needUpdateNodeUnit); err != nil {
-		klog.Errorf("Set node: %s annotations error: %#v", node.Name, err)
-		return
-	}
-
+	utils.SetNodeToNodes(siteManager.kubeClient, setNode, []string{node.Name})
 	klog.V(1).Infof("Add node: %s to all match node-unit success.", node.Name)
 }
 
@@ -135,42 +142,78 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 	if curNode.ResourceVersion == oldNode.ResourceVersion {
 		return
 	}
-	if utilkube.IsReadyNode(oldNode) == utilkube.IsReadyNode(curNode) {
-		return
-	}
+	klog.V(4).Infof("Get oldNode: %s", util.ToJson(oldNode))
+	klog.V(4).Infof("Get curNode: %s", util.ToJson(curNode))
 
 	// set node role
 	if err := utils.SetNodeRole(siteManager.kubeClient, curNode); err != nil {
 		klog.Errorf("Set node: %s role error: %#v", err)
 	}
 
-	nodeUnits, err := utils.GetUnitsByNode(siteManager.crdClient, curNode)
+	//nodeUnits, err := utils.GetUnitsByNode(siteManager.crdClient, curNode)
+	//if err != nil {
+	//	klog.Errorf("Get nodeUnit by node, error： %#v", err)
+	//	return
+	//}
+
+	// 1. get all nodeunit
+	allNodeUnit, err := siteManager.crdClient.SiteV1alpha1().NodeUnits().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		klog.Errorf("Get nodeUnit by node, error： %#v", err)
+		klog.Errorf("List nodeUnit error: %#v", err)
 		return
 	}
 
-	/*
-	 only node status
-	*/
-	for _, nodeUnit := range nodeUnits {
-		unitStatus := &nodeUnit.Status
-		if utilkube.IsReadyNode(oldNode) {
-			unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, curNode.Name)
-			unitStatus.ReadyNodes = append(unitStatus.ReadyNodes, curNode.Name)
+	// 2.node match nodeunit
+	nodeLabels := curNode.Labels
+	for _, nodeunit := range allNodeUnit.Items {
+		var matchName bool = false
+		// Selector match
+		nodeunitSelector := nodeunit.Spec.Selector
+		if nodeunitSelector != nil && nodeunitSelector.MatchLabels != nil {
+			var matchNum int = 0
+			for key, value := range nodeunitSelector.MatchLabels { //todo: MatchExpressions && Annotations
+				labelsValue, ok := nodeLabels[key]
+				if !ok || labelsValue != value {
+					break
+				}
+				if ok && labelsValue == value {
+					matchNum++
+				}
+			}
+			if len(nodeunitSelector.MatchLabels) == matchNum {
+				matchName = true
+			}
 		}
-		if !utilkube.IsReadyNode(oldNode) {
-			unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, curNode.Name)
-			unitStatus.NotReadyNodes = append(unitStatus.NotReadyNodes, curNode.Name)
-		}
-		unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
 
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), &nodeUnit, metav1.UpdateOptions{})
-		if err != nil && !errors.IsConflict(err) {
-			klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
-			return
+		// nodeName match
+		for _, nodeName := range nodeunit.Spec.Nodes {
+			if nodeName == curNode.Name {
+				matchName = true
+				break
+			}
 		}
-		klog.V(6).Infof("Updated nodeUnit: %s success", nodeUnit.Name)
+
+		klog.V(4).Infof("Node: %s is match: %v NodeUnit: %s", curNode.Name, matchName, nodeunit.Name)
+		if matchName {
+			var nodeUnit = nodeunit
+			unitStatus := &nodeUnit.Status
+			if utilkube.IsReadyNode(oldNode) {
+				unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, curNode.Name)
+				unitStatus.ReadyNodes = append(unitStatus.ReadyNodes, curNode.Name)
+			}
+			if !utilkube.IsReadyNode(oldNode) {
+				unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, curNode.Name)
+				unitStatus.NotReadyNodes = append(unitStatus.NotReadyNodes, curNode.Name)
+			}
+			unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
+
+			_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), &nodeUnit, metav1.UpdateOptions{})
+			if err != nil && !errors.IsConflict(err) {
+				klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
+				return
+			}
+			klog.V(4).Infof("Node: %s join nodeUnit: %s success.", curNode, nodeUnit.Name)
+		}
 	}
 	/*
 		todo: if update node annotations, such as nodeunit annotations deleted
@@ -205,7 +248,6 @@ func (siteManager *SitesManagerDaemonController) deleteNode(obj interface{}) {
 		unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, node.Name)
 		unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, node.Name)
 		unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
-
 		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), &nodeUnit, metav1.UpdateOptions{})
 		if err != nil && !errors.IsConflict(err) {
 			klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)

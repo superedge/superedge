@@ -36,7 +36,7 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnit := obj.(*sitev1.NodeUnit)
 	klog.V(4).Infof("Get Add nodeUnit: %s", util.ToJson(nodeUnit))
 	if nodeUnit.DeletionTimestamp != nil {
-		siteManager.deleteNodeUnit(nodeUnit) //todo
+		siteManager.deleteNodeUnit(nodeUnit)
 		return
 	}
 
@@ -55,18 +55,16 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 	nodeUnitStatus.ReadyNodes = readyNodes
 	nodeUnitStatus.ReadyRate = fmt.Sprintf("%d/%d", len(readyNodes), len(readyNodes)+len(notReadyNodes))
 	nodeUnitStatus.NotReadyNodes = notReadyNodes
-	_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
+	nodeUnit, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), nodeUnit, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
 		return
 	}
-
-	nodeNames := append(readyNodes, notReadyNodes...)
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name}); err != nil {
-		klog.Errorf("Add nodes annotations: %s, error: %#v", nodeUnit.Name, err)
-		return
+	// set NodeUnit name to node
+	if nodeUnit.Spec.SetNode.Labels == nil {
+		nodeUnit.Spec.SetNode.Labels = make(map[string]string)
 	}
-
+	nodeUnit.Spec.SetNode.Labels[nodeUnit.Name] = constant.NodeUnitSuperedge
 	/*
 	 nodeGroup action
 	*/
@@ -82,41 +80,34 @@ func (siteManager *SitesManagerDaemonController) addNodeUnit(obj interface{}) {
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
 		}
+		nodeUnit.Spec.SetNode.Labels[nodeGroup.Name] = nodeUnit.Name
 	}
 
-	if nodeUnit.Spec.SetNode.Labels == nil {
-		nodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	nodeUnit, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), nodeUnit, metav1.UpdateOptions{})
+	if err != nil && !errors.IsConflict(err) {
+		klog.Errorf("Update nodeUnit: %s error: %#v", nodeUnit.Name, err)
+		return
 	}
-	if nodeUnit.Name != "" {
-		nodeUnit.Spec.SetNode.Labels[nodeUnit.Name] = constant.NodeUnitSuperedge
-	}
-
-	// todo: set node
+	nodeNames := append(readyNodes, notReadyNodes...)
 	utils.SetNodeToNodes(siteManager.kubeClient, nodeUnit.Spec.SetNode, nodeNames)
 
-	klog.V(4).Infof("Add nodeUnit: %s success.", nodeUnit.Name)
+	klog.V(4).Infof("Add nodeUnit success: %s", util.ToJson(nodeUnit))
 }
 
 func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj interface{}) {
 	oldNodeUnit := oldObj.(*sitev1.NodeUnit)
 	curNodeUnit := newObj.(*sitev1.NodeUnit)
-	klog.V(4).Infof("Get oldNodeUnit: %s, curNodeUnit: %s", util.ToJson(oldNodeUnit), util.ToJson(curNodeUnit))
+	klog.V(4).Infof("Get oldNodeUnit: %s", util.ToJson(oldNodeUnit))
+	klog.V(4).Infof("Get curNodeUnit: %s", util.ToJson(curNodeUnit))
 
 	if oldNodeUnit.ResourceVersion == curNodeUnit.ResourceVersion {
 		return
 	}
-
-	/*
-		oldNodeUnit
-	*/
-	nodeNames := append(oldNodeUnit.Status.ReadyNodes, oldNodeUnit.Status.NotReadyNodes...)
-	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{oldNodeUnit.Name})
-
 	/*
 		curNodeUnit
 	*/
@@ -141,12 +132,15 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		return
 	}
 
-	nodeNames = append(readyNodes, notReadyNodes...)
-	if err := utils.AddNodesAnnotations(siteManager.kubeClient, nodeNames, []string{curNodeUnit.Name}); err != nil {
-		klog.Errorf("Add nodes annotations: %s, error: %#v", curNodeUnit.Name, err)
+	// new node add or old node remove
+	nodeNamesCur := append(readyNodes, notReadyNodes...)
+	nodeNamesOld := append(oldNodeUnit.Status.ReadyNodes, oldNodeUnit.Status.NotReadyNodes...)
+	removeNodes, updateNodes := utils.NeedUpdateNode(nodeNamesOld, nodeNamesCur)
+	klog.V(4).Infof("NodeUnit: %s need remove nodes: %s setNode: %s", oldNodeUnit.Name, util.ToJson(removeNodes), util.ToJson(oldNodeUnit.Spec.SetNode))
+	if err := utils.RemoveSetNode(siteManager.kubeClient, oldNodeUnit, removeNodes); err != nil {
+		klog.Errorf("Remove node NodeUnit setNode error: %v", err)
 		return
 	}
-
 	/*
 	   nodeGroup action
 	*/
@@ -155,28 +149,39 @@ func (siteManager *SitesManagerDaemonController) updateNodeUnit(oldObj, newObj i
 		klog.Errorf("Get NodeGroups error: %v", err)
 		return
 	}
+	klog.V(4).Infof("NodeUnit: %s contain NodeGroup: %s", curNodeUnit.Name, util.ToJson(nodeGroups))
 
+	// todo: old nodeGroup need remove from nodeUnit
+	setNode := &curNodeUnit.Spec.SetNode
+	if setNode.Labels == nil {
+		setNode.Labels = make(map[string]string)
+	}
 	// Update nodegroups
 	for _, nodeGroup := range nodeGroups {
-		nodeGroupStatus := &nodeGroup.Status
+		nodeGroupTemp := nodeGroup
+		nodeGroupStatus := &nodeGroupTemp.Status
 		nodeGroupStatus.NodeUnits = append(nodeGroupStatus.NodeUnits, curNodeUnit.Name)
 		nodeGroupStatus.NodeUnits = util.RemoveDuplicateElement(nodeGroupStatus.NodeUnits)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
 		}
+		setNode.Labels[nodeGroup.Name] = curNodeUnit.Name
 	}
 
-	if curNodeUnit.Spec.SetNode.Labels == nil {
-		curNodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	//todo setNode.Labels need update
+	curNodeUnit, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().Update(context.TODO(), curNodeUnit, metav1.UpdateOptions{})
+	if err != nil && !errors.IsConflict(err) {
+		klog.Errorf("Update nodeUnit: %s error: %#v", curNodeUnit.Name, err)
+		return
 	}
-	if oldNodeUnit.Name != "" {
-		curNodeUnit.Spec.SetNode.Labels[oldNodeUnit.Name] = constant.NodeUnitSuperedge
-	}
-	utils.UpdtateNodeFromSetNode(siteManager.kubeClient, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode, nodeNames)
-	klog.V(4).Infof("Updated nodeUnit: %s success", curNodeUnit.Name)
+
+	klog.V(4).Infof("NodeUnit: %s oldSetNode: %v, curSetNode: %v", curNodeUnit.Name, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode)
+	utils.UpdtateNodeFromSetNode(siteManager.kubeClient, oldNodeUnit.Spec.SetNode, curNodeUnit.Spec.SetNode, updateNodes)
+
+	klog.V(4).Infof("Update nodeUnit success: %s", util.ToJson(curNodeUnit))
 }
 
 func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{}) {
@@ -195,24 +200,6 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 	}
 
 	/*
-	 node action
-	*/
-	// todo: delete set node
-
-	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			klog.Warningf("Get unit: %s node nil", nodeUnit.Name)
-			return
-		} else {
-			klog.Errorf("Get NodeUnit Nodes error: %v", err)
-			return
-		}
-	}
-	nodeNames := append(readyNodes, notReadyNodes...)
-	utils.RemoveNodesAnnotations(siteManager.kubeClient, nodeNames, []string{nodeUnit.Name})
-
-	/*
 	 nodeGroup action
 	*/
 	nodeGroups, err := utils.GetNodeGroupsByUnit(siteManager.crdClient, nodeUnit.Name)
@@ -226,20 +213,26 @@ func (siteManager *SitesManagerDaemonController) deleteNodeUnit(obj interface{})
 		nodeGroupStatus := &nodeGroup.Status
 		nodeGroupStatus.NodeUnits = util.DeleteSliceElement(nodeGroupStatus.NodeUnits, nodeUnit.Name)
 		nodeGroupStatus.UnitNumber = len(nodeGroupStatus.NodeUnits)
-		_, err = siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), nodeGroup, metav1.UpdateOptions{})
+		_, err := siteManager.crdClient.SiteV1alpha1().NodeGroups().UpdateStatus(context.TODO(), &nodeGroup, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Update nodeGroup: %s error: %#v", nodeGroup.Name, err)
 			continue
 		}
+		klog.V(4).Infof("Delete nodeUnit: %s from nodeGroup: %s success", nodeUnit.Name, nodeGroup.Name)
 	}
 
-	if nodeUnit.Spec.SetNode.Labels == nil {
-		nodeUnit.Spec.SetNode.Labels = make(map[string]string)
+	readyNodes, notReadyNodes, err := utils.GetNodesByUnit(siteManager.kubeClient, nodeUnit)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Get unit: %s node nil", nodeUnit.Name)
+			return
+		} else {
+			klog.Errorf("Get NodeUnit Nodes error: %v", err)
+			return
+		}
 	}
-	if nodeUnit.Name != "" {
-		nodeUnit.Spec.SetNode.Labels[nodeUnit.Name] = constant.NodeUnitSuperedge
-	}
-
+	nodeNames := append(readyNodes, notReadyNodes...)
 	utils.DeleteNodesFromSetNode(siteManager.kubeClient, nodeUnit.Spec.SetNode, nodeNames)
+
 	klog.V(4).Infof("Delete NodeUnit: %s succes.", nodeUnit.Name)
 }

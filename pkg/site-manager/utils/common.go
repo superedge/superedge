@@ -23,7 +23,7 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			"kubernetes.io/os": "linux",
 		},
 	}
-	allNnodeUnit := &sitev1.NodeUnit{
+	allNodeUnit := &sitev1.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "site.superedge.io/v1alpha1",
 			Kind:       "NodeUnit",
@@ -36,77 +36,9 @@ func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
 			Selector: allNodeUnitSelector,
 		},
 	}
-	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), allNnodeUnit, metav1.CreateOptions{}); err != nil {
+
+	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), allNodeUnit, metav1.CreateOptions{}); err != nil {
 		klog.Warningf("Create default %s unit error : %#v", AllNodeUnit, err)
-	}
-
-	// Master Node Unit
-	masterUnitSelector := &sitev1.Selector{
-		MatchLabels: map[string]string{
-			KubernetesMasterNodeRoleKey: "",
-		},
-	}
-	masterUnit := &sitev1.NodeUnit{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1alpha1",
-			Kind:       "NodeUnit",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: MasterNodeUnit,
-		},
-		Spec: sitev1.NodeUnitSpec{
-			Type:     sitev1.MasterNodeUnit,
-			Selector: masterUnitSelector,
-		},
-	}
-	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), masterUnit, metav1.CreateOptions{}); err != nil {
-		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
-	}
-
-	// Cloud Node Unit
-	cloudNodeUnitSelector := &sitev1.Selector{
-		MatchLabels: map[string]string{
-			KubernetesCloudNodeRoleKey: "",
-		},
-	}
-	cloudNnodeUnit := &sitev1.NodeUnit{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1alpha1",
-			Kind:       "NodeUnit",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: CloudNodeUnit,
-		},
-		Spec: sitev1.NodeUnitSpec{
-			Type:     sitev1.CloudNodeUnit,
-			Selector: cloudNodeUnitSelector,
-		},
-	}
-	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), cloudNnodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Warningf("Create default %s unit error : %#v", MasterNodeUnit, err)
-	}
-
-	// Edge Node Unit
-	edgedNodeUnitSelector := &sitev1.Selector{
-		MatchLabels: map[string]string{
-			KubernetesEdgeNodeRoleKey: "",
-		},
-	}
-	edgeNnodeUnit := &sitev1.NodeUnit{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1alpha1",
-			Kind:       "NodeUnit",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: EdgeNodeUnit,
-		},
-		Spec: sitev1.NodeUnitSpec{
-			Type:     sitev1.EdgeNodeUnit,
-			Selector: edgedNodeUnitSelector,
-		},
-	}
-	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), edgeNnodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Warningf("Create default %s unit error : %#v", EdgeNodeUnit, err)
 	}
 
 	return nil

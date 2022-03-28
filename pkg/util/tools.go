@@ -161,7 +161,7 @@ func RemoveDuplicateElement(slice []string) []string {
 }
 
 func DeleteSliceElement(slice []string, element string) []string {
-	ret := make([]string, 0, len(slice))
+	var ret []string
 	for _, val := range slice {
 		if val != element {
 			ret = append(ret, val)
