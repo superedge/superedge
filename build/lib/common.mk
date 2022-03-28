@@ -34,7 +34,7 @@ GIT_BRANCH:=$(shell git branch | sed -n -e 's/^\* \(.*\)/\1/p' | tr -d "[:blank:
 
 
 # The OS must be linux when building docker images
-PLATFORMS ?= linux_amd64 linux_arm64
+PLATFORMS ?= linux_amd64 linux_arm64 linux_arm
 # The OS can be linux/windows/darwin when building binaries
 # PLATFORMS ?= darwin_amd64 windows_amd64 linux_amd64 linux_arm64
 
