@@ -57,25 +57,20 @@ func (w *multiWrite) Read(p []byte) (n int, err error) {
 	n, err = w.read.Read(p)
 	if err != nil {
 		if err != io.EOF {
-			klog.Errorf("multiWrite failed to read source data, error: %v", err)
-		} else {
 			w.Close()
+			return n, err
 		}
-		return n, err
 	}
-
 	if n > 0 {
 		for i := 0; i < len(w.writes); i++ {
 			_, pipeErr := w.writes[i].Write(p[:n])
 			if pipeErr != nil {
 				klog.Errorf("multiWrite failed to write data to the pipe, error: %v", err)
-
 				//In order not to affect the reading of the source ReaderCloser, close the writecloser object that failed to write
 				w.writes[i].Close()
 			}
 		}
 	}
-
 	return
 }
 
