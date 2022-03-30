@@ -90,8 +90,10 @@ func (siteManager *SitesManagerDaemonController) addNode(obj interface{}) {
 			unitStatus := &nodeunit.Status
 			if utilkube.IsReadyNode(node) {
 				unitStatus.ReadyNodes = append(unitStatus.ReadyNodes, node.Name)
+				unitStatus.ReadyNodes = util.RemoveDuplicateElement(unitStatus.ReadyNodes)
 			} else {
 				unitStatus.NotReadyNodes = append(unitStatus.NotReadyNodes, node.Name)
+				unitStatus.NotReadyNodes = util.RemoveDuplicateElement(unitStatus.NotReadyNodes)
 			}
 			unitStatus.ReadyRate = utils.AddNodeUitReadyRate(&nodeunit)
 
@@ -200,10 +202,12 @@ func (siteManager *SitesManagerDaemonController) updateNode(oldObj, newObj inter
 			if utilkube.IsReadyNode(oldNode) {
 				unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, curNode.Name)
 				unitStatus.ReadyNodes = append(unitStatus.ReadyNodes, curNode.Name)
+				unitStatus.ReadyNodes = util.RemoveDuplicateElement(unitStatus.ReadyNodes)
 			}
 			if !utilkube.IsReadyNode(oldNode) {
 				unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, curNode.Name)
 				unitStatus.NotReadyNodes = append(unitStatus.NotReadyNodes, curNode.Name)
+				unitStatus.ReadyNodes = util.RemoveDuplicateElement(unitStatus.NotReadyNodes)
 			}
 			unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
 
@@ -246,7 +250,9 @@ func (siteManager *SitesManagerDaemonController) deleteNode(obj interface{}) {
 	for _, nodeUnit := range nodeUnits {
 		unitStatus := &nodeUnit.Status
 		unitStatus.ReadyNodes = util.DeleteSliceElement(unitStatus.ReadyNodes, node.Name)
+		unitStatus.ReadyNodes = util.RemoveDuplicateElement(unitStatus.ReadyNodes)
 		unitStatus.NotReadyNodes = util.DeleteSliceElement(unitStatus.NotReadyNodes, node.Name)
+		unitStatus.NotReadyNodes = util.RemoveDuplicateElement(unitStatus.NotReadyNodes)
 		unitStatus.ReadyRate = utils.GetNodeUitReadyRate(&nodeUnit)
 		_, err = siteManager.crdClient.SiteV1alpha1().NodeUnits().UpdateStatus(context.TODO(), &nodeUnit, metav1.UpdateOptions{})
 		if err != nil && !errors.IsConflict(err) {
