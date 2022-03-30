@@ -19,7 +19,7 @@ package kubeclient
 import (
 	"context"
 
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	apps "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -86,8 +86,8 @@ func DeletePodSecurityPolicy(client clientset.Interface, podSecurityPolicy *v1be
 	return client.PolicyV1beta1().PodSecurityPolicies().Delete(context.TODO(), podSecurityPolicy.Name, metav1.DeleteOptions{})
 }
 
-func DeleteMutatingMutatingWebhookConfigurations(client clientset.Interface, obj *admissionv1beta1.MutatingWebhookConfiguration) error {
-	return client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.TODO(), obj.Name, metav1.DeleteOptions{})
+func DeleteMutatingMutatingWebhookConfigurations(client clientset.Interface, obj *admissionv1.MutatingWebhookConfiguration) error {
+	return client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), obj.Name, metav1.DeleteOptions{})
 }
 
 func DeleteJob(client clientset.Interface, job *batchv1.Job) error {

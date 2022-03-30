@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	apps "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
@@ -542,13 +542,13 @@ func GetClusterRoleBinding(client clientset.Interface, name string) (*rbac.Clust
 }
 
 // CreateOrUpdateValidatingWebhookConfiguration creates a ValidatingWebhookConfigurations if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
-func CreateOrUpdateValidatingWebhookConfiguration(client clientset.Interface, obj *admissionv1beta1.ValidatingWebhookConfiguration) error {
-	if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
+func CreateOrUpdateValidatingWebhookConfiguration(client clientset.Interface, obj *admissionv1.ValidatingWebhookConfiguration) error {
+	if _, err := client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create ValidatingWebhookConfiguration")
 		}
 
-		if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
+		if _, err := client.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
 			return errors.Wrap(err, "unable to update ValidatingWebhookConfiguration")
 		}
 	}
@@ -557,14 +557,14 @@ func CreateOrUpdateValidatingWebhookConfiguration(client clientset.Interface, ob
 }
 
 // CreateOrUpdateMutatingWebhookConfiguration creates a MutatingWebhookConfigurations if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
-func CreateOrUpdateMutatingWebhookConfiguration(client clientset.Interface, obj *admissionv1beta1.MutatingWebhookConfiguration) error {
-	client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.TODO(), obj.Name, metav1.DeleteOptions{})
-	if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
+func CreateOrUpdateMutatingWebhookConfiguration(client clientset.Interface, obj *admissionv1.MutatingWebhookConfiguration) error {
+	client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), obj.Name, metav1.DeleteOptions{})
+	if _, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create MutatingWebhookConfiguration")
 		}
 
-		if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
+		if _, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
 			return errors.Wrap(err, "unable to update MutatingWebhookConfiguration")
 		}
 	}

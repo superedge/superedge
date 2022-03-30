@@ -19,7 +19,7 @@ package manifests
 const AppTopolvmWebhook = "topolvm-webhook.yaml"
 
 const AppTopolvmWebhookYaml = `
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: topolvm-hook

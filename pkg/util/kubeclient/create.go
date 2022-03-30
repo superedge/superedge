@@ -25,7 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
@@ -295,7 +295,7 @@ func createOrUpdateClusterRoleBinding(client kubernetes.Interface, data []byte) 
 }
 
 func createOrUpdateValidatingWebhookConfiguration(client kubernetes.Interface, data []byte) error {
-	obj := new(admissionv1beta1.ValidatingWebhookConfiguration)
+	obj := new(admissionv1.ValidatingWebhookConfiguration)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
@@ -307,7 +307,7 @@ func createOrUpdateValidatingWebhookConfiguration(client kubernetes.Interface, d
 }
 
 func createOrUpdateMutatingWebhookConfiguration(client kubernetes.Interface, data []byte) error {
-	obj := new(admissionv1beta1.MutatingWebhookConfiguration)
+	obj := new(admissionv1.MutatingWebhookConfiguration)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
