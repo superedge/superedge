@@ -218,6 +218,4 @@ spec:
     - name: metrics
       port: 9153
       protocol: TCP
-    type: ClusterIP
-    clusterIP: 10.96.0.12
 `

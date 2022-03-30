@@ -99,15 +99,15 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 				},
 				Run: runServiceGroupAddon,
 			},
-			//{ //todo: Waiting servicegroup crd upgrade
-			//	Name:         "edge-coredns",
-			//	Short:        "Install the edge-coredns addon to edge Kubernetes cluster",
-			//	InheritFlags: getAddonPhaseFlags("edge-coredns"),
-			//	RunIf: func(data workflow.RunData) (bool, error) {
-			//		return config.IsEnableEdge, nil
-			//	},
-			//	Run: runEdgeCorednsAddon,
-			//},
+			{
+				Name:         "edge-coredns",
+				Short:        "Install the edge-coredns addon to edge Kubernetes cluster",
+				InheritFlags: getAddonPhaseFlags("edge-coredns"),
+				RunIf: func(data workflow.RunData) (bool, error) {
+					return config.IsEnableEdge, nil
+				},
+				Run: runEdgeCorednsAddon,
+			},
 			{
 				Name:         "join-prepare",
 				Hidden:       true,
@@ -183,19 +183,20 @@ func runInitCluster(c workflow.RunData) error {
 	restClient, err := clientcmd.BuildConfigFromFlags("", data.KubeConfigPath())
 	extensionsClinet := apiextensions.NewForConfigOrDie(restClient)
 	crdP := prepare.NewCRDPreparator(extensionsClinet)
-	if err := crdP.Prepare(ctx.Done(), schema.GroupVersionKind{
-		Group:   superedge.GroupName,
-		Version: superedge.Version,
-		Kind:    deploymentutil.ControllerKind.Kind,
-	}, schema.GroupVersionKind{
-		Group:   superedge.GroupName,
-		Version: superedge.Version,
-		Kind:    statefulsetutil.ControllerKind.Kind,
-	}, schema.GroupVersionKind{
-		Group:   superedge.GroupName,
-		Version: superedge.Version,
-		Kind:    serviceutil.ControllerKind.Kind,
-	}); err != nil {
+	if err := crdP.Prepare(ctx.Done(),
+		schema.GroupVersionKind{
+			Group:   superedge.GroupName,
+			Version: superedge.Version,
+			Kind:    deploymentutil.ControllerKind.Kind,
+		}, schema.GroupVersionKind{
+			Group:   superedge.GroupName,
+			Version: superedge.Version,
+			Kind:    statefulsetutil.ControllerKind.Kind,
+		}, schema.GroupVersionKind{
+			Group:   superedge.GroupName,
+			Version: superedge.Version,
+			Kind:    serviceutil.ControllerKind.Kind,
+		}); err != nil {
 		klog.Errorf("Create and wait for CRDs ready failed: %v", err)
 	}
 

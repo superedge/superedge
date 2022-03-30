@@ -19,15 +19,20 @@ package common
 import (
 	"context"
 	"errors"
+	"path/filepath"
+	"time"
+
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
+
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"path/filepath"
 )
 
 func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string) error {
@@ -121,24 +126,22 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	}
 	tunnelCoreDNSIP := tunnelCoreDNSService.Spec.ClusterIP
 
-	//todo: Preset clusterip of edge-coredns
-	// Get EdgeCoreDNS Service ClusterIP
-	//var edgeCoreDNSService *v1.Service
-	//err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-	//	edgeCoreDNSService, err = clientSet.CoreV1().Services(
-	//		constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceEdgeCoreDNS+"-svc", metav1.GetOptions{})
-	//	if err != nil {
-	//		klog.V(2).Infof("Waiting get edge-coredns service clusterIP, system message: %v", err)
-	//		return false, nil
-	//	}
-	//	return true, nil
-	//})
-	//
-	//if edgeCoreDNSService.Spec.ClusterIP == "" {
-	//	return errors.New("Get edge-coredns service clusterIP nil\n")
-	//}
-	//edgeCoreDNSIP := edgeCoreDNSService.Spec.ClusterIP
-	edgeCoreDNSIP := "10.96.0.12" //todo: Preset clusterip of edge-coredns
+	//Get EdgeCoreDNS Service ClusterIP
+	var edgeCoreDNSService *v1.Service
+	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+		edgeCoreDNSService, err = clientSet.CoreV1().Services(
+			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceEdgeCoreDNS+"-svc", metav1.GetOptions{})
+		if err != nil {
+			klog.V(2).Infof("Waiting get edge-coredns service clusterIP, system message: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
+
+	if edgeCoreDNSService.Spec.ClusterIP == "" {
+		return errors.New("Get edge-coredns service clusterIP nil\n")
+	}
+	edgeCoreDNSIP := edgeCoreDNSService.Spec.ClusterIP
 
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
