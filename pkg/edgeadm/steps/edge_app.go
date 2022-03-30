@@ -99,15 +99,15 @@ func NewEdgeAppsPhase(config *cmd.EdgeadmConfig) workflow.Phase {
 				},
 				Run: runServiceGroupAddon,
 			},
-			{
-				Name:         "edge-coredns",
-				Short:        "Install the edge-coredns addon to edge Kubernetes cluster",
-				InheritFlags: getAddonPhaseFlags("edge-coredns"),
-				RunIf: func(data workflow.RunData) (bool, error) {
-					return config.IsEnableEdge, nil
-				},
-				Run: runEdgeCorednsAddon,
-			},
+			//{ //todo: Waiting servicegroup crd upgrade
+			//	Name:         "edge-coredns",
+			//	Short:        "Install the edge-coredns addon to edge Kubernetes cluster",
+			//	InheritFlags: getAddonPhaseFlags("edge-coredns"),
+			//	RunIf: func(data workflow.RunData) (bool, error) {
+			//		return config.IsEnableEdge, nil
+			//	},
+			//	Run: runEdgeCorednsAddon,
+			//},
 			{
 				Name:         "join-prepare",
 				Hidden:       true,
