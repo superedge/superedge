@@ -126,7 +126,7 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	}
 	tunnelCoreDNSIP := tunnelCoreDNSService.Spec.ClusterIP
 
-	// Get EdgeCoreDNS Service ClusterIP
+	//Get EdgeCoreDNS Service ClusterIP
 	var edgeCoreDNSService *v1.Service
 	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		edgeCoreDNSService, err = clientSet.CoreV1().Services(

@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -214,7 +214,7 @@ func deletePodSecurityPolicy(client kubernetes.Interface, data []byte) error {
 }
 
 func deleteMutatingMutatingWebhookConfigurations(client kubernetes.Interface, data []byte) error {
-	obj := new(admissionv1beta1.MutatingWebhookConfiguration)
+	obj := new(admissionv1.MutatingWebhookConfiguration)
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}

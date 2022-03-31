@@ -19,7 +19,7 @@ package manifests
 const APP_EDGE_HEALTH_WEBHOOK = "edge-health-webhook.yaml"
 
 const EdgeHealthWebhookConfigYaml = `
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: edge-health-admission
