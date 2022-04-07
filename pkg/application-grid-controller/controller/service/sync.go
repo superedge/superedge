@@ -113,8 +113,19 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 		go func(svc *corev1.Service) {
 			defer wg.Done()
 			klog.V(4).Infof("Updating service %s/%s by syncService", svc.Namespace, svc.Name)
+			svcCurrent, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("Get service: %s, error: %v", svc.Name, err)
+				return
+			}
+			if svc.ResourceVersion == "" {
+				svc.ResourceVersion = svcCurrent.ResourceVersion
+			}
+			if svc.Spec.ClusterIP == "" {
+				svc.Spec.ClusterIP = svcCurrent.Spec.ClusterIP
+			}
 			sgCopy := sg.DeepCopy()
-			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
+			_, err = sgc.kubeClient.CoreV1().Services(svc.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
 				sgCopy.Status.Conditions = []metav1.Condition{{
@@ -129,7 +140,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
-					klog.Errorf("Updating update services %d when error occured %v", svc.Name, err)
+					klog.Errorf("Updating update services %s when error occured %v", svc.Name, err)
 				}
 			} else {
 				sgCopy.Status = svc.Status
