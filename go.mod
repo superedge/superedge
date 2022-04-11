@@ -33,15 +33,15 @@ require (
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.22.2
-	k8s.io/apiextensions-apiserver v0.22.2
-	k8s.io/apimachinery v0.22.2
-	k8s.io/apiserver v0.20.5
-	k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go v0.22.2
-	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.20.5
-	k8s.io/component-base v0.22.2
+	k8s.io/api v0.22.3
+	k8s.io/apiextensions-apiserver v0.22.3
+	k8s.io/apimachinery v0.22.3
+	k8s.io/apiserver v0.22.3
+	k8s.io/cli-runtime v0.22.3
+	k8s.io/client-go v0.22.3
+	k8s.io/cluster-bootstrap v0.22.3
+	k8s.io/code-generator v0.22.3
+	k8s.io/component-base v0.22.3
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
