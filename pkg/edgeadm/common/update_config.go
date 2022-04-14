@@ -34,7 +34,7 @@ import (
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
-func UpdateKubeConfig(client *kubernetes.Clientset) error {
+func UpdateKubeConfig(client kubernetes.Interface) error {
 	if err := UpdateKubeProxyKubeconfig(client); err != nil {
 		klog.Errorf("Update kube-proxy kubeconfig, error: %s", err)
 		return err
@@ -275,7 +275,7 @@ func RecoverKubeProxy(clientSet kubernetes.Interface) error {
 	}
 	return nil
 }
-func RecoverKubeConfig(client *kubernetes.Clientset) error {
+func RecoverKubeConfig(client kubernetes.Interface) error {
 	if err := RecoverKubeProxyKubeconfig(client); err != nil {
 		klog.Errorf("Recover kube-proxy kubeconfig, error: %s", err)
 		return err

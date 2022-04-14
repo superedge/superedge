@@ -100,7 +100,7 @@ func DeployEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 	return nil
 }
 
-func DeployEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
+func DeployEdgeAPPS(client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, masterPublicAddr string, certSANs []string, configPath string) error {
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func DeleteEdgex(client *kubernetes.Clientset, manifestsDir string, modules []bo
 	return nil
 }
 
-func DeleteEdgeAPPS(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string, configPath string) error {
+func DeleteEdgeAPPS(client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string, masterPublicAddr string, certSANs []string, configPath string) error {
 	if ok := CheckIfEdgeAppDeletable(client); !ok {
 		klog.Info("Can not Delete Edge Apps, cluster has remaining edge nodes!")
 		return nil

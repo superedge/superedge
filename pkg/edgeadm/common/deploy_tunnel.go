@@ -21,7 +21,7 @@ import (
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
-func DeployTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
+func DeployTunnelAddon(client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
 		"Namespace":              constant.NamespaceEdgeSystem,
@@ -120,7 +120,7 @@ func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
 	return nil
 }
 
-func DeleteTunnelAddon(client *kubernetes.Clientset, manifestsDir, caCertFile, caKeyFile string, tunnelCloudPublicAddr string, certSANs []string) error {
+func DeleteTunnelAddon(client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile string, tunnelCloudPublicAddr string, certSANs []string) error {
 	// GetTunnelCloudPort
 	tunnelCloudNodePort, err := GetTunnelCloudPort(client)
 	if err != nil {
