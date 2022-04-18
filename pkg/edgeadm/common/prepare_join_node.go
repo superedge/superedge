@@ -24,6 +24,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -81,9 +82,6 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 		context.TODO(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-
-	clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(
-		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
 
 	kubeService, err := clientSet.CoreV1().Services(
 		constant.NamespaceDefault).Get(context.TODO(), constant.ServiceKubernetes, metav1.GetOptions{})
@@ -159,8 +157,21 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 		},
 	}
 
+	if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
+				Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
+				klog.Errorf("Create configmap: %s, error: %v", constant.EdgeCertCM, err)
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
 	if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-		Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
+		Update(context.TODO(), configMap, metav1.UpdateOptions{}); err != nil {
+		klog.Errorf("Update configmap: %s, error: %v", constant.EdgeCertCM, err)
 		return err
 	}
 

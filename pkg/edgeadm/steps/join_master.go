@@ -56,7 +56,8 @@ func joinPreparePhase(c workflow.RunData) error {
 		return errors.New("installLiteAPIServer phase invoked with an invalid data struct")
 	}
 
-	if err := configControlPlaneInfo(data.Cfg()); err != nil {
+	masterIp, err := configControlPlaneInfo(data.Cfg())
+	if err != nil {
 		klog.Errorf("Config ControlPlaneInfo, error: %v")
 		return err
 	}
@@ -88,7 +89,7 @@ func joinPreparePhase(c workflow.RunData) error {
 
 	// prepare join edge node
 	if data.Cfg().ControlPlane == nil {
-		if err := prepareJoinEdgeNode(kubeClient, data); err != nil {
+		if err := prepareJoinEdgeNode(kubeClient, data, masterIp); err != nil {
 			klog.Errorf("Prepare Join edge node, error: %v", err)
 			return nil
 		}
@@ -97,11 +98,11 @@ func joinPreparePhase(c workflow.RunData) error {
 	return nil
 }
 
-func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error {
+func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) (string, error) {
 	endpoint := joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
 	host, port, err := util.SplitHostPortIgnoreMissingPort(endpoint)
 	if err != nil {
-		return errors.Errorf("Invalid APIServerEndpoint: %s", endpoint)
+		return "", errors.Errorf("Invalid APIServerEndpoint: %s", endpoint)
 	}
 	if port != "" {
 		endpoint = net.JoinHostPort(constant.AddonAPIServerDomain, port)
@@ -110,7 +111,7 @@ func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error 
 	}
 	// if domain instead of ipv4 address was provided, we won't update control plane info
 	if net.ParseIP(host) == nil {
-		return nil
+		return "", nil
 	}
 	joinConfiguration.Discovery = kubeadm.Discovery{
 		BootstrapToken: &kubeadm.BootstrapTokenDiscovery{
@@ -123,7 +124,8 @@ func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) error 
 		TLSBootstrapToken: joinConfiguration.Discovery.TLSBootstrapToken,
 		Timeout:           joinConfiguration.Discovery.Timeout,
 	}
-	return ensureHostDNS(host)
+	ensureHostDNS(host)
+	return host, nil
 }
 
 func ensureHostDNS(publicIP string) error {
@@ -140,7 +142,7 @@ func ensureHostDNS(publicIP string) error {
 	return nil
 }
 
-func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData) error {
+func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData, masterIp string) error {
 	joinCfg, err := data.InitCfg()
 	if err != nil {
 		return err
@@ -163,6 +165,17 @@ func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData)
 	}
 	joinCfg.NodeRegistration.KubeletExtraArgs["cluster-dns"] = edgeCoreDNSClusterIP
 	klog.V(4).Infof("Get edge-coredns clusterIP %s", edgeCoreDNSClusterIP)
+
+	// Set node host
+	nodeHostConfig, ok := edgeInfoConfigMap.Data[constant.EdgeNodeHostConfig]
+	if !ok {
+		return fmt.Errorf("Get cluster-info configMap %s value nil\n", constant.EdgeNodeHostConfig)
+	}
+	nodeHostConfig = fmt.Sprintf("%s\n %s %s\n", nodeHostConfig, masterIp, constant.AddonAPIServerDomain)
+	if err := ensureHostDNS(nodeHostConfig); err != nil {
+		klog.Errorf("Set node hosts err: %v", err)
+		return err
+	}
 
 	return nil
 }

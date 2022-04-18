@@ -27,10 +27,12 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	k8scert "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+	"k8s.io/klog"
 
 	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -144,9 +146,6 @@ func (c *changeAction) deployTunnelCoreDNS() error {
 }
 
 func (c *changeAction) createLiteApiServerCert() error {
-	c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Delete(
-		context.TODO(), constant.EdgeCertCM, metav1.DeleteOptions{})
-
 	kubeService, err := c.clientSet.CoreV1().Services(
 		constant.NamespaceDefault).Get(context.TODO(), constant.ServiceKubernetes, metav1.GetOptions{})
 	if err != nil {
@@ -180,8 +179,21 @@ func (c *changeAction) createLiteApiServerCert() error {
 		},
 	}
 
+	if _, err := c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			if _, err := c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
+				Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
+				klog.Errorf("Create configmap: %s, error: %v", constant.EdgeCertCM, err)
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
 	if _, err := c.clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-		Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
+		Update(context.TODO(), configMap, metav1.UpdateOptions{}); err != nil {
+		klog.Errorf("Get configmap: %s, error: %v", constant.EdgeCertCM, err)
 		return err
 	}
 
