@@ -130,7 +130,7 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 	}
 	server := cluster.Server
 	if masterPublicAddr != "" {
-		server = fmt.Sprintf("https://%s", masterPublicAddr)
+		server = fmt.Sprintf("https://%s", constant.AddonAPIServerDomain)
 	}
 	yamlKubeConfig, err := kubeclient.ParseString(
 		ReadYaml(clusterInfoKubeConfig, manifests.ClusterInfoKubeConfigYaml),
@@ -383,7 +383,6 @@ func ensureKubeletConfigMap(clientSet kubernetes.Interface, clusterConfiguration
 
 // createConfigMap creates a ConfigMap with the generic kubelet configuration.
 func createConfigMap(cfg *kubeadmapi.ClusterConfiguration, client kubernetes.Interface) error {
-
 	k8sVersion, err := version.ParseSemantic(cfg.KubernetesVersion)
 	if err != nil {
 		return err
