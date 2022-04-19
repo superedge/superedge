@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/url"
@@ -28,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/v2"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
@@ -42,6 +44,7 @@ import (
 
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/constant/manifests"
+	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
@@ -144,15 +147,26 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-info",
 			Namespace: constant.NamespaceKubePublic,
+			Name:      bootstrapapi.ConfigMapClusterInfo,
 		},
 		Data: map[string]string{
 			"kubeconfig": string(yamlKubeConfig),
 		},
 	}
+	err = apiclient.CreateOrRetainConfigMap(clientSet, configMap, bootstrapapi.ConfigMapClusterInfo)
+	if err != nil {
+		return err
+	}
 
-	return apiclient.CreateOrRetainConfigMap(clientSet, configMap, "cluster-info")
+	cm, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).
+		Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	klog.Infof("Update configMap:%s success, info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(cm))
+
+	return nil
 }
 
 // ensureKubeadmRBAC ensure the RBAC rules for the kubeadm.
