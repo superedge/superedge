@@ -56,7 +56,7 @@ func joinPreparePhase(c workflow.RunData) error {
 		return errors.New("installLiteAPIServer phase invoked with an invalid data struct")
 	}
 
-	masterIp, err := configControlPlaneInfo(data.Cfg())
+	masterDomain, err := configControlPlaneInfo(data.Cfg())
 	if err != nil {
 		klog.Errorf("Config ControlPlaneInfo, error: %v")
 		return err
@@ -89,7 +89,7 @@ func joinPreparePhase(c workflow.RunData) error {
 
 	// prepare join edge node
 	if data.Cfg().ControlPlane == nil {
-		if err := prepareJoinEdgeNode(kubeClient, data, masterIp); err != nil {
+		if err := prepareJoinEdgeNode(kubeClient, data, masterDomain); err != nil {
 			klog.Errorf("Prepare Join edge node, error: %v", err)
 			return nil
 		}
@@ -124,14 +124,17 @@ func configControlPlaneInfo(joinConfiguration *kubeadm.JoinConfiguration) (strin
 		TLSBootstrapToken: joinConfiguration.Discovery.TLSBootstrapToken,
 		Timeout:           joinConfiguration.Discovery.Timeout,
 	}
-	ensureHostDNS(host)
+	if net.ParseIP(host) != nil {
+		hostEntry := host + " " + constant.AddonAPIServerDomain
+		ensureHostDNS(hostEntry)
+	}
 	return host, nil
 }
 
-func ensureHostDNS(publicIP string) error {
+func ensureHostDNS(hostEntry string) error {
 	cmds := []string{
 		constant.ResetDNSCmd,
-		fmt.Sprintf("cat << EOF >>%s \n%s\n%s\n%s\nEOF", constant.HostsFilePath, constant.HostDNSBeginMark, publicIP+" "+constant.AddonAPIServerDomain, constant.HostDNSEndMark),
+		fmt.Sprintf("cat << EOF >>%s \n%s\n%s\n%s\nEOF", constant.HostsFilePath, constant.HostDNSBeginMark, hostEntry, constant.HostDNSEndMark),
 	}
 	for _, cmd := range cmds {
 		if _, _, err := util.RunLinuxCommand(cmd); err != nil {
@@ -142,7 +145,7 @@ func ensureHostDNS(publicIP string) error {
 	return nil
 }
 
-func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData, masterIp string) error {
+func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData, masterDomain string) error {
 	joinCfg, err := data.InitCfg()
 	if err != nil {
 		return err
@@ -166,12 +169,32 @@ func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData,
 	joinCfg.NodeRegistration.KubeletExtraArgs["cluster-dns"] = edgeCoreDNSClusterIP
 	klog.V(4).Infof("Get edge-coredns clusterIP %s", edgeCoreDNSClusterIP)
 
+	// Splicing node delay domain config
+	delayDomainHostConfig := ""
+	if net.ParseIP(masterDomain) != nil {
+		nodeDelayDomain, ok := edgeInfoConfigMap.Data[constant.EdgeNodeDelayDomain]
+		if !ok {
+			klog.Warningf("Get cluster-info configMap %s value nil\n", constant.EdgeNodeDelayDomain)
+		}
+		delayDomains := []string{constant.AddonAPIServerDomain}
+		tempDelayDomains := strings.SplitAfter(strings.TrimSpace(nodeDelayDomain), "\n")
+		for _, domain := range tempDelayDomains {
+			if domain != "" {
+				delayDomains = append(delayDomains, domain)
+			}
+		}
+		klog.V(4).Infof("Get node delay domain config: %v", delayDomains)
+		for _, delayDomain := range delayDomains {
+			delayDomainHostConfig += fmt.Sprintf("%s %s\n", masterDomain, delayDomain)
+		}
+	}
+
 	// Set node host
 	nodeHostConfig, ok := edgeInfoConfigMap.Data[constant.EdgeNodeHostConfig]
 	if !ok {
-		return fmt.Errorf("Get cluster-info configMap %s value nil\n", constant.EdgeNodeHostConfig)
+		klog.Warningf("Get cluster-info configMap %s value nil\n", constant.EdgeNodeHostConfig)
 	}
-	nodeHostConfig = fmt.Sprintf("%s\n %s %s\n", nodeHostConfig, masterIp, constant.AddonAPIServerDomain)
+	nodeHostConfig = fmt.Sprintf("%s\n%s\n", nodeHostConfig, delayDomainHostConfig)
 	if err := ensureHostDNS(nodeHostConfig); err != nil {
 		klog.Errorf("Set node hosts err: %v", err)
 		return err

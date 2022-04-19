@@ -108,6 +108,7 @@ const (
 const (
 	EdgeCertCM             = "edge-info"
 	EdgeNodeHostConfig     = "host-config"
+	EdgeNodeDelayDomain    = "node-delay-domain"
 	LiteAPIServerTLSJSON   = "tls.json"
 	KubeAPIClusterIP       = "kube-api-cluster-ip"
 	KubeAPICACrt           = "kube-api-ca.crt"
