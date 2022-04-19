@@ -131,7 +131,7 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 	if err != nil {
 		return err
 	}
-	server := fmt.Sprintf("https://%s", constant.AddonAPIServerDomain)
+	server := fmt.Sprintf("https://%s:6443", constant.AddonAPIServerDomain)
 	if masterPublicAddr != "" {
 		server = fmt.Sprintf("https://%s", masterPublicAddr)
 	}
@@ -145,18 +145,24 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 		return err
 	}
 
-	configMap := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constant.NamespaceKubePublic,
-			Name:      bootstrapapi.ConfigMapClusterInfo,
-		},
-		Data: map[string]string{
-			"kubeconfig": string(yamlKubeConfig),
-		},
-	}
+	//configMap := &v1.ConfigMap{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Namespace: constant.NamespaceKubePublic,
+	//		Name:      bootstrapapi.ConfigMapClusterInfo,
+	//	},
+	//	Data: map[string]string{
+	//		"kubeconfig": string(yamlKubeConfig),
+	//	},
+	//}
 
+	configMap, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).
+		Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	configMap.Data["kubeconfig"] = string(yamlKubeConfig)
 	klog.Infof("Update configMap:%s info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(configMap))
-	err = apiclient.CreateOrRetainConfigMap(clientSet, configMap, bootstrapapi.ConfigMapClusterInfo)
+	err = apiclient.CreateOrUpdateConfigMap(clientSet, configMap)
 	if err != nil {
 		return err
 	}
