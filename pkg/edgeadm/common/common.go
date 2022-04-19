@@ -104,7 +104,7 @@ func DeployEdgeAPPS(client kubernetes.Interface, manifestsDir, caCertFile, caKey
 	if err := EnsureEdgeSystemNamespace(client); err != nil {
 		return err
 	}
-	if err := DeployEdgePreflight(client, manifestsDir, masterPublicAddr, configPath); err != nil {
+	if err := DeployEdgePreflight(client, manifestsDir, "", configPath); err != nil {
 		return err
 	}
 	// Deploy tunnel

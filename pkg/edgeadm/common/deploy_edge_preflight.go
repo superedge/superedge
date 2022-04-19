@@ -131,9 +131,9 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 	if err != nil {
 		return err
 	}
-	server := cluster.Server
+	server := fmt.Sprintf("https://%s", constant.AddonAPIServerDomain)
 	if masterPublicAddr != "" {
-		server = fmt.Sprintf("https://%s", constant.AddonAPIServerDomain)
+		server = fmt.Sprintf("https://%s", masterPublicAddr)
 	}
 	yamlKubeConfig, err := kubeclient.ParseString(
 		ReadYaml(clusterInfoKubeConfig, manifests.ClusterInfoKubeConfigYaml),
@@ -154,6 +154,8 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 			"kubeconfig": string(yamlKubeConfig),
 		},
 	}
+
+	klog.Infof("Update configMap:%s info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(configMap))
 	err = apiclient.CreateOrRetainConfigMap(clientSet, configMap, bootstrapapi.ConfigMapClusterInfo)
 	if err != nil {
 		return err
