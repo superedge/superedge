@@ -159,7 +159,7 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 	clusterInfo, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Create(context.TODO(), clusterInfoCM, metav1.CreateOptions{})
+			_, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).Create(context.TODO(), clusterInfoCM, metav1.CreateOptions{})
 			if err != nil {
 				return err
 			}
@@ -169,7 +169,7 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 	}
 
 	clusterInfo.Data["kubeconfig"] = string(yamlKubeConfig)
-	clusterInfoUpdate, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Update(context.TODO(), clusterInfo, metav1.UpdateOptions{})
+	clusterInfoUpdate, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).Update(context.TODO(), clusterInfo, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
