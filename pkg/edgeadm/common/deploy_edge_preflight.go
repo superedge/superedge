@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
@@ -145,34 +146,34 @@ func createBootstrapConfigMapIfNotExists(clientSet kubernetes.Interface, masterP
 		return err
 	}
 
-	//configMap := &v1.ConfigMap{
-	//	ObjectMeta: metav1.ObjectMeta{
-	//		Namespace: constant.NamespaceKubePublic,
-	//		Name:      bootstrapapi.ConfigMapClusterInfo,
-	//	},
-	//	Data: map[string]string{
-	//		"kubeconfig": string(yamlKubeConfig),
-	//	},
-	//}
-
-	configMap, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).
-		Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	configMap.Data["kubeconfig"] = string(yamlKubeConfig)
-	klog.Infof("Update configMap:%s info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(configMap))
-	err = apiclient.CreateOrUpdateConfigMap(clientSet, configMap)
-	if err != nil {
-		return err
+	clusterInfoCM := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constant.NamespaceKubePublic,
+			Name:      bootstrapapi.ConfigMapClusterInfo,
+		},
+		Data: map[string]string{
+			"kubeconfig": string(yamlKubeConfig),
+		},
 	}
 
-	cm, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).
-		Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	clusterInfo, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceKubePublic).Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Create(context.TODO(), clusterInfoCM, metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+
+	clusterInfo.Data["kubeconfig"] = string(yamlKubeConfig)
+	clusterInfoUpdate, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Update(context.TODO(), clusterInfo, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
-	klog.Infof("Update configMap:%s success, info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(cm))
+	klog.Infof("Update configMap:%s success, info: %s", bootstrapapi.ConfigMapClusterInfo, util.ToJson(clusterInfoUpdate))
 
 	return nil
 }
