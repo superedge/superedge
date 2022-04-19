@@ -24,7 +24,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -141,37 +140,44 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	}
 	edgeCoreDNSIP := edgeCoreDNSService.Spec.ClusterIP
 
-	configMap := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constant.EdgeCertCM,
-		},
-		Data: map[string]string{
-			constant.KubeAPICACrt:           string(caCertStr),
-			constant.KubeAPIClusterIP:       kubeAPIClusterIP,
-			constant.LiteAPIServerCrt:       string(liteApiServerCrt),
-			constant.LiteAPIServerKey:       string(liteApiServerKey),
-			manifests.APP_LITE_APISERVER:    string(yamlLiteAPISerer),
-			constant.EdgeCoreDNSClusterIP:   edgeCoreDNSIP,
-			constant.TunnelCoreDNSClusterIP: tunnelCoreDNSIP,
-			constant.LiteAPIServerTLSJSON:   constant.LiteAPIServerTLSCfg,
-		},
-	}
+	edgeInfoCM, _ := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
+		Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	if edgeInfoCM == nil {
+		edgeInfoCM = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: constant.EdgeCertCM,
+			},
+			Data: map[string]string{
+				constant.KubeAPICACrt:           string(caCertStr),
+				constant.KubeAPIClusterIP:       kubeAPIClusterIP,
+				constant.LiteAPIServerCrt:       string(liteApiServerCrt),
+				constant.LiteAPIServerKey:       string(liteApiServerKey),
+				manifests.APP_LITE_APISERVER:    string(yamlLiteAPISerer),
+				constant.EdgeCoreDNSClusterIP:   edgeCoreDNSIP,
+				constant.TunnelCoreDNSClusterIP: tunnelCoreDNSIP,
+				constant.LiteAPIServerTLSJSON:   constant.LiteAPIServerTLSCfg,
+			},
+		}
 
-	if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{}); err != nil {
-		if apierrors.IsNotFound(err) {
-			if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-				Create(context.TODO(), configMap, metav1.CreateOptions{}); err != nil {
-				klog.Errorf("Create configmap: %s, error: %v", constant.EdgeCertCM, err)
-				return err
-			}
-		} else {
+		if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
+			Create(context.TODO(), edgeInfoCM, metav1.CreateOptions{}); err != nil {
+			klog.Errorf("Create configMap: %s, error: %v", constant.EdgeCertCM, err)
 			return err
 		}
+		return nil
 	}
 
+	edgeInfoCM.Data[constant.KubeAPICACrt] = string(caCertStr)
+	edgeInfoCM.Data[constant.KubeAPIClusterIP] = kubeAPIClusterIP
+	edgeInfoCM.Data[constant.LiteAPIServerCrt] = string(liteApiServerCrt)
+	edgeInfoCM.Data[constant.LiteAPIServerKey] = string(liteApiServerKey)
+	edgeInfoCM.Data[constant.EdgeCoreDNSClusterIP] = edgeCoreDNSIP
+	edgeInfoCM.Data[manifests.APP_LITE_APISERVER] = string(yamlLiteAPISerer)
+	edgeInfoCM.Data[constant.LiteAPIServerTLSJSON] = constant.LiteAPIServerTLSCfg
+	edgeInfoCM.Data[constant.TunnelCoreDNSClusterIP] = tunnelCoreDNSIP
 	if _, err := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-		Update(context.TODO(), configMap, metav1.UpdateOptions{}); err != nil {
-		klog.Errorf("Update configmap: %s, error: %v", constant.EdgeCertCM, err)
+		Update(context.TODO(), edgeInfoCM, metav1.UpdateOptions{}); err != nil {
+		klog.Errorf("Update configMap: %s, error: %v", constant.EdgeCertCM, err)
 		return err
 	}
 
