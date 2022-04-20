@@ -205,17 +205,22 @@ func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData,
 	if !ok {
 		klog.Warningf("Get cluster-info configMap %s value nil\n", constant.InsecureRegistries)
 	}
+
 	var insecureRegistry []string
-	insecureRegistries := strings.SplitAfter(strings.TrimSpace(insecureRegistriesCfg), "\n")
-	for _, registry := range insecureRegistries {
+	insecureRegistryCfg := strings.SplitAfter(strings.TrimSpace(insecureRegistriesCfg), "\n")
+	for _, registry := range insecureRegistryCfg {
 		if registry != "" {
-			insecureRegistry = append(insecureRegistry, registry)
+			registryDomain := strings.ReplaceAll(registry, "\n", "")
+			insecureRegistry = append(insecureRegistry, registryDomain)
 		}
+	}
+	insecureRegistries := map[string][]string{
+		"insecure-registries": insecureRegistry,
 	}
 	if len(insecureRegistry) > 0 {
 		util.RemoveFile(constant.UserRegistryCfg)
 		os.MkdirAll(constant.UserNodeConfigDir, 0755)
-		if err := util.WriteWithBufio(constant.UserRegistryCfg, util.ToJson(insecureRegistry)); err != nil {
+		if err := util.WriteWithBufio(constant.UserRegistryCfg, util.ToJson(insecureRegistries)); err != nil {
 			klog.Errorf("Write file: %s, err: %v", constant.UserRegistryCfg, err)
 			return err
 		}
