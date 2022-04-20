@@ -22,7 +22,8 @@ import (
 
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
-	discovery "k8s.io/api/discovery/v1beta1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -37,19 +38,22 @@ type storageCache struct {
 	supportEndpointSlice              bool
 
 	// mu lock protect the following map structure
-	mu               sync.RWMutex
-	servicesMap      map[types.NamespacedName]*serviceContainer
-	endpointsMap     map[types.NamespacedName]*endpointsContainer
-	endpointSliceMap map[types.NamespacedName]*endpointSliceContainer
-	nodesMap         map[types.NamespacedName]*nodeContainer
-	localNodeInfo    map[string]data.ResultDetail
+	mu                      sync.RWMutex
+	servicesMap             map[types.NamespacedName]*serviceContainer
+	endpointsMap            map[types.NamespacedName]*endpointsContainer
+	endpointSliceV1Map      map[types.NamespacedName]*endpointSliceV1Container
+	endpointSliceV1Beta1Map map[types.NamespacedName]*endpointSliceV1Beta1Container
+	nodesMap                map[types.NamespacedName]*nodeContainer
+	localNodeInfo           map[string]data.ResultDetail
 
 	// service watch channel
 	serviceChan chan<- watch.Event
 	// endpoints watch channel
 	endpointsChan chan<- watch.Event
 	// endpointSlice watch channel
-	endpointSliceChan chan<- watch.Event
+	endpointSliceV1Chan chan<- watch.Event
+
+	endpointSliceV1Beta1Chan chan<- watch.Event
 }
 
 // serviceContainer stores kubernetes service and its topologyKeys
@@ -71,14 +75,18 @@ type endpointsContainer struct {
 }
 
 // endpointSliceContainer stores original kubernetes endpointSlice and relevant modified serviceTopology endpointSlice
-type endpointSliceContainer struct {
-	endpointSlice *discovery.EndpointSlice
-	modified      *discovery.EndpointSlice
+type endpointSliceV1Container struct {
+	endpointSlice *discoveryv1.EndpointSlice
+	modified      *discoveryv1.EndpointSlice
+}
+type endpointSliceV1Beta1Container struct {
+	endpointSlice *discoveryv1beta1.EndpointSlice
+	modified      *discoveryv1beta1.EndpointSlice
 }
 
 var _ Cache = &storageCache{}
 
-func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event, endpointSliceNotifier chan watch.Event, supportEndpointSlice bool) *storageCache {
+func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event, endpointSliceV1Notifier, endpointSliceV1Beta1Notifier chan watch.Event, supportEndpointSlice bool) *storageCache {
 	msc := &storageCache{
 		hostName:                          hostName,
 		wrapperInCluster:                  wrapperInCluster,
@@ -86,11 +94,13 @@ func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhanceme
 		supportEndpointSlice:              supportEndpointSlice,
 		servicesMap:                       make(map[types.NamespacedName]*serviceContainer),
 		endpointsMap:                      make(map[types.NamespacedName]*endpointsContainer),
-		endpointSliceMap:                  make(map[types.NamespacedName]*endpointSliceContainer),
+		endpointSliceV1Map:                make(map[types.NamespacedName]*endpointSliceV1Container),
+		endpointSliceV1Beta1Map:           make(map[types.NamespacedName]*endpointSliceV1Beta1Container),
 		nodesMap:                          make(map[types.NamespacedName]*nodeContainer),
 		serviceChan:                       serviceNotifier,
 		endpointsChan:                     endpointsNotifier,
-		endpointSliceChan:                 endpointSliceNotifier,
+		endpointSliceV1Chan:               endpointSliceV1Notifier,
+		endpointSliceV1Beta1Chan:          endpointSliceV1Beta1Notifier,
 		localNodeInfo:                     make(map[string]data.ResultDetail),
 	}
 
@@ -109,8 +119,12 @@ func (sc *storageCache) EndpointsEventHandler() cache.ResourceEventHandler {
 	return &endpointsHandler{cache: sc}
 }
 
-func (sc *storageCache) EndpointSliceEventHandler() cache.ResourceEventHandler {
-	return &endpointSliceHandler{cache: sc}
+func (sc *storageCache) EndpointSliceV1EventHandler() cache.ResourceEventHandler {
+	return &endpointSliceV1Handler{cache: sc}
+}
+
+func (sc *storageCache) EndpointSliceV1Beta1EventHandler() cache.ResourceEventHandler {
+	return &endpointSliceV1Beta1Handler{cache: sc}
 }
 
 func (sc *storageCache) GetServices() []*v1.Service {
@@ -135,12 +149,23 @@ func (sc *storageCache) GetEndpoints() []*v1.Endpoints {
 	return epList
 }
 
-func (sc *storageCache) GetEndpointSlice() []*discovery.EndpointSlice {
+func (sc *storageCache) GetEndpointSliceV1() []*discoveryv1.EndpointSlice {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	epsList := make([]*discovery.EndpointSlice, 0, len(sc.endpointSliceMap))
-	for _, v := range sc.endpointSliceMap {
+	epsList := make([]*discoveryv1.EndpointSlice, 0, len(sc.endpointSliceV1Map))
+	for _, v := range sc.endpointSliceV1Map {
+		epsList = append(epsList, v.modified)
+	}
+	return epsList
+}
+
+func (sc *storageCache) GetEndpointSliceV1Beta1() []*discoveryv1beta1.EndpointSlice {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+
+	epsList := make([]*discoveryv1beta1.EndpointSlice, 0, len(sc.endpointSliceV1Beta1Map))
+	for _, v := range sc.endpointSliceV1Beta1Map {
 		epsList = append(epsList, v.modified)
 	}
 	return epsList
@@ -186,16 +211,34 @@ func (sc *storageCache) SetLocalNodeInfo(info map[string]data.ResultDetail) {
 	klog.V(4).Infof("Set local node info %#v", info)
 	sc.mu.Lock()
 	sc.localNodeInfo = info
+	sc.mu.Unlock()
+	sc.resync()
+}
 
-	if sc.supportEndpointSlice {
+func (sc *storageCache) resync() {
+	if len(sc.endpointSliceV1Map) > 0 {
 		// update endpointSlice
-		changedEndpointSlice := sc.rebuildEndpointSliceMap()
+		sc.mu.Lock()
+		changedEndpointSliceV1 := sc.rebuildEndpointSliceV1Map()
 		sc.mu.Unlock()
-		for _, eps := range changedEndpointSlice {
-			sc.endpointSliceChan <- eps
+		for _, eps := range changedEndpointSliceV1 {
+			sc.endpointSliceV1Chan <- eps
 		}
-	} else {
+	}
+
+	if len(sc.GetEndpointSliceV1Beta1()) > 0 {
+		// update endpointSlice
+		sc.mu.Lock()
+		changedEndpointSliceV1Beta1 := sc.rebuildEndpointSliceV1Beta1Map()
+		sc.mu.Unlock()
+		for _, eps := range changedEndpointSliceV1Beta1 {
+			sc.endpointSliceV1Chan <- eps
+		}
+	}
+
+	if len(sc.endpointsMap) > 0 {
 		// update endpoints
+		sc.mu.Lock()
 		changedEps := sc.rebuildEndpointsMap()
 		sc.mu.Unlock()
 		for _, eps := range changedEps {
@@ -222,14 +265,30 @@ func (sc *storageCache) rebuildEndpointsMap() []watch.Event {
 }
 
 // rebuildEndpointSliceMap updates all endpoints stored in storageCache.endpointSliceMap dynamically and constructs relevant modified events
-func (sc *storageCache) rebuildEndpointSliceMap() []watch.Event {
+func (sc *storageCache) rebuildEndpointSliceV1Map() []watch.Event {
 	evts := make([]watch.Event, 0)
-	for name, endpointSliceContainer := range sc.endpointSliceMap {
-		newEps := pruneEndpointSlice(sc.hostName, sc.nodesMap, sc.servicesMap, endpointSliceContainer.endpointSlice, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
+	for name, endpointSliceContainer := range sc.endpointSliceV1Map {
+		newEps := pruneEndpointSliceV1(sc.hostName, sc.nodesMap, sc.servicesMap, endpointSliceContainer.endpointSlice, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
 		if apiequality.Semantic.DeepEqual(newEps, endpointSliceContainer.modified) {
 			continue
 		}
-		sc.endpointSliceMap[name].modified = newEps
+		sc.endpointSliceV1Map[name].modified = newEps
+		evts = append(evts, watch.Event{
+			Type:   watch.Modified,
+			Object: newEps,
+		})
+	}
+	return evts
+}
+
+func (sc *storageCache) rebuildEndpointSliceV1Beta1Map() []watch.Event {
+	evts := make([]watch.Event, 0)
+	for name, endpointSliceContainer := range sc.endpointSliceV1Beta1Map {
+		newEps := pruneEndpointSliceV1Beta1(sc.hostName, sc.nodesMap, sc.servicesMap, endpointSliceContainer.endpointSlice, sc.localNodeInfo, sc.wrapperInCluster, sc.serviceAutonomyEnhancementEnabled)
+		if apiequality.Semantic.DeepEqual(newEps, endpointSliceContainer.modified) {
+			continue
+		}
+		sc.endpointSliceV1Beta1Map[name].modified = newEps
 		evts = append(evts, watch.Event{
 			Type:   watch.Modified,
 			Object: newEps,

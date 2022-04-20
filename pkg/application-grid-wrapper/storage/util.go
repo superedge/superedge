@@ -24,7 +24,8 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	discovery "k8s.io/api/discovery/v1beta1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -113,7 +114,7 @@ func genLocalEndpoints(eps *v1.Endpoints) *v1.Endpoints {
 	return nep
 }
 
-func genLocalEndpointSlice(eps *discovery.EndpointSlice) *discovery.EndpointSlice {
+func genLocalEndpointSliceV1(eps *discoveryv1.EndpointSlice) *discoveryv1.EndpointSlice {
 	if eps.Namespace != metav1.NamespaceDefault || eps.Name != MasterEndpointName {
 		return eps
 	}
@@ -143,7 +144,7 @@ func genLocalEndpointSlice(eps *discovery.EndpointSlice) *discovery.EndpointSlic
 	}
 
 	nep := eps.DeepCopy()
-	nep.Endpoints = []discovery.Endpoint{
+	nep.Endpoints = []discoveryv1.Endpoint{
 		{
 			Addresses: []string{
 				ipAddress,
@@ -153,7 +154,59 @@ func genLocalEndpointSlice(eps *discovery.EndpointSlice) *discovery.EndpointSlic
 	nameHelper := "https"
 	portHelper := int32(port)
 	protocolHelper := v1.ProtocolTCP
-	nep.Ports = []discovery.EndpointPort{
+	nep.Ports = []discoveryv1.EndpointPort{
+		{
+			Protocol: &protocolHelper,
+			Port:     &portHelper,
+			Name:     &nameHelper,
+		},
+	}
+
+	klog.V(4).Infof("gen new endpointslice complete %v", nep)
+	return nep
+}
+
+func genLocalEndpointSliceV1Beta1(eps *discoveryv1beta1.EndpointSlice) *discoveryv1beta1.EndpointSlice {
+	if eps.Namespace != metav1.NamespaceDefault || eps.Name != MasterEndpointName {
+		return eps
+	}
+
+	klog.V(4).Infof("begin to gen local endpointslice %v", eps)
+	ipAddress, e := eps.Annotations[EdgeLocalEndpoint]
+	if !e {
+		return eps
+	}
+
+	portStr, e := eps.Annotations[EdgeLocalPort]
+	if !e {
+		return eps
+	}
+
+	klog.V(4).Infof("get local endpoint %s:%s", ipAddress, portStr)
+	port, err := strconv.ParseInt(portStr, 10, 32)
+	if err != nil {
+		klog.Errorf("parse int %s err %v", portStr, err)
+		return eps
+	}
+
+	ip := net.ParseIP(ipAddress)
+	if ip == nil {
+		klog.Warningf("parse ip %s nil", ipAddress)
+		return eps
+	}
+
+	nep := eps.DeepCopy()
+	nep.Endpoints = []discoveryv1beta1.Endpoint{
+		{
+			Addresses: []string{
+				ipAddress,
+			},
+		},
+	}
+	nameHelper := "https"
+	portHelper := int32(port)
+	protocolHelper := v1.ProtocolTCP
+	nep.Ports = []discoveryv1beta1.EndpointPort{
 		{
 			Protocol: &protocolHelper,
 			Port:     &portHelper,
@@ -216,10 +269,10 @@ func pruneEndpoints(hostName string,
 }
 
 // pruneEndpointSlice filters endpointslice using serviceTopology rules combined by services topologyKeys and node labels
-func pruneEndpointSlice(hostName string,
+func pruneEndpointSliceV1(hostName string,
 	nodes map[types.NamespacedName]*nodeContainer,
 	services map[types.NamespacedName]*serviceContainer,
-	eps *discovery.EndpointSlice, localNodeInfo map[string]data.ResultDetail, wrapperInCluster, serviceAutonomyEnhancementEnabled bool) *discovery.EndpointSlice {
+	eps *discoveryv1.EndpointSlice, localNodeInfo map[string]data.ResultDetail, wrapperInCluster, serviceAutonomyEnhancementEnabled bool) *discoveryv1.EndpointSlice {
 
 	//drop suffix
 	strArr := strings.Split(eps.Name, "-")
@@ -230,7 +283,7 @@ func pruneEndpointSlice(hostName string,
 	epsKey := types.NamespacedName{Namespace: eps.Namespace, Name: epsName}
 
 	if wrapperInCluster {
-		eps = genLocalEndpointSlice(eps)
+		eps = genLocalEndpointSliceV1(eps)
 	}
 
 	// dangling endpoints
@@ -248,7 +301,7 @@ func pruneEndpointSlice(hostName string,
 		}
 		if serviceAutonomyEnhancementEnabled {
 			newEps := eps.DeepCopy()
-			newEps.Endpoints = filterLocalNodeInfoConcernedAddressesForEndpointSlice(nodes, newEps.Endpoints, localNodeInfo)
+			newEps.Endpoints = filterLocalNodeInfoConcernedAddressesForEndpointSliceV1(nodes, newEps.Endpoints, localNodeInfo)
 			klog.V(4).Infof("Normal endpointSlice after LocalNodeInfo filter %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
 			return newEps
 		}
@@ -257,7 +310,54 @@ func pruneEndpointSlice(hostName string,
 
 	// topology endpoints
 	newEps := eps.DeepCopy()
-	newEps.Endpoints = filterConcernedAddressesForEndpointSlice(svc.keys, hostName, nodes, newEps.Endpoints, localNodeInfo, serviceAutonomyEnhancementEnabled)
+	newEps.Endpoints = filterConcernedAddressesForEndpointSliceV1(svc.keys, hostName, nodes, newEps.Endpoints, localNodeInfo, serviceAutonomyEnhancementEnabled)
+	klog.V(4).Infof("Topology endpointSlice %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
+
+	return newEps
+}
+
+func pruneEndpointSliceV1Beta1(hostName string,
+	nodes map[types.NamespacedName]*nodeContainer,
+	services map[types.NamespacedName]*serviceContainer,
+	eps *discoveryv1beta1.EndpointSlice, localNodeInfo map[string]data.ResultDetail, wrapperInCluster, serviceAutonomyEnhancementEnabled bool) *discoveryv1beta1.EndpointSlice {
+
+	//drop suffix
+	strArr := strings.Split(eps.Name, "-")
+	epsName := strArr[0]
+	for i := 1; i < len(strArr)-1; i++ {
+		epsName = epsName + "-" + strArr[i]
+	}
+	epsKey := types.NamespacedName{Namespace: eps.Namespace, Name: epsName}
+
+	if wrapperInCluster {
+		eps = genLocalEndpointSliceV1Beta1(eps)
+	}
+
+	// dangling endpoints
+	svc, ok := services[epsKey]
+	if !ok {
+		klog.V(4).Infof("Dangling endpointSlice %s, %+#v", eps.Name, eps.Endpoints)
+		return eps
+	}
+
+	// normal service
+	if len(svc.keys) == 0 {
+		klog.V(4).Infof("Normal endpointSlice %s, %+#v", eps.Name, eps.Endpoints)
+		if eps.Namespace == metav1.NamespaceDefault && eps.Name == MasterEndpointName {
+			return eps
+		}
+		if serviceAutonomyEnhancementEnabled {
+			newEps := eps.DeepCopy()
+			newEps.Endpoints = filterLocalNodeInfoConcernedAddressesForEndpointSliceV1Beta1(nodes, newEps.Endpoints, localNodeInfo)
+			klog.V(4).Infof("Normal endpointSlice after LocalNodeInfo filter %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
+			return newEps
+		}
+		return eps
+	}
+
+	// topology endpoints
+	newEps := eps.DeepCopy()
+	newEps.Endpoints = filterConcernedAddressesForEndpointSliceV1Beta1(svc.keys, hostName, nodes, newEps.Endpoints, localNodeInfo, serviceAutonomyEnhancementEnabled)
 	klog.V(4).Infof("Topology endpointSlice %s: subnets from %+#v to %+#v", eps.Name, eps.Endpoints, newEps.Endpoints)
 
 	return newEps
@@ -298,19 +398,18 @@ func filterConcernedAddresses(topologyKeys []string, hostName string, nodes map[
 }
 
 // filterConcernedAddressesForEndpointSlice aims to filter out endpointSlice addresses within the same node unit
-func filterConcernedAddressesForEndpointSlice(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
-	endpoints []discovery.Endpoint, localNodeInfo map[string]data.ResultDetail, getLocalNodeInfo bool) []discovery.Endpoint {
+func filterConcernedAddressesForEndpointSliceV1(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
+	endpoints []discoveryv1.Endpoint, localNodeInfo map[string]data.ResultDetail, getLocalNodeInfo bool) []discoveryv1.Endpoint {
 	hostNode, found := nodes[types.NamespacedName{Name: hostName}]
 	if !found {
 		return nil
 	}
 
-	filteredEndpointAddresses := make([]discovery.Endpoint, 0)
+	filteredEndpointAddresses := make([]discoveryv1.Endpoint, 0)
 	for i := range endpoints {
 		endpoint := endpoints[i]
-		topology := endpoint.Topology
-		if nodeName := topology["kubernetes.io/hostname"]; &nodeName != nil {
-			epsNode, found := nodes[types.NamespacedName{Name: nodeName}]
+		if endpoint.NodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: *endpoint.NodeName}]
 			if !found {
 				continue
 			}
@@ -355,10 +454,65 @@ func filterLocalNodeInfoConcernedAddresses(nodes map[types.NamespacedName]*nodeC
 }
 
 // filterLocalNodeInfoConcernedAddressesForEndpointSlice aims to filter out endpointSlice addresses according to LocalNodeInfo
-func filterLocalNodeInfoConcernedAddressesForEndpointSlice(nodes map[types.NamespacedName]*nodeContainer,
-	endpoints []discovery.Endpoint, localNodeInfo map[string]data.ResultDetail) []discovery.Endpoint {
+func filterLocalNodeInfoConcernedAddressesForEndpointSliceV1(nodes map[types.NamespacedName]*nodeContainer,
+	endpoints []discoveryv1.Endpoint, localNodeInfo map[string]data.ResultDetail) []discoveryv1.Endpoint {
 
-	filteredEndpointAddresses := make([]discovery.Endpoint, 0)
+	filteredEndpointAddresses := make([]discoveryv1.Endpoint, 0)
+	for i := range endpoints {
+		endpoint := endpoints[i]
+		if endpoint.NodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: *endpoint.NodeName}]
+			if !found {
+				continue
+			}
+			_, found = localNodeInfo[epsNode.node.Name]
+			if !found || (found && localNodeInfo[epsNode.node.Name].Normal) {
+				filteredEndpointAddresses = append(filteredEndpointAddresses, endpoint)
+			}
+		}
+	}
+
+	return filteredEndpointAddresses
+}
+
+func filterConcernedAddressesForEndpointSliceV1Beta1(topologyKeys []string, hostName string, nodes map[types.NamespacedName]*nodeContainer,
+	endpoints []discoveryv1beta1.Endpoint, localNodeInfo map[string]data.ResultDetail, getLocalNodeInfo bool) []discoveryv1beta1.Endpoint {
+	hostNode, found := nodes[types.NamespacedName{Name: hostName}]
+	if !found {
+		return nil
+	}
+
+	filteredEndpointAddresses := make([]discoveryv1beta1.Endpoint, 0)
+	for i := range endpoints {
+		endpoint := endpoints[i]
+		topology := endpoint.Topology
+		if nodeName := topology["kubernetes.io/hostname"]; &nodeName != nil {
+			epsNode, found := nodes[types.NamespacedName{Name: nodeName}]
+			if !found {
+				continue
+			}
+			_, found = localNodeInfo[epsNode.node.Name]
+			if hasIntersectionLabel(topologyKeys, hostNode.labels, epsNode.labels) {
+				/*
+					1.getLocalNodeInfo is enabled, we can find the node from neighbor's nodes status and node is health
+					2.getLocalNodeInfo is enabled, but can't find the node from neighbor's nodes status. Failing get status from neighbor will cause this
+					3.getLocalNodeInfo is not enabled
+				*/
+				if (getLocalNodeInfo && found && localNodeInfo[epsNode.node.Name].Normal) ||
+					(getLocalNodeInfo && !found) || !getLocalNodeInfo {
+					filteredEndpointAddresses = append(filteredEndpointAddresses, endpoint)
+				}
+			}
+		}
+	}
+
+	return filteredEndpointAddresses
+}
+
+func filterLocalNodeInfoConcernedAddressesForEndpointSliceV1Beta1(nodes map[types.NamespacedName]*nodeContainer,
+	endpoints []discoveryv1beta1.Endpoint, localNodeInfo map[string]data.ResultDetail) []discoveryv1beta1.Endpoint {
+
+	filteredEndpointAddresses := make([]discoveryv1beta1.Endpoint, 0)
 	for i := range endpoints {
 		endpoint := endpoints[i]
 		topology := endpoint.Topology

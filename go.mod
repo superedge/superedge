@@ -57,12 +57,12 @@ replace (
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200329194405-dd816f0735f8
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
-	k8s.io/api => k8s.io/api v0.20.5
+	k8s.io/api => k8s.io/api v0.21.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.20.5
+	k8s.io/apimachinery => k8s.io/apimachinery v0.21.0
 	k8s.io/apiserver => k8s.io/apiserver v0.20.5
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go => k8s.io/client-go v0.20.5
+	k8s.io/client-go => k8s.io/client-go v0.21.0
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.20.5
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.5
 	k8s.io/code-generator => k8s.io/code-generator v0.20.5

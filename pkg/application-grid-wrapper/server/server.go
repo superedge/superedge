@@ -30,6 +30,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,6 +46,10 @@ import (
 
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/server/apis"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/storage"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
+	apischema "k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/restmapper"
 )
 
 type interceptorServer struct {
@@ -52,7 +57,8 @@ type interceptorServer struct {
 	cache                             storage.Cache
 	serviceWatchCh                    <-chan watch.Event
 	endpointsWatchCh                  <-chan watch.Event
-	endpointSliceWatchCh              <-chan watch.Event
+	endpointSliceV1WatchCh            <-chan watch.Event
+	endpointSliceV1Beta1WatchCh       <-chan watch.Event
 	mediaSerializer                   []runtime.SerializerInfo
 	serviceAutonomyEnhancementAddress string
 	supportEndpointSlice              bool
@@ -67,14 +73,16 @@ func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster b
 
 	serviceCh := make(chan watch.Event, channelSize)
 	endpointsCh := make(chan watch.Event, channelSize)
-	endpointSliceCh := make(chan watch.Event, channelSize)
+	endpointSliceV1Ch := make(chan watch.Event, channelSize)
+	endpointSliceV1Beta1Ch := make(chan watch.Event, channelSize)
 
 	server := &interceptorServer{
 		restConfig:                        restConfig,
-		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh, endpointSliceCh, supportEndpointSlice),
+		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh, endpointSliceV1Ch, endpointSliceV1Beta1Ch, supportEndpointSlice),
 		serviceWatchCh:                    serviceCh,
 		endpointsWatchCh:                  endpointsCh,
-		endpointSliceWatchCh:              endpointSliceCh,
+		endpointSliceV1WatchCh:            endpointSliceV1Ch,
+		endpointSliceV1Beta1WatchCh:       endpointSliceV1Beta1Ch,
 		mediaSerializer:                   scheme.Codecs.SupportedMediaTypes(),
 		serviceAutonomyEnhancementAddress: serviceAutonomyEnhancement.NeighborStatusSvc,
 		supportEndpointSlice:              supportEndpointSlice,
@@ -175,22 +183,54 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 		return fmt.Errorf("can't sync informers")
 	}
 
-	if s.supportEndpointSlice {
-		endpointSliceInformer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
-		endpointSliceInformer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceEventHandler(), resyncPeriod)
-		go endpointSliceInformer.Run(stop)
-		if !cache.WaitForNamedCacheSync("node", stop, endpointSliceInformer.HasSynced) {
-			return fmt.Errorf("can't sync endpointslice informers")
-		}
+	restMapperRes, err := restmapper.GetAPIGroupResources(client.Discovery())
+	if err != nil {
+		return err
 	}
 
+	restMapper := restmapper.NewDiscoveryRESTMapper(restMapperRes)
+	_, err = restMapper.RESTMapping(apischema.GroupKind{
+		Group: discoveryv1.SchemeGroupVersion.Group,
+		Kind:  "EndpointSlice",
+	}, discoveryv1.SchemeGroupVersion.Version)
+	if err == nil {
+		klog.Info("mapper v1.EndpointSlices")
+		endpointSliceV1Informer := informerFactory.Discovery().V1().EndpointSlices().Informer()
+		endpointSliceV1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1EventHandler(), resyncPeriod)
+		go endpointSliceV1Informer.Run(stop)
+		if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Informer.HasSynced) {
+			return fmt.Errorf("can't sync endpointslice informers")
+		}
+	} else {
+		if _, ok := err.(*meta.NoKindMatchError); ok {
+			_, err = restMapper.RESTMapping(apischema.GroupKind{
+				Group: discoveryv1beta1.SchemeGroupVersion.Group,
+				Kind:  "EndpointSlice",
+			}, discoveryv1beta1.SchemeGroupVersion.Version)
+			if err == nil {
+				klog.Info("mapper v1beta1.EndpointSlices")
+				endpointSliceV1Beta1Informer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
+				endpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1Beta1EventHandler(), resyncPeriod)
+				go endpointSliceV1Beta1Informer.Run(stop)
+				if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Beta1Informer.HasSynced) {
+					return fmt.Errorf("can't sync endpointslice informers")
+				}
+			} else {
+				if _, ok := err.(*meta.NoKindMatchError); !ok {
+					return err
+				}
+			}
+		} else {
+			return err
+		}
+	}
 	return nil
 }
 
 func (s *interceptorServer) buildFilterChains(debug bool) http.Handler {
 	handler := http.Handler(http.NewServeMux())
-
-	handler = s.interceptEndpointSliceRequest(handler)
+	handler = s.interceptEndpointSliceV1Beta1Request(handler)
+	handler = s.interceptEndpointSliceV1Request(handler)
 	handler = s.interceptEndpointsRequest(handler)
 	handler = s.interceptServiceRequest(handler)
 	handler = s.interceptEventRequest(handler)
