@@ -75,7 +75,9 @@ const (
 )
 
 const (
-	SystemServiceDir = "/etc/systemd/system/"
+	SystemServiceDir  = "/etc/systemd/system/"
+	UserNodeConfigDir = "/etc/node-config/"
+	UserRegistryCfg   = UserNodeConfigDir + "daemon.json"
 )
 
 // label
@@ -108,6 +110,7 @@ const (
 const (
 	EdgeCertCM             = "edge-info"
 	EdgeNodeHostConfig     = "host-config"
+	InsecureRegistries     = "insecure-registries"
 	EdgeNodeDelayDomain    = "node-delay-domain"
 	LiteAPIServerTLSJSON   = "tls.json"
 	KubeAPIClusterIP       = "kube-api-cluster-ip"

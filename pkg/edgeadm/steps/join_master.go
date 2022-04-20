@@ -194,10 +194,31 @@ func prepareJoinEdgeNode(kubeClient *kubernetes.Clientset, data phases.JoinData,
 	if !ok {
 		klog.Warningf("Get cluster-info configMap %s value nil\n", constant.EdgeNodeHostConfig)
 	}
-	nodeHostConfig = fmt.Sprintf("%s\n%s\n", nodeHostConfig, delayDomainHostConfig)
+	nodeHostConfig = fmt.Sprintf("%s\n%s\n", delayDomainHostConfig, nodeHostConfig)
 	if err := ensureHostDNS(nodeHostConfig); err != nil {
 		klog.Errorf("Set node hosts err: %v", err)
 		return err
+	}
+
+	// Set registries config
+	insecureRegistriesCfg, ok := edgeInfoConfigMap.Data[constant.InsecureRegistries]
+	if !ok {
+		klog.Warningf("Get cluster-info configMap %s value nil\n", constant.InsecureRegistries)
+	}
+	var insecureRegistry []string
+	insecureRegistries := strings.SplitAfter(strings.TrimSpace(insecureRegistriesCfg), "\n")
+	for _, registry := range insecureRegistries {
+		if registry != "" {
+			insecureRegistry = append(insecureRegistry, registry)
+		}
+	}
+	if len(insecureRegistry) > 0 {
+		util.RemoveFile(constant.UserRegistryCfg)
+		os.MkdirAll(constant.UserNodeConfigDir, 0755)
+		if err := util.WriteWithBufio(constant.UserRegistryCfg, util.ToJson(insecureRegistry)); err != nil {
+			klog.Errorf("Write file: %s, err: %v", constant.UserRegistryCfg, err)
+			return err
+		}
 	}
 
 	return nil
