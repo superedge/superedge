@@ -1,7 +1,6 @@
 package prepare
 
 import (
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"gopkg.in/yaml.v2"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -16,7 +15,7 @@ type object struct {
 }
 
 func TestYaml(t *testing.T) {
-	data, err := kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
+	data, err := kubeclient.ParseString("", map[string]interface{}{})
 	if err != nil {
 		t.Error("err")
 	}
