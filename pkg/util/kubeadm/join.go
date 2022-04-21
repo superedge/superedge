@@ -250,8 +250,8 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 
 	// init node and install docker container runtime
 	joinRunner.AppendPhase(steps.NewInitNodePhase())
-	joinRunner.AppendPhase(steps.NewContainerPhase())
 	joinRunner.AppendPhase(steps.NewJoinPreparePhase(edgeConfig))
+	joinRunner.AppendPhase(steps.NewContainerPhase())
 	joinRunner.AppendPhase(steps.NewLiteApiServerInitPhase(edgeConfig))
 	// add logic of join edge node
 	joinRunner.AppendPhase(phases.NewPreflightPhase())

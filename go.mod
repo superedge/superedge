@@ -3,7 +3,7 @@ module github.com/superedge/superedge
 go 1.14
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.1.0
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/TarsCloud/TarsGo v1.1.7-0.20210519070617-e2dc06be2b59
 	github.com/caddyserver/caddy v1.0.5 // indirect
@@ -11,6 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/golang/protobuf v1.5.2
+	github.com/google/flatbuffers v1.12.1
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
@@ -24,7 +25,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/google/flatbuffers v1.12.1
 	github.com/tarscloud/gopractice v1.0.1
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
@@ -33,15 +33,15 @@ require (
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.22.2
-	k8s.io/apiextensions-apiserver v0.22.2
-	k8s.io/apimachinery v0.22.2
-	k8s.io/apiserver v0.20.5
-	k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go v0.22.2
-	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.20.5
-	k8s.io/component-base v0.22.2
+	k8s.io/api v0.22.3
+	k8s.io/apiextensions-apiserver v0.22.3
+	k8s.io/apimachinery v0.22.3
+	k8s.io/apiserver v0.22.3
+	k8s.io/cli-runtime v0.22.3
+	k8s.io/client-go v0.22.3
+	k8s.io/cluster-bootstrap v0.22.3
+	k8s.io/code-generator v0.22.3
+	k8s.io/component-base v0.22.3
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
