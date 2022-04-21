@@ -191,9 +191,8 @@ func GetTargetType(nodeName string) TargetType {
 	if dnsErr, ok := err.(*net.DNSError); ok {
 		if dnsErr.IsNotFound {
 			/*
-				todo 需要判断节节点点是否为没有建立云边隧道的边缘节点
+				todo It is necessary to determine whether the node node is an edge node without a cloud-edge tunnel established
 			*/
-
 			return CloudNodeType
 		}
 	}

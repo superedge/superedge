@@ -54,7 +54,7 @@ func Ping(ip string) error {
 	p := fastping.NewPinger()
 	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
 	if err != nil {
-		klog.Errorf("获取icmp地址失败, ip %s, error: %v", ip, err)
+		klog.Errorf("Failed to get icmp address, ip %s, error: %v", ip, err)
 		return err
 	}
 	p.AddIPAddr(ra)

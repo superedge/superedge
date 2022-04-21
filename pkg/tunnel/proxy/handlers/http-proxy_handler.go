@@ -109,7 +109,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 	if net.ParseIP(host) != nil {
 		podIP = host
 	} else {
-		//处理访问集群外的域名
+		//Handling access to domain names outside the cluster
 		domain, err := common.GetDomainFromHost(host)
 		if err != nil {
 			errMsg(localNode)
@@ -118,7 +118,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 		if domain != "" {
 			return connectOutcluster(domain, port)
 		}
-		//处理访问集群内service
+		//Handling access to services in the cluster
 		podIP, err = common.GetPodIpFromService(req.Host)
 		if err != nil {
 			klog.Errorf("Failed to get podIp through service, error: %v", err)
@@ -128,7 +128,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 	}
 	nodeName, err := indexers.GetNodeByPodIP(podIP)
 	if err != nil {
-		//处理访问集群外的ip
+		//Handle access to ip outside the cluster
 		pingErr := util.Ping(podIP)
 		if pingErr == nil {
 			return connectOutcluster(podIP, port)

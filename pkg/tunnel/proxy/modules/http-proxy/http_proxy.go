@@ -32,7 +32,7 @@ func (h HttpProxy) Name() string {
 }
 
 func (h HttpProxy) Start(mode string) {
-	//处理隧道建立的HTTP_CONNECT请求
+	//Handle HTTP_CONNECT requests for tunnel establishment
 	context.GetContext().RegisterHandler(util.HTTP_PROXY_ACCESS, util.HTTP_PROXY, handlers.AccessHandler)
 	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.HTTP_PROXY, handlers.DirectHandler)
 	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.HTTP_PROXY, handlers.FrontendHandler)
