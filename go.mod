@@ -11,7 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/golang/protobuf v1.5.2
-	github.com/google/flatbuffers v1.12.1
+	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
@@ -27,7 +27,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/tarscloud/gopractice v1.0.1
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
 	google.golang.org/grpc v1.29.1
@@ -42,7 +42,6 @@ require (
 	k8s.io/cluster-bootstrap v0.22.3
 	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.22.3
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
 	k8s.io/system-validators v1.4.0 // indirect
