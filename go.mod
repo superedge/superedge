@@ -11,13 +11,13 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/golang/protobuf v1.5.2
-	github.com/google/flatbuffers v1.12.1
+	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/lithammer/dedent v1.1.0
-	github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
+	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -27,7 +27,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/tarscloud/gopractice v1.0.1
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
 	google.golang.org/grpc v1.29.1
@@ -42,7 +42,6 @@ require (
 	k8s.io/cluster-bootstrap v0.22.3
 	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.22.3
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
 	k8s.io/system-validators v1.4.0 // indirect
@@ -57,16 +56,16 @@ replace (
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200329194405-dd816f0735f8
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
-	k8s.io/api => k8s.io/api v0.20.5
+	k8s.io/api => k8s.io/api v0.21.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.20.5
-	k8s.io/apiserver => k8s.io/apiserver v0.20.5
+	k8s.io/apimachinery => k8s.io/apimachinery v0.21.0
+	k8s.io/apiserver => k8s.io/apiserver v0.21.0
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.20.5
-	k8s.io/client-go => k8s.io/client-go v0.20.5
+	k8s.io/client-go => k8s.io/client-go v0.21.0
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.20.5
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.5
 	k8s.io/code-generator => k8s.io/code-generator v0.20.5
-	k8s.io/component-base => k8s.io/component-base v0.20.5
+	k8s.io/component-base => k8s.io/component-base v0.21.0
 	k8s.io/component-helpers => k8s.io/component-helpers v0.20.5
 	k8s.io/controller-manager => k8s.io/controller-manager v0.20.5
 	k8s.io/cri-api => k8s.io/cri-api v0.20.5

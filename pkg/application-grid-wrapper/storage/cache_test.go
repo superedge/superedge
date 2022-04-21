@@ -42,7 +42,8 @@ func init() {
 func TestCache(t *testing.T) {
 	svcCh := make(chan watch.Event)
 	epsCh := make(chan watch.Event)
-	endpointSliceCh := make(chan watch.Event)
+	endpointSliceChV1 := make(chan watch.Event)
+	endpointSliceChV1Beta1 := make(chan watch.Event)
 	supportEndpointSlice := true
 	stop := false
 	defer func() {
@@ -58,7 +59,7 @@ func TestCache(t *testing.T) {
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceCh, supportEndpointSlice)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceChV1, endpointSliceChV1Beta1, supportEndpointSlice)
 
 	testNodes := make([]*v1.Node, 10)
 	nodeEventHandler := cache.NodeEventHandler()
@@ -201,7 +202,8 @@ func TestCache(t *testing.T) {
 func TestCacheServiceNotifier(t *testing.T) {
 	svcCh := make(chan watch.Event, 100)
 	epsCh := make(chan watch.Event, 100)
-	endpointSliceCh := make(chan watch.Event)
+	endpointSliceChV1 := make(chan watch.Event)
+	endpointSliceChV1Beta1 := make(chan watch.Event)
 	supportEndpointSlice := true
 	stop := false
 	defer func() {
@@ -219,7 +221,7 @@ func TestCacheServiceNotifier(t *testing.T) {
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceCh, supportEndpointSlice)
+	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceChV1, endpointSliceChV1Beta1, supportEndpointSlice)
 
 	expectServiceSequence := make([]*v1.Service, 0)
 	testServices := make([]*v1.Service, 10)
