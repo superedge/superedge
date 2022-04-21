@@ -21,11 +21,25 @@ import (
 )
 
 func DirectHandler(msg *proto.StreamMsg) error {
+	context.GetContext().GetNode(msg.Node)
 	chConn := context.GetContext().GetConn(msg.Topic)
-	if chConn == nil {
-		klog.Errorf("%s connection has been disconnected", msg.Category)
-		return fmt.Errorf("Failed to get %s connection", msg.Category)
+	if chConn != nil {
+		chConn.Send2Conn(msg)
+	} else {
+		sendFlag := false
+		if localNode := context.GetContext().GetNode(msg.Node); localNode != nil {
+			if remoteNodeName := localNode.GetPairNode(msg.GetTopic()); remoteNodeName != "" {
+				if remoteNode := context.GetContext().GetNode(remoteNodeName); remoteNode != nil {
+					remoteNode.Send2Node(msg)
+					sendFlag = true
+				}
+			}
+		}
+		if !sendFlag {
+			klog.Errorf("%s connection has been disconnected", msg.Category)
+			return fmt.Errorf("Failed to get %s connection", msg.Category)
+		}
+
 	}
-	chConn.Send2Conn(msg)
 	return nil
 }

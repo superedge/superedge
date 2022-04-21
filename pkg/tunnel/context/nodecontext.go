@@ -36,6 +36,8 @@ func (entity *nodeContext) AddNode(name string) *node {
 		ch:        make(chan *proto.StreamMsg, util.MSG_CHANNEL_CAP),
 		connsLock: sync.RWMutex{},
 		name:      name,
+		pairnodes: make(map[string]string),
+		nodesLock: sync.RWMutex{},
 	}
 	entity.nodes[name] = edge
 	metrics.EdgeNodes.WithLabelValues(os.Getenv(util.POD_NAMESPACE_ENV), os.Getenv(util.POD_NAME)).Inc()

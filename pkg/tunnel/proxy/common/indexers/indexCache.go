@@ -15,12 +15,14 @@ package indexers
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/informers"
+	informcorev1 "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
+	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sync"
@@ -28,8 +30,10 @@ import (
 )
 
 var (
-	podIndexer, nodeIndexer cache.Indexer
-	once                    sync.Once
+	podIndexer, nodeIndexer, serviceIndexer, endpointIndexer cache.Indexer
+	once                                                     sync.Once
+	ServiceLister                                            listersv1.ServiceLister
+	EndpointLister                                           listersv1.EndpointsLister
 )
 
 //Index pods by podIp
@@ -49,37 +53,58 @@ func MetaNameIndexFunc(obj interface{}) ([]string, error) {
 	return []string{key}, nil
 }
 
-func InitCache(stopCh chan struct{}) {
+func InitCache(path string, stopCh chan struct{}) {
 	once.Do(func() {
-		clientset, err := kubeclient.GetInclusterClientSet(conf.TunnelConf.TunnlMode.Cloud.Egress.KubeConfig)
+		clientset, err := kubeclient.GetInclusterClientSet(path)
 		if err != nil {
 			klog.Errorf("Failed to get kubeclient, error: %v", err)
 			return
 		}
 
+		informerFactory := informers.NewSharedInformerFactory(clientset, 1*time.Minute)
+
 		//Initialize podIndexer
-		podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fields.Everything())
-		indexerPod, informerPod := cache.NewIndexerInformer(podListWatcher, &v1.Pod{}, 1*time.Minute, cache.ResourceEventHandlerFuncs{}, cache.Indexers{util.PODIP_INDEXER: PodIPKeyFunc})
-		go informerPod.Run(stopCh)
+		podInformer := informerFactory.InformerFor(&v1.Pod{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
+			return informcorev1.NewPodInformer(k, "", duration, cache.Indexers{util.PODIP_INDEXER: PodIPKeyFunc})
+		})
+		go podInformer.Run(stopCh)
 		// Wait for all involved caches to be synced, before processing items from the queue is started
-		if !cache.WaitForCacheSync(stopCh, informerPod.HasSynced) {
+		if !cache.WaitForCacheSync(stopCh, podInformer.HasSynced) {
 			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
 			return
 		}
-
-		podIndexer = indexerPod
+		podIndexer = podInformer.GetIndexer()
 
 		//initialize nodeIndexer
-		nodeListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "nodes", v1.NamespaceAll, fields.Everything())
-		indexerNode, informerNode := cache.NewIndexerInformer(nodeListWatcher, &v1.Node{}, 1*time.Minute, cache.ResourceEventHandlerFuncs{}, cache.Indexers{util.METANAME_INDEXER: MetaNameIndexFunc})
-		go informerNode.Run(stopCh)
-		// Wait for all involved caches to be synced, before processing items from the queue is started
-		if !cache.WaitForCacheSync(stopCh, informerNode.HasSynced) {
+		nodeInformer := informerFactory.InformerFor(&v1.Node{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
+			return informcorev1.NewNodeInformer(k, duration, cache.Indexers{util.METANAME_INDEXER: MetaNameIndexFunc})
+		})
+		go nodeInformer.Run(stopCh)
+		if !cache.WaitForCacheSync(stopCh, nodeInformer.HasSynced) {
 			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
 			return
 		}
+		nodeIndexer = nodeInformer.GetIndexer()
 
-		nodeIndexer = indexerNode
+		//initialize serviceIndexer、serviceLister
+		serviceInform := informerFactory.Core().V1().Services().Informer()
+		go serviceInform.Run(stopCh)
+		if !cache.WaitForCacheSync(stopCh, serviceInform.HasSynced) {
+			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+			return
+		}
+		serviceIndexer = serviceInform.GetIndexer()
+		ServiceLister = listersv1.NewServiceLister(serviceIndexer)
+
+		//initialize endpointIndexer、endpointLister
+		endpointInform := informerFactory.Core().V1().Endpoints().Informer()
+		go endpointInform.Run(stopCh)
+		if !cache.WaitForCacheSync(stopCh, endpointInform.HasSynced) {
+			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+			return
+		}
+		endpointIndexer = endpointInform.GetIndexer()
+		EndpointLister = listersv1.NewEndpointsLister(endpointIndexer)
 	})
 
 }
@@ -95,7 +120,7 @@ func GetNodeByPodIP(podIp string) (string, error) {
 	}
 
 	if len(pods) < 1 {
-		return "", fmt.Errorf("Failed to get pods by PodIP, PodIP: %s", podIp)
+		return "", fmt.Errorf("Failed to get pods by PodIP %s", podIp)
 	}
 	return pods[0].(*v1.Pod).Spec.NodeName, nil
 }

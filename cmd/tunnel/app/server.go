@@ -21,11 +21,14 @@ import (
 	"github.com/superedge/superedge/cmd/tunnel/app/options"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/module"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/egress"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/http-proxy"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp"
+	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
@@ -44,8 +47,16 @@ func NewTunnelCommand() *cobra.Command {
 
 			err := conf.InitConf(*option.TunnelMode, *option.TunnelConf)
 			if err != nil {
-				klog.Info("tunnel failed to load configuration file !")
+				klog.Infof("tunnel failed to load configuration file, error: %v", err)
 				return
+			}
+
+			if *option.TunnelMode == tunnelutil.CLOUD {
+				stop := make(chan struct{})
+				indexers.InitCache(*option.Kubeconfig, stop)
+				defer func() {
+					stop <- struct{}{}
+				}()
 			}
 			module.InitModules(*option.TunnelMode)
 			stream.InitStream(*option.TunnelMode)
@@ -53,6 +64,7 @@ func NewTunnelCommand() *cobra.Command {
 			tcp.InitTcp()
 			https.InitHttps()
 			ssh.InitSSH()
+			http_proxy.InitHttpProxy()
 			module.LoadModules(*option.TunnelMode)
 			module.ShutDown()
 		},

@@ -19,6 +19,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
+	"strings"
 )
 
 const (
@@ -55,6 +56,9 @@ func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr str
 			Data:     rb[:n],
 			Addr:     addr,
 		})
+		if strings.Contains(addr, "10250") {
+			klog.Infof("read kubelet data = %s\n\n", string(rb[:n]))
+		}
 	}
 }
 

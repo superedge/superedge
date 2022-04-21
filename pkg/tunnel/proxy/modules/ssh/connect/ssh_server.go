@@ -38,7 +38,7 @@ func HandleServerConn(proxyConn net.Conn) {
 		klog.Errorf("Failed to get http request, error: %v", err)
 		return
 	}
-	if request.Method == util.HttpMethod {
+	if request.Method == http.MethodConnect {
 		host, port, err := net.SplitHostPort(request.Host)
 		if err != nil {
 			klog.Errorf("Failed to obtain the login destination node and SSH server port, module: %s, error: %v", util.SSH, err)

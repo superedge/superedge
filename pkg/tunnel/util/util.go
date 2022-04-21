@@ -17,11 +17,51 @@ limitations under the License.
 package util
 
 import (
+	"bufio"
+	"bytes"
+	"github.com/tatsushid/go-fastping"
+	"io"
+	"k8s.io/klog/v2"
+	"net"
+	"net/http"
 	"strings"
+	"time"
+)
+
+const (
+	RequestCache = 10 * 1024
 )
 
 func ReplaceString(line string) string {
 	line = strings.Replace(line, " ", "", -1)
 	line = strings.Replace(line, "\n", "", -1)
 	return line
+}
+
+func GetRequestFromConn(conn net.Conn) (*http.Request, *bytes.Buffer, error) {
+	rawRequest := bytes.NewBuffer(make([]byte, RequestCache))
+	rawRequest.Reset()
+	reqReader := bufio.NewReader(io.TeeReader(conn, rawRequest))
+	request, err := http.ReadRequest(reqReader)
+	if err != nil {
+		klog.Errorf("Failed to get http request, error: %v", err)
+		return nil, nil, err
+	}
+	return request, rawRequest, nil
+}
+
+func Ping(ip string) error {
+	p := fastping.NewPinger()
+	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
+	if err != nil {
+		klog.Errorf("获取icmp地址失败, ip %s, error: %v", ip, err)
+		return err
+	}
+	p.AddIPAddr(ra)
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		klog.Infof("IP Addr: %s receive, RTT: %v\n", addr.String(), rtt)
+	}
+	p.OnIdle = func() {
+	}
+	return p.Run()
 }
