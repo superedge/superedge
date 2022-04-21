@@ -25,13 +25,17 @@ const (
 	TCP_BACKEND  = "backend"
 	TCP_CONTROL  = "control"
 )
+const (
+	HTTP_PROXY_ACCESS = "access"
+)
 
 const (
-	STREAM = "stream"
-	TCP    = "tcp"
-	HTTPS  = "https"
-	SSH    = "ssh"
-	EGRESS = "egress"
+	STREAM     = "stream"
+	TCP        = "tcp"
+	HTTPS      = "https"
+	SSH        = "ssh"
+	EGRESS     = "egress"
+	HTTP_PROXY = "httpProxy"
 )
 
 const (
@@ -69,7 +73,6 @@ const (
 
 const (
 	MODULE_DEBUG = "debug"
-	HttpMethod   = "CONNECT"
 )
 
 const (

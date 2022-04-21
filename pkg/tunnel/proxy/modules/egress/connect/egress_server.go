@@ -39,7 +39,7 @@ func HandleEgressConn(proxyConn net.Conn) {
 		klog.Errorf("Failed to get http request, error: %v", err)
 		return
 	}
-	if request.Method == util.HttpMethod {
+	if request.Method == http.MethodConnect {
 		host, port, err := net.SplitHostPort(request.Host)
 		if err != nil {
 			klog.Errorf("Failed to get host and port, module: %s, error: %v", util.EGRESS, err)
@@ -53,6 +53,7 @@ func HandleEgressConn(proxyConn net.Conn) {
 				klog.Errorf("Failed to get internalIp of node, error: %v", err)
 				common.ProxyEdgeNode(host, "127.0.0.1", port, util.EGRESS, proxyConn, rawRequest)
 			} else {
+				klog.Infof("internalIp = %s, request = %v\n\n", internalIp, request)
 				common.ProxyEdgeNode(host, internalIp, port, util.EGRESS, proxyConn, rawRequest)
 			}
 
@@ -60,8 +61,38 @@ func HandleEgressConn(proxyConn net.Conn) {
 			//Request pods on edge nodes
 			node, err := indexers.GetNodeByPodIP(host)
 			if err != nil {
-				klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", util.EGRESS, err)
-				return
+				//Handling access to out-of-cluster ip
+				pingErr := util.Ping(host)
+				if pingErr == nil {
+					remoteConn, err := net.Dial("tcp", request.Host)
+					if err != nil {
+						klog.Errorf("Failed to establish tcp connection with server outside the cluster, error: %v", err)
+						return
+					}
+					_, err = remoteConn.Write([]byte(util.ConnectMsg))
+					if err != nil {
+						if err != nil {
+							klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+							return
+						}
+					}
+					defer remoteConn.Close()
+					go func() {
+						_, writeErr := io.Copy(remoteConn, proxyConn)
+						if writeErr != nil {
+							klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
+						}
+					}()
+					_, err = io.Copy(proxyConn, remoteConn)
+					if err != nil {
+						klog.Errorf("Failed to read data from remoteConn, error: %v", err)
+						return
+					}
+
+				} else {
+					klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", util.EGRESS, err)
+					return
+				}
 			}
 			common.ProxyEdgeNode(node, host, port, util.EGRESS, proxyConn, rawRequest)
 		}

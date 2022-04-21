@@ -59,3 +59,12 @@ func (entity *connContext) GetConns(names []string) []*conn {
 	}
 	return conns
 }
+
+func (entity *connContext) SetConn(uid string, ch chan *proto.StreamMsg) {
+	entity.connLock.Lock()
+	defer entity.connLock.Unlock()
+	entity.conns[uid] = &conn{
+		uid,
+		ch,
+	}
+}

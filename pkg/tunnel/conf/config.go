@@ -33,10 +33,11 @@ type TunnelMode struct {
 }
 
 type TunnelCloud struct {
-	Https  *HttpsServer      `toml:"https"`
-	Stream *StreamCloud      `toml:"stream"`
-	Tcp    map[string]string `toml:"tcp"`
-	Egress *EgressServer     `toml:"egress"`
+	Https     *HttpsServer      `toml:"https"`
+	Stream    *StreamCloud      `toml:"stream"`
+	Tcp       map[string]string `toml:"tcp"`
+	Egress    *EgressServer     `toml:"egress"`
+	HttpProxy *HttpProxyServer  `toml:"httpproxy"`
 }
 
 type HttpsServer struct {
@@ -63,8 +64,10 @@ type StreamServer struct {
 type EgressServer struct {
 	ServerCert string `toml:"servercert"`
 	ServerKey  string `toml:"serverkey"`
-	KubeConfig string `toml:"kubeconfig"`
 	EgressPort string `toml:"egressport"`
+}
+type HttpProxyServer struct {
+	ProxyPort string `toml:"proxyport"`
 }
 
 type Dns struct {
@@ -75,13 +78,19 @@ type Dns struct {
 }
 
 type TunnelEdge struct {
-	Https      *HttpsClient `toml:"https"`
-	StreamEdge StreamEdge   `toml:"stream"`
+	Https      *HttpsClient    `toml:"https"`
+	StreamEdge StreamEdge      `toml:"stream"`
+	HttpProxy  HttpProxyServer `toml:"httpproxy"`
 }
 
 type HttpsClient struct {
 	Cert string `toml:"cert"`
 	Key  string `toml:"key"`
+}
+
+type HttpProxyEdgeServer struct {
+	ProxyIP   string `toml:"ip"`
+	ProxyPort string `toml:"port"`
 }
 
 type StreamEdge struct {

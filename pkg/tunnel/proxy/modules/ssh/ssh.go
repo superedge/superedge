@@ -40,14 +40,16 @@ func (s SSH) Start(mode string) {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
 			return
 		}
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				klog.Errorf("SSH Server accept failed, error: %v", err)
-				continue
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				if err != nil {
+					klog.Errorf("SSH Server accept failed, error: %v", err)
+					continue
+				}
+				go connect.HandleServerConn(conn)
 			}
-			go connect.HandleServerConn(conn)
-		}
+		}()
 	}
 }
 

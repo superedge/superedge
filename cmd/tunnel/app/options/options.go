@@ -23,16 +23,19 @@ import (
 type TunnelOption struct {
 	TunnelMode *string
 	TunnelConf *string
+	Kubeconfig *string
 	Debug      *bool
 }
 
 func NewTunnelOption() *TunnelOption {
 	c := "../../conf/cloud_mode.toml"
 	m := "cloud"
+	k := ""
 	d := false
 	return &TunnelOption{
 		TunnelMode: &m,
 		TunnelConf: &c,
+		Kubeconfig: &k,
 		Debug:      &d,
 	}
 }
@@ -40,5 +43,6 @@ func (option *TunnelOption) Addflag() (fsSet cliflag.NamedFlagSets) {
 	fs := fsSet.FlagSet("tunnel")
 	fs.StringVar(option.TunnelMode, "m", *option.TunnelMode, "Specify the edge proxy or cloud proxy")
 	fs.StringVar(option.TunnelConf, "c", *option.TunnelConf, "Specify the configuration file path")
+	fs.StringVar(option.Kubeconfig, "k", *option.Kubeconfig, "Specify the kubeconfig")
 	return
 }
