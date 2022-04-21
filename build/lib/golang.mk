@@ -1,5 +1,5 @@
 GO := go
-GO_SUPPORTED_VERSIONS ?= 1.13|1.14|1.15|1.16|1.17|1.18
+GO_SUPPORTED_VERSIONS ?= 1.14
 GO_LDFLAGS += -X $(VERSION_PACKAGE).gitVersion=$(VERSION) \
 	-X $(VERSION_PACKAGE).gitBranch=$(GIT_BRANCH) \
 	-X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) \
@@ -31,8 +31,9 @@ endif
 
 .PHONY: go.build.verify
 go.build.verify:
-ifneq ($(shell $(GO) version | grep -q -E '\bgo($(GO_SUPPORTED_VERSIONS))\b' && echo 0 || echo 1), 0)
-	$(error unsupported go version. Please make install one of the following supported version: '$(GO_SUPPORTED_VERSIONS)')
+ifneq ($(shell go list -f {{.GoVersion}} -m), $(GO_SUPPORTED_VERSIONS))
+	$(error unsupported go version)
+	@echo "===========> $(shell go list -f {{.GoVersion}} -m)"
 endif
 
 .PHONY: go.build.%
