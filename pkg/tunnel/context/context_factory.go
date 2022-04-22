@@ -132,6 +132,12 @@ func (ctx *Context) RemoveConn(uid string) {
 	klog.V(8).Infof("remove conn success uuid: %s", uid)
 }
 
+func (ctx *Context) SetConn(uid string, ch chan *proto.StreamMsg) {
+	klog.V(8).Infof("starting set conn uuid: %s", uid)
+	ctx.conns.SetConn(uid, ch)
+	klog.V(8).Infof("remove conn success uuid: %s", uid)
+}
+
 func (ctx *Context) Handler(msg *proto.StreamMsg, key, module string) {
 	f := ctx.GetHandler(key, module)
 	if f != nil {
@@ -140,4 +146,5 @@ func (ctx *Context) Handler(msg *proto.StreamMsg, key, module string) {
 			klog.Errorf("handler execution error err = %v", err)
 		}
 	}
+	klog.V(8).Infof("get handler success uid: %s, category:%s, handlerType:%s", msg.Topic, msg.GetCategory(), msg.GetType())
 }

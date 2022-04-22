@@ -19,7 +19,8 @@ package storage
 import (
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	v1 "k8s.io/api/core/v1"
-	discovery "k8s.io/api/discovery/v1beta1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -33,14 +34,16 @@ type CacheList interface {
 	GetNode(hostName string) *v1.Node
 	GetServices() []*v1.Service
 	GetEndpoints() []*v1.Endpoints
-	GetEndpointSlice() []*discovery.EndpointSlice
+	GetEndpointSliceV1() []*discoveryv1.EndpointSlice
+	GetEndpointSliceV1Beta1() []*discoveryv1beta1.EndpointSlice
 }
 
 type CacheEventHandler interface {
 	NodeEventHandler() cache.ResourceEventHandler
 	ServiceEventHandler() cache.ResourceEventHandler
 	EndpointsEventHandler() cache.ResourceEventHandler
-	EndpointSliceEventHandler() cache.ResourceEventHandler
+	EndpointSliceV1EventHandler() cache.ResourceEventHandler
+	EndpointSliceV1Beta1EventHandler() cache.ResourceEventHandler
 }
 
 type LocalNodeInfoHandler interface {

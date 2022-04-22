@@ -20,12 +20,13 @@ import (
 	"context"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
+	"io/ioutil"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"time"
 
 	"fmt"
-	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +34,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+)
+
+const (
+	DeploymentGridCRDYaml  = "/etc/superedge/application-grid-controller/manifests/superedge.io_deploymentgrids.yaml"
+	StatefulSetGridCRDYaml = "/etc/superedge/application-grid-controller/manifests/superedge.io_statefulsetgrids.yaml"
+	ServiceGridCRDYaml     = "/etc/superedge/application-grid-controller/manifests/superedge.io_servicegrids.yaml"
 )
 
 type crdPreparator struct {
@@ -84,11 +91,23 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 	// create specified GroupVersionKind edge CRD
 	switch gvk.Kind {
 	case common.DeploymentGridKind:
-		crdBytes, err = kubeclient.ParseString(common.DeploymentGridCRDYaml, map[string]interface{}{})
+		f, err := ioutil.ReadFile(DeploymentGridCRDYaml)
+		if err != nil {
+			return nil, err
+		}
+		crdBytes, err = kubeclient.ParseString(string(f), map[string]interface{}{})
 	case common.StatefulSetGridKind:
-		crdBytes, err = kubeclient.ParseString(common.StatefulSetGridCRDYaml, map[string]interface{}{})
+		f, err := ioutil.ReadFile(StatefulSetGridCRDYaml)
+		if err != nil {
+			return nil, err
+		}
+		crdBytes, err = kubeclient.ParseString(string(f), map[string]interface{}{})
 	case common.ServiceGridKind:
-		crdBytes, err = kubeclient.ParseString(common.ServiceGridCRDYaml, map[string]interface{}{})
+		f, err := ioutil.ReadFile(ServiceGridCRDYaml)
+		if err != nil {
+			return nil, err
+		}
+		crdBytes, err = kubeclient.ParseString(string(f), map[string]interface{}{})
 	default:
 		err = fmt.Errorf("Invalid edge group version kind resource %s", gvk.Kind)
 	}
@@ -101,12 +120,12 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 		return nil, err
 	}
 	// create or update relevant edge CRD
-	curCRD, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+	curCRD, err := p.client.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		// try to create edge CRD
 		klog.V(4).Infof("Creating CRD %s", crd.Name)
-		if newCrd, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{}); errors.IsAlreadyExists(err) {
-			return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+		if newCrd, err := p.client.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{}); errors.IsAlreadyExists(err) {
+			return p.client.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
 		} else if err != nil {
 			return nil, err
 		} else {
@@ -114,11 +133,11 @@ func (p *crdPreparator) createOrUpdateCRD(gvk schema.GroupVersionKind) (*apiext.
 		}
 	}
 	// update edge CRD if necessary
-	if !equality.Semantic.DeepEqual(crd.Spec.Validation, curCRD.Spec.Validation) ||
+	if !equality.Semantic.DeepEqual(crd.Spec.Versions, curCRD.Spec.Versions) ||
 		!equality.Semantic.DeepEqual(crd.Spec.Versions, curCRD.Spec.Versions) {
 		curCRD.Spec = crd.Spec
 		klog.V(4).Infof("Updating CRD %s", crd.Name)
-		return p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), curCRD, metav1.UpdateOptions{})
+		return p.client.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), curCRD, metav1.UpdateOptions{})
 	}
 	return curCRD, nil
 }
@@ -135,11 +154,10 @@ func (p *crdPreparator) waitCRD(name string) error {
 		}
 		first = false
 
-		crd, err := p.client.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
+		crd, err := p.client.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
-
 		for _, cond := range crd.Status.Conditions {
 			switch cond.Type {
 			case apiext.Established:

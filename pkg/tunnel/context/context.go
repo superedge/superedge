@@ -36,6 +36,7 @@ type ConnMng interface {
 	GetConn(uid string) *conn
 	RemoveConn(uid string)
 	GetConns(names []string) []*conn
+	SetConn(uid string, ch chan *proto.StreamMsg)
 }
 
 type Node interface {
@@ -45,6 +46,10 @@ type Node interface {
 	NodeRecv() <-chan *proto.StreamMsg
 	GetName() string
 	GetBindConns() []string
+	GetChan() chan *proto.StreamMsg
+	AddPairNode(uid, nodeName string)
+	RemovePairNode(uid string)
+	GetPairNode(uid string) string
 }
 
 type NodeMng interface {

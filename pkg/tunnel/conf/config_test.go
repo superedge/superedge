@@ -343,3 +343,8 @@ func SaveFile(filePath, txt string) {
 		return
 	}
 }
+
+func TestInitConf(t *testing.T) {
+	err := InitConf("cloud", "./mode.toml")
+	fmt.Println(err)
+}

@@ -26,6 +26,8 @@ type node struct {
 	ch        chan *proto.StreamMsg
 	conns     *[]string
 	connsLock sync.RWMutex
+	pairnodes map[string]string
+	nodesLock sync.RWMutex
 }
 
 func (edge *node) BindNode(uuid string) {
@@ -37,6 +39,7 @@ func (edge *node) BindNode(uuid string) {
 }
 
 func (edge *node) UnbindNode(uuid string) {
+	//删除连接绑定
 	edge.connsLock.Lock()
 	for k, v := range *edge.conns {
 		if v == uuid {
@@ -44,6 +47,10 @@ func (edge *node) UnbindNode(uuid string) {
 		}
 	}
 	edge.connsLock.Unlock()
+	//删除节点绑定
+	edge.nodesLock.Lock()
+	delete(edge.pairnodes, uuid)
+	edge.nodesLock.Unlock()
 }
 
 func (edge *node) Send2Node(msg *proto.StreamMsg) {
@@ -65,4 +72,24 @@ func (edge *node) GetBindConns() []string {
 		return nil
 	}
 	return *edge.conns
+}
+func (edge *node) GetChan() chan *proto.StreamMsg {
+	return edge.ch
+}
+
+func (edge *node) AddPairNode(uid, nodeName string) {
+	edge.nodesLock.Lock()
+	defer edge.nodesLock.Unlock()
+	edge.pairnodes[uid] = nodeName
+}
+func (edge *node) RemovePairNode(uid string) {
+	edge.nodesLock.Lock()
+	defer edge.nodesLock.Unlock()
+	delete(edge.pairnodes, uid)
+}
+
+func (edge *node) GetPairNode(uid string) string {
+	edge.nodesLock.RLock()
+	defer edge.nodesLock.RUnlock()
+	return edge.pairnodes[uid]
 }

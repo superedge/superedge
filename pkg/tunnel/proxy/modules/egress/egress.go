@@ -18,7 +18,6 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/egress/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
@@ -26,7 +25,6 @@ import (
 )
 
 type EgressSelector struct {
-	stop chan struct{}
 }
 
 func (e EgressSelector) Name() string {
@@ -39,10 +37,8 @@ func (e EgressSelector) Start(mode string) {
 	context.GetContext().RegisterHandler(util.CLOSED, util.EGRESS, handlers.DirectHandler)
 	if mode == util.CLOUD {
 		if conf.TunnelConf.TunnlMode.Cloud.Egress == nil {
-			klog.Info("Please configure the egress module")
 			return
 		}
-		indexers.InitCache(e.stop)
 		cert, err := tls.LoadX509KeyPair(conf.TunnelConf.TunnlMode.Cloud.Egress.ServerCert, conf.TunnelConf.TunnlMode.Cloud.Egress.ServerKey)
 		if err != nil {
 			klog.Errorf("client load cert fail, error: %v", err)
@@ -57,26 +53,24 @@ func (e EgressSelector) Start(mode string) {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
 			return
 		}
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				klog.Errorf("SSH Server accept failed, error: %v", err)
-				continue
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				if err != nil {
+					klog.Errorf("SSH Server accept failed, error: %v", err)
+					continue
+				}
+				go connect.HandleEgressConn(conn)
 			}
-			go connect.HandleEgressConn(conn)
-		}
+		}()
 	}
 }
 
 func (e EgressSelector) CleanUp() {
-	e.stop <- struct{}{}
 	context.GetContext().RemoveModule(e.Name())
 }
 
 func InitEgress() {
-	egress := &EgressSelector{
-		stop: make(chan struct{}),
-	}
-	module.Register(egress)
+	module.Register(&EgressSelector{})
 	klog.Infof("init module: %s success !", util.EGRESS)
 }
