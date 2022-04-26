@@ -122,7 +122,7 @@ Kubeadm Cluster Revert To Edge Cluster Success!
 ```
 [root@master01 ~]# edgeadm manifests
 ```
-All supeeredge default yamls would be output into ./manifests/
+All superedge default yamls would be output into ./manifests/
 
 - Parameters supported
 ```
