@@ -6,8 +6,9 @@ English|[简体中文](./addon_superedge_CN.md)
    * [1.background](#1background)
    * [2. addon SuperEdge of Edge capabilities](#2-addon-superedge-of-edge-capabilities)
       * [&lt;1&gt;. Installation conditions](#1-installation-conditions)
-      * [&lt;2&gt;.Download edgeadm static installation package](#2download-edgeadm-static-installation-package)
-      * [&lt;3&gt;.addon SuperEdge](#3addon-superedge)
+      * [&lt;2&gt;. Custom configuration of Addon SuperEdge [optional]](#2-custom-configuration-of-addon-superedge-optional)
+      * [&lt;3&gt;.Download edgeadm static installation package](#3download-edgeadm-static-installation-package)
+      * [&lt;4&gt;.addon SuperEdge](#4addon-superedge)
    * [3. Join edge node](#3-join-edge-node)
       * [&lt;1&gt;. Join conditions](#1-join-conditions)
       * [&lt;2&gt;. Create the token of the Join edge node](#2-create-the-token-of-the-join-edge-node)
@@ -48,7 +49,33 @@ For this reason, we support an `addon edge-apps` function for edgeadm, that is, 
     
     >   For other Kubernetes versions, please refer to [One-click installation of edge Kubernetes cluster](https://github.com/superedge/superedge/blob/main/docs/installation/install_edge_kubernetes_CN.md) in 5. Customize the Kubernetes static installation package, by yourself Make.
 
-### <2>.Download edgeadm static installation package
+### <2>. Custom configuration of Addon SuperEdge [optional]
+
+The following configurations can be submitted in the native K8s cluster according to your needs. User-defined configurations can be skipped if they are not required.
+
+If you need the corresponding capabilities, you can submit the corresponding information of the `edge-info` configmap as needed:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-info
+  namespace: edge-system
+data:
+  host-config: |                           ## add an entry to the edge node /ets/hosts
+    106.52.199.103 registry.tke.com
+    106.52.199.103 default.registry.tke.com   
+  insecure-registries: |                   ## Configure insecure registries address
+    registry.tke.com 
+    default.registry.tke.com
+```
+
+-   host-config
+    -   Effect: add an entry to the edge node /ets/hosts
+-   insecure-registries
+    -   Effect: To configure the address of the insecure mirror warehouse, the configured mirror warehouse address will be written into the `insecure-registries` of the docker registry when the docker is running, and it will be used for non-verification pull images;
+
+### <3>.Download edgeadm static installation package
 
 Download the edgeadm static installation package on any Master node, and copy it to the edge node that is ready to join the cluster.
 
@@ -65,7 +92,7 @@ The installation package is about 200M. For detailed information about the insta
 
 >   The `edgeadm addon edge-apps` function is supported starting from SuperEdge-v0.4.0-beta.0, pay attention to download v0.4.0-beta.0 and later versions.
 
-### <3>.addon SuperEdge
+### <4>.addon SuperEdge
 
 Addon edge capability components on any Master node of the original cluster:
 
