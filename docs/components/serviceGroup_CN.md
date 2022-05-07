@@ -107,7 +107,7 @@ spec:
 
 ## 将边缘节点分组
 
-如下图，我们以一个边缘集群为例，将集群中的节点添加到`边缘节点池`以及`边缘节点池分类`中
+如下图，我们以一个边缘集群为例，将集群中的节点添加到`边缘节点池`以及`边缘节点池分类`中。为了简单起见，这个示例用公有云界面来操作，SuperEdge开源用户可以参考[边缘节点池和边缘节点池分类设计文档](https://github.com/superedge/superedge/blob/main/docs/components/site-manager_CN.md) 来使用 CRD 进行操作完成下面的步骤
 
 此集群包含 6 个边缘节点，分别位于北京/广州 2 个地域，节点名为`bj-1` `bj-2` `bj-3`  `gz-1` `gz-2`  `gz-3`
 
@@ -590,7 +590,7 @@ Address: 10.0.0.67
 
 #### 如何在一个 NodeUnit 内支持 Statefulset 标准访问方式
 
-在一个标准的 K8s 环境中，按照 Statefulset 的标准使用方式，我们会使用一种逻辑来访问 Statefulset 中的 Pod ，类似`Statefulset-0.SVC.NS.svc.cluster.local` 这样的格式，例如我们想要使用`statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local`来访问这个 Statefulset 中的 Pod-0，TKE-Edge 针对这个场景进行了多NodeUnit 的能力适配。
+在一个标准的 K8s 环境中，按照 Statefulset 的标准使用方式，我们会使用一种逻辑来访问 Statefulset 中的 Pod ，类似`Statefulset-0.SVC.NS.svc.cluster.local` 这样的格式，例如我们想要使用`statefulsetgrid-demo-0.servicegrid-demo-svc.default.svc.cluster.local`来访问这个 Statefulset 中的 Pod-0，SuperEdge 针对这个场景进行了多NodeUnit 的能力适配。
 
 由于 Statefulset 的 Pod 都有独立的 DNS 域名，可以通过 FQDN 方式来访问单独的 pod，例如可以查询`statefulsetgrid-demo-beijing-0`域名：
 
@@ -609,7 +609,7 @@ Address: 10.0.0.67
 >
 > 在`guangzhou`地域访问的就是`statefulsetgrid-demo-guangzhou-0.servicegrid-demo-svc.default.svc.cluster.local` 这个 Pod 的 IP
 
-上图中使用 CoreDNS 两条记录指向相同的 Pod IP ，这个能力就可以实现上述的标准访问需求。因此**TKE-Edge 在产品层面提供了相应的能力**，但是需要在控制台手动开启，可以使用下面的开关使能：
+上图中使用 CoreDNS 两条记录指向相同的 Pod IP ，这个能力就可以实现上述的标准访问需求。因此 **SuperEdge 在产品层面提供了相应的能力**，在公有云产品上需要在控制台手动开启，如下图（如果是SuperEdge 开源用户，需要独立部署下面的Daemonset服务）：
 
 <div align="left">
   <img src="../img/demo_headless_enable.jpg" width=100% title="deploymentgrid">
