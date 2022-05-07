@@ -258,7 +258,7 @@ Events:            <none>
 ...
 # 这里会随机返回 gz-2 或者 gz-3 的 node 名称，并不会跨 NodeUnit 访问到 bj-1或者 bj-3
 
-# 在 guanzhou 地域的 pod 执行下面的命令
+# 在 guangzhou 地域的 pod 执行下面的命令
 [~]# curl 172.16.33.231|grep "node name"
         node name:      bj-3
 # 这里会随机返回 bj-1或者 bj-3 的 node 名称，并不会跨 NodeUnit 访问到 gz-2 或者 gz-3
