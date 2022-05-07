@@ -49,7 +49,7 @@ func (h HttpProxy) Start(mode string) {
 					klog.Errorf("http_proxy edge server accept failed, error: %v", err)
 					continue
 				}
-				connect.HttpProxyEdgeServer(conn)
+				go connect.HttpProxyEdgeServer(conn)
 			}
 
 		} else if mode == util.CLOUD {
@@ -64,7 +64,7 @@ func (h HttpProxy) Start(mode string) {
 					klog.Errorf("http_proxy edge server accept failed, error: %v", err)
 					continue
 				}
-				connect.HttpProxyCloudServer(conn)
+				go connect.HttpProxyCloudServer(conn)
 			}
 		}
 	}()
