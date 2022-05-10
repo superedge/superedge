@@ -107,25 +107,90 @@ spec:
 
 ## 将边缘节点分组
 
-如下图，我们以一个边缘集群为例，将集群中的节点添加到`边缘节点池`以及`边缘节点池分类`中。为了简单起见，这个示例用公有云界面来操作，SuperEdge开源用户可以参考[边缘节点池和边缘节点池分类设计文档](https://github.com/superedge/superedge/blob/main/docs/components/site-manager_CN.md) 来使用 CRD 进行操作完成下面的步骤
+如下图，我们以一个边缘集群为例，将集群中的节点添加到`边缘节点池`以及`边缘节点池分类`中。SuperEdge开源用户可以参考[边缘节点池和边缘节点池分类设计文档](https://github.com/superedge/superedge/blob/main/docs/components/site-manager_CN.md) 来使用 CRD 进行操作完成下面的步骤
 
 此集群包含 6 个边缘节点，分别位于北京/广州 2 个地域，节点名为`bj-1` `bj-2` `bj-3`  `gz-1` `gz-2`  `gz-3`
 
-<div align="left">
-  <img src="../img/demo_node_list.jpg" width=100% title="node-list">
-</div>
+```shell
+[~]# kubectl get nodes
+NAME   STATUS   ROLES    AGE     VERSION
+bj-1   Ready    <none>   4d22h   v1.18.2
+bj-2   Ready    <none>   4d22h   v1.18.2
+bj-3   Ready    <none>   4d22h   v1.18.2
+gz-1   Ready    <none>   4d22h   v1.18.2
+gz-2   Ready    <none>   4d22h   v1.18.2
+gz-3   Ready    <none>   4d22h   v1.18.2
+```
 
 然后我们分别创建 2 个NodeUnit（边缘节点池）：`beijing`  `guangzhou` ，分别将相应的节点加入对应的 NodeUnit（边缘节点池）中，如下图
 
-<div align="left">
-  <img src="../img/demo_nodeunit_list.jpg" width=100% title="service-group">
-</div>
+```shell
+[~]# kubectl get nodeunit
+NAME            TYPE    READY   AGE
+beijing         edge    3/3     3d17h
+guangzhou       edge    3/3     3d17h
+unit-node-all   other   6/6     4d22h
+```
+
+```shell
+[~]# kubectl describe nodeunit beijing
+Spec:
+  Nodes:
+    bj-1
+    bj-2
+    bj-3
+  Setnode:
+    Labels:
+      Beijing:    nodeunits.superedge.io
+      Location:   beijing
+  Type:           edge
+  Unschedulable:  false
+Status:
+  Readynodes:
+    bj-1
+    bj-2
+    bj-3
+  Readyrate:  3/3
+Events:       <none>
+
+[~]# kubectl describe nodeunit guangzhou
+Spec:
+  Nodes:
+    gz-1
+    gz-2
+    gz-3
+  Setnode:
+    Labels:
+      Guangzhou:  nodeunits.superedge.io
+      Location:   guangzhou
+  Type:           edge
+  Unschedulable:  false
+Status:
+  Readynodes:
+    gz-1
+    gz-2
+    gz-3
+  Readyrate:  3/3
+Events:       <none>
+```
+
 
 最后，我们创建名称为 `location`的 NodeGroup（边缘节点池分类），将`beijing` `guangzhou` 这两个边缘节点池划分到`location`这个分类中，如下图
 
-<div align="left">
-  <img src="../img/demo_nodegroup_list.jpg" width=100% title="service-group">
-</div>
+```shell
+[~]# kubectl describe nodegroup location
+Spec:
+  Nodeunits:
+    beijing
+    guangzhou
+Status:
+  Nodeunits:
+    beijing
+    guangzhou
+  Unitnumber:  2
+Events:        <none>
+```
+
 
 按照上述界面操作后，其实每个节点上就会打上相应的标签，例如节点 gz-2 上就会打上标签
 
@@ -609,13 +674,7 @@ Address: 10.0.0.67
 >
 > 在`guangzhou`地域访问的就是`statefulsetgrid-demo-guangzhou-0.servicegrid-demo-svc.default.svc.cluster.local` 这个 Pod 的 IP
 
-上图中使用 CoreDNS 两条记录指向相同的 Pod IP ，这个能力就可以实现上述的标准访问需求。因此 **SuperEdge 在产品层面提供了相应的能力**，在公有云产品上需要在控制台手动开启，如下图（如果是SuperEdge 开源用户，需要独立部署下面的Daemonset服务）：
-
-<div align="left">
-  <img src="../img/demo_headless_enable.jpg" width=100% title="deploymentgrid">
-</div>
-
-当使能 `Edge Headless`开关后，边缘侧节点上都会部署一个服务 `statefulset-grid-daemon`， 这个服务会来更新节点侧的 CoreDNS 信息
+上图中使用 CoreDNS 两条记录指向相同的 Pod IP ，这个能力就可以实现上述的标准访问需求。因此 **SuperEdge 在产品层面提供了相应的能力**，用户需要独立部署下面的Daemonset服务`statefulset-grid-daemon`， 边缘侧节点上都会部署一个服务 `statefulset-grid-daemon`， 这个服务会来更新节点侧的 CoreDNS 信息，参考部署链接：[部署 statefulset-grid-daemon](https://github.com/superedge/superedge/blob/main/deployment/statefulset-grid-daemon.yaml)
 
 ```shell
 edge-system   statefulset-grid-daemon-8gtrz      1/1     Running   0          7h42m   172.16.35.193   gz-3   <none>           <none>
