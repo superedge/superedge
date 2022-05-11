@@ -39,7 +39,8 @@ type RunServerOptions struct {
 	FileCachePath       string
 	BadgerCachePath     string
 	BoltCacheFile       string
-	NetworkInterface  string
+	NetworkInterface    string
+	Insecure            bool
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -64,6 +65,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.BadgerCachePath = s.BadgerCachePath
 	c.BoltCacheFile = s.BoltCacheFile
 	c.NetworkInterface = s.NetworkInterface
+	c.Insecure = s.Insecure
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -124,4 +126,5 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.BadgerCachePath, "badger-cache-path", "/data/lite-apiserver/badger", "the path for badger storage")
 	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
 	fs.StringVar(&s.NetworkInterface, "network-interface", "", "the network interface list of node, separated by commas")
+	fs.BoolVar(&s.Insecure, "insecure", false, "verify the certificate of kube-apiserver")
 }

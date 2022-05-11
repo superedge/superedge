@@ -55,7 +55,7 @@ type LiteServerConfig struct {
 	BoltCacheFile    string
 	PebbleCachePath  string
 	NetworkInterface string
-
+	Insecure         bool
 }
 
 type TLSKeyPair struct {
