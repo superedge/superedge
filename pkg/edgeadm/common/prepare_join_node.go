@@ -125,7 +125,7 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 
 	//Get EdgeCoreDNS Service ClusterIP
 	var edgeCoreDNSService *v1.Service
-        klog.V(2).Infof("=====================Start checking edge coredns module==========================="
+        klog.V(2).Infof("=====================Start checking edge coredns module===========================")
 	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		edgeCoreDNSService, err = clientSet.CoreV1().Services(
 			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceEdgeCoreDNS+"-svc", metav1.GetOptions{})
