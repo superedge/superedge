@@ -142,10 +142,21 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	}
 	edgeCoreDNSIP := edgeCoreDNSService.Spec.ClusterIP
 
-	edgeInfoCM, _ := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-		Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+	var edgeInfoCM *v1.ConfigMap
+        err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+		edgeInfoCM, err = clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
+			Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+		klog.Infof("%%%%%%%%%%%%edgeInfoCM is %v", edgeInfoCM)
+		
+		if err != nil {
+			klog.Errorf("Waiting to create configmap, error message: %v" ,err)
+		}
+		return true, nil
+	})
+	klog.Infof("++++++++edgeInfoCM is %v", edgeInfoCM)
+		
 	if edgeInfoCM == nil {
-        klog.Infof("edgeInfoCM is nill")
+        klog.Infof("edgeInfoCM is step into nil")
 		edgeInfoCM = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: constant.EdgeCertCM,
@@ -169,7 +180,7 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 		}
 		return nil
 	}
-        klog.Infof("edgeInfoCM is %v", edgeInfoCM)
+        klog.Infof("---------------edgeInfoCM is %v", edgeInfoCM)
 
 	edgeInfoCM.Data[constant.KubeAPICACrt] = string(caCertStr)
 	edgeInfoCM.Data[constant.KubeAPIClusterIP] = kubeAPIClusterIP
