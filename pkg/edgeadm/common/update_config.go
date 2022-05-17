@@ -229,6 +229,7 @@ func UpdateKubernetesEndpointSlice(clientSet kubernetes.Interface) error {
 	endpointSlice, err := clientSet.DiscoveryV1().EndpointSlices(
 		constant.NamespaceDefault).Get(context.TODO(), constant.KubernetesEndpoint, metav1.GetOptions{})
 	if err != nil {
+		klog.Errorf("Get endpoint slice error %v ", err)
 		return err
 	}
 
@@ -238,6 +239,7 @@ func UpdateKubernetesEndpointSlice(clientSet kubernetes.Interface) error {
 	oldEndpointSlice.ResourceVersion = ""
 	if _, err := clientSet.DiscoveryV1().EndpointSlices(
 		constant.NamespaceDefault).Create(context.TODO(), oldEndpointSlice, metav1.CreateOptions{}); err != nil {
+		klog.Errorf("Create slice error %v", err)
 		return err
 	}
 
@@ -247,6 +249,7 @@ func UpdateKubernetesEndpointSlice(clientSet kubernetes.Interface) error {
 	endpointSlice.Annotations = annotations
 	if _, err := clientSet.DiscoveryV1().EndpointSlices(
 		constant.NamespaceDefault).Update(context.TODO(), endpointSlice, metav1.UpdateOptions{}); err != nil {
+		klog.Errorf("Update slice error %v", err)
 		return err
 	}
 

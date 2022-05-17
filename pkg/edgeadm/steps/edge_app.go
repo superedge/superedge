@@ -345,7 +345,7 @@ func updateKubeConfig(c workflow.RunData) error {
 
 	if err := common.UpdateKubernetesEndpointSlice(client); err != nil {
 		klog.Errorf("Update kubernetes endpointSlice, error: %s", err)
-		return err
+		//return err
 	}
 
 	if len(initConfiguration.APIServer.CertSANs) > 0 {
