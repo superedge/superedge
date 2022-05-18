@@ -128,7 +128,7 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		edgeCoreDNSService, err = clientSet.CoreV1().Services(
 			constant.NamespaceEdgeSystem).Get(context.TODO(), constant.ServiceEdgeCoreDNS+"-svc", metav1.GetOptions{})
-		klog.V(2).Infof("edgeCoreDNSService: %v", edgeCoreDNSService,)
+		klog.V(2).Infof("edgeCoreDNSService: %v", edgeCoreDNSService)
 		if err != nil {
 			klog.V(2).Infof("Waiting get edge-coredns service clusterIP, system message: %v", err)
 			return false, nil
@@ -142,10 +142,9 @@ func JoinNodePrepare(clientSet kubernetes.Interface, manifestsDir, caCertFile, c
 	edgeCoreDNSIP := edgeCoreDNSService.Spec.ClusterIP
 
 	edgeInfoCM, error := clientSet.CoreV1().ConfigMaps(constant.NamespaceEdgeSystem).
-			Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
-		
+		Get(context.TODO(), constant.EdgeCertCM, metav1.GetOptions{})
+
 	if error != nil {
-        klog.Infof("edgeInfoCM is step into nil, eror message is %v", error)
 		edgeInfoCM = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: constant.EdgeCertCM,
