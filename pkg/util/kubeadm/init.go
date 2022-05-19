@@ -243,9 +243,11 @@ func NewInitCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 	// initialize the workflow runner with the list of phases
 	initRunner.AppendPhase(phases.NewPreflightPhase())
 	initRunner.AppendPhase(phases.NewCertsPhase())
+	initRunner.AppendPhase(NewEdgeCertsPhase())
 	initRunner.AppendPhase(phases.NewKubeConfigPhase())
 	initRunner.AppendPhase(phases.NewKubeletStartPhase())
 	initRunner.AppendPhase(steps.NewKubeVIPInitPhase(edgeConfig))
+	initRunner.AppendPhase(NewEdgeConfPhase())
 	initRunner.AppendPhase(phases.NewControlPlanePhase())
 	initRunner.AppendPhase(phases.NewEtcdPhase())
 	initRunner.AppendPhase(phases.NewWaitControlPlanePhase())
@@ -312,7 +314,15 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		"service-account-key-file":         "/etc/kubernetes/pki/sa.pub",
 		"service-account-signing-key-file": "/etc/kubernetes/pki/sa.key",
 	}
-
+	initOptions.externalClusterCfg.APIServer.ExtraVolumes = []kubeadmapiv1beta2.HostPathMount{
+		{
+			Name:      "kube-apiserver-conf",
+			HostPath:  "/etc/kubenetes/kube-apiserver-conf",
+			MountPath: "/etc/kubenetes/kube-apiserver-conf",
+			ReadOnly:  false,
+			PathType:  v1.HostPathDirectoryOrCreate,
+		},
+	}
 	clusterConfig := initOptions.externalClusterCfg
 	serviceCIDR := clusterConfig.Networking.ServiceSubnet
 	tunnelCoreDNSClusterIP, err := common.GetIndexedIP(serviceCIDR, constant.TunnelCoreDNSCIDRIndex)

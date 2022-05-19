@@ -43,6 +43,7 @@ require (
 	k8s.io/cluster-bootstrap v0.22.3
 	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.22.3
+	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.19.14
 	k8s.io/system-validators v1.4.0 // indirect
