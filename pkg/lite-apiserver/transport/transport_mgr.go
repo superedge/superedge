@@ -49,6 +49,7 @@ type TransportManager struct {
 
 	caFile       string
 	rootCertPool *x509.CertPool
+	insecure     bool
 
 	timeout int
 
@@ -67,6 +68,7 @@ func NewTransportManager(config *config.LiteServerConfig, certManager *cert.Cert
 		config:           config,
 		certManager:      certManager,
 		caFile:           config.ApiserverCAFile,
+		insecure:         config.Insecure,
 		timeout:          config.BackendTimeout,
 		certChannel:      certChannel,
 		transportChannel: transportChannel,
@@ -187,6 +189,10 @@ func (tm *TransportManager) makeTlsConfig(commonName string) (*tls.Config, error
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		RootCAs:    tm.rootCertPool,
+	}
+
+	if tm.insecure {
+		tlsConfig.InsecureSkipVerify = tm.insecure
 	}
 
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
