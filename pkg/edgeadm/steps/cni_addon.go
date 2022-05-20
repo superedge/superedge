@@ -70,7 +70,6 @@ func runFlannelAddon(c workflow.RunData) error {
 	option := map[string]interface{}{
 		"PodNetworkCidr": cfg.Networking.PodSubnet,
 	}
-	klog.V(4).Infof("pod network cidr: %s", edgeadmConf.TunnelCoreDNSClusterIP)
 
 	userManifests := filepath.Join(edgeadmConf.ManifestsDir, manifests.KUBE_FLANNEL)
 	flannelYaml := common.ReadYaml(userManifests, manifests.KubeFlannelYaml)

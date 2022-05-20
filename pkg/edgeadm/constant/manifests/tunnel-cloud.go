@@ -23,23 +23,18 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: tunnel-cloud
-  namespace: {{.Namespace}}
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "update"]
-  - apiGroups: [""]
-    resources: ["endpoints"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get"]
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get", "update" ]
+  - apiGroups: [ "" ]
+    resources: [ "endpoints","services","pods","nodes" ]
+    verbs: [ "get","list","watch" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: tunnel-cloud
-  namespace: {{.Namespace}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -56,10 +51,6 @@ metadata:
   namespace: {{.Namespace}}
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tunnel-cloud-conf
-  namespace: {{.Namespace}}
 data:
   mode.toml: |
     [mode]
@@ -84,6 +75,14 @@ data:
                 [mode.cloud.https.addr]
                     "10250" = "127.0.0.1:10250"
                     "9100" = "127.0.0.1:9100"
+            [mode.cloud.egress]
+              servercert="/etc/superedge/tunnel/certs/tunnel-anp-server.crt"
+              serverkey="/etc/superedge/tunnel/certs/tunnel-anp-server.key"
+              egressport="8000"
+kind: ConfigMap
+metadata:
+  name: tunnel-cloud-conf
+  namespace: {{.Namespace}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -100,6 +99,8 @@ data:
   tunnel-cloud-server.key: '{{.TunnelPersistentConnectionServerKey}}'
   apiserver-kubelet-server.crt: '{{.TunnelProxyServerCrt}}'
   apiserver-kubelet-server.key: '{{.TunnelProxyServerKey}}'
+  tunnel-anp-server.crt: '{{.TunnelAnpServerCet}}'
+  tunnel-anp-server.key: '{{.TunnelAnpServerKey}}'
 kind: Secret
 metadata:
   name: tunnel-cloud-cert
@@ -125,6 +126,10 @@ spec:
       port: 6000
       protocol: TCP
       targetPort: 6000
+    - name: egress
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
   selector:
     app: tunnel-cloud
   type: NodePort
@@ -149,7 +154,7 @@ spec:
       serviceAccountName: tunnel-cloud
       containers:
         - name: tunnel-cloud
-          image: superedge.tencentcloudcr.com/superedge/tunnel:v0.7.0
+          image: superedge.tencentcloudcr.com/superedge/tunnel:v0.8.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

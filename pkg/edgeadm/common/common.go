@@ -110,7 +110,7 @@ func DeployEdgeAPPS(client kubernetes.Interface, manifestsDir, caCertFile, caKey
 		return err
 	}
 	// Deploy tunnel
-	if err := DeployTunnelAddon(client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
+	if err := DeployTunnelAddon(configPath, client, manifestsDir, caCertFile, caKeyFile, masterPublicAddr, certSANs); err != nil {
 		return err
 	}
 	klog.Infof("Deploy %s success!", manifests.APP_TUNNEL_EDGE)

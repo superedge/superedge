@@ -19,6 +19,7 @@ package kubeadm
 
 import (
 	"fmt"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"io"
 	"net"
 	"os"
@@ -56,7 +57,6 @@ import (
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/edgeadm/steps"
 	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 var (
@@ -313,26 +313,20 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		"service-account-issuer":           "https://kubernetes.default",
 		"service-account-key-file":         "/etc/kubernetes/pki/sa.pub",
 		"service-account-signing-key-file": "/etc/kubernetes/pki/sa.key",
+		"egress-selector-config-file":      "/etc/kubernetes/kube-apiserver-conf/egress-selector-configuration.yaml",
 	}
 	initOptions.externalClusterCfg.APIServer.ExtraVolumes = []kubeadmapiv1beta2.HostPathMount{
 		{
 			Name:      "kube-apiserver-conf",
-			HostPath:  "/etc/kubenetes/kube-apiserver-conf",
-			MountPath: "/etc/kubenetes/kube-apiserver-conf",
+			HostPath:  "/etc/kubernetes/kube-apiserver-conf",
+			MountPath: "/etc/kubernetes/kube-apiserver-conf",
 			ReadOnly:  false,
 			PathType:  v1.HostPathDirectoryOrCreate,
 		},
 	}
 	clusterConfig := initOptions.externalClusterCfg
-	serviceCIDR := clusterConfig.Networking.ServiceSubnet
-	tunnelCoreDNSClusterIP, err := common.GetIndexedIP(serviceCIDR, constant.TunnelCoreDNSCIDRIndex)
-	if err != nil {
-		klog.Errorf("Get tunnel-coreDNS ClusterIP, error: %v", err)
-		return err
-	}
-	option := map[string]interface{}{
-		"TunnelCoreDNSClusterIP": tunnelCoreDNSClusterIP,
-	}
+
+	option := map[string]interface{}{}
 	kubeAPIServerPatch, err := kubeclient.ParseString(constant.KubeAPIServerPatchYaml, option)
 	if err != nil {
 		klog.Errorf("Parse %s yaml: %s, option: %v, error: %v", constant.KubeAPIServerPatch, option, err)
@@ -380,7 +374,6 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 	}
 
 	edgeadmConfig.TunnelCloudToken = util.GetRandToken(32)
-	edgeadmConfig.TunnelCoreDNSClusterIP = tunnelCoreDNSClusterIP.String()
 
 	return nil
 }

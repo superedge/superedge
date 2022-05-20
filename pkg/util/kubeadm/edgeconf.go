@@ -32,13 +32,13 @@ egressSelections:
     proxyProtocol: HTTPConnect
     transport:
       tcp:
-        url: https://tunnel-cloud:8000
+        url: https://tunnel-cloud.edge-system.svc.cluster.local:8000
         tlsConfig:
           caBundle: /etc/kubernetes/pki/ca.crt
           clientCert: /etc/kubernetes/pki/tunnel-anp-client.crt
           clientKey: /etc/kubernetes/pki/tunnel-anp-client.key
 `
-	IngressYamlPath = "/etc/kubenetes/kube-apiserver-conf/egress-selector-configuration.yaml"
+	IngressYamlPath = "/etc/kubernetes/kube-apiserver-conf/egress-selector-configuration.yaml"
 )
 
 // NewCertsPhase returns the phase for the certs
