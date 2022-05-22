@@ -314,6 +314,7 @@ func edgeadmConfigUpdate(initOptions *initOptions, edgeadmConfig *cmd.EdgeadmCon
 		"service-account-key-file":         "/etc/kubernetes/pki/sa.pub",
 		"service-account-signing-key-file": "/etc/kubernetes/pki/sa.key",
 		"egress-selector-config-file":      "/etc/kubernetes/kube-apiserver-conf/egress-selector-configuration.yaml",
+		"enable-aggregator-routing":        "true",
 	}
 	initOptions.externalClusterCfg.APIServer.ExtraVolumes = []kubeadmapiv1beta2.HostPathMount{
 		{
