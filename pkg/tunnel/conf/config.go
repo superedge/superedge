@@ -68,6 +68,7 @@ type EgressServer struct {
 }
 type HttpProxyServer struct {
 	ProxyPort string `toml:"proxyport"`
+	ProxyIp   string `toml:"proxyip"`
 }
 
 type Dns struct {

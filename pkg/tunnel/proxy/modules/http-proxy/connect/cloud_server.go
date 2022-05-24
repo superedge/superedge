@@ -71,7 +71,7 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 		nodeName = node
 	} else {
 		getNodeName := func(service string) (string, error) {
-			podIp, err = common.GetPodIpFromService(service)
+			podIp, port, err = common.GetPodIpFromService(service)
 			if err != nil {
 				klog.Errorf("Failed to get podIp, error: %v", err)
 				return "", err

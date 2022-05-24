@@ -14,6 +14,7 @@ limitations under the License.
 package http_proxy
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
@@ -38,7 +39,7 @@ func (h HttpProxy) Start(mode string) {
 	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.HTTP_PROXY, handlers.FrontendHandler)
 	go func() {
 		if mode == util.EDGE {
-			listener, err := net.Listen("tcp", "169.254.20.11:8080")
+			listener, err := net.Listen("tcp", conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyIp+":"+conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyPort)
 			if err != nil {
 				klog.Errorf("Failed to start http_proxy edge server, error: %v", err)
 				return
