@@ -129,7 +129,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 	}
 }
 
-func GetPodIpFromService(service string) (string, error) {
+func GetPodIpFromService(service string) (string, string, error) {
 	/*
 	   1. Directly forward to the node where the pod is located according to the podip(The received proxy request needs to be guaranteed to be in the form of podip, so as to avoid making another service-to-endpoint selection)
 	   2. serviceName first checks whether it is in the format of serviceName.nameSpace
@@ -138,7 +138,7 @@ func GetPodIpFromService(service string) (string, error) {
 	host, port, err := net.SplitHostPort(service)
 	if err != nil {
 		klog.Errorf("Failed to resolve host, error: %v", err)
-		return "", err
+		return "", "", err
 	}
 	podIp := net.ParseIP(host)
 	if podIp == nil {
@@ -146,16 +146,16 @@ func GetPodIpFromService(service string) (string, error) {
 		portInt32, err := strconv.ParseInt(port, 10, 32)
 		if err != nil {
 			klog.Errorf("Failed to resolve port, error: %v", err)
-			return "", err
+			return "", "", err
 		}
 		podUrl, err := proxy.ResolveEndpoint(indexers.ServiceLister, indexers.EndpointLister, services[1], services[0], int32(portInt32))
 		if err != nil {
 			klog.Errorf("Failed to get podIp from service, error: %v", err)
-			return "", err
+			return "", "", err
 		}
-		return podUrl.Hostname(), nil
+		return podUrl.Hostname(), podUrl.Port(), nil
 	}
-	return host, nil
+	return host, port, nil
 }
 
 func GetDomainFromHost(host string) (string, error) {
