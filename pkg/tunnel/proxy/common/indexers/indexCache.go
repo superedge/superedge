@@ -18,6 +18,8 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	informcorev1 "k8s.io/client-go/informers/core/v1"
@@ -41,6 +43,14 @@ func PodIPKeyFunc(obj interface{}) ([]string, error) {
 	pod, ok := obj.(*v1.Pod)
 	if ok {
 		return []string{pod.Status.PodIP}, nil
+	}
+	return []string{}, nil
+}
+
+func ServiceIPKeyFunc(obj interface{}) ([]string, error) {
+	svc, ok := obj.(*v1.Service)
+	if ok {
+		return []string{svc.Spec.ClusterIP}, nil
 	}
 	return []string{}, nil
 }
@@ -87,7 +97,9 @@ func InitCache(path string, stopCh chan struct{}) {
 		nodeIndexer = nodeInformer.GetIndexer()
 
 		//initialize serviceIndexer、serviceLister
-		serviceInform := informerFactory.Core().V1().Services().Informer()
+		serviceInform := informerFactory.InformerFor(&v1.Service{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
+			return informcorev1.NewServiceInformer(k, "", duration, cache.Indexers{util.SERVICEIP_INDEXER: ServiceIPKeyFunc})
+		})
 		go serviceInform.Run(stopCh)
 		if !cache.WaitForCacheSync(stopCh, serviceInform.HasSynced) {
 			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
@@ -135,7 +147,7 @@ func GetNodeIPByName(name string) (string, error) {
 		return "", err
 	}
 	if len(nodes) < 1 {
-		return "", fmt.Errorf("Failed to get nodes by NodeName, nodeName: %s", name)
+		return "", apierrors.NewNotFound(schema.GroupResource{}, name)
 	}
 	for _, addr := range nodes[0].(*v1.Node).Status.Addresses {
 		if addr.Type == "InternalIP" {
@@ -143,4 +155,19 @@ func GetNodeIPByName(name string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("Failed to get internalIp from node.status.Addresses")
+}
+
+func GetServiceByClusterIP(clusterIp string) (*v1.Service, error) {
+	if serviceIndexer == nil {
+		return nil, fmt.Errorf("serviceIndexer is not initialized")
+	}
+	svcs, err := serviceIndexer.ByIndex(util.SERVICEIP_INDEXER, clusterIp)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(svcs) < 1 {
+		return nil, apierrors.NewNotFound(schema.GroupResource{}, clusterIp)
+	}
+	return svcs[0].(*v1.Service), nil
 }

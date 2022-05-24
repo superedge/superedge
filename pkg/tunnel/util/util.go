@@ -59,7 +59,6 @@ func Ping(ip string) error {
 	}
 	p.AddIPAddr(ra)
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		klog.Infof("IP Addr: %s receive, RTT: %v\n", addr.String(), rtt)
 	}
 	p.OnIdle = func() {
 	}

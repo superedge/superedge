@@ -39,8 +39,9 @@ const (
 )
 
 const (
-	PODIP_INDEXER    = "PodIP"
-	METANAME_INDEXER = "MeatName"
+	PODIP_INDEXER     = "PodIP"
+	METANAME_INDEXER  = "MeatName"
+	SERVICEIP_INDEXER = "ServiceIP"
 )
 
 const (

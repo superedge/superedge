@@ -119,7 +119,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 			return connectOutcluster(domain, port)
 		}
 		//Handling access to services in the cluster
-		podIP, err = common.GetPodIpFromService(req.Host)
+		podIP, port, err = common.GetPodIpFromService(req.Host)
 		if err != nil {
 			klog.Errorf("Failed to get podIp through service, error: %v", err)
 			errMsg(localNode)
