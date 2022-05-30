@@ -85,7 +85,11 @@ func (tm *TransportManager) Init() error {
 	tm.rootCertPool = rootCertPool
 
 	// init default transport
-	tm.defaultTransport = tm.makeTransport(&tls.Config{RootCAs: tm.rootCertPool}, nil)
+	if tm.insecure {
+		tm.defaultTransport = tm.makeTransport(&tls.Config{InsecureSkipVerify: true}, nil)
+	} else {
+		tm.defaultTransport = tm.makeTransport(&tls.Config{RootCAs: tm.rootCertPool}, nil)
+	}
 
 	// init transportMap
 	for commonName := range tm.certManager.GetCertMap() {
@@ -188,11 +192,12 @@ func (tm *TransportManager) updateTransport(commonName string, transport *EdgeTr
 func (tm *TransportManager) makeTlsConfig(commonName string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		RootCAs:    tm.rootCertPool,
 	}
 
 	if tm.insecure {
 		tlsConfig.InsecureSkipVerify = tm.insecure
+	} else {
+		tlsConfig.RootCAs = tm.rootCertPool
 	}
 
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
