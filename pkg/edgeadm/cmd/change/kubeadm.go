@@ -383,7 +383,7 @@ func (c *changeAction) updateKubeProxyKubeconfig() error {
 
 	edgeKubeProxyCM := kubeProxyCM.DeepCopy()
 	edgeKubeProxyCM.Name = constant.EdgeKubeProxy
-	edgeKubeProxyCM.Namespace = constant.NamespaceKubeSystem
+	edgeKubeProxyCM.Namespace = constant.NamespaceEdgeSystem
 	edgeKubeProxyCM.ResourceVersion = ""
 
 	proxyConfig, ok := edgeKubeProxyCM.Data[constant.CMKubeConfig]
