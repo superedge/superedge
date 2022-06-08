@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/config"
+	muxserver "github.com/superedge/superedge/pkg/lite-apiserver/server/multiplex"
 )
 
 type RunServerOptions struct {
@@ -41,6 +42,7 @@ type RunServerOptions struct {
 	BoltCacheFile       string
 	NetworkInterface    string
 	Insecure            bool
+	URLMultiplexCache   []string
 }
 
 func NewRunServerOptions() *RunServerOptions {
@@ -66,6 +68,7 @@ func (s *RunServerOptions) ApplyTo(c *config.LiteServerConfig) error {
 	c.BoltCacheFile = s.BoltCacheFile
 	c.NetworkInterface = s.NetworkInterface
 	c.Insecure = s.Insecure
+	c.URLMultiplexCache = s.URLMultiplexCache
 
 	if len(s.ApiserverCAFile) > 0 {
 		c.ApiserverCAFile = s.ApiserverCAFile
@@ -100,6 +103,12 @@ func (s *RunServerOptions) Validate() []error {
 		errors = append(errors, fmt.Errorf("port cannot be 0"))
 	}
 
+	for _, url := range s.URLMultiplexCache {
+		if _, err := muxserver.GetMuxFactory(url); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
 	return errors
 }
 
@@ -127,4 +136,10 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.BoltCacheFile, "bolt-cache-file", "/data/lite-apiserver/bolt/superedge.db", "the file for bolt storage")
 	fs.StringVar(&s.NetworkInterface, "network-interface", "", "the network interface list of node, separated by commas")
 	fs.BoolVar(&s.Insecure, "insecure", false, "verify the certificate of kube-apiserver")
+	fs.StringArrayVar(&s.URLMultiplexCache,
+		"url-mux-cache",
+		[]string{},
+		"url multiplex cache, component connect lite-apiserver will use it's shared cache, instead of apiserver "+
+			"in anytime  current support '/api/v1/nodes' '/api/v1/services' and '/api/v1/endpoints'",
+	)
 }

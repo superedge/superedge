@@ -232,15 +232,6 @@ func UpdateKubernetesEndpointSlice(clientSet kubernetes.Interface) error {
 		return err
 	}
 
-	// backup original ConfigMap
-	oldEndpointSlice := endpointSlice.DeepCopy()
-	oldEndpointSlice.Name = constant.KubernetesEndpointNoEdge
-	oldEndpointSlice.ResourceVersion = ""
-	if _, err := clientSet.DiscoveryV1beta1().EndpointSlices(
-		constant.NamespaceDefault).Create(context.TODO(), oldEndpointSlice, metav1.CreateOptions{}); err != nil {
-		return err
-	}
-
 	annotations := make(map[string]string)
 	annotations[constant.EdgeLocalPort] = "51003"
 	annotations[constant.EdgeLocalHost] = "127.0.0.1"
