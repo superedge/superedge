@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdsa"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -147,14 +148,32 @@ func ParsePrivateKeyPEMRSA(keyData []byte) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 
+func ParsePrivateKeyPEM(keyData []byte) (crypto.Signer, error) {
+	privKey, err := parsePrivateKeyPEM(keyData)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse the private key %+v", err)
+	}
+	// Allow RSA format only
+	var key crypto.Signer
+	switch k := privKey.(type) {
+	case *rsa.PrivateKey:
+		key = k
+	case *ecdsa.PrivateKey:
+		key = k
+	default:
+		return nil, fmt.Errorf("the private key isn't in RSA/ECDSA format")
+	}
+	return key, nil
+}
+
 // NewPrivateKey creates an RSA private key change fa
 func NewPrivateKey() (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 }
 
 //Tobe optimized
-func GenerateCertAndKeyConfig(caCert *x509.Certificate, caKey *rsa.PrivateKey,
-	config *cert.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
+func GenerateCertAndKeyConfig(caCert *x509.Certificate, caKey crypto.Signer,
+	config *cert.Config) (*x509.Certificate, crypto.Signer, error) {
 	return generateCertAndKeyConfig(caCert, caKey, config)
 }
 
@@ -216,8 +235,8 @@ func GenerateCA(organization string) (caBundle string, caCert *x509.Certificate,
 	return
 }
 
-func generateCertAndKeyConfig(caCert *x509.Certificate, caKey *rsa.PrivateKey,
-	config *cert.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
+func generateCertAndKeyConfig(caCert *x509.Certificate, caKey crypto.Signer,
+	config *cert.Config) (*x509.Certificate, crypto.Signer, error) {
 	key, err := NewPrivateKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to generate private key %+v", err)
@@ -229,8 +248,8 @@ func generateCertAndKeyConfig(caCert *x509.Certificate, caKey *rsa.PrivateKey,
 	return cert, key, nil
 }
 
-func GenerateClientCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey,
-	clientCN string) (*x509.Certificate, *rsa.PrivateKey, error) {
+func GenerateClientCertAndKey(caCert *x509.Certificate, caKey crypto.Signer,
+	clientCN string) (*x509.Certificate, crypto.Signer, error) {
 	clientCertConfig := &cert.Config{
 		CommonName:   clientCN,
 		Organization: []string{"system:masters"},
