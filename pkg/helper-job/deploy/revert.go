@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
-	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
+	edgeadmConstant "github.com/superedge/edgeadm/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/helper-job/constant"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"

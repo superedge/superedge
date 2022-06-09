@@ -25,7 +25,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/edgeadm/pkg/edgeadm/constant"
 	"golang.org/x/sys/unix"
 	"io"
 	"k8s.io/api/core/v1"

@@ -20,7 +20,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"github.com/superedge/superedge/pkg/edgeadm/constant"
+	"github.com/superedge/edgeadm/pkg/edgeadm/constant"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
