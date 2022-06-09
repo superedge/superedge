@@ -69,10 +69,7 @@ metadata:
   name: kube-apiserver
   namespace: kube-system
 spec:
-  dnsConfig:
-    nameservers:
-    - {{.TunnelCoreDNSClusterIP}}
-  dnsPolicy: None
+  dnsPolicy: ClusterFirstWithHostNet
 `
 
 const KubeProxyPatchJson string = `{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"%s","operator":"%s"}]}]}}}}}}}`

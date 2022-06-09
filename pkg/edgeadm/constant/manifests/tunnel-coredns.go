@@ -73,7 +73,6 @@ spec:
   selector:
     k8s-app: tunnel-coredns
   type: ClusterIP
-  clusterIP: {{.TunnelCoreDNSClusterIP}}
 ---
 apiVersion: apps/v1
 kind: Deployment

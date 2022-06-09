@@ -5,10 +5,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	serviceGrpupClinet "github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned"
+	kuberuntime "k8s.io/apimachinery/pkg/runtime"
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"path/filepath"
 	"time"
 
+	edgev1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -21,7 +26,7 @@ import (
 )
 
 // runCoreDNSAddon installs CoreDNS addon to a Kubernetes cluster
-func DeployTunnelAddon(client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
+func DeployTunnelAddon(kubeconfigFile string, client kubernetes.Interface, manifestsDir, caCertFile, caKeyFile, tunnelCloudPublicAddr string, certSANs []string) error {
 	// Deploy tunnel-coredns
 	option := map[string]interface{}{
 		"Namespace":              constant.NamespaceEdgeSystem,
@@ -52,7 +57,7 @@ func DeployTunnelAddon(client kubernetes.Interface, manifestsDir, caCertFile, ca
 	}
 
 	// Deploy tunnel-edge
-	if err = DeployTunnelEdge(client, manifestsDir,
+	if err = DeployTunnelEdge(kubeconfigFile, client, manifestsDir,
 		caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudPublicAddr, tunnelCloudNodePort); err != nil {
 		klog.Errorf("Deploy tunnel-edge, error: %v", err)
 		return err
@@ -104,7 +109,7 @@ func GetTunnelCloudPort(clientSet kubernetes.Interface) (int32, error) {
 	return tunnelCloudNodePort, nil
 }
 
-func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
+func DeployTunnelEdge(kubeconfig string, clientSet kubernetes.Interface, manifestsDir,
 	caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudNodeAddr string, tunnelCloudNodePort int32) error {
 
 	tunnelEdgeYaml, option, err := getTunnelEdgeResource(clientSet, manifestsDir, caCertFile, caKeyFile, tunnelCloudToken, tunnelCloudNodeAddr, tunnelCloudNodePort)
@@ -117,6 +122,67 @@ func DeployTunnelEdge(clientSet kubernetes.Interface, manifestsDir,
 		return err
 	}
 
+	//
+
+	if err := EnsureEdgeSystemNamespace(clientSet); err != nil {
+		return err
+	}
+
+	// Deploy edge-coredns config
+
+	restCfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return err
+	}
+	serviceGrpupClinet := serviceGrpupClinet.NewForConfigOrDie(restCfg)
+
+	// Deploy edge-coredns deploymentGrid
+	userCorednsDeploymentGrid := filepath.Join(manifestsDir, manifests.TunnelEdgeDeploymentGrid)
+	edgeCorednsDeploymentGrid := ReadYaml(userCorednsDeploymentGrid, manifests.TunnelEdgeDeploymentGridYaml)
+
+	gridoption := map[string]interface{}{
+		"Namespace": constant.NamespaceEdgeSystem,
+	}
+	data, err := kubeclient.ParseString(edgeCorednsDeploymentGrid, gridoption)
+	if err != nil {
+		return err
+	}
+
+	obj := new(edgev1.DeploymentGrid)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return err
+	}
+	err = wait.PollImmediate(3*time.Second, 5*time.Minute, func() (bool, error) {
+		_, err := serviceGrpupClinet.SuperedgeV1().DeploymentGrids(constant.NamespaceEdgeSystem).Create(context.TODO(), obj, metav1.CreateOptions{})
+		if err != nil {
+			klog.V(2).Infof("Waiting deploy tunnel-edge DeploymentGrid, system message: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
+	klog.Infof("Deploy %s success!", manifests.TunnelEdgeDeploymentGrid)
+
+	// Deploy edge-coredns serviceGrid
+	userCorednsServiceGrid := filepath.Join(manifestsDir, manifests.TunnelEdgeServiceGrid)
+	edgeCorednsServiceGrid := ReadYaml(userCorednsServiceGrid, manifests.TunnelEdgeServiceGridYaml)
+	data, err = kubeclient.ParseString(edgeCorednsServiceGrid, gridoption)
+	if err != nil {
+		return err
+	}
+
+	serviceGrid := new(edgev1.ServiceGrid)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, serviceGrid); err != nil {
+		return err
+	}
+	err = wait.PollImmediate(3*time.Second, 5*time.Minute, func() (bool, error) {
+		_, err := serviceGrpupClinet.SuperedgeV1().ServiceGrids(constant.NamespaceEdgeSystem).Create(context.TODO(), serviceGrid, metav1.CreateOptions{})
+		if err != nil {
+			klog.V(2).Infof("Waiting deploy tunnel-edge ServiceGrid, system message: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
+	klog.Infof("Deploy %s success!", manifests.TunnelEdgeServiceGrid)
 	return nil
 }
 
@@ -221,6 +287,11 @@ func getTunnelCloudResource(clientSet kubernetes.Interface, manifestsDir, caCert
 		return "", nil, err
 	}
 
+	tunnelAnpServerCrt, tunnelAnpServerKey, err := GetServiceCert("TunnelAnpServer", caCertFile, caKeyFile, []string{"tunnel-cloud.edge-system.svc.cluster.local"}, []string{})
+	if err != nil {
+		return "", nil, err
+	}
+
 	option := map[string]interface{}{
 		"Namespace":                           constant.NamespaceEdgeSystem,
 		"TunnelCloudEdgeToken":                tunnelCloudToken,
@@ -228,6 +299,8 @@ func getTunnelCloudResource(clientSet kubernetes.Interface, manifestsDir, caCert
 		"TunnelPersistentConnectionServerCrt": base64.StdEncoding.EncodeToString(serviceCert),
 		"TunnelProxyServerKey":                base64.StdEncoding.EncodeToString(tunnelProxyServerKey),
 		"TunnelProxyServerCrt":                base64.StdEncoding.EncodeToString(tunnelProxyServerCrt),
+		"TunnelAnpServerCet":                  base64.StdEncoding.EncodeToString(tunnelAnpServerCrt),
+		"TunnelAnpServerKey":                  base64.StdEncoding.EncodeToString(tunnelAnpServerKey),
 	}
 
 	userManifests := filepath.Join(manifestsDir, manifests.APP_TUNNEL_CLOUD)

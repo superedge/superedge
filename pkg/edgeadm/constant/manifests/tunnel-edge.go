@@ -66,6 +66,10 @@ data:
                 [mode.edge.https]
                     cert= "/etc/superedge/tunnel/certs/apiserver-kubelet-client.crt"
                     key=  "/etc/superedge/tunnel/certs/apiserver-kubelet-client.key"
+            [mode.edge.httpproxy]
+                proxyip = "0.0.0.0"
+                proxyport = "51009"
+                
 ---
 apiVersion: v1
 data:
@@ -77,27 +81,43 @@ metadata:
   name: tunnel-edge-cert
   namespace: {{.Namespace}}
 type: Opaque
----
-apiVersion: apps/v1
-kind: DaemonSet
+`
+const TunnelEdgeDeploymentGrid = "tunnel-edge-deployment-grid.yaml"
+const TunnelEdgeDeploymentGridYaml = `
+apiVersion: superedge.io/v1
+kind: DeploymentGrid
 metadata:
   name: tunnel-edge
   namespace: {{.Namespace}}
 spec:
-  selector:
-    matchLabels:
-      app: tunnel-edge
+  gridUniqKey: superedge.io.hostname
   template:
-    metadata:
-      labels:
+    replicas: 1
+    selector:
+      matchLabels:
         app: tunnel-edge
-    spec:
-      hostNetwork: true
-      nodeSelector:
-        superedge.io/node-edge: enable
-      containers:
+    strategy: {}
+    template:
+      metadata:
+        labels:
+          app: tunnel-edge
+      selector:
+        matchLabels:
+          app: tunnel-edge
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: superedge.io/node-edge
+                  operator: In
+                  values:
+                  - enable
+        hostNetwork: true
+        containers:
         - name: tunnel-edge
-          image: superedge.tencentcloudcr.com/superedge/tunnel:v0.7.0
+          image: superedge.tencentcloudcr.com/superedge/tunnel:v0.8.0
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -133,11 +153,31 @@ spec:
               mountPath: /etc/superedge/tunnel/certs
             - name: conf
               mountPath: /etc/superedge/tunnel/conf
-      volumes:
-        - secret:
-            secretName: tunnel-edge-cert
-          name: certs
-        - configMap:
-            name: tunnel-edge-conf
-          name: conf
+        volumes:
+          - secret:
+              secretName: tunnel-edge-cert
+            name: certs
+          - configMap:
+              name: tunnel-edge-conf
+            name: conf
+`
+
+const TunnelEdgeServiceGrid = "edge-coredns-service-grid.yaml"
+
+const TunnelEdgeServiceGridYaml = `
+apiVersion: superedge.io/v1
+kind: ServiceGrid
+metadata:
+  name: tunnel-edge
+  namespace: {{.Namespace}}
+spec:
+  gridUniqKey: superedge.io.hostname
+  template:
+    selector:
+      app: tunnel-edge
+    ports:
+    - name: anp
+      port: 8080
+      targetPort: 51009
+      protocol: TCP
 `
