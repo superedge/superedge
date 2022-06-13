@@ -15,6 +15,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
@@ -154,6 +155,10 @@ func GetPodIpFromService(service string) (string, string, error) {
 	podIp := net.ParseIP(host)
 	if podIp == nil {
 		services := strings.Split(host, ".")
+		if len(services) < 2 {
+			klog.Errorf("Service %s format invalid", host)
+			return "", "", fmt.Errorf("Service %s format invalid", host)
+		}
 		portInt32, err := strconv.ParseInt(port, 10, 32)
 		if err != nil {
 			klog.Errorf("Failed to resolve port, error: %v", err)
