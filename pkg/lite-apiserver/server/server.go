@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strconv"
 	"time"
 
@@ -30,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"k8s.io/klog/v2"
 
 	"github.com/munnerz/goautoneg"
@@ -106,50 +109,61 @@ func (s *LiteServer) Run() error {
 		return err
 	}
 
-	// create client and informer factory
-	restConfig, err := clientcmd.BuildConfigFromKubeconfigGetter("", func() (*clientcmdapi.Config, error) {
-		conf := s.generateKubeConfiguration()
-		return conf, nil
-	})
-	if err != nil {
-		klog.Errorf("clientcmd.BuildConfigFromKubeconfigGetter error: %v", err)
-		return err
-	}
-	// get kubelet cert common name for transport
-	var kubeletCertCommonName string
-	for cn := range certManager.GetCertMap() {
-		if cn != "" {
-			kubeletCertCommonName = cn
-			klog.V(5).Infof("kubelet cert CommonName %s", kubeletCertCommonName)
-			break
-		}
-	}
-	// replace restConfig transport
-	restConfig.Wrap(func(rt http.RoundTripper) http.RoundTripper {
-		// use transportManager default transport, it can reload cert
-		return transportManager.GetTransport(kubeletCertCommonName)
-	})
-	restConfig.UserAgent = "lite-apiserver/mux"
-	kubeClient := kubernetes.NewForConfigOrDie(restConfig)
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, 0)
+	// Create server mux async
+	go wait.PollUntil(time.Second*3, func() (bool, error) {
 
-	for _, url := range s.ServerConfig.URLMultiplexCache {
-		mux, err := muxserver.CreateMux(url, "", informerFactory)
-		if err != nil {
-			klog.Errorf("Create url %s Mux error: %v", url, err)
-			return err
+		// first check kubelet tls bootstrap finish
+		if _, err := os.Stat(s.ServerConfig.TLSConfig[0].CertPath); err != nil {
+			klog.V(4).Infof("Stat kubelet cert file %s error %v", s.ServerConfig.TLSConfig[0].CertPath, err)
+			return false, err
 		}
-		muxserver.RegisterMux(url, mux)
-	}
-	if len(s.ServerConfig.URLMultiplexCache) > 0 {
-		informerFactory.Start(stopCh)
-		for t, hasSynced := range informerFactory.WaitForCacheSync(stopCh) {
-			if !hasSynced {
-				klog.Errorf("Sync informer %s cache failed", t.Name())
-				return err
+
+		// create client and informer factory
+		restConfig, err := clientcmd.BuildConfigFromKubeconfigGetter("", func() (*clientcmdapi.Config, error) {
+			conf := s.generateKubeConfiguration()
+			return conf, nil
+		})
+		if err != nil {
+			klog.Errorf("clientcmd.BuildConfigFromKubeconfigGetter error: %v", err)
+			return false, err
+		}
+		// get kubelet cert common name for transport
+		var kubeletCertCommonName string
+		for cn := range certManager.GetCertMap() {
+			if cn != "" {
+				kubeletCertCommonName = cn
+				klog.V(5).Infof("kubelet cert CommonName %s", kubeletCertCommonName)
+				break
 			}
 		}
-	}
+		// replace restConfig transport
+		restConfig.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+			// use transportManager default transport, it can reload cert
+			return transportManager.GetTransport(kubeletCertCommonName)
+		})
+		restConfig.UserAgent = "lite-apiserver/mux"
+		kubeClient := kubernetes.NewForConfigOrDie(restConfig)
+		informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, 0)
+
+		for _, url := range s.ServerConfig.URLMultiplexCache {
+			mux, err := muxserver.CreateMux(url, "", informerFactory)
+			if err != nil {
+				klog.Errorf("Create url %s Mux error: %v", url, err)
+				return false, err
+			}
+			muxserver.RegisterMux(url, mux)
+		}
+		if len(s.ServerConfig.URLMultiplexCache) > 0 {
+			informerFactory.Start(stopCh)
+			for t, hasSynced := range informerFactory.WaitForCacheSync(stopCh) {
+				if !hasSynced {
+					klog.Errorf("Sync informer %s cache failed", t.Name())
+					return false, err
+				}
+			}
+		}
+		return true, nil
+	}, make(<-chan struct{}))
 
 	mux := http.NewServeMux()
 	mux.Handle("/", edgeServerHandler)
