@@ -15,6 +15,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
@@ -84,34 +85,45 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 				return
 			}
 		} else {
-			/*
-				todo Supports sending requests through nodes within nodeunit at the edge
-			*/
+			if !connect.IsEndpointIp(addrs[0]) {
+				remoteConn, err = net.Dial(util.TCP, host+":"+port)
+				if err != nil {
+					klog.Errorf("Failed to establish a connection with master node, error: %v", err)
+					return
+				}
+				_, err := proxyConn.Write([]byte(util.ConnectMsg))
+				if err != nil {
+					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+					return
+				}
+			} else {
+				/*
+					todo Supports sending requests through nodes within nodeunit at the edge
+				*/
 
-			//You can only proxy once between tunnel-cloud pods
-			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
-				klog.Errorf("Loop forwarding")
-				return
-			}
+				//You can only proxy once between tunnel-cloud pods
+				if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
+					klog.Errorf("Loop forwarding")
+					return
+				}
+				var addr string
+				if category == util.EGRESS {
+					addr = addrs[0] + ":" + conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort
+				} else if category == util.SSH {
+					addr = addrs[0] + ":22"
+				}
+				remoteConn, err = net.Dial(util.TCP, addr)
+				if err != nil {
+					klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
+					return
+				}
 
-			var addr string
-			if category == util.EGRESS {
-				addr = addrs[0] + ":" + conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort
-			} else if category == util.SSH {
-				addr = addrs[0] + ":22"
-			}
-
-			remoteConn, err = net.Dial(util.TCP, addr)
-			if err != nil {
-				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
-				return
-			}
-
-			//Forward HTTP_CONNECT request data
-			_, err = remoteConn.Write(req.Bytes())
-			if err != nil {
-				klog.Errorf("Failed to write data to remoteConn, error: %v", err)
-				return
+				//Forward HTTP_CONNECT request data
+				_, err = remoteConn.Write(req.Bytes())
+				if err != nil {
+					klog.Errorf("Failed to write data to remoteConn, error: %v", err)
+					return
+				}
 			}
 		}
 
@@ -143,6 +155,10 @@ func GetPodIpFromService(service string) (string, string, error) {
 	podIp := net.ParseIP(host)
 	if podIp == nil {
 		services := strings.Split(host, ".")
+		if len(services) < 2 {
+			klog.Errorf("Service %s format invalid", host)
+			return "", "", fmt.Errorf("Service %s format invalid", host)
+		}
 		portInt32, err := strconv.ParseInt(port, 10, 32)
 		if err != nil {
 			klog.Errorf("Failed to resolve port, error: %v", err)
