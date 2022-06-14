@@ -34,6 +34,8 @@ type LiteServerConfig struct {
 	KubeApiserverUrl  string
 	KubeApiserverPort int
 
+	// the address of lite-apiserver listen
+	ListenAddress string
 	// Port the https port of lite-apiserver
 	Port int
 

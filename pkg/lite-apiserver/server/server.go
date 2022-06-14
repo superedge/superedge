@@ -190,7 +190,7 @@ func (s *LiteServer) Run() error {
 	pool.AppendCertsFromPEM(caCrt)
 
 	ser := &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", s.ServerConfig.Port),
+		Addr:    fmt.Sprintf("%s:%d", s.ServerConfig.ListenAddress, s.ServerConfig.Port),
 		Handler: handler,
 		TLSConfig: &tls.Config{
 			ClientCAs:  pool,
@@ -221,7 +221,6 @@ func (s *LiteServer) interceptCacheMultiplex(handler http.Handler) http.Handler 
 			handler.ServeHTTP(w, r)
 			return
 		}
-
 		// get mux by url
 		mux, err := muxserver.GetMux(r.URL.Path)
 		if err != nil {
