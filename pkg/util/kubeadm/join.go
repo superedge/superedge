@@ -20,6 +20,11 @@ package kubeadm
 import (
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kuberuntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	"net"
 	"os"
 	"path"
@@ -27,7 +32,6 @@ import (
 	"text/template"
 
 	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,6 +52,7 @@ import (
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 
+	"github.com/pkg/errors"
 	"github.com/superedge/superedge/pkg/edgeadm/cmd"
 	"github.com/superedge/superedge/pkg/edgeadm/common"
 	"github.com/superedge/superedge/pkg/edgeadm/constant"
@@ -244,6 +249,13 @@ func NewJoinCMD(out io.Writer, edgeConfig *cmd.EdgeadmConfig) *cobra.Command {
 		default:
 			return fmt.Errorf("Container runtime support 'docker' and 'containerd', not %s", edgeConfig.ContainerRuntime)
 		}
+		//set extra
+		if edgeConfig.PodInfraContainer != "" {
+			if joinOptions.externalcfg.NodeRegistration.KubeletExtraArgs == nil {
+				joinOptions.externalcfg.NodeRegistration.KubeletExtraArgs = make(map[string]string)
+			}
+			joinOptions.externalcfg.NodeRegistration.KubeletExtraArgs["pod-infra-container-image"] = edgeConfig.PodInfraContainer
+		}
 
 		return nil
 	}
@@ -281,6 +293,10 @@ func joinConfigFlags(flagSet *flag.FlagSet, edgeConfig *cmd.EdgeadmConfig) {
 	flagSet.StringVar(
 		&edgeConfig.InstallPkgPath, constant.InstallPkgPath,
 		constant.InstallPkgNetworkLocation, "Install static package path of kubernetes cluster.",
+	)
+	flagSet.StringVar(
+		&edgeConfig.PodInfraContainer, constant.PodInfraContainerImage,
+		edgeConfig.PodInfraContainer, "Install static package path of kubernetes cluster.",
 	)
 }
 
@@ -633,6 +649,44 @@ func fetchInitConfiguration(tlsBootstrapCfg *clientcmdapi.Config) (*kubeadmapi.I
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to fetch the kubeadm-config ConfigMap")
 	}
+	edgeImage, err := fetchGetEdgeImageRepository(tlsClient)
+	if err != nil {
+		return nil, err
+	}
+	if edgeImage != "" {
+		initConfiguration.ClusterConfiguration.ImageRepository = edgeImage
+	}
 
 	return initConfiguration, nil
+}
+
+func fetchGetEdgeImageRepository(client clientset.Interface) (string, error) {
+	configMap, err := apiclient.GetConfigMapWithRetry(client, metav1.NamespaceSystem, kubeadmconstants.KubeadmConfigConfigMap)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get config map")
+	}
+	clusterConfigurationData, ok := configMap.Data[kubeadmconstants.ClusterConfigurationConfigMapKey]
+	if !ok {
+		return "", errors.Errorf("unexpected error when reading kubeadm-config ConfigMap: %s key value pair missing", kubeadmconstants.ClusterConfigurationConfigMapKey)
+	}
+	ext := kuberuntime.RawExtension{}
+	err = yaml.Unmarshal([]byte(clusterConfigurationData), &ext)
+	if err != nil {
+		return "", err
+	}
+	obj, _, err := unstructured.UnstructuredJSONScheme.Decode(ext.Raw, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	unstructuredMap, err := kuberuntime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return "", err
+	}
+	edgeImages, _, err := unstructured.NestedString(unstructuredMap, "edgeImageRepository")
+	if err != nil {
+		return "", err
+	}
+
+	return edgeImages, nil
+
 }
