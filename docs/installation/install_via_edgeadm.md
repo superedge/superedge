@@ -6,7 +6,7 @@
     - [1. what is edgeadm ?](#1-what-is-edgeadm-)
     - [2. What can edgeadm do ?](#2-what-can-edgeadm-do-)
     - [3. How to get edgeadm tool](#3-how-to-get-edgeadm-tool)
-    - [4. Transform a native kubernestes into edge Kubernestes cluster](#4-transform-a-native-kubernestes-into-edge-kubernestes-cluster)
+    - [4. Transform a native kubernetes into edge Kubernetes cluster](#4-transform-a-native-kubernetes-into-edge-kubernetes-cluster)
   - [edgeadm commands Introduction](#edgeadm-commands-introduction)
     - [1. change](#1-change)
     - [2. revert](#2-revert)
@@ -14,7 +14,7 @@
 
 ## Prerequisite
 
-1. Use kubeadm build a kubernestes cluster, no less than one master node and one worker node, Hardware >= 2C2G every node（required by kubeadm）。
+1. Use kubeadm build a kubernetes cluster, no less than one master node and one worker node, Hardware >= 2C2G every node（required by kubeadm）。
 2. Kubernetes version >= 1.18 is recommended(We did detailed testing for version 1.18.2)
 3. Make sure that kube-api-server and kubelet have privilege containers enabled. You can set --allow-privileged=true for kube-api-server and kubelet, and restart them two to enable privilege.
 4. Make sure that Kubernetes cluster and nodes working normally.
@@ -28,17 +28,17 @@
 
 ### 2. What can edgeadm do ?
 
-- It can transform the native Kubernestes cluster into edge Kubernestes cluster seamlessly
-- It can revert edge Kubernretes into a native Kubernestes cluster
+- It can transform the native Kubernetes cluster into edge Kubernetes cluster seamlessly
+- It can revert edge Kubernetes into a native Kubernetes cluster
 
 ### 3. How to get edgeadm tool
 
 - Download binary [download](https://github.com/superedge/superedge/releases)
 - Building binary [how to building](docs/../../tutorial.md)
 
-### 4. Transform a native kubernestes into edge Kubernestes cluster
+### 4. Transform a native kubernetes into edge Kubernetes cluster
 
-1. use kubeadm to build a native Kubernestes cluster.[how to use kubeadm to build a Kubernetes cluster](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+1. use kubeadm to build a native Kubernetes cluster.[how to use kubeadm to build a Kubernetes cluster](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
 2. use edgeadm to transform this native Kubernetes
 ```
 sudo chmod +x edgeadm && ./edgeadm change
@@ -54,7 +54,7 @@ sudo chmod +x edgeadm && ./edgeadm change
 </div>
 
 - meaning
-> transform a native Kubernestes cluster into edge Kubernetes cluster
+> transform a native Kubernetes cluster into edge Kubernetes cluster
 
 - Simplest operation
 ```
@@ -88,7 +88,7 @@ Kubeadm Cluster Change To Edge cluster Success!
 ### 2. revert
 
 - meaning
->  revert a edge Kubernetes cluster to native Kubernestes cluster
+>  revert a edge Kubernetes cluster to native Kubernetes cluster
 
 - Simplest operation
 
