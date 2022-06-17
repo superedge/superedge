@@ -63,9 +63,7 @@ arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && 
 ./edgeadm join <Master Public/Intranet IP Or Domain>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-* install package address path> --enable-edge=true
 ```
 
-See the detailed process[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
-
-Other installation, deployment, and administration, see our [**Tutorial**](docs/tutorial.md).
+Other installation, deployment, and administration, see our [**Tutorial**](https://github.com/superedge/edgeadm/blob/main/docs/tutorial.md).
 
 ## More details
 - [tutorial_CN](./docs/tutorial_CN.md)
