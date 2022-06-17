@@ -2,6 +2,10 @@
 
 # SuperEdge
 
+<div align="left">
+  <img src="docs/img/SuperEdge-icon-color.png" width=30% title="SuperEdge Architecture">
+</div>
+
 ## 什么是SuperEdge?
 
 SuperEdge是Kubernetes原生的边缘容器方案，它将Kubernetes强大的容器管理能力扩展到边缘计算场景中，针对边缘计算场景中常见的技术挑战提供了解决方案，如：单集群节点跨地域、云边网络不可靠、边缘节点位于NAT网络等。这些能力可以让应用很容易地部署到边缘计算节点上，并且可靠地运行。
@@ -45,8 +49,10 @@ SuperEdge具有如下特性:
 
 ## 快速入门指南
 
+如果您想快速从零开始初始化一套 SuperEdge 边缘集群，可以使用 SuperEdge 独立的开源子项目 [**edgeadm**](https://github.com/superedge/edgeadm) ，此项目已经从 SuperEdge 项目中独立，详细使用手册请参考[**一键安装边缘独立集群**](https://github.com/superedge/edgeadm/blob/main/docs/installation/install_edge_kubernetes_CN.md)。下面快速了解一下 edgeadm 使用方式：
+
 -   下载安装包
-> 注意修改"arch=amd64"参数，目前支持[amd64, arm64], kubernetes版本可选[1.20.6, 1.18.2], 注意下载自己机器对应的体系结构，其他参数不变
+> 注意修改"arch=amd64"参数，目前支持[amd64, arm64], kubernetes版本可选[1.22.6, 1.20.6, 1.18.2], 注意下载自己机器对应的体系结构，其他参数不变
 
 ```shell
 arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm

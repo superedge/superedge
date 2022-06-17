@@ -2,6 +2,10 @@ English | [简体中文](./README_CN.md)
 
 # SuperEdge
 
+<div align="left">
+  <img src="docs/img/SuperEdge-icon-color.png" width=30% title="SuperEdge Architecture">
+</div>
+
 ## What is SuperEdge?
 
 SuperEdge is an open source **container management system for edge computing** to manage compute resources and container applications in multiple edge regions. These resources and applications, in the current approach, are managed as one single **Kubernetes** cluster. A native Kubernetes cluster can be easily converted to a SuperEdge cluster.
