@@ -44,10 +44,10 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 * [**application-grid wrapper**](docs/components/serviceGroup.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
-[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
+Please refer to the sub-project [**edgeadm**](https://github.com/superedge/edgeadm). If you want to bring up a SuperEdge cluster from scrath, check this manual [One-click install of edge Kubernetes cluster](https://github.com/superedge/edgeadm/blob/main/docs/installation/install_edge_kubernetes.md).
 
 -   Download the installation package
-> Your can choose CPU arch [amd64, arm64], kubernetes version [1.20.6, 1.18.2];
+> Your can choose CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6, 1.18.2];
 
 ```shell
 arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
