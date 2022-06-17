@@ -18,12 +18,11 @@ package common
 
 import (
 	"context"
+	"github.com/superedge/superedge/pkg/util"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	edgeadmConstant "github.com/superedge/edgeadm/pkg/edgeadm/constant"
 )
 
 func GetMasterHosts(clientSet *kubernetes.Clientset) (map[string]string, error) {
@@ -34,7 +33,7 @@ func GetMasterHosts(clientSet *kubernetes.Clientset) (map[string]string, error) 
 
 	masterIPs := make(map[string]string)
 	for _, node := range nodes.Items {
-		if _, ok := node.Labels[edgeadmConstant.KubernetesDefaultRoleLabel]; ok {
+		if _, ok := node.Labels[util.KubernetesDefaultRoleLabel]; ok {
 			for _, address := range node.Status.Addresses {
 				if address.Type == v1.NodeInternalIP {
 					masterIPs[node.Name] = address.Address

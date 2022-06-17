@@ -20,7 +20,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/superedge/edgeadm v0.0.0-20220608075645-a85e13aaca55
 	github.com/tarscloud/gopractice v1.0.1
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	go.etcd.io/bbolt v1.3.6
@@ -39,47 +38,6 @@ require (
 	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.22.3
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/kubernetes v1.22.6
-	//k8s.io/kubernetes v1.22.6
-	//k8s.io/kubernetes v1.22.6
 	sigs.k8s.io/controller-runtime v0.10.3
 	sigs.k8s.io/yaml v1.2.0
-)
-
-replace (
-	github.com/coredns/corefile-migration => github.com/coredns/corefile-migration v1.0.10
-	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.1
-	github.com/moby/term => github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
-	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200329194405-dd816f0735f8
-	google.golang.org/grpc => google.golang.org/grpc v1.38.0
-	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
-	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
-	k8s.io/api => k8s.io/api v0.22.3
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.3
-	k8s.io/apimachinery => k8s.io/apimachinery v0.22.3
-	k8s.io/apiserver => k8s.io/apiserver v0.22.3
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.22.3
-	k8s.io/client-go => k8s.io/client-go v0.22.3
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.22.3
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.3
-	k8s.io/code-generator => k8s.io/code-generator v0.22.3
-	k8s.io/component-base => k8s.io/component-base v0.22.3
-	k8s.io/component-helpers => k8s.io/component-helpers v0.22.3
-	k8s.io/controller-manager => k8s.io/controller-manager v0.22.3
-	k8s.io/cri-api => k8s.io/cri-api v0.22.3
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.22.3
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.3
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.22.3
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211109043538-20434351676c
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.22.3
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.22.3
-	k8s.io/kubectl => k8s.io/kubectl v0.22.3
-	k8s.io/kubelet => k8s.io/kubelet v0.22.3
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.22.3
-	k8s.io/metrics => k8s.io/metrics v0.22.3
-	k8s.io/mount-utils => k8s.io/mount-utils v0.22.3
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.22.3
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.22.3
-	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.22.3
-	k8s.io/sample-controller => k8s.io/sample-controller v0.22.3
 )

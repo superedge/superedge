@@ -29,9 +29,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	"net"
-	"strconv"
-
 	//"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -79,14 +76,9 @@ func AddNodes(nodes int) {
 
 	//apiserver advertiseAddress
 
-	advertiseAddress := getAdvertiseAddress()
-	if advertiseAddress == "" {
-		userRecord.Event(nodejob, v1.EventTypeWarning, fmt.Sprintf("Failed to get apiserver advertiseAddress"), fmt.Sprintf("ExternalAddress: %v IntranetAddress: %s", conf.JobConf.ExternalAddress, conf.JobConf.IntranetAddress))
-	}
-
 	for node, ip := range conf.JobConf.NodesIps {
 		go func() {
-			err := addNode(node, ip, version.GitVersion, advertiseAddress, addch, errch, kubeclient)
+			err := addNode(node, ip, version.GitVersion, conf.JobConf.ApiserverAddr, addch, errch, kubeclient)
 			if err != nil {
 				klog.Error(err.Error())
 				userRecord.Event(nodejob, v1.EventTypeWarning, fmt.Sprintf("Node:%s installation failed", node), err.Error())
@@ -172,7 +164,7 @@ func addNode(nodeName, nodeIp, version, advertiseAddress string, nodesch chan in
 		"NodeName":         nodeName,
 		"CaHash":           conf.JobConf.CaHash,
 		"AdvertiseAddress": advertiseAddress,
-		"BindPort":         conf.JobConf.BindPort,
+		"BindPort":         conf.JobConf.ApiserverPort,
 		"AdmToken":         conf.JobConf.AdmToken,
 		"Arch":             simpleArch,
 		"K8sVersion":       version,
@@ -217,21 +209,4 @@ func getArch(arch string) string {
 		return ""
 	}
 
-}
-
-func getAdvertiseAddress() string {
-	port := strconv.FormatInt(int64(conf.JobConf.BindPort), 10)
-	conn, err := net.Dial("tcp", conf.JobConf.IntranetAddress+":"+port)
-	if err == nil {
-		conn.Close()
-		return conf.JobConf.IntranetAddress
-	}
-	for _, v := range conf.JobConf.ExternalAddress {
-		tconn, err := net.Dial("tcp", v+":"+port)
-		if err == nil {
-			tconn.Close()
-			return v
-		}
-	}
-	return ""
 }
