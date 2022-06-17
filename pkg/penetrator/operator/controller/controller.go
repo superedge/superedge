@@ -14,7 +14,10 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/pelletier/go-toml"
 	"github.com/superedge/superedge/pkg/penetrator/apis/nodetask.apps.superedge.io/v1beta1"
@@ -31,7 +34,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -43,12 +45,7 @@ import (
 	tokenapi "k8s.io/cluster-bootstrap/token/api"
 	tokenutil "k8s.io/cluster-bootstrap/token/util"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	pubkey "k8s.io/kubernetes/cmd/kubeadm/app/util/pubkeypin"
-	coresv1 "k8s.io/kubernetes/pkg/apis/core"
-	"math/rand"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -201,7 +198,7 @@ func (ntController *NodeTaskController) syncHandler(key string) error {
 					klog.Errorf("Failed to get node: %s", ntCopy.Spec.ProxyNode)
 					return err
 				}
-				if _, hasMasterRoleLabel := node.Labels[kubeadmconstants.LabelNodeRoleMaster]; hasMasterRoleLabel {
+				if _, hasMasterRoleLabel := node.Labels[util.KubernetesControlPlaneLabel]; hasMasterRoleLabel {
 					err = createNodeJob(ntController.kubeClient, nt, true)
 				} else {
 					err = createNodeJob(ntController.kubeClient, nt, false)
@@ -275,20 +272,13 @@ func (ntController *NodeTaskController) prepareJob(nt *v1beta1.NodeTask) error {
 			jobConfig.NodesIps = nt.Status.NodeStatus
 			jobConfig.SSHPort = nt.Spec.SSHPort
 			jobConfig.AdmToken = bootStrapToken
-			apiep, apiserver, err := getClusterStatus(ntController.ctx, ntController.kubeClient)
-			if err != nil {
-				klog.Errorf("Failed to get kube-apiserver address and port, error: %v", err)
-				return err
-			}
-			jobConfig.IntranetAddress = apiep.AdvertiseAddress
-			jobConfig.ExternalAddress = apiserver.CertSANs
-			jobConfig.BindPort = apiep.BindPort
-
-			caHash, err := getCaHash(ntController.ctx, ntController.kubeClient)
+			caHash, apiserverAddr, apiserverPort, err := getCaHashAndApiserverAddr(ntController.ctx, ntController.kubeClient)
 			if err != nil {
 				klog.Errorf("Failed to get caHash, error: %v", err)
 				return err
 			}
+			jobConfig.ApiserverAddr = apiserverAddr
+			jobConfig.ApiserverPort = apiserverPort
 			jobConfig.CaHash = caHash
 
 			jobConfigBD, err := toml.Marshal(jobConfig)
@@ -470,52 +460,37 @@ func getBootStrapToken(ctx *context.NodeTaskContext, kubeclient kubernetes.Inter
 	return token, nil
 }
 
-func getClusterStatus(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (kubeadm.APIEndpoint, kubeadm.APIServer, error) {
-	var apiep kubeadm.APIEndpoint
-	var apiserver kubeadm.APIServer
-	kubeadmConfig, err := kubeclient.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(ctx, kubeadmconstants.KubeadmConfigConfigMap, metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("Failed to get configmap %s, error: %v", kubeadmconstants.KubeadmConfigConfigMap, err)
-		return apiep, apiserver, err
-	}
-	clusterStatus := &kubeadm.ClusterStatus{}
-	if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), []byte(kubeadmConfig.Data[kubeadmconstants.ClusterStatusConfigMapKey]), clusterStatus); err != nil {
-		klog.Errorf("Failed to get clusterStatus, error: %v", err)
-		return apiep, apiserver, err
-	}
-	nodes, err := kubeclient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: kubeadmconstants.LabelNodeRoleMaster + "= "})
-	if err != nil {
-		klog.Errorf("Failed to list nodes, error: %v", err)
-		return apiep, apiserver, err
-	}
-	apiep = clusterStatus.APIEndpoints[nodes.Items[rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(nodes.Items))].Name]
-	clusterConfig := &kubeadm.ClusterConfiguration{}
-	if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), []byte(kubeadmConfig.Data[kubeadmconstants.ClusterConfigurationKind]), clusterConfig); err != nil {
-		klog.Errorf("Failed to decode cluster configuration data")
-		return apiep, apiserver, err
-	}
-	apiserver = clusterConfig.APIServer
-	return apiep, apiserver, nil
-}
-
-func getCaHash(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (string, error) {
+func getCaHashAndApiserverAddr(ctx *context.NodeTaskContext, kubeclient kubernetes.Interface) (string, string, string, error) {
 	var caHash string
-	clusterInfo, err := kubeclient.CoreV1().ConfigMaps(coresv1.NamespacePublic).Get(ctx, tokenapi.ConfigMapClusterInfo, metav1.GetOptions{})
+	var apiserverAddr string
+	var apiserverPort string
+	clusterInfo, err := kubeclient.CoreV1().ConfigMaps(util.NamespaceKubePublic).Get(ctx, tokenapi.ConfigMapClusterInfo, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get configmap %s, error: %v", tokenapi.ConfigMapClusterInfo, err)
-		return caHash, err
+		return caHash, apiserverAddr, apiserverPort, err
 	}
 	config, err := clientcmd.Load([]byte(clusterInfo.Data[tokenapi.KubeConfigKey]))
 	if err != nil {
 		klog.Errorf("Failed to get kubeconfig, error: %v", err)
-		return caHash, err
+		return caHash, apiserverAddr, apiserverPort, err
 	}
 
 	cacert, err := certutil.ParseCertsPEM([]byte(config.Clusters[""].CertificateAuthorityData))
 	if err != nil {
 		klog.Errorf("Failed to parse cacert, error: %v", err)
-		return caHash, err
+		return caHash, apiserverAddr, apiserverPort, err
 	}
-	caHash = pubkey.Hash(cacert[0])
-	return caHash, nil
+	apiserverUrl, err := url.Parse(config.Clusters[""].Server)
+	if err != nil {
+		return caHash, apiserverAddr, apiserverPort, err
+	}
+	apiserverAddr = apiserverUrl.Host
+	apiserverPort = apiserverUrl.Port()
+	caHash = Hash(cacert[0])
+	return caHash, apiserverAddr, apiserverPort, nil
+}
+
+func Hash(certificate *x509.Certificate) string {
+	spkiHash := sha256.Sum256(certificate.RawSubjectPublicKeyInfo)
+	return "sha256" + ":" + strings.ToLower(hex.EncodeToString(spkiHash[:]))
 }

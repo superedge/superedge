@@ -20,7 +20,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"github.com/superedge/edgeadm/pkg/edgeadm/constant"
+	"github.com/superedge/superedge/pkg/util"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -72,7 +72,7 @@ func (c CheckEdge) GetNodeList() {
 		return
 	}
 
-	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(constant.NamespaceEdgeSystem).Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
+	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(util.NamespaceEdgeSystem).Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
 		if apierrors.IsNotFound(err) {
 			if NodeList, err := NodeManager.NodeLister.List(masterSelector); err != nil {
 				klog.Errorf("config not exist, get nodes err: %v", err)
