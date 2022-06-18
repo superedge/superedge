@@ -196,7 +196,7 @@ func (p *EdgeReverseProxy) ignoreCache(r *http.Request, err error) bool {
 		if errno, ok := t.Err.(syscall.Errno); ok {
 			klog.V(4).Infof("Request errorno is %+v", errno)
 			switch errno {
-			case syscall.ECONNREFUSED, syscall.ETIMEDOUT:
+			case syscall.ECONNREFUSED, syscall.ETIMEDOUT, syscall.EHOSTUNREACH, syscall.ENETUNREACH, syscall.ECONNRESET:
 				return false
 			default:
 				return true
