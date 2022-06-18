@@ -2,6 +2,10 @@
 
 # SuperEdge
 
+[![Version](https://img.shields.io/badge/SuperEdge-0.7.0-blue)](https://github.com/superedge/superedge/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/superedge/superedge)](https://goreportcard.com/report/github.com/superedge/superedge)
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
 <div align="left">
   <img src="docs/img/SuperEdge-icon-color.png" width=30% title="SuperEdge Architecture">
 </div>
