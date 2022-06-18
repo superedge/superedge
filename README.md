@@ -2,6 +2,14 @@ English | [简体中文](./README_CN.md)
 
 # SuperEdge
 
+[![Version](https://img.shields.io/badge/SuperEdge-0.7.0-blue)](https://github.com/superedge/superedge/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/superedge/superedge)](https://goreportcard.com/report/github.com/superedge/superedge)
+[![License](https://img.shields.io/badge/License-Apache--2.0-orange)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
+<div align="left">
+  <img src="docs/img/SuperEdge-icon-color.png" width=30% title="SuperEdge Architecture">
+</div>
+
 ## What is SuperEdge?
 
 SuperEdge is an open source **container management system for edge computing** to manage compute resources and container applications in multiple edge regions. These resources and applications, in the current approach, are managed as one single **Kubernetes** cluster. A native Kubernetes cluster can be easily converted to a SuperEdge cluster.
@@ -40,10 +48,10 @@ SuperEdge was initiated by the following companies: Tencent, Intel, VMware, Huya
 * [**application-grid wrapper**](docs/components/serviceGroup.md): Managed by `application-grid controller` to provide independent internal network space for services within the same ServiceGrid.
 
 ## Quickstart Guide
-[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
+Please refer to the sub-project [**edgeadm**](https://github.com/superedge/edgeadm). If you want to bring up a SuperEdge cluster from scrath, check this manual [One-click install of edge Kubernetes cluster](https://github.com/superedge/edgeadm/blob/main/docs/installation/install_edge_kubernetes.md).
 
 -   Download the installation package
-> Your can choose CPU arch [amd64, arm64], kubernetes version [1.20.6, 1.18.2];
+> Your can choose CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6, 1.18.2];
 
 ```shell
 arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
@@ -59,9 +67,7 @@ arch=amd64 version=v0.7.0 kubernetesVersion=1.20.6 && rm -rf edgeadm-linux-* && 
 ./edgeadm join <Master Public/Intranet IP Or Domain>:Port --token xxxx --discovery-token-ca-cert-hash sha256:xxxxxxxxxx --install-pkg-path <edgeadm kube-* install package address path> --enable-edge=true
 ```
 
-See the detailed process[One-click install of edge Kubernetes cluster](./docs/installation/install_edge_kubernetes.md)
-
-Other installation, deployment, and administration, see our [**Tutorial**](docs/tutorial.md).
+Other installation, deployment, and administration, see our [**Tutorial**](https://github.com/superedge/edgeadm/blob/main/docs/tutorial.md).
 
 ## More details
 - [tutorial_CN](./docs/tutorial_CN.md)
