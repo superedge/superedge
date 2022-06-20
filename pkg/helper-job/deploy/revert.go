@@ -27,7 +27,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
-	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/helper-job/constant"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/util/kubeclient"
@@ -45,8 +44,8 @@ func revertMasterJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 
 	nodeLabel := map[string]string{
-		edgeadmConstant.EdgeMasterLabelKey: edgeadmConstant.EdgeMasterLabelValueEnable,
-		edgeadmConstant.EdgeChangeLabelKey: edgeadmConstant.EdgeChangeLabelValueEnable,
+		util.EdgeMasterLabelKey: util.EdgeMasterLabelValueEnable,
+		util.EdgeChangeLabelKey: util.EdgeChangeLabelValueEnable,
 	}
 	if err := kubeclient.DeleteNodeLabel(kubeClient, nodeName, nodeLabel); err != nil {
 		return err
@@ -96,8 +95,8 @@ func revertNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 
 	nodeLabel := map[string]string{
-		edgeadmConstant.EdgeNodeLabelKey:   edgeadmConstant.EdgeNodeLabelValueEnable,
-		edgeadmConstant.EdgeChangeLabelKey: edgeadmConstant.EdgeChangeLabelValueEnable,
+		util.EdgeNodeLabelKey:   util.EdgeNodeLabelValueEnable,
+		util.EdgeChangeLabelKey: util.EdgeChangeLabelValueEnable,
 	}
 	if err := kubeclient.DeleteNodeLabel(kubeClient, nodeName, nodeLabel); err != nil {
 		return err

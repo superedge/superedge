@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"encoding/json"
-	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -177,7 +176,7 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 		node.Labels = make(map[string]string)
 	}
 
-	if _, ok := node.Labels[edgeadmConstant.EdgeNodeLabelKey]; ok {
+	if _, ok := node.Labels[util.EdgeNodeLabelKey]; ok {
 		edgeNodeLabel := map[string]string{
 			KubernetesEdgeNodeRoleKey: "",
 		}
@@ -187,7 +186,7 @@ func SetNodeRole(kubeClient clientset.Interface, node *corev1.Node) error {
 		}
 	}
 
-	if _, ok := node.Labels[edgeadmConstant.CloudNodeLabelKey]; ok {
+	if _, ok := node.Labels[util.CloudNodeLabelKey]; ok {
 		cloudNodeLabel := map[string]string{
 			KubernetesCloudNodeRoleKey: "",
 		}

@@ -38,7 +38,6 @@ import (
 	"k8s.io/klog/v2"
 	k8syaml "sigs.k8s.io/yaml"
 
-	edgeadmConstant "github.com/superedge/superedge/pkg/edgeadm/constant"
 	"github.com/superedge/superedge/pkg/helper-job/common"
 	"github.com/superedge/superedge/pkg/helper-job/constant"
 	"github.com/superedge/superedge/pkg/util"
@@ -53,7 +52,7 @@ func changeMasterJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 
 	masterLabel := map[string]string{
-		edgeadmConstant.EdgeMasterLabelKey: edgeadmConstant.EdgeMasterLabelValueEnable,
+		util.EdgeMasterLabelKey: util.EdgeMasterLabelValueEnable,
 	}
 	isLabel, err := kubeclient.CheckNodeLabel(kubeClient, nodeName, masterLabel)
 	if err != nil {
@@ -99,7 +98,7 @@ func changeNodeJob(kubeClient *kubernetes.Clientset, nodeName string) error {
 
 func isDeployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) (bool, error) {
 	nodeLabel := map[string]string{
-		edgeadmConstant.EdgeNodeLabelKey: edgeadmConstant.EdgeNodeLabelValueEnable,
+		util.EdgeNodeLabelKey: util.EdgeNodeLabelValueEnable,
 	}
 	isLabel, err := kubeclient.CheckNodeLabel(kubeClient, nodeName, nodeLabel)
 	if err != nil {
@@ -171,7 +170,7 @@ func restartKubelet(kubeClient *kubernetes.Clientset, nodeName string) error {
 	}
 
 	masterLabel := map[string]string{
-		edgeadmConstant.EdgeNodeLabelKey: edgeadmConstant.EdgeNodeLabelValueEnable,
+		util.EdgeNodeLabelKey: util.EdgeNodeLabelValueEnable,
 	}
 	if err := kubeclient.AddNodeLabel(kubeClient, nodeName, masterLabel); err != nil {
 		klog.Errorf("Add edged Node node label error: %v", err)
@@ -249,7 +248,7 @@ func updateKubeAPIPod(kubeClient *kubernetes.Clientset, pod *v1.Pod) error {
 
 	var clusterIP string
 	for { //make sure tunnel-coredns success created
-		coredns, err := kubeClient.CoreV1().Services(edgeadmConstant.NamespaceEdgeSystem).Get(context.TODO(), "tunnel-coredns", metav1.GetOptions{})
+		coredns, err := kubeClient.CoreV1().Services(util.NamespaceEdgeSystem).Get(context.TODO(), "tunnel-coredns", metav1.GetOptions{})
 		if err == nil {
 			clusterIP = coredns.Spec.ClusterIP
 			break
@@ -396,7 +395,7 @@ func deployLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string) erro
 }
 
 func completeLiteApiServer(kubeClient *kubernetes.Clientset) error {
-	edgeCertCM, err := kubeClient.CoreV1().ConfigMaps(edgeadmConstant.NamespaceEdgeSystem).Get(context.TODO(), constant.EDGE_CERT_CM, metav1.GetOptions{})
+	edgeCertCM, err := kubeClient.CoreV1().ConfigMaps(util.NamespaceEdgeSystem).Get(context.TODO(), constant.EDGE_CERT_CM, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -459,7 +458,7 @@ func writeStaticYaml(filePath, content string) error {
 func isRunningLiteAPIServer(kubeClient *kubernetes.Clientset, nodeName string, retry int) (bool, error) {
 	podName := constant.LiteAPIServerPodName + "-" + nodeName
 	liteAPIServerStatueFunc := func(podName string) (bool, error) {
-		pod, err := kubeClient.CoreV1().Pods(edgeadmConstant.NamespaceEdgeSystem).Get(context.TODO(), podName, metav1.GetOptions{})
+		pod, err := kubeClient.CoreV1().Pods(util.NamespaceEdgeSystem).Get(context.TODO(), podName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("Get pod: %s infos error: %v", podName, err)
 			return false, err

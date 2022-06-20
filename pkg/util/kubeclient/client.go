@@ -28,15 +28,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
-	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 
 	"github.com/superedge/superedge/pkg/util"
 )
@@ -277,48 +274,4 @@ func IsReadyNode(node *corev1.Node) bool {
 		}
 	}
 	return false
-}
-
-func GetClusterInfo(kubeconfigFile string) (*api.Cluster, error) {
-	if !util.IsFileExist(kubeconfigFile) {
-		kubeconfigFile = ""
-	}
-
-	if kubeconfigFile == "" {
-		kubeconfigFile = os.Getenv("KUBECONFIG")
-	}
-
-	if kubeconfigFile == "" {
-		if home := homedir.HomeDir(); home != "" {
-			kubeconfigFile = filepath.Join(home, ".kube", "config")
-		}
-	}
-
-	if !util.IsFileExist(kubeconfigFile) {
-		kubeconfigFile = ""
-	}
-
-	if kubeconfigFile == "" {
-		kubeconfigFile = CustomConfig()
-	}
-
-	if kubeconfigFile == "" {
-		return nil, fmt.Errorf("kubeconfig nil, Please appoint --kubeconfig, KUBECONFIG or ~/.kube/config")
-	}
-
-	os.Setenv("KUBECONF", kubeconfigFile)
-	os.Setenv("KUBECONFIG", kubeconfigFile)
-
-	// load the kubeconfig file to get the CA certificate and endpoint
-	config, err := clientcmd.LoadFromFile(kubeconfigFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load kubeconfig")
-	}
-
-	// load the default cluster config
-	clusterConfig := kubeconfigutil.GetClusterFromKubeConfig(config)
-	if clusterConfig == nil {
-		return nil, errors.New("failed to get default cluster config")
-	}
-	return clusterConfig, nil
 }
