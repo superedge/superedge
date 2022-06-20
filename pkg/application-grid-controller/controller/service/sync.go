@@ -101,7 +101,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
-					klog.Errorf("Updating add services %d when error occured %v", svc.Name, err)
+					klog.Errorf("Updating add services %d when error occurred %v", svc.Name, err)
 				}
 			} else {
 				sgCopy.Status = svc.Status
@@ -140,7 +140,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
-					klog.Errorf("Updating update services %s when error occured %v", svc.Name, err)
+					klog.Errorf("Updating update services %s when error occurred %v", svc.Name, err)
 				}
 			} else {
 				sgCopy.Status = svc.Status
@@ -168,7 +168,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 
 				_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(sgCopy.Namespace).UpdateStatus(context.TODO(), sgCopy, metav1.UpdateOptions{})
 				if err != nil {
-					klog.Errorf("Updating delete services %d when error occured %v", svc.Name, err)
+					klog.Errorf("Updating delete services %d when error occurred %v", svc.Name, err)
 				}
 			} else {
 				sgCopy.Status = svc.Status
