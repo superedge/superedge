@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	apimachinerynet "k8s.io/apimachinery/pkg/util/net"
 	"net"
 	"net/http"
 	"strings"
@@ -229,19 +230,23 @@ func (tm *TransportManager) makeTransport(tlsClientConfig *tls.Config, localAddr
 	}
 
 	d := connrotation.NewDialer(dialer.DialContext)
+
+	t1 := &http.Transport{
+		DialContext:           d.DialContext,
+		Proxy:                 http.ProxyFromEnvironment,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       tlsClientConfig,
+	}
+	t1 = apimachinerynet.SetTransportDefaults(t1)
+
 	return &EdgeTransport{
 		d: d,
 		// TODO enable http2 if using go1.15
 		// the params are same with http.DefaultTransport
-		Transport: &http.Transport{
-			DialContext:           d.DialContext,
-			Proxy:                 http.ProxyFromEnvironment,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-			TLSClientConfig:       tlsClientConfig,
-		},
+		Transport: t1,
 	}
 }
 
