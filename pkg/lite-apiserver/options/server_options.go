@@ -29,7 +29,7 @@ import (
 type RunServerOptions struct {
 	KubeApiserverUrl    string
 	KubeApiserverPort   int
-	ListenAddress       string
+	ListenAddress       []string
 	Port                int
 	BackendTimeout      int
 	Profiling           bool
@@ -105,8 +105,10 @@ func (s *RunServerOptions) Validate() []error {
 	if s.Port == 0 {
 		errors = append(errors, fmt.Errorf("port cannot be 0"))
 	}
-	if ip := net.ParseIP(s.ListenAddress); ip == nil {
-		errors = append(errors, fmt.Errorf("address invalid"))
+	for _, adr := range s.ListenAddress {
+		if ip := net.ParseIP(adr); ip == nil {
+			errors = append(errors, fmt.Errorf("address invalid"))
+		}
 	}
 	for _, url := range s.URLMultiplexCache {
 		if _, err := muxserver.GetMuxFactory(url); err != nil {
@@ -129,7 +131,7 @@ func (s *RunServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KubeApiserverUrl, "kube-apiserver-url", "", "the host of kube-apiserver")
 	fs.IntVar(&s.KubeApiserverPort, "kube-apiserver-port", 443, "the port of kube-apiserver")
 
-	fs.StringVar(&s.ListenAddress, "address", "127.0.0.1", "the address of lite-apiserver listening")
+	fs.StringArrayVar(&s.ListenAddress, "address", []string{"127.0.0.1"}, "the address list of lite-apiserver listening")
 	fs.IntVar(&s.Port, "port", 51003, "the port on the local server to listen on")
 	fs.IntVar(&s.BackendTimeout, "timeout", 3, "timeout for proxy to backend")
 	fs.BoolVar(&s.Profiling, "profiling", false, "profiling for lite-apiserver on /debug/pprof/profile")
