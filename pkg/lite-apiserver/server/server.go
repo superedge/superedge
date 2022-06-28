@@ -189,18 +189,22 @@ func (s *LiteServer) Run() error {
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(caCrt)
 
-	ser := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", s.ServerConfig.ListenAddress, s.ServerConfig.Port),
-		Handler: handler,
-		TLSConfig: &tls.Config{
-			ClientCAs:  pool,
-			ClientAuth: tls.VerifyClientCertIfGiven,
-		},
+	for _, addr := range s.ServerConfig.ListenAddress {
+		go func(addr string) {
+			ser := &http.Server{
+				Addr:    fmt.Sprintf("%s:%d", addr, s.ServerConfig.Port),
+				Handler: handler,
+				TLSConfig: &tls.Config{
+					ClientCAs:  pool,
+					ClientAuth: tls.VerifyClientCertIfGiven,
+				},
+			}
+
+			klog.Infof("Listen on %s", ser.Addr)
+			klog.Fatal(ser.ListenAndServeTLS(s.ServerConfig.CertFile, s.ServerConfig.KeyFile))
+		}(addr)
+
 	}
-	go func() {
-		klog.Infof("Listen on %s", ser.Addr)
-		klog.Fatal(ser.ListenAndServeTLS(s.ServerConfig.CertFile, s.ServerConfig.KeyFile))
-	}()
 
 	<-s.stopCh
 	klog.Info("Received a program exit signal")
