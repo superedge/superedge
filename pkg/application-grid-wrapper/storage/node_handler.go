@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 
 	v1 "k8s.io/api/core/v1"
@@ -67,6 +68,9 @@ func (nh *nodeHandler) update(node *v1.Node) {
 	sc.mu.Unlock()
 
 	sc.resync()
+
+	//Endpoints under the native servcie of the resync ingress backend
+	sc.nodeBroadcaster.ActionOrDrop(watch.Modified, node)
 }
 
 func (nh *nodeHandler) delete(node *v1.Node) {

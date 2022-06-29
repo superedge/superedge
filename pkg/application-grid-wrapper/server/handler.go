@@ -18,6 +18,7 @@ package server
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/watch"
 	"net/http"
 	"net/http/httputil"
 	"net/http/pprof"
@@ -25,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	siteconstant "github.com/superedge/superedge/pkg/site-manager/constant"
 	v1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
@@ -34,6 +36,10 @@ import (
 	"k8s.io/client-go/rest"
 	restclientwatch "k8s.io/client-go/rest/watch"
 	"k8s.io/klog/v2"
+)
+
+const (
+	SuperEdgeIngress = "superedge-ingress"
 )
 
 func (s *interceptorServer) logger(handler http.Handler) http.Handler {
@@ -264,13 +270,15 @@ func (s *interceptorServer) interceptEndpointsRequest(handler http.Handler) http
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
+		endpointsWatch := s.endpointsBoradcaster.Watch()
+		defer endpointsWatch.Stop()
 		for {
 			select {
 			case <-r.Context().Done():
 				return
 			case <-timer.C:
 				return
-			case evt := <-s.endpointsWatchCh:
+			case evt := <-endpointsWatch.ResultChan():
 				klog.V(4).Infof("Send endpoint watch event: %+#v", evt)
 				err := e.Encode(&evt)
 				if err != nil {
@@ -278,7 +286,7 @@ func (s *interceptorServer) interceptEndpointsRequest(handler http.Handler) http
 					return
 				}
 
-				if len(s.endpointsWatchCh) == 0 {
+				if len(endpointsWatch.ResultChan()) == 0 {
 					flusher.Flush()
 				}
 			}
@@ -464,4 +472,185 @@ func (s *interceptorServer) interceptEndpointSliceV1Beta1Request(handler http.Ha
 			}
 		}
 	})
+}
+
+func (s *interceptorServer) interceptIngressRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/superedge-ingress") {
+			ingress, path, err := getIngressPath(r.URL.Path)
+			if err == nil {
+				r.URL.Path = path
+				r.Header.Add("superedge-ingress", ingress)
+			}
+		}
+		handler.ServeHTTP(w, r)
+		return
+	})
+}
+func (s *interceptorServer) interceptIngressEndpointsRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(SuperEdgeIngress) != "" && !strings.Contains(r.URL.Path, "/api/v1/endpoints") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+		queries := r.URL.Query()
+		acceptType := r.Header.Get("Accept")
+		info, found := s.parseAccept(acceptType, s.mediaSerializer)
+		if !found {
+			klog.Errorf("can't find %s serializer", acceptType)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		encoder := scheme.Codecs.EncoderForVersion(info.Serializer, v1.SchemeGroupVersion)
+		// list request
+		if queries.Get("watch") == "" {
+			w.Header().Set("Content-Type", info.MediaType)
+			allEndpoints := s.cache.GetEndpoints()
+			epsItems := make([]v1.Endpoints, 0, len(allEndpoints))
+			for _, eps := range allEndpoints {
+				epsItems = append(epsItems, *eps)
+			}
+
+			epsList := &v1.EndpointsList{
+				Items: epsItems,
+			}
+
+			err := encoder.Encode(epsList, w)
+			if err != nil {
+				klog.Errorf("can't marshal endpoints list, %v", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			return
+		}
+
+		// watch request
+		timeoutSecondsStr := r.URL.Query().Get("timeoutSeconds")
+		timeout := time.Minute
+		if timeoutSecondsStr != "" {
+			timeout, _ = time.ParseDuration(fmt.Sprintf("%ss", timeoutSecondsStr))
+		}
+
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			klog.Errorf("unable to start watch - can't get http.Flusher: %#v", w)
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		e := restclientwatch.NewEncoder(
+			streaming.NewEncoder(info.StreamSerializer.Framer.NewFrameWriter(w),
+				scheme.Codecs.EncoderForVersion(info.StreamSerializer, v1.SchemeGroupVersion)),
+			encoder)
+		if info.MediaType == runtime.ContentTypeProtobuf {
+			w.Header().Set("Content-Type", runtime.ContentTypeProtobuf+";stream=watch")
+		} else {
+			w.Header().Set("Content-Type", runtime.ContentTypeJSON)
+		}
+		w.Header().Set("Transfer-Encoding", "chunked")
+		w.WriteHeader(http.StatusOK)
+		flusher.Flush()
+		cacheEvts := []watch.Event{}
+		for _, v := range s.cache.GetEndpoints() {
+			cacheEvts = append(cacheEvts, watch.Event{
+				Type:   watch.Added,
+				Object: v,
+			})
+		}
+		endpointsWatch := s.endpointsBoradcaster.WatchWithPrefix(cacheEvts)
+		defer endpointsWatch.Stop()
+		nodeWatch := s.nodeBoradcaster.Watch()
+		for {
+			select {
+			case <-r.Context().Done():
+				return
+			case <-timer.C:
+				return
+			case evt := <-endpointsWatch.ResultChan():
+				klog.V(4).Infof("Send endpoint watch event: %+#v", evt)
+
+				//Filter endpoints based on nodeunit nodes
+				if ep, ok := evt.Object.(*v1.Endpoints); ok {
+					deepEp := ep.DeepCopy()
+					s.filerIngressEndpoints(deepEp, r.Header.Get(SuperEdgeIngress), siteconstant.NodeUnitSuperedge)
+					evt.Object = deepEp
+				}
+
+				err := e.Encode(&evt)
+				if err != nil {
+					klog.Errorf("can't encode watch event, %v", err)
+					return
+				}
+
+				if len(endpointsWatch.ResultChan()) == 0 {
+					flusher.Flush()
+				}
+			case modifyNode := <-nodeWatch.ResultChan():
+
+				for _, endpoints := range s.cache.GetEndpoints() {
+					deepEndpoints := endpoints.DeepCopy()
+					resyncflag := false
+					for _, subset := range deepEndpoints.Subsets {
+						for _, addr := range subset.Addresses {
+							if addr.NodeName != nil {
+								nodeName := addr.NodeName
+								if *nodeName == modifyNode.Object.(*v1.Node).Name {
+									resyncflag = true
+								}
+							}
+						}
+					}
+					if resyncflag {
+						s.filerIngressEndpoints(deepEndpoints, r.Header.Get(SuperEdgeIngress), siteconstant.NodeUnitSuperedge)
+						err := e.Encode(&watch.Event{
+							Type:   watch.Modified,
+							Object: deepEndpoints,
+						})
+						if err != nil {
+							klog.Errorf("can't encode watch event, %v", err)
+							return
+						}
+					}
+				}
+			}
+		}
+	})
+}
+
+func (s *interceptorServer) filerIngressEndpoints(ep *v1.Endpoints, key, value string) {
+	//Get the node of the nodeunit where nginx-ingress-controller is located
+	unitnodes, err := s.nodeIndexer.ByIndex(NODELABELS_INDEXER, fmt.Sprintf("%s=%s", key, value))
+	if err != nil {
+		klog.Errorf("Failed to get unit %s nodes, error: %v", fmt.Sprintf("%s=%s", key, value, err))
+	} else if len(unitnodes) != 0 {
+		filterSubsets := []v1.EndpointSubset{}
+		for _, subset := range ep.Subsets {
+			filterAddress := []v1.EndpointAddress{}
+			for _, addr := range subset.Addresses {
+				if addr.NodeName != nil {
+					//Filter by node name
+					nodeName := addr.NodeName
+					addflag := false
+					for _, node := range unitnodes {
+						if node.(*v1.Node).Name == *nodeName {
+							addflag = true
+						}
+					}
+					if addflag {
+						filterAddress = append(filterAddress, addr)
+					}
+				}
+			}
+			if len(filterAddress) != len(subset.Addresses) {
+				subset.Addresses = filterAddress
+			}
+			filterSubsets = append(filterSubsets, subset)
+		}
+		ep.Subsets = filterSubsets
+	}
 }

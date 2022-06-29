@@ -49,11 +49,12 @@ type storageCache struct {
 	// service watch channel
 	serviceChan chan<- watch.Event
 	// endpoints watch channel
-	endpointsChan chan<- watch.Event
+	endpointsBroadcaster *watch.Broadcaster
 	// endpointSlice watch channel
 	endpointSliceV1Chan chan<- watch.Event
 
 	endpointSliceV1Beta1Chan chan<- watch.Event
+	nodeBroadcaster          *watch.Broadcaster
 }
 
 // serviceContainer stores kubernetes service and its topologyKeys
@@ -86,7 +87,7 @@ type endpointSliceV1Beta1Container struct {
 
 var _ Cache = &storageCache{}
 
-func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointsNotifier chan watch.Event, endpointSliceV1Notifier, endpointSliceV1Beta1Notifier chan watch.Event, supportEndpointSlice bool) *storageCache {
+func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointSliceV1Notifier, endpointSliceV1Beta1Notifier chan watch.Event, endpointBroadcaster, nodeBroadcaster *watch.Broadcaster, supportEndpointSlice bool) *storageCache {
 	msc := &storageCache{
 		hostName:                          hostName,
 		wrapperInCluster:                  wrapperInCluster,
@@ -98,9 +99,10 @@ func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhanceme
 		endpointSliceV1Beta1Map:           make(map[types.NamespacedName]*endpointSliceV1Beta1Container),
 		nodesMap:                          make(map[types.NamespacedName]*nodeContainer),
 		serviceChan:                       serviceNotifier,
-		endpointsChan:                     endpointsNotifier,
+		endpointsBroadcaster:              endpointBroadcaster,
 		endpointSliceV1Chan:               endpointSliceV1Notifier,
 		endpointSliceV1Beta1Chan:          endpointSliceV1Beta1Notifier,
+		nodeBroadcaster:                   nodeBroadcaster,
 		localNodeInfo:                     make(map[string]data.ResultDetail),
 	}
 
@@ -241,8 +243,8 @@ func (sc *storageCache) resync() {
 		sc.mu.Lock()
 		changedEps := sc.rebuildEndpointsMap()
 		sc.mu.Unlock()
-		for _, eps := range changedEps {
-			sc.endpointsChan <- eps
+		for _, v := range changedEps {
+			sc.endpointsBroadcaster.ActionOrDrop(v.Type, v.Object)
 		}
 	}
 }
