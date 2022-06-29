@@ -626,7 +626,7 @@ func (s *interceptorServer) filerIngressEndpoints(ep *v1.Endpoints, key, value s
 	//Get the node of the nodeunit where nginx-ingress-controller is located
 	unitnodes, err := s.nodeIndexer.ByIndex(NODELABELS_INDEXER, fmt.Sprintf("%s=%s", key, value))
 	if err != nil {
-		klog.Errorf("Failed to get unit %s nodes, error: %v", fmt.Sprintf("%s=%s", key, value, err))
+		klog.Errorf("Failed to get unit %s nodes, error: %v", fmt.Sprintf("%s=%s", key, value), err)
 	} else if len(unitnodes) != 0 {
 		filterSubsets := []v1.EndpointSubset{}
 		for _, subset := range ep.Subsets {
