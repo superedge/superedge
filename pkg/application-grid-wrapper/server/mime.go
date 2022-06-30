@@ -19,6 +19,7 @@ package server
 import (
 	"github.com/munnerz/goautoneg"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 )
 
 func (s *interceptorServer) parseAccept(header string, accepted []runtime.SerializerInfo) (runtime.SerializerInfo, bool) {
@@ -41,4 +42,14 @@ func (s *interceptorServer) parseAccept(header string, accepted []runtime.Serial
 	}
 
 	return runtime.SerializerInfo{}, false
+}
+
+func getIngressPath(ingressPath string) (string, string, error) {
+	var path string
+
+	params := strings.Split(ingressPath, "/")
+	for i := 3; i < len(params); i++ {
+		path = path + "/" + params[i]
+	}
+	return params[2], path, nil
 }

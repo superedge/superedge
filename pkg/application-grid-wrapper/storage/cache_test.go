@@ -41,25 +41,30 @@ func init() {
 
 func TestCache(t *testing.T) {
 	svcCh := make(chan watch.Event)
-	epsCh := make(chan watch.Event)
+	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
 	endpointSliceChV1 := make(chan watch.Event)
 	endpointSliceChV1Beta1 := make(chan watch.Event)
+	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
 	supportEndpointSlice := true
 	stop := false
 	defer func() {
 		stop = true
 	}()
 
+	epsWatch := endpointBroadcaster.Watch()
+	nodeWatch := nodeBroadcaster.Watch()
 	go func() {
 		for !stop {
 			select {
 			case <-svcCh:
-			case <-epsCh:
+			case <-epsWatch.ResultChan():
+			case <-nodeWatch.ResultChan():
+
 			}
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceChV1, endpointSliceChV1Beta1, supportEndpointSlice)
+	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
 
 	testNodes := make([]*v1.Node, 10)
 	nodeEventHandler := cache.NodeEventHandler()
@@ -201,27 +206,32 @@ func TestCache(t *testing.T) {
 
 func TestCacheServiceNotifier(t *testing.T) {
 	svcCh := make(chan watch.Event, 100)
-	epsCh := make(chan watch.Event, 100)
+	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
 	endpointSliceChV1 := make(chan watch.Event)
 	endpointSliceChV1Beta1 := make(chan watch.Event)
+	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
 	supportEndpointSlice := true
 	stop := false
 	defer func() {
 		stop = true
 	}()
 
+	epsWatch := endpointBroadcaster.Watch()
+	nodeWatch := nodeBroadcaster.Watch()
 	serviceEvents := make([]watch.Event, 0)
 	go func() {
 		for !stop {
 			select {
 			case s := <-svcCh:
 				serviceEvents = append(serviceEvents, s)
-			case <-epsCh:
+			case <-epsWatch.ResultChan():
+			case <-nodeWatch.ResultChan():
+
 			}
 		}
 	}()
 
-	cache := NewStorageCache("hostname", true, false, svcCh, epsCh, endpointSliceChV1, endpointSliceChV1Beta1, supportEndpointSlice)
+	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
 
 	expectServiceSequence := make([]*v1.Service, 0)
 	testServices := make([]*v1.Service, 10)

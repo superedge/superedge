@@ -43,10 +43,7 @@ func (eh *endpointsHandler) add(endpoints *v1.Endpoints) {
 
 	sc.mu.Unlock()
 
-	sc.endpointsChan <- watch.Event{
-		Type:   watch.Added,
-		Object: newEps,
-	}
+	sc.endpointsBroadcaster.ActionOrDrop(watch.Added, newEps)
 }
 
 func (eh *endpointsHandler) update(endpoints *v1.Endpoints) {
@@ -71,10 +68,7 @@ func (eh *endpointsHandler) update(endpoints *v1.Endpoints) {
 	sc.mu.Unlock()
 
 	if changed {
-		sc.endpointsChan <- watch.Event{
-			Type:   watch.Modified,
-			Object: newEps,
-		}
+		sc.endpointsBroadcaster.ActionOrDrop(watch.Modified, newEps)
 	}
 }
 
@@ -95,10 +89,7 @@ func (eh *endpointsHandler) delete(endpoints *v1.Endpoints) {
 
 	sc.mu.Unlock()
 
-	sc.endpointsChan <- watch.Event{
-		Type:   watch.Deleted,
-		Object: endpointsContainer.modified,
-	}
+	sc.endpointsBroadcaster.ActionOrDrop(watch.Deleted, endpointsContainer.modified)
 }
 
 func (eh *endpointsHandler) OnAdd(obj interface{}) {

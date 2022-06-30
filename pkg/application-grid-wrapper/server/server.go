@@ -26,6 +26,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
+	informcorev1 "k8s.io/client-go/informers/core/v1"
 	"net/http"
 	"time"
 
@@ -52,18 +53,35 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
+const (
+	NODELABELS_INDEXER = "nodeLabels"
+)
+
 type interceptorServer struct {
 	restConfig                        *rest.Config
 	cache                             storage.Cache
 	serviceWatchCh                    <-chan watch.Event
-	endpointsWatchCh                  <-chan watch.Event
+	endpointsBoradcaster              *watch.Broadcaster
 	endpointSliceV1WatchCh            <-chan watch.Event
 	endpointSliceV1Beta1WatchCh       <-chan watch.Event
+	nodeBoradcaster                   *watch.Broadcaster
 	mediaSerializer                   []runtime.SerializerInfo
 	serviceAutonomyEnhancementAddress string
 	supportEndpointSlice              bool
+	nodeIndexer                       cache.Indexer
 }
 
+func NodeLabelsFunc(obj interface{}) ([]string, error) {
+	node, ok := obj.(*v1.Node)
+	if ok {
+		labels := []string{}
+		for k, v := range node.Labels {
+			labels = append(labels, fmt.Sprintf("%s=%s", k, v))
+		}
+		return labels, nil
+	}
+	return []string{}, nil
+}
 func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions, supportEndpointSlice bool) *interceptorServer {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
@@ -72,17 +90,19 @@ func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster b
 	}
 
 	serviceCh := make(chan watch.Event, channelSize)
-	endpointsCh := make(chan watch.Event, channelSize)
+	endpointBroadcaster := watch.NewLongQueueBroadcaster(channelSize, watch.DropIfChannelFull)
 	endpointSliceV1Ch := make(chan watch.Event, channelSize)
 	endpointSliceV1Beta1Ch := make(chan watch.Event, channelSize)
+	nodeBroadcaster := watch.NewLongQueueBroadcaster(channelSize, watch.DropIfChannelFull)
 
 	server := &interceptorServer{
 		restConfig:                        restConfig,
-		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointsCh, endpointSliceV1Ch, endpointSliceV1Beta1Ch, supportEndpointSlice),
+		cache:                             storage.NewStorageCache(hostName, wrapperInCluster, serviceAutonomyEnhancement.Enabled, serviceCh, endpointSliceV1Ch, endpointSliceV1Beta1Ch, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice),
 		serviceWatchCh:                    serviceCh,
-		endpointsWatchCh:                  endpointsCh,
+		endpointsBoradcaster:              endpointBroadcaster,
 		endpointSliceV1WatchCh:            endpointSliceV1Ch,
 		endpointSliceV1Beta1WatchCh:       endpointSliceV1Beta1Ch,
+		nodeBoradcaster:                   nodeBroadcaster,
 		mediaSerializer:                   scheme.Codecs.SupportedMediaTypes(),
 		serviceAutonomyEnhancementAddress: serviceAutonomyEnhancement.NeighborStatusSvc,
 		supportEndpointSlice:              supportEndpointSlice,
@@ -164,7 +184,9 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 			options.LabelSelector = labelSelector.String()
 		}))
 
-	nodeInformer := nodeInformerFactory.Core().V1().Nodes().Informer()
+	nodeInformer := nodeInformerFactory.InformerFor(&v1.Node{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
+		return informcorev1.NewNodeInformer(k, duration, cache.Indexers{NODELABELS_INDEXER: NodeLabelsFunc})
+	})
 	serviceInformer := informerFactory.Core().V1().Services().Informer()
 	endpointsInformer := informerFactory.Core().V1().Endpoints().Informer()
 
@@ -182,6 +204,8 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 		endpointsInformer.HasSynced) {
 		return fmt.Errorf("can't sync informers")
 	}
+
+	s.nodeIndexer = nodeInformer.GetIndexer()
 
 	restMapperRes, err := restmapper.GetAPIGroupResources(client.Discovery())
 	if err != nil {
@@ -228,14 +252,21 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 }
 
 func (s *interceptorServer) buildFilterChains(debug bool) http.Handler {
-	handler := http.Handler(http.NewServeMux())
-	handler = s.interceptEndpointSliceV1Beta1Request(handler)
-	handler = s.interceptEndpointSliceV1Request(handler)
+	upstream, err := Newupstream(s.restConfig)
+	if err != nil {
+		klog.Errorf("Fialed to get upstreamHandler, error: %v")
+		klog.Fatal(err)
+	}
+	handler := http.Handler(upstream)
+	handler = s.interceptIngressEndpointsRequest(handler)
+	handler = s.interceptIngressRequest(handler)
+	//handler = s.interceptEndpointSliceV1Beta1Request(handler)
+	//handler = s.interceptEndpointSliceV1Request(handler)
 	handler = s.interceptEndpointsRequest(handler)
-	handler = s.interceptServiceRequest(handler)
-	handler = s.interceptEventRequest(handler)
-	handler = s.interceptNodeRequest(handler)
-	handler = s.logger(handler)
+	//handler = s.interceptServiceRequest(handler)
+	//handler = s.interceptEventRequest(handler)
+	//handler = s.interceptNodeRequest(handler)
+	//handler = s.logger(handler)
 
 	if debug {
 		handler = s.debugger(handler)
