@@ -18,6 +18,7 @@ package deployment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
@@ -57,6 +58,7 @@ type DeploymentGridController struct {
 	dpLister        appslisters.DeploymentLister
 	nodeLister      corelisters.NodeLister
 	nameSpaceLister corelisters.NamespaceLister
+	dpGridIndexer   cache.Indexer
 
 	dpGridListerSynced    cache.InformerSynced
 	dpListerSynced        cache.InformerSynced
@@ -106,6 +108,8 @@ func NewDeploymentGridController(dpGridInformer crdinformers.DeploymentGridInfor
 		UpdateFunc: dgc.updateDeploymentGrid,
 		DeleteFunc: dgc.deleteDeploymentGrid,
 	})
+
+	dgc.dpGridIndexer = dpGridInformer.Informer().GetIndexer()
 
 	dpInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    dgc.addDeployment,
@@ -311,7 +315,25 @@ func (dgc *DeploymentGridController) getDeploymentForGrid(dg *crdv1.DeploymentGr
 func (dgc *DeploymentGridController) addDeploymentGrid(obj interface{}) {
 	dg := obj.(*crdv1.DeploymentGrid)
 	klog.V(4).Infof("Adding deployment grid %s", dg.Name)
-	dgc.enqueueDeploymentGrid(dg)
+	data, err := json.Marshal(dg)
+	if err != nil {
+		klog.Errorf("Failed to serialize deploymentgrid %s, error: %v", fmt.Sprintf("%s/%s", dg.Namespace, dg.Name), err)
+	} else {
+		decodedg := &crdv1.DeploymentGrid{}
+		err = json.Unmarshal(data, decodedg)
+		if err != nil {
+			klog.Errorf("Failed to deserialize deploymentgrid object, error: %v", err)
+		} else {
+			err = dgc.dpGridIndexer.Add(decodedg)
+			if err != nil {
+				klog.Errorf("Failed to add deploymentGrid %s to indexer, error: %v", err)
+			} else {
+				dgc.enqueueDeploymentGrid(decodedg)
+			}
+
+		}
+	}
+
 }
 
 func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interface{}) {
