@@ -17,6 +17,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
+	"io"
 	"k8s.io/klog/v2"
 	"net"
 )
@@ -44,7 +45,9 @@ func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr str
 					Topic:    uuid,
 				})
 			}
-			klog.Errorf("Failed to read data, error: %v", err)
+			if err != io.EOF {
+				klog.Errorf("Failed to read data, error: %v", err)
+			}
 			return
 		}
 		node.Send2Node(&proto.StreamMsg{

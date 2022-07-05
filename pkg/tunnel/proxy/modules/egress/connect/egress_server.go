@@ -99,7 +99,6 @@ func HandleEgressConn(proxyConn net.Conn) {
 					common.ProxyEdgeNode(host, "127.0.0.1", port, util.EGRESS, proxyConn, rawRequest)
 				}
 			} else {
-				klog.Infof("internalIp = %s, request = %v\n\n", internalIp, request)
 				common.ProxyEdgeNode(host, internalIp, port, util.EGRESS, proxyConn, rawRequest)
 			}
 

@@ -35,7 +35,6 @@ func HttpProxyEdgeServer(conn net.Conn) {
 		klog.Errorf("Failed to read httpRequest, error: %v", err)
 		return
 	}
-	klog.Infof("request = %v", req)
 
 	host, port, err := net.SplitHostPort(req.Host)
 	if err != nil {
