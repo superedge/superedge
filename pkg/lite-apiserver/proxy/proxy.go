@@ -17,22 +17,33 @@ limitations under the License.
 package proxy
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/munnerz/goautoneg"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"io"
+	"io/ioutil"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strings"
 	"syscall"
-
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/klog/v2"
+	"time"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
 	"github.com/superedge/superedge/pkg/lite-apiserver/transport"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 // EdgeReverseProxy represents a real pair of http request and response
@@ -77,6 +88,15 @@ func (p *EdgeReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *EdgeReverseProxy) makeDirector(req *http.Request) {
 	req.URL.Scheme = "https"
 	req.URL.Host = fmt.Sprintf("%s:%d", p.backendUrl, p.backendPort)
+	if req.Method == http.MethodPost && strings.HasPrefix(req.URL.Path, "/api/v1/namespaces") && strings.Contains(req.URL.Path, "serviceaccounts") {
+		data, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			klog.Errorf("Failed to read Request.Body, error: %v", err)
+			return
+		}
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(data))
+		*req = *req.WithContext(context.WithValue(req.Context(), "TokenRequestData", data))
+	}
 }
 
 func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
@@ -132,6 +152,56 @@ func (p *EdgeReverseProxy) modifyResponse(resp *http.Response) error {
 
 func (p *EdgeReverseProxy) handlerError(rw http.ResponseWriter, req *http.Request, err error) {
 	klog.V(2).Infof("Request url=%s, error=%v", req.URL, err)
+
+	if req.Method == http.MethodPost && strings.HasPrefix(req.URL.Path, "/api/v1/namespaces") && strings.Contains(req.URL.Path, "serviceaccounts") {
+		dataObj := req.Context().Value("TokenRequestData")
+		var gvk schema.GroupVersionKind
+		gvk.Group = "authentication.k8s.io"
+		gvk.Version = "v1"
+		gvk.Kind = "TokenRequest"
+		contentType := req.Header.Get("Content-Type")
+		mediaType, _, err := mime.ParseMediaType(contentType)
+		if err != nil {
+			klog.V(4).Infof("Unexpected content type from the server: %q: %v", contentType, err)
+			return
+		}
+		mediaTypes := scheme.Codecs.SupportedMediaTypes()
+		info, ok := runtime.SerializerInfoForMediaType(mediaTypes, mediaType)
+		if !ok {
+			err = fmt.Errorf("failed to get serializer, mediaType = %s", mediaType)
+			return
+		}
+		tokenReq := authenticationv1.TokenRequest{}
+		err = runtime.DecodeInto(info.Serializer, dataObj.([]byte), &tokenReq)
+		if err != nil {
+			klog.Error("Failed to decode TokenRequest, error: %v", err)
+			return
+		}
+		err = getToken(&tokenReq)
+		if err != nil {
+			klog.Error("Failed to get token, error: %v", err)
+			return
+		}
+
+		accept := req.Header.Get("Accept")
+		acceptInfo, found := parseAccept(accept, scheme.Codecs.SupportedMediaTypes())
+		if !found {
+			return
+		}
+		edata, err := runtime.Encode(acceptInfo.Serializer, &tokenReq)
+		if err != nil {
+			klog.Errorf("Failed to encode TokenRequest, error: %v", err)
+			return
+		}
+
+		rw.Header().Set("Content-Type", acceptInfo.MediaType)
+		rw.WriteHeader(http.StatusOK)
+		_, err = rw.Write(edata)
+		if err != nil {
+			klog.Error("Failed to write Response, error: %v", err)
+		}
+		return
+	}
 
 	// filter error. if true, not read cache and ignore
 	if p.ignoreCache(req, err) {
@@ -236,4 +306,50 @@ func needCache(r *http.Request) (needCache bool) {
 		klog.Errorf("no RequestInfo found in the context")
 	}
 	return needCache
+}
+
+func getToken(tokenReq *authenticationv1.TokenRequest) error {
+	opts := new(jose.SignerOptions)
+	tokenSiger, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte("superedge.io")}, opts)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	sc := &jwt.Claims{
+		Subject:   tokenReq.Spec.BoundObjectRef.Name,
+		Audience:  jwt.Audience{"superedge.io"},
+		IssuedAt:  jwt.NewNumericDate(now),
+		NotBefore: jwt.NewNumericDate(now),
+		Expiry:    jwt.NewNumericDate(now.Add(time.Duration(100) * time.Second)),
+	}
+
+	token, err := jwt.Signed(tokenSiger).Claims(sc).CompactSerialize()
+	if err != nil {
+		return err
+	}
+	tokenReq.Status.Token = token
+	tokenReq.Status.ExpirationTimestamp = metav1.Time{Time: now.Add(time.Duration(100) * time.Second)}
+	return nil
+}
+
+func parseAccept(header string, accepted []runtime.SerializerInfo) (runtime.SerializerInfo, bool) {
+	if len(header) == 0 && len(accepted) > 0 {
+		return accepted[0], true
+	}
+
+	clauses := goautoneg.ParseAccept(header)
+	for i := range clauses {
+		clause := &clauses[i]
+		for i := range accepted {
+			accepts := &accepted[i]
+			switch {
+			case clause.Type == accepts.MediaTypeType && clause.SubType == accepts.MediaTypeSubType,
+				clause.Type == accepts.MediaTypeType && clause.SubType == "*",
+				clause.Type == "*" && clause.SubType == "*":
+				return *accepts, true
+			}
+		}
+	}
+	return runtime.SerializerInfo{}, false
 }
