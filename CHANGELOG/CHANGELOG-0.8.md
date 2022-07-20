@@ -2,38 +2,36 @@
 
 * [Release v0.8.0 / 2022-07-20](#release-v080--2022-07-20)
     * [1. Features and Enhancements](#1-features-and-enhancements)
-    * [2. Bug Fixes](#2-bug-fixes)
+    * [2. Bug Fixes](#2bug-fixes)
     * [3. Contributor](#3-contributor)
 
 ## 1. Features and Enhancements
-
--   Support NodeUnit and Nodegroup CRD to manage edge site resources. ([#289](https://github.com/superedge/superedge/pull/289) [@attlee-wang](https://github.com/attlee-wang))
-    -   Nodeunit add setnode attribute and nodeunit label to node.  ([#306](https://github.com/superedge/superedge/pull/306) [#327](https://github.com/superedge/superedge/pull/327) [@luhaopei](https://github.com/luhaopei))
-    -   Add default apply NodeUnit and NodeGroup crd and default nodeunit. ([#325](https://github.com/superedge/superedge/pull/325) [@attlee-wang](https://github.com/attlee-wang))
-    -   support nodegroup autofindnodekeys to automatically create nodeunits in batches  ([#334](https://github.com/superedge/superedge/pull/334)  [@JaneLiuL](https://github.com/JaneLiuL))
--   Support an edge applications can be updated when the cloud edge network is disconnected. ([#343](https://github.com/superedge/superedge/pull/343) [@attlee-wang](https://github.com/attlee-wang)   [@luhaopei](https://github.com/luhaopei))
--   Tunnel supports apiserver EgressSelector feature. ([#314](https://github.com/superedge/superedge/pull/314) [@00pf00](https://github.com/00pf00) )
--   Edge-health supports user-defined edge node health check plugins.  ([#317](https://github.com/superedge/superedge/pull/317)  [@JaneLiuL](https://github.com/JaneLiuL))
--   Add Superedge support k8s v1.20.6 ([#271](https://github.com/superedge/superedge/pull/271) [@attlee-wang](https://github.com/attlee-wang))
--   Support containerd runtime install in edgeadm. ( [#322](https://github.com/superedge/superedge/pull/322) [@malc0lm](https://github.com/malc0lm))
--   Support adding edge nodes and native K8s nodes to SuperEdge edge clusters. ([#282](https://github.com/superedge/superedge/pull/282) [@luhaopei](https://github.com/luhaopei))
--   Lite-apiserver supports specifying multiple network interfaces to establish connections with the cloud. ([#263](https://github.com/superedge/superedge/pull/263)  [@huweihuang](https://github.com/huweihuang))
--   Lite-apiserver support use pebble as storage.  ( [#340](https://github.com/superedge/superedge/pull/340) [#341](https://github.com/superedge/superedge/pull/341) [ctlove0523](https://github.com/ctlove0523))
--   Lite-apiserver support pprof debugging. ([#271](https://github.com/superedge/superedge/pull/272) [@00pf00](https://github.com/00pf00)  [#286](https://github.com/superedge/superedge/pull/286) [wangchenglong01](https://github.com/wangchenglong01))
-
--   Add SuperEdge unit test e2e test.([#315](https://github.com/superedge/superedge/pull/315)  [#321](https://github.com/superedge/superedge/pull/321)  [#324](https://github.com/superedge/superedge/pull/324)  [@JaneLiuL](https://github.com/JaneLiuL))
+-		Support Kubernetes 1.22.6 version. ([#368](https://github.com/superedge/superedge/pull/368) [#371](https://github.com/superedge/superedge/pull/371))
+-		Separate edgeadm from superedge project for easily maintenance. Please refer to the sub-project: [edgeadm](https://github.com/superedge/edgeadm)
+-		Support SuperEdge cluster in TKEStack project. Please refer to this pr in [TKE](https://github.com/tkestack/tke) ([#1994](https://github.com/tkestack/tke/pull/1994))
+-		Tunnel support http_proxy ability to enable edge/edge edge/cloud communication. ([#374](https://github.com/superedge/superedge/pull/374))
+-		Lite-apiserver support to cache some critical resource（node, service, etc) at edge node with the purpose of reducing network traffic. ([#396](https://github.com/superedge/superedge/pull/396) [#400](https://github.com/superedge/superedge/pull/400))
+-		application-grid-wrapper support to watch `Ingress` resource to enable `nginx-ingress-controller` at NodeUnit. ([#411](https://github.com/superedge/superedge/pull/411))
+-		Add parameters to skip the verification of the domain name and ip signed by the apiserver certificate. ([#382](https://github.com/superedge/superedge/pull/382))
+-		Tunnel supports ExternalName service forwarding. ([#388](https://github.com/superedge/superedge/pull/388))
+-		Lite-apiserver can skip ca verification for serviceaccount. ([#391](https://github.com/superedge/superedge/pull/391))
+-		AMR32 Platform building support .([#362](https://github.com/superedge/superedge/pull/362))
 
 ## 2.Bug Fixes
-
-* FIX wrapper for different k8s version about EndpointSlice ([#205](https://github.com/superedge/superedge/pull/305) [@chenkaiyue](https://github.com/chenkaiyue))
-* FIX: keep annotations when application-grid-controller create service from servicegrid. ([#310](https://github.com/superedge/superedge/pull/310) [@jasine](https://github.com/jasine))
-* FIx: edgeadm init and join with --enable-edge, and node label mistaken. ( [#333](https://github.com/superedge/superedge/pull/333) [@malc0lm](https://github.com/malc0lm))
-* FIX redefined log_dir panic.  ([#346](https://github.com/superedge/superedge/pull/346)  [@huweihuang](https://github.com/huweihuang))
-* FIX: Set_file_content func in init-node.sh. ([#308](https://github.com/superedge/superedge/pull/308) [@jasine](https://github.com/jasine))
+* site-manager: FIX NodeUnit and NodeGroup about setnode ([#364](https://github.com/superedge/superedge/pull/364))
+* Fix lite-apiserver problem: write cache error ([#366](https://github.com/superedge/superedge/pull/366))
+* application-grid-controller: Fix metadata.resourceVersion: Invalid value([#369](https://github.com/superedge/superedge/pull/369))
+* edgeadm change kubeproxy configmap namespace([#392](https://github.com/superedge/superedge/pull/392))
+* edgeadm should not create endpointslice: 'kubernetes-no-edge'([#397](https://github.com/superedge/superedge/pull/397))
+* Solve the problem of network error causing cache return failure ([#402](https://github.com/superedge/superedge/pull/402))
+* Kubernetes 1.22 version: the edge node will obtain the fake token when the apiserver is inaccessible ([#419](https://github.com/superedge/superedge/pull/419))
 
 ## 3. Contributor
 
-New outstanding contributors members of the SuperEdge community：
+In  v0.8.0 verison, we don't add more big feature. The main purpose of this version is to enahnce the project's usability and stability. Thanks for the following contributors: 
 
+-   [@00pf00](https://github.com/00pf00)
 -   [@malc0lm](https://github.com/malc0lm)
+-   [@attlee-wang](https://github.com/attlee-wang)
+-   [@dodiadodia](https://github.com/dodiadodia)
 
