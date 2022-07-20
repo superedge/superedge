@@ -8,7 +8,7 @@
 ## 1. Features and Enhancements
 
 - Support Kubernetes 1.22.6 version. ([#368](https://github.com/superedge/superedge/pull/368) [#371](https://github.com/superedge/superedge/pull/371))
--	Separate edgeadm from superedge project for easily maintenance. Please refer to the sub-project: [edgeadm](https://github.com/superedge/edgeadm)
+-	Separate `edgeadm` from superedge project for easy maintenance. Please refer to the sub-project: [edgeadm](https://github.com/superedge/edgeadm)
 - Support SuperEdge cluster in TKEStack project. Please refer to this pr in [TKE](https://github.com/tkestack/tke) ([#1994](https://github.com/tkestack/tke/pull/1994))
 -	Tunnel support http_proxy ability to enable edge/edge edge/cloud communication. ([#374](https://github.com/superedge/superedge/pull/374))
 -	Lite-apiserver support to cache some critical resource（node, service, etc) at edge node with the purpose of reducing network traffic. ([#396](https://github.com/superedge/superedge/pull/396) [#400](https://github.com/superedge/superedge/pull/400))
@@ -30,7 +30,7 @@
 
 ## 3. Contributor
 
-In  v0.8.0 verison, we don't add more big feature. The main purpose of this version is to enahnce the project's usability and stability. Thanks for the following contributors: 
+In  v0.8.0 verison, we don't add more big features. The main purpose of this version is to enhance the project's usability and stability. Thanks for the following contributors: 
 
 -   [@00pf00](https://github.com/00pf00)
 -   [@malc0lm](https://github.com/malc0lm)
