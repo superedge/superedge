@@ -6,18 +6,20 @@
     * [3. Contributor](#3-contributor)
 
 ## 1. Features and Enhancements
--		Support Kubernetes 1.22.6 version. ([#368](https://github.com/superedge/superedge/pull/368) [#371](https://github.com/superedge/superedge/pull/371))
--		Separate edgeadm from superedge project for easily maintenance. Please refer to the sub-project: [edgeadm](https://github.com/superedge/edgeadm)
--		Support SuperEdge cluster in TKEStack project. Please refer to this pr in [TKE](https://github.com/tkestack/tke) ([#1994](https://github.com/tkestack/tke/pull/1994))
--		Tunnel support http_proxy ability to enable edge/edge edge/cloud communication. ([#374](https://github.com/superedge/superedge/pull/374))
--		Lite-apiserver support to cache some critical resource（node, service, etc) at edge node with the purpose of reducing network traffic. ([#396](https://github.com/superedge/superedge/pull/396) [#400](https://github.com/superedge/superedge/pull/400))
--		application-grid-wrapper support to watch `Ingress` resource to enable `nginx-ingress-controller` at NodeUnit. ([#411](https://github.com/superedge/superedge/pull/411))
--		Add parameters to skip the verification of the domain name and ip signed by the apiserver certificate. ([#382](https://github.com/superedge/superedge/pull/382))
--		Tunnel supports ExternalName service forwarding. ([#388](https://github.com/superedge/superedge/pull/388))
--		Lite-apiserver can skip ca verification for serviceaccount. ([#391](https://github.com/superedge/superedge/pull/391))
--		AMR32 Platform building support .([#362](https://github.com/superedge/superedge/pull/362))
+
+- Support Kubernetes 1.22.6 version. ([#368](https://github.com/superedge/superedge/pull/368) [#371](https://github.com/superedge/superedge/pull/371))
+-	Separate edgeadm from superedge project for easily maintenance. Please refer to the sub-project: [edgeadm](https://github.com/superedge/edgeadm)
+- Support SuperEdge cluster in TKEStack project. Please refer to this pr in [TKE](https://github.com/tkestack/tke) ([#1994](https://github.com/tkestack/tke/pull/1994))
+-	Tunnel support http_proxy ability to enable edge/edge edge/cloud communication. ([#374](https://github.com/superedge/superedge/pull/374))
+-	Lite-apiserver support to cache some critical resource（node, service, etc) at edge node with the purpose of reducing network traffic. ([#396](https://github.com/superedge/superedge/pull/396) [#400](https://github.com/superedge/superedge/pull/400))
+-	application-grid-wrapper support to watch `Ingress` resource to enable `nginx-ingress-controller` at NodeUnit. ([#411](https://github.com/superedge/superedge/pull/411))
+-	Add parameters to skip the verification of the domain name and ip signed by the apiserver certificate. ([#382](https://github.com/superedge/superedge/pull/382))
+-	Tunnel supports ExternalName service forwarding. ([#388](https://github.com/superedge/superedge/pull/388))
+-	Lite-apiserver can skip ca verification for serviceaccount. ([#391](https://github.com/superedge/superedge/pull/391))
+-	AMR32 Platform building support .([#362](https://github.com/superedge/superedge/pull/362))
 
 ## 2.Bug Fixes
+
 * site-manager: FIX NodeUnit and NodeGroup about setnode ([#364](https://github.com/superedge/superedge/pull/364))
 * Fix lite-apiserver problem: write cache error ([#366](https://github.com/superedge/superedge/pull/366))
 * application-grid-controller: Fix metadata.resourceVersion: Invalid value([#369](https://github.com/superedge/superedge/pull/369))
