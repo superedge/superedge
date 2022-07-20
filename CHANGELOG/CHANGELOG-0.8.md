@@ -2,7 +2,7 @@
 
 * [Release v0.8.0 / 2022-07-20](#release-v080--2022-07-20)
     * [1. Features and Enhancements](#1-features-and-enhancements)
-    * [2.Bug Fixes](#2-bug-fixes)
+    * [2. Bug Fixes](#2-bug-fixes)
     * [3. Contributor](#3-contributor)
 
 ## 1. Features and Enhancements
