@@ -2,7 +2,7 @@ English | [简体中文](./README_CN.md)
 
 # SuperEdge
 
-[![Version](https://img.shields.io/badge/SuperEdge-0.7.0-blue)](https://github.com/superedge/superedge/releases)
+[![Version](https://img.shields.io/badge/SuperEdge-0.8.0-blue)](https://github.com/superedge/superedge/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/superedge/superedge)](https://goreportcard.com/report/github.com/superedge/superedge)
 [![License](https://img.shields.io/badge/License-Apache--2.0-orange)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
