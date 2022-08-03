@@ -232,7 +232,7 @@ func GetRemoteConn(nodeName, category string) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	remoteConn, err := net.Dial("tcp", addrs[0]+":"+GetRemoteProxyServerPort(category))
+	remoteConn, err := net.Dial(util.TCP, addrs[0]+":"+GetRemoteProxyServerPort(category))
 	if err != nil {
 		klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
 		return nil, err
