@@ -64,7 +64,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 			//LookupHost error, using host+port to build the connection
 			remoteConn, err = net.Dial(util.TCP, host+":"+port)
 			if err != nil {
-				klog.Errorf("Failed to send request from tunnel-cloud, error: %v", err)
+				klog.Errorf("Failed to build the connetion to %v:%v, error: %v", host, port, err)
 				_, err = proxyConn.Write([]byte(util.InternalServerError))
 				if err != nil {
 					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
