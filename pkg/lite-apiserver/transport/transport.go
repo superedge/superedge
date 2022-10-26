@@ -23,8 +23,8 @@ import (
 )
 
 type EdgeTransport struct {
-	d         *connrotation.Dialer
-	Transport *http.Transport
+	d                *connrotation.Dialer
+	Transport        *http.Transport
 	NetworkInterface string
 }
 

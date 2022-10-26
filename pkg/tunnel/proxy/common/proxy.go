@@ -16,20 +16,21 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"net"
+	"strconv"
+	"strings"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/util/proxy"
 	"k8s.io/klog/v2"
-	"net"
-	"strconv"
-	"strings"
 )
 
 type TargetType int
@@ -42,7 +43,9 @@ const (
 )
 
 func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) {
+	klog.Infof("************internalIP is :%v, port: %v", host, port)
 	node := context.GetContext().GetNode(nodename)
+	klog.Infof("node name is %v", node)
 	if node != nil {
 		//If the edge node establishes a long connection with this pod, it will be forwarded directly
 		uid := uuid.NewV4().String()
@@ -60,28 +63,22 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		var remoteConn net.Conn
 		addrs, err := net.LookupHost(nodename)
 		if err != nil {
-			if dnsErr, ok := err.(*net.DNSError); ok {
-				if dnsErr.IsNotFound {
-					remoteConn, err = net.Dial(util.TCP, host+":"+port)
-					if err != nil {
-						klog.Errorf("Failed to send request from tunnel-cloud, error: %v", err)
-						return
-					}
+			klog.Infof("++++++++++++++++++++ This is DNS Error+++++++++++++++++, using ip+port, %v:%v", host, port)
 
-					//Return 200 status code
-					_, err = proxyConn.Write([]byte(util.ConnectMsg))
-					if err != nil {
-						klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-						return
-					}
-				}
-			}
-			if remoteConn == nil {
-				klog.Errorf("DNS parsing error: %v", err)
+			remoteConn, err = net.Dial(util.TCP, host+":"+port)
+			if err != nil {
+				klog.Errorf("Failed to send request from tunnel-cloud, error: %v", err)
 				_, err = proxyConn.Write([]byte(util.InternalServerError))
 				if err != nil {
 					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
 				}
+				return
+			}
+
+			//Return 200 status code
+			_, err = proxyConn.Write([]byte(util.ConnectMsg))
+			if err != nil {
+				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
 				return
 			}
 		} else {

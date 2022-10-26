@@ -16,14 +16,15 @@ package connect
 import (
 	"bufio"
 	"bytes"
+	"io"
+	"net"
+	"net/http"
+
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
-	"net"
-	"net/http"
 )
 
 const (
