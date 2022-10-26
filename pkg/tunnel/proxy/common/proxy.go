@@ -43,9 +43,7 @@ const (
 )
 
 func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) {
-	klog.Infof("************internalIP is :%v, port: %v", host, port)
 	node := context.GetContext().GetNode(nodename)
-	klog.Infof("node name is %v", node)
 	if node != nil {
 		//If the edge node establishes a long connection with this pod, it will be forwarded directly
 		uid := uuid.NewV4().String()
@@ -63,8 +61,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		var remoteConn net.Conn
 		addrs, err := net.LookupHost(nodename)
 		if err != nil {
-			klog.Infof("++++++++++++++++++++ This is DNS Error+++++++++++++++++, using ip+port, %v:%v", host, port)
-
+			//LookupHost error, using host+port to build the connection
 			remoteConn, err = net.Dial(util.TCP, host+":"+port)
 			if err != nil {
 				klog.Errorf("Failed to send request from tunnel-cloud, error: %v", err)
