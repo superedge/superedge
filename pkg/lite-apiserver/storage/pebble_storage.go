@@ -39,9 +39,7 @@ func newPebbleStoreWithDb(db *pebble.DB) Storage {
 }
 
 func NewPebbleStorage(path string) Storage {
-	ops := &pebble.Options{
-
-	}
+	ops := &pebble.Options{}
 	db, err := pebble.Open(path, ops)
 	if err != nil {
 		klog.Fatal(err)
