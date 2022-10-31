@@ -61,7 +61,7 @@ func (s *interceptorServer) debugger(handler http.Handler) http.Handler {
 
 func (s *interceptorServer) interceptEventRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || !strings.HasSuffix(r.URL.Path, "/events") {
+		if r.Method != http.MethodPost || !strings.HasSuffix(r.URL.Path, "/events") || strings.HasPrefix(r.URL.Path, "/superedge-ingress") {
 			handler.ServeHTTP(w, r)
 			return
 		}
