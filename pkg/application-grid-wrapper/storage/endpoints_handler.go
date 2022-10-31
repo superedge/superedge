@@ -51,7 +51,7 @@ func (eh *endpointsHandler) update(endpoints *v1.Endpoints) {
 
 	sc.mu.Lock()
 	endpointsKey := types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name}
-	klog.Infof("Updating endpoints %v", endpointsKey)
+	//	klog.Infof("Updating endpoints %v", endpointsKey)
 
 	endpointsContainer, found := sc.endpointsMap[endpointsKey]
 	if !found {

@@ -51,24 +51,16 @@ func Newupstream(restConfig *rest.Config) (*upstream, error) {
 }
 
 func (up *upstream) makeDirector(req *http.Request) {
-	var backendUrl, backendPort string
 	url, err := url.Parse(up.config.Host)
-
 	if err != nil {
 		klog.Errorf("Failed to get apiserver url, error: %v", err)
-		backendUrl = os.Getenv("KUBERNETES_SERVICE_HOST")
-		backendPort = os.Getenv("KUBERNETES_SERVICE_PORT")
+		backendUrl := os.Getenv("KUBERNETES_SERVICE_HOST")
+		backendPort := os.Getenv("KUBERNETES_SERVICE_PORT")
+		req.URL.Host = fmt.Sprintf("%s:%s", backendUrl, backendPort)
 	} else {
-		backendUrl = url.Host
-		if url.Port() == "" {
-			backendPort = "443"
-		} else {
-			backendPort = url.Port()
-		}
-
+		req.URL.Host = url.Host
 	}
 	req.URL.Scheme = "https"
-	req.URL.Host = fmt.Sprintf("%s:%s", backendUrl, backendPort)
 }
 
 func (up *upstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
