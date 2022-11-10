@@ -36,10 +36,8 @@ func (sh *serviceHandler) add(service *v1.Service) {
 
 	serviceKey := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
 	klog.Infof("Adding service %v", serviceKey)
-	sc.serviceChan <- watch.Event{
-		Type:   watch.Added,
-		Object: service,
-	}
+	sc.serviceBroardcaster.ActionOrDrop(
+		watch.Added, service)
 	sc.servicesMap[serviceKey] = &serviceContainer{
 		svc:  service,
 		keys: getTopologyKeys(&service.ObjectMeta),
@@ -62,10 +60,8 @@ func (sh *serviceHandler) update(service *v1.Service) {
 		return
 	}
 
-	sc.serviceChan <- watch.Event{
-		Type:   watch.Modified,
-		Object: service,
-	}
+	sc.serviceBroardcaster.ActionOrDrop(
+		watch.Modified, service)
 
 	serviceContainer.svc = service
 	// return directly when topologyKeys of service stay unchanged
@@ -87,10 +83,7 @@ func (sh *serviceHandler) delete(service *v1.Service) {
 
 	serviceKey := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
 	klog.Infof("Deleting service %v", serviceKey)
-	sc.serviceChan <- watch.Event{
-		Type:   watch.Deleted,
-		Object: service,
-	}
+	sc.serviceBroardcaster.ActionOrDrop(watch.Deleted, service)
 	delete(sc.servicesMap, serviceKey)
 
 	sc.mu.Unlock()

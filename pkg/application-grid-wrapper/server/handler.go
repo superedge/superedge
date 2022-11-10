@@ -135,6 +135,14 @@ func (s *interceptorServer) interceptServiceRequest(handler http.Handler) http.H
 				svcItems = append(svcItems, *svc)
 			}
 
+			if s.k3sServiceInformer != nil {
+				for _, svc := range s.k3sServiceInformer.GetStore().List() {
+					k3sSvc := svc.(*v1.Service).DeepCopy()
+					k3sSvc.Name = fmt.Sprintf("k3s-%s", k3sSvc.Name)
+					svcItems = append(svcItems, *k3sSvc)
+				}
+			}
+
 			svcList := &v1.ServiceList{
 				Items: svcItems,
 			}
@@ -179,13 +187,14 @@ func (s *interceptorServer) interceptServiceRequest(handler http.Handler) http.H
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
 
+		watchCH := s.serviceWatchBroadcaster.Watch()
 		for {
 			select {
 			case <-r.Context().Done():
 				return
 			case <-timer.C:
 				return
-			case evt := <-s.serviceWatchCh:
+			case evt := <-watchCH.ResultChan():
 				klog.V(4).Infof("Send service watch event: %+#v", evt)
 				err := e.Encode(&evt)
 				if err != nil {
@@ -193,7 +202,7 @@ func (s *interceptorServer) interceptServiceRequest(handler http.Handler) http.H
 					return
 				}
 
-				if len(s.serviceWatchCh) == 0 {
+				if len(watchCH.ResultChan()) == 0 {
 					flusher.Flush()
 				}
 			}
@@ -270,7 +279,7 @@ func (s *interceptorServer) interceptEndpointsRequest(handler http.Handler) http
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
-		endpointsWatch := s.endpointsBoradcaster.Watch()
+		endpointsWatch := s.endpointsBroadcaster.Watch()
 		defer endpointsWatch.Stop()
 		for {
 			select {
@@ -319,7 +328,15 @@ func (s *interceptorServer) interceptEndpointSliceV1Request(handler http.Handler
 			for _, eps := range allEndpointSlices {
 				epsItems = append(epsItems, *eps)
 			}
-
+			//添加k3s endpointslice
+			if s.k3sEndpointSliceV1Informer != nil {
+				for _, epsV1 := range s.k3sEndpointSliceV1Informer.GetStore().List() {
+					k3sEpsV1 := epsV1.(*discoveryv1.EndpointSlice)
+					superedgeEpsV1 := k3sEpsV1.DeepCopy()
+					superedgeEpsV1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1.Labels["kubernetes.io/service-name"])
+					epsItems = append(epsItems, *superedgeEpsV1)
+				}
+			}
 			epsList := &discoveryv1.EndpointSliceList{
 				Items: epsItems,
 			}
@@ -363,20 +380,21 @@ func (s *interceptorServer) interceptEndpointSliceV1Request(handler http.Handler
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
+		watch := s.endpointSliceV1WatchBroadcaster.Watch()
 		for {
 			select {
 			case <-r.Context().Done():
 				return
 			case <-timer.C:
 				return
-			case evt := <-s.endpointSliceV1WatchCh:
+			case evt := <-watch.ResultChan():
 				klog.V(4).Infof("Send endpointSlice watch event: %+#v", evt)
 				err := e.Encode(&evt)
 				if err != nil {
 					klog.Errorf("can't encode watch event, %v", err)
 					return
 				}
-				if len(s.endpointSliceV1WatchCh) == 0 {
+				if len(watch.ResultChan()) == 0 {
 					flusher.Flush()
 				}
 			}
@@ -409,7 +427,12 @@ func (s *interceptorServer) interceptEndpointSliceV1Beta1Request(handler http.Ha
 			for _, eps := range allEndpointSlices {
 				epsItems = append(epsItems, *eps)
 			}
-
+			//添加endpointsliceV1Beta
+			if s.k3sEndpointSliceV1Beta1Informer != nil {
+				for _, epsV1Beta := range s.k3sEndpointSliceV1Beta1Informer.GetStore().List() {
+					epsItems = append(epsItems, *epsV1Beta.(*discoveryv1beta1.EndpointSlice))
+				}
+			}
 			epsList := &discoveryv1beta1.EndpointSliceList{
 				Items: epsItems,
 			}
@@ -453,20 +476,21 @@ func (s *interceptorServer) interceptEndpointSliceV1Beta1Request(handler http.Ha
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
+		watch := s.endpointSliceV1Beta1WatchBroadcaster.Watch()
 		for {
 			select {
 			case <-r.Context().Done():
 				return
 			case <-timer.C:
 				return
-			case evt := <-s.endpointSliceV1Beta1WatchCh:
+			case evt := <-watch.ResultChan():
 				klog.V(4).Infof("Send endpointSlice watch event: %+#v", evt)
 				err := e.Encode(&evt)
 				if err != nil {
 					klog.Errorf("can't encode watch event, %v", err)
 					return
 				}
-				if len(s.endpointSliceV1WatchCh) == 0 {
+				if len(watch.ResultChan()) == 0 {
 					flusher.Flush()
 				}
 			}
@@ -562,7 +586,7 @@ func (s *interceptorServer) interceptIngressEndpointsRequest(handler http.Handle
 				Object: v,
 			})
 		}
-		endpointsWatch := s.endpointsBoradcaster.WatchWithPrefix(cacheEvts)
+		endpointsWatch := s.endpointsBroadcaster.WatchWithPrefix(cacheEvts)
 		defer endpointsWatch.Stop()
 		nodeWatch := s.nodeBoradcaster.Watch()
 		for {
