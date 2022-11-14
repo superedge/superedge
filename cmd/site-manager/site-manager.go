@@ -17,50 +17,31 @@ limitations under the License.
 package main
 
 import (
-	"flag"
+	goflag "flag"
 	"math/rand"
 	"os"
 	"time"
 
-	"github.com/spf13/pflag"
-	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/site-manager/app"
 )
 
 func main() {
-	klog.InitFlags(nil)
+
+	goflag.Set("alsologtostderr", "true")
+	klogFlags := goflag.NewFlagSet("klog", goflag.ExitOnError)
+	klog.InitFlags(klogFlags)
 	rand.Seed(time.Now().UnixNano())
 
-	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-
-	klogSet()
 	defer klog.Flush()
 
 	command := app.NewSiteManagerDaemonCommand()
+
+	command.Flags().SortFlags = false
+	command.Flags().AddGoFlagSet(klogFlags)
+
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-func klogSet() {
-	pflag.CommandLine.MarkHidden("log-dir")
-	pflag.CommandLine.MarkHidden("version")
-	pflag.CommandLine.MarkHidden("vmodule")
-	pflag.CommandLine.MarkHidden("one-output")
-	pflag.CommandLine.MarkHidden("logtostderr")
-	pflag.CommandLine.MarkHidden("skip-headers")
-	pflag.CommandLine.MarkHidden("add-dir-header")
-	pflag.CommandLine.MarkHidden("alsologtostderr")
-	pflag.CommandLine.MarkHidden("stderrthreshold")
-	pflag.CommandLine.MarkHidden("log-backtrace-at")
-	pflag.CommandLine.MarkHidden("skip-log-headers")
-	pflag.CommandLine.MarkHidden("log-file-max-size")
-	pflag.CommandLine.MarkHidden("log-flush-frequency")
-
-	flag.Set("v", "4")
-	flag.Set("logtostderr", "false")
-	flag.Set("alsologtostderr", "true")
 }

@@ -7,7 +7,7 @@ set -o pipefail
 rm -rf $(dirname ${BASH_SOURCE})/../ven/
 mkdir ./ven
 mkdir ./ven/k8s.io
-cd ./ven/k8s.io/ && git clone https://github.com/kubernetes/code-generator.git && cd code-generator && git checkout v0.20.5
+cd ./ven/k8s.io/ && git clone https://github.com/kubernetes/code-generator.git && cd code-generator && git checkout v0.22.3
 cd ../../../
 
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
@@ -27,7 +27,7 @@ bash ${SCRIPT_ROOT}/ven/k8s.io/code-generator/generate-groups.sh all \
 bash ${SCRIPT_ROOT}/ven/k8s.io/code-generator/generate-groups.sh all \
   github.com/superedge/superedge/pkg/site-manager/generated \
   github.com/superedge/superedge/pkg/site-manager/apis \
-  site.superedge.io:v1alpha1 \
+  site.superedge.io:v1alpha1,v1alpha2 \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" -v=9
 # To use your own boilerplate text append:
 #   --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt

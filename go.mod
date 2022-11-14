@@ -24,7 +24,8 @@ require (
 	github.com/tarscloud/gopractice v1.0.1
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.1.0
+	golang.org/x/exp v0.0.0-20221114191408-850992195362 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.1.0 // indirect
@@ -39,7 +40,6 @@ require (
 	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.22.3
 	k8s.io/cluster-bootstrap v0.22.3
-	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.22.3
 	k8s.io/klog/v2 v2.9.0
 	sigs.k8s.io/controller-runtime v0.10.3

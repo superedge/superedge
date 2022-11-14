@@ -20,17 +20,20 @@ import (
 	"time"
 
 	"k8s.io/client-go/informers"
+	appv1 "k8s.io/client-go/informers/apps/v1"
 	corev1 "k8s.io/client-go/informers/core/v1"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	crdFactory "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions"
-	crdv1 "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site.superedge.io/v1alpha1"
+	crdv1 "github.com/superedge/superedge/pkg/site-manager/generated/informers/externalversions/site.superedge.io/v1alpha2"
 )
 
 type ControllerConfig struct {
 	NodeInformer      corev1.NodeInformer
+	DaemonSetInformer appv1.DaemonSetInformer
 	NodeUnitInformer  crdv1.NodeUnitInformer
 	NodeGroupInformer crdv1.NodeGroupInformer
 }
@@ -41,13 +44,16 @@ func NewControllerConfig(k8sClient *kubernetes.Clientset, crdClient *crdClientse
 
 	return &ControllerConfig{
 		NodeInformer:      k8sFactory.Core().V1().Nodes(),
-		NodeUnitInformer:  crdFactory.Site().V1alpha1().NodeUnits(),
-		NodeGroupInformer: crdFactory.Site().V1alpha1().NodeGroups(),
+		DaemonSetInformer: k8sFactory.Apps().V1().DaemonSets(),
+		NodeUnitInformer:  crdFactory.Site().V1alpha2().NodeUnits(),
+		NodeGroupInformer: crdFactory.Site().V1alpha2().NodeGroups(),
 	}
 }
 
 func (c *ControllerConfig) Run(stop <-chan struct{}) {
+	// TODO need run factory and wait cache sync in site controller run not here
 	go c.NodeInformer.Informer().Run(stop)
+	go c.DaemonSetInformer.Informer().Run(stop)
 	go c.NodeUnitInformer.Informer().Run(stop)
 	go c.NodeGroupInformer.Informer().Run(stop)
 

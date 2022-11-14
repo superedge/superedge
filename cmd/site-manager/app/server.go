@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -148,14 +148,30 @@ func runController(parent context.Context, kubeClient *clientset.Clientset,
 	crdClient *crdclientset.Clientset, workerNum, syncPeriod, syncPeriodAsWhole int) {
 
 	controllerConfig := config.NewControllerConfig(kubeClient, crdClient, time.Second*time.Duration(syncPeriod))
-	sitesManagerDaemonController := controller.NewSitesManagerDaemonController(controllerConfig.NodeInformer,
-		controllerConfig.NodeUnitInformer, controllerConfig.NodeGroupInformer, kubeClient, crdClient)
+	nuc := controller.NewNodeUnitController(
+		controllerConfig.NodeInformer,
+		controllerConfig.DaemonSetInformer,
+		controllerConfig.NodeUnitInformer,
+		controllerConfig.NodeGroupInformer,
+		kubeClient,
+		crdClient,
+	)
+
+	ngc := controller.NewNodeGroupController(
+		controllerConfig.NodeInformer,
+		controllerConfig.NodeUnitInformer,
+		controllerConfig.NodeGroupInformer,
+		kubeClient,
+		crdClient,
+	)
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
 	controllerConfig.Run(ctx.Done())
-	go sitesManagerDaemonController.Run(workerNum, syncPeriodAsWhole, ctx.Done())
+	go nuc.Run(workerNum, syncPeriodAsWhole, ctx.Done())
+	go ngc.Run(workerNum, syncPeriodAsWhole, ctx.Done())
+
 	<-ctx.Done()
 }
 
