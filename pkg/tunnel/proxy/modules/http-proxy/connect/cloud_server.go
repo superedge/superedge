@@ -26,13 +26,19 @@ import (
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 )
 
 func HttpProxyCloudServer(proxyConn net.Conn) {
 	req, raw, err := util.GetRequestFromConn(proxyConn)
 	if err != nil {
-		klog.Errorf("Failed to read httpRequest, error: %v", err)
+		klog.V(8).Infof("Failed to read httpRequest, error: %v", err)
+		return
+	}
+
+	if req.Method != http.MethodConnect {
+		klog.V(8).Infof("Do not forward the request %v whose method is not connect", req)
 		return
 	}
 
@@ -51,6 +57,14 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 			return err
 		}
 		return nil
+	}
+
+	if os.Getenv(util.CloudProxy) != "" {
+		config := util.NewHttpProxyConfig(os.Getenv(util.CloudProxy))
+		if !config.UseProxy(req.Host) {
+			klog.V(8).Infof("Forbid access to service %s in the cluster", req.Host)
+			return
+		}
 	}
 
 	host, port, err := net.SplitHostPort(req.Host)
@@ -77,12 +91,15 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 				return "", err
 			}
 
+			klog.Infof("podIp = %v", podIp)
+
 			//Only handle access within the cluster
 			nodeName, err := indexers.GetNodeByPodIP(podIp)
 			if err != nil {
 				klog.Errorf("Failed to get the node name where the pod is located, error: %v", err)
 				return "", err
 			}
+			klog.Infof("nodeName = %v", nodeName)
 			return nodeName, nil
 		}
 		nodeName, err = getNodeName(req.Host)

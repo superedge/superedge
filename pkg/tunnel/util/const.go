@@ -70,6 +70,8 @@ const (
 	POD_NAMESPACE_ENV   = "POD_NAMESPACE"
 	CustomStart         = "#CustomStart"
 	CustomEnd           = "#CustomEnd"
+	EdgeNoProxy         = "EDGE_NO_PROXY"
+	CloudProxy          = "CLOUD_PROXY"
 )
 
 const (
