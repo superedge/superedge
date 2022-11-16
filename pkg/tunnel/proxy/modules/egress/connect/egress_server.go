@@ -38,7 +38,7 @@ func HandleEgressConn(proxyConn net.Conn) {
 	reqReader := bufio.NewReader(io.TeeReader(proxyConn, rawRequest))
 	request, err := http.ReadRequest(reqReader)
 	if err != nil {
-		klog.Errorf("Failed to get http request, error: %v", err)
+		klog.V(8).Infof("Failed to get http request, error: %v", err)
 		return
 	}
 	if request.Method == http.MethodConnect {

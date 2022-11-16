@@ -23,6 +23,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"net/http"
+	"os"
 
 	"k8s.io/klog/v2"
 	"net"
@@ -97,6 +98,12 @@ func AccessHandler(msg *proto.StreamMsg) error {
 		go common.Read(remoteConn, localNode, util.HTTP_PROXY, util.TCP_BACKEND, msg.GetTopic(), msg.GetAddr())
 		go common.Write(remoteConn, remoteCh)
 		return nil
+	}
+
+	if os.Getenv(util.EdgeNoProxy) != "" {
+		if !util.NewHttpProxyConfig(os.Getenv(util.EdgeNoProxy)).UseProxy(msg.Addr) {
+			return fmt.Errorf("edge nodes are prohibited from accessing the host %s", msg.Addr)
+		}
 	}
 
 	host, port, err := net.SplitHostPort(msg.Addr)
