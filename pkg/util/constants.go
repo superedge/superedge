@@ -13,6 +13,8 @@ limitations under the License.
 
 package util
 
+import "os"
+
 //edgeadm
 const (
 	EdgeNodeLabelKey   = "superedge.io/node-edge"
@@ -42,4 +44,8 @@ const (
 const (
 	NamespaceEdgeSystem = "edge-system"
 	NamespaceKubePublic = "kube-public"
+)
+
+var (
+	PodNamespace = os.Getenv("POD_NAMESPACE")
 )
