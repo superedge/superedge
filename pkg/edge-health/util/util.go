@@ -22,22 +22,23 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"os/signal"
+
 	"github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	"github.com/superedge/superedge/pkg/util"
 	"golang.org/x/sys/unix"
-	"io"
-	"k8s.io/api/core/v1"
-	"os"
-	"os/signal"
+	v1 "k8s.io/api/core/v1"
 )
 
 func GenerateHmac(communicatedata data.CommunicateData) (string, error) {
 	part1byte, _ := json.Marshal(communicatedata.SourceIP)
 	part2byte, _ := json.Marshal(communicatedata.ResultDetail)
 	hmacBefore := string(part1byte) + string(part2byte)
-	if hmacconf, err := check.ConfigMapManager.ConfigMapLister.ConfigMaps(util.NamespaceEdgeSystem).Get(common.HmacConfig); err != nil {
+	if hmacconf, err := check.ConfigMapManager.ConfigMapLister.ConfigMaps(util.PodNamespace).Get(common.HmacConfig); err != nil {
 		return "", err
 	} else {
 		return GetHmacCode(hmacBefore, hmacconf.Data[common.HmacKey])
