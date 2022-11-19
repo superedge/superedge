@@ -19,15 +19,16 @@ package checkplugin
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
 	"io/ioutil"
-	"k8s.io/klog/v2"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
+	"k8s.io/klog/v2"
 )
 
 type KubeletAuthCheckPlugin struct {
@@ -36,10 +37,6 @@ type KubeletAuthCheckPlugin struct {
 
 func (p KubeletAuthCheckPlugin) Name() string {
 	return "KubeletAuthCheck"
-}
-
-func (p KubeletAuthCheckPlugin) Enable() bool {
-	return p.Enabled
 }
 
 func (p *KubeletAuthCheckPlugin) Set(s string) error {
@@ -70,11 +67,10 @@ func (p *KubeletAuthCheckPlugin) Set(s string) error {
 		}
 		(*p).PluginName = p.Name()
 	}
-	if p.Enable() {
-		PluginInfo = NewPluginInfo()
-		PluginInfo.AddPlugin(p)
-		klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
-	}
+
+	PluginInfo = NewPluginInfo()
+	PluginInfo.AddPlugin(p)
+	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
 	return err
 }
 

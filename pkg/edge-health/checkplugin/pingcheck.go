@@ -18,14 +18,15 @@ package checkplugin
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
-	"k8s.io/klog/v2"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
+	"k8s.io/klog/v2"
 )
 
 type PingCheckPlugin struct {
@@ -34,10 +35,6 @@ type PingCheckPlugin struct {
 
 func (p PingCheckPlugin) Name() string {
 	return "PingCheck"
-}
-
-func (p PingCheckPlugin) Enable() bool {
-	return p.Enabled
 }
 
 func (p *PingCheckPlugin) Set(s string) error {
@@ -67,11 +64,11 @@ func (p *PingCheckPlugin) Set(s string) error {
 		}
 		(*p).PluginName = p.Name()
 	}
-	if p.Enable() {
-		PluginInfo = NewPluginInfo()
-		PluginInfo.AddPlugin(p)
-		klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
-	}
+
+	PluginInfo = NewPluginInfo()
+	PluginInfo.AddPlugin(p)
+	klog.V(4).Infof("len of plugins is %d", len(PluginInfo.Plugins))
+
 	return err
 }
 

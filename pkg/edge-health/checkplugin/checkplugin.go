@@ -19,9 +19,10 @@ package checkplugin
 import (
 	"fmt"
 	"io/ioutil"
-	"k8s.io/klog/v2"
 	"net/http"
 	"sync"
+
+	"k8s.io/klog/v2"
 )
 
 type CheckPlugin interface {
@@ -53,7 +54,6 @@ type BasePlugin struct {
 	HealthCheckRetryTime  int
 	Weight                float64 //ex:0.3
 	Port                  int
-	Enabled               bool
 }
 
 func (p BasePlugin) SetWeight(weight float64) {
