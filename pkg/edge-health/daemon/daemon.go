@@ -18,6 +18,9 @@ package daemon
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/superedge/superedge/cmd/edge-health/app/options"
 	checkpkg "github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
@@ -26,8 +29,6 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/registry"
 	"github.com/superedge/superedge/pkg/edge-health/vote"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sync"
-	"time"
 )
 
 type Daemon interface {
