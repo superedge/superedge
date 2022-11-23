@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health-admission/config"
 	"github.com/superedge/superedge/pkg/edge-health-admission/util"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,15 +35,15 @@ func EndPoint(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, endPoint)
 }
 
-func endPoint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func endPoint(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	var endpointNew corev1.Endpoints
 
 	klog.V(7).Info("admitting endpoints")
 	endpointResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "endpoints"}
-	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	if ar.Request.Resource != endpointResource {
 		//klog.V(4).Infof("Request is not nodes, ignore, is %s", ar.Request.Resource.String())
-		reviewResponse = v1beta1.AdmissionResponse{Allowed: true}
+		reviewResponse = admissionv1.AdmissionResponse{Allowed: true}
 		return &reviewResponse
 	}
 
@@ -91,7 +91,7 @@ func endPoint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 						if len(patches) != 0 {
 							bytes, _ := json.Marshal(patches)
 							reviewResponse.Patch = bytes
-							pt := v1beta1.PatchTypeJSONPatch
+							pt := admissionv1.PatchTypeJSONPatch
 							reviewResponse.PatchType = &pt
 						}
 					}
@@ -103,7 +103,7 @@ func endPoint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	return &reviewResponse
 }
 
-func decodeRawEndPoint(ar v1beta1.AdmissionReview, version string) (*v1beta1.AdmissionResponse, corev1.Endpoints, error) {
+func decodeRawEndPoint(ar admissionv1.AdmissionReview, version string) (*admissionv1.AdmissionResponse, corev1.Endpoints, error) {
 	var raw []byte
 	if version == "new" {
 		raw = ar.Request.Object.Raw
