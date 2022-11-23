@@ -22,7 +22,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health-admission/util"
 	edgeutil "github.com/superedge/superedge/pkg/util"
 	"io/ioutil"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +31,7 @@ import (
 	"net/http"
 )
 
-type admitFunc func(v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
+type admitFunc func(admissionv1.AdmissionReview) *admissionv1.AdmissionResponse
 
 type Patch struct {
 	OP    string      `json:"op"`
@@ -43,7 +43,7 @@ func NodeTaint(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, nodeTaint)
 }
 
-func nodeTaint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func nodeTaint(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	var nodeNew, nodeOld corev1.Node
 
 	UnreachNoExecuteTaint := &v1.Taint{
@@ -53,10 +53,10 @@ func nodeTaint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	klog.V(7).Info("admitting nodes")
 	nodeResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}
-	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	if ar.Request.Resource != nodeResource {
 		//klog.V(4).Infof("Request is not nodes, ignore, is %s", ar.Request.Resource.String())
-		reviewResponse = v1beta1.AdmissionResponse{Allowed: true}
+		reviewResponse = admissionv1.AdmissionResponse{Allowed: true}
 		return &reviewResponse
 	}
 
@@ -98,7 +98,7 @@ func nodeTaint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 			if len(patches) != 0 {
 				bytes, _ := json.Marshal(patches)
 				reviewResponse.Patch = bytes
-				pt := v1beta1.PatchTypeJSONPatch
+				pt := admissionv1.PatchTypeJSONPatch
 				reviewResponse.PatchType = &pt
 			}
 		}
@@ -109,7 +109,7 @@ func nodeTaint(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	return &reviewResponse
 }
 
-func decodeRawNode(ar v1beta1.AdmissionReview, version string) (*v1beta1.AdmissionResponse, corev1.Node, error) {
+func decodeRawNode(ar admissionv1.AdmissionReview, version string) (*admissionv1.AdmissionResponse, corev1.Node, error) {
 	var raw []byte
 	if version == "new" {
 		raw = ar.Request.Object.Raw
@@ -144,26 +144,22 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	klog.V(7).Info(fmt.Sprintf("handling request: %s", body))
 
 	// The AdmissionReview that was sent to the webhook
-	requestedAdmissionReview := v1beta1.AdmissionReview{}
-
-	// The AdmissionReview that will be returned
-	responseAdmissionReview := v1beta1.AdmissionReview{}
+	admissionReview := admissionv1.AdmissionReview{}
 
 	deserializer := Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(body, nil, &requestedAdmissionReview); err != nil {
+	if _, _, err := deserializer.Decode(body, nil, &admissionReview); err != nil {
 		klog.Error(err)
-		responseAdmissionReview.Response = toAdmissionResponse(err)
+		admissionReview.Response = toAdmissionResponse(err)
 	} else {
 		// pass to admitFunc
-		responseAdmissionReview.Response = admit(requestedAdmissionReview)
+		admissionReview.Response = admit(admissionReview)
 	}
 
-	// Return the same UID
-	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
+	admissionReview.Response.UID = admissionReview.Request.UID
 
-	klog.V(7).Info(fmt.Sprintf("sending response: %v", responseAdmissionReview.Response))
+	klog.V(7).Info(fmt.Sprintf("sending response: %v", admissionReview))
 
-	respBytes, err := json.Marshal(responseAdmissionReview)
+	respBytes, err := json.Marshal(admissionReview)
 	if err != nil {
 		klog.Error(err)
 	}
@@ -172,8 +168,8 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	}
 }
 
-func toAdmissionResponse(err error) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
+func toAdmissionResponse(err error) *admissionv1.AdmissionResponse {
+	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},
