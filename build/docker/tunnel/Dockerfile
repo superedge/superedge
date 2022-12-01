@@ -1,8 +1,8 @@
-From alpine:3.9
+FROM alpine:3.17
 
 # set up nsswitch.conf for Go's "netgo" implementation
 # https://github.com/golang/go/issues/35305
-RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
+RUN echo 'hosts: files dns' > /etc/nsswitch.conf
 
 ADD tunnel /usr/local/bin
 RUN chmod +x /usr/local/bin/tunnel
