@@ -16,6 +16,10 @@ limitations under the License.
 
 package constant
 
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
 const (
 	FileStorage   = "file"
 	MemoryStorage = "memory"
@@ -38,6 +42,7 @@ const (
 )
 
 const (
-	Json = "application/json"
-	Yaml = "application/yaml"
+	Json     = runtime.ContentTypeJSON
+	Protobuf = runtime.ContentTypeProtobuf
+	Yaml     = runtime.ContentTypeYAML
 )
