@@ -19,7 +19,9 @@ package proxy
 import (
 	"io"
 	"net/http"
+	"strings"
 
+	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog/v2"
 )
@@ -33,13 +35,17 @@ func CopyHeader(dst, src http.Header) {
 	}
 }
 
-// WithRequestAccept delete header Accept, use default application/json
+// WithRequestAccept replace header Accept, use default application/json
 func WithRequestAccept(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodGet {
 			if info, ok := apirequest.RequestInfoFrom(req.Context()); ok {
 				if info.IsResourceRequest {
-					req.Header.Del("Accept")
+					// don't del Accept, just replace protobuf to json
+					newAccept := strings.ReplaceAll(req.Header.Get("Accept"), constant.Protobuf, constant.Json)
+					if newAccept != "" {
+						req.Header.Set("Accept", newAccept)
+					}
 				}
 			}
 		}
