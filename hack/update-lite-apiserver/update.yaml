@@ -1,0 +1,50 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: update-lite
+spec:
+  serviceName: update-lite
+  updateStrategy:
+    type: RollingUpdate
+  replicas: 1
+  selector:
+     matchLabels:
+       app: update-lite
+  template:
+    metadata:
+      labels:
+        app: update-lite
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - update-lite
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: upgrade
+          image: {update-lite-apiserver-image}
+          command: ["/upgrade.sh"]
+          env:
+            - name: SYSTEMD_IGNORE_CHROOT
+              value: "1"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: root
+              mountPath: /host
+              mountPropagation: HostToContainer
+            - name: run
+              mountPath: /run
+              mountPropagation: HostToContainer
+      volumes:
+        - name: run
+          hostPath:
+            path: /run
+        - name: root
+          hostPath:
+            path: /
