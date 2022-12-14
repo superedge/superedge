@@ -87,10 +87,10 @@ func (plugin KubeletCheckPlugin) CheckExecute(wg *sync.WaitGroup) {
 		go func(execwg *sync.WaitGroup) {
 			checkOk, err := ping(plugin.HealthCheckoutTimeOut, plugin.HealthCheckRetryTime, temp, plugin.Port)
 			if checkOk {
-				klog.V(4).Infof("%s use %s plugin check %s successd", common.LocalIp, plugin.Name(), temp)
+				klog.V(4).Infof("%s use %s plugin check %s successd", common.NodeIP, plugin.Name(), temp)
 				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 100)
 			} else {
-				klog.V(2).Infof("%s use %s plugin check %s failed, reason: %s", common.LocalIp, plugin.Name(), temp, err.Error())
+				klog.V(2).Infof("%s use %s plugin check %s failed, reason: %s", common.NodeIP, plugin.Name(), temp, err.Error())
 				data.CheckInfoResult.SetCheckInfo(temp, plugin.Name(), plugin.GetWeight(), 0)
 			}
 			execwg.Done()

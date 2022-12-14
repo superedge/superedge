@@ -8,9 +8,10 @@ require (
 	github.com/cockroachdb/pebble v0.0.0-20220218191007-13f8f7cee6ef
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
+	github.com/go-ping/ping v1.1.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/flatbuffers v1.12.1 // indirect
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
@@ -23,9 +24,11 @@ require (
 	github.com/tarscloud/gopractice v1.0.1
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/sys v0.3.0
 	google.golang.org/grpc v1.38.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.4.0

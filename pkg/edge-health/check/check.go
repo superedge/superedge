@@ -22,9 +22,13 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
+	siteconst "github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/util"
-	v1 "k8s.io/api/core/v1"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
@@ -58,8 +62,7 @@ func NewCheckEdge(checkplugins []checkplugin.CheckPlugin, healthcheckperiod int,
 }
 
 func (c CheckEdge) GetNodeList() {
-	var hostzone string
-	var host *v1.Node
+	var host *metav1.PartialObjectMetadata
 
 	masterSelector := labels.NewSelector()
 	masterRequirement, err := labels.NewRequirement(common.MasterLabel, selection.DoesNotExist, []string{})
@@ -68,14 +71,15 @@ func (c CheckEdge) GetNodeList() {
 	}
 	masterSelector = masterSelector.Add(*masterRequirement)
 
-	if host, err = NodeManager.NodeLister.Get(common.HostName); err != nil {
-		klog.Errorf("GetNodeList: can't get node with hostname %s, err: %v", common.HostName, err)
+	hostObject, err := NodeMetaManager.NodeMetaILister.Get(common.NodeName)
+	if err != nil {
+		klog.Errorf("NodeMetaILister: can't get node with hostname %s, err: %v", common.NodeName, err)
 		return
 	}
-
+	host = hostObject.(*metav1.PartialObjectMetadata)
 	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(util.PodNamespace).Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
 		if apierrors.IsNotFound(err) {
-			if NodeList, err := NodeManager.NodeLister.List(masterSelector); err != nil {
+			if NodeList, err := NodeMetaManager.NodeMetaILister.List(masterSelector); err != nil {
 				klog.Errorf("config not exist, get nodes err: %v", err)
 				return
 			} else {
@@ -85,48 +89,60 @@ func (c CheckEdge) GetNodeList() {
 			klog.Errorf("get ConfigMaps edge-health-zone-config err %v", err)
 			return
 		}
-	} else { //multi-region cm found
+	} else { //node unit check cm found
 		klog.V(4).Infof("cm value is %s", config.Data["TaintZoneAdmission"])
 		if config.Data["TaintZoneAdmission"] == "false" { //close multi-region check
-			if NodeList, err := NodeManager.NodeLister.List(masterSelector); err != nil {
+			if NodeList, err := NodeMetaManager.NodeMetaILister.List(masterSelector); err != nil {
 				klog.Errorf("config exist, false, get nodes err : %v", err)
 				return
 			} else {
 				data.NodeList.SetNodeListDataByNodeSlice(NodeList)
 			}
-		} else { //open multi-region check
-			if _, ok := host.Labels[common.TopologyZone]; ok {
-				hostzone = host.Labels[common.TopologyZone]
-				klog.V(4).Infof("hostzone is %s", hostzone)
-
-				masterzoneSelector := labels.NewSelector()
-				zoneRequirement, err := labels.NewRequirement(common.TopologyZone, selection.Equals, []string{hostzone})
-				if err != nil {
-					klog.Errorf("can't new zoneRequirement")
+		} else { //open node unit check
+			// only check same unit node
+			unitLabel := make(map[string]string, 1)
+			for k, v := range host.Labels {
+				if v == siteconst.NodeUnitSuperedge {
+					unitLabel[k] = v
 				}
-				masterzoneSelector = masterzoneSelector.Add(*masterRequirement, *zoneRequirement)
-				if NodeList, err := NodeManager.NodeLister.List(masterzoneSelector); err != nil {
+			}
+			klog.V(6).Infof("unitLabel is %s", unitLabel)
+
+			if len(unitLabel) > 0 {
+				labelSelector := &metav1.LabelSelector{
+					MatchLabels: unitLabel,
+				}
+				selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+				if err != nil {
+					klog.ErrorS(err, "metav1.LabelSelectorAsSelector error")
+					return
+				}
+
+				if NodeList, err := NodeMetaManager.NodeMetaILister.List(selector); err != nil {
 					klog.Errorf("config exist, true, host has zone label, get nodes err: %v", err)
 					return
 				} else {
 					data.NodeList.SetNodeListDataByNodeSlice(NodeList)
 				}
-				klog.V(4).Infof("nodelist len is %d", data.NodeList.GetLenListData())
+				klog.V(6).Infof("nodelist len is %d", data.NodeList.GetLenListData())
+
 			} else {
-				data.NodeList.SetNodeListDataByNodeSlice([]*v1.Node{host})
+				// could not find unit label, ondy check self
+				data.NodeList.SetNodeListDataByNodeSlice([]runtime.Object{hostObject})
 			}
 		}
 	}
-
+	// TODO get ip list from node meta and pod hostIP
 	iplist := make(map[string]bool)
 	tempItems := data.NodeList.CopyNodeListData()
-	for _, v := range tempItems {
-		for _, i := range v.Status.Addresses {
-			if i.Type == v1.NodeInternalIP {
-				iplist[i.Address] = true
-				data.CheckInfoResult.SetCheckedIpCheckInfo(i.Address)
-			}
+	for _, node := range tempItems {
+		nodeIP, err := PodManager.GetNodeIPByNodeName(node.Name)
+		if err != nil {
+			klog.ErrorS(err, "GetNodeIPByNodeName error")
+			continue
 		}
+		iplist[nodeIP] = true
+		data.CheckInfoResult.SetCheckedIpCheckInfo(nodeIP)
 	}
 
 	for _, v := range data.CheckInfoResult.TraverseCheckedIpCheckInfo() {
@@ -169,12 +185,12 @@ func (c CheckEdge) Check() {
 			totalscore += score
 		}
 		if totalscore >= c.HealthCheckScoreLine {
-			data.Result.SetResultFromCheckInfo(common.LocalIp, desip, data.ResultDetail{Normal: true})
+			data.Result.SetResultFromCheckInfo(common.NodeIP, desip, data.ResultDetail{Normal: true})
 		} else {
-			data.Result.SetResultFromCheckInfo(common.LocalIp, desip, data.ResultDetail{Normal: false})
+			data.Result.SetResultFromCheckInfo(common.NodeIP, desip, data.ResultDetail{Normal: false})
 		}
 	}
-	klog.V(4).Infof("healthcheck: after health check, result is %v", data.Result.Result)
+	klog.V(6).Infof("healthcheck: after health check, result is %v", data.Result.GetResultDataAll())
 }
 
 func (c CheckEdge) AddCheckPlugin(plugins []checkplugin.CheckPlugin) {

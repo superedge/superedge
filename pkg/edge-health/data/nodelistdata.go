@@ -16,78 +16,78 @@ limitations under the License.
 
 package data
 
-import (
-	"k8s.io/api/core/v1"
-	"sync"
-)
+// import (
+// 	"k8s.io/api/core/v1"
+// 	"sync"
+// )
 
-var (
-	NodeListOnce sync.Once
-	NodeListMu   sync.Mutex
-	NodeList     NodeListData
-)
+// var (
+// 	NodeListOnce sync.Once
+// 	NodeListMu   sync.Mutex
+// 	NodeList     NodeListData
+// )
 
-type NodeListData struct {
-	NodeList   v1.NodeList
-	NodeListMu *sync.Mutex
-}
+// type NodeListData struct {
+// 	NodeList   v1.NodeList
+// 	NodeListMu *sync.Mutex
+// }
 
-func NewNodeListData() NodeListData {
-	NodeListOnce.Do(func() {
-		NodeList = NodeListData{
-			NodeList:   v1.NodeList{},
-			NodeListMu: &NodeListMu,
-		}
-	})
-	return NodeList
-}
+// func NewNodeListData() NodeListData {
+// 	NodeListOnce.Do(func() {
+// 		NodeList = NodeListData{
+// 			NodeList:   v1.NodeList{},
+// 			NodeListMu: &NodeListMu,
+// 		}
+// 	})
+// 	return NodeList
+// }
 
-func (n *NodeListData) SetNodeListDataByNode(node v1.Node) {
-	n.NodeListMu.Lock()
-	defer n.NodeListMu.Unlock()
-	var flag bool
-	for k, existNode := range n.NodeList.Items {
-		if existNode.Name == node.Name {
-			n.NodeList.Items[k] = node
-			flag = true
-		}
-	}
-	if !flag {
-		n.NodeList.Items = append(n.NodeList.Items, node)
-	}
-}
+// func (n *NodeListData) SetNodeListDataByNode(node v1.Node) {
+// 	n.NodeListMu.Lock()
+// 	defer n.NodeListMu.Unlock()
+// 	var flag bool
+// 	for k, existNode := range n.NodeList.Items {
+// 		if existNode.Name == node.Name {
+// 			n.NodeList.Items[k] = node
+// 			flag = true
+// 		}
+// 	}
+// 	if !flag {
+// 		n.NodeList.Items = append(n.NodeList.Items, node)
+// 	}
+// }
 
-func (n *NodeListData) DeleteNodeListDataByNode(node v1.Node) {
-	n.NodeListMu.Lock()
-	defer n.NodeListMu.Unlock()
-	for k, existNode := range n.NodeList.Items {
-		if existNode.Name == node.Name {
-			n.NodeList.Items = append(n.NodeList.Items[:k], n.NodeList.Items[k+1:]...)
-			return
-		}
-	}
-}
+// func (n *NodeListData) DeleteNodeListDataByNode(node v1.Node) {
+// 	n.NodeListMu.Lock()
+// 	defer n.NodeListMu.Unlock()
+// 	for k, existNode := range n.NodeList.Items {
+// 		if existNode.Name == node.Name {
+// 			n.NodeList.Items = append(n.NodeList.Items[:k], n.NodeList.Items[k+1:]...)
+// 			return
+// 		}
+// 	}
+// }
 
-func (n *NodeListData) SetNodeListDataByNodeSlice(nodeslice []*v1.Node) {
-	n.NodeListMu.Lock()
-	defer n.NodeListMu.Unlock()
-	var nodelist []v1.Node
-	for _, v := range nodeslice {
-		nodelist = append(nodelist, *v)
-	}
-	n.NodeList.Items = nodelist
-}
+// func (n *NodeListData) SetNodeListDataByNodeSlice(nodeslice []*v1.Node) {
+// 	n.NodeListMu.Lock()
+// 	defer n.NodeListMu.Unlock()
+// 	var nodelist []v1.Node
+// 	for _, v := range nodeslice {
+// 		nodelist = append(nodelist, *v)
+// 	}
+// 	n.NodeList.Items = nodelist
+// }
 
-func (n *NodeListData) GetLenListData() int {
-	n.NodeListMu.Lock()
-	defer n.NodeListMu.Unlock()
-	return len(n.NodeList.Items)
-}
+// func (n *NodeListData) GetLenListData() int {
+// 	n.NodeListMu.Lock()
+// 	defer n.NodeListMu.Unlock()
+// 	return len(n.NodeList.Items)
+// }
 
-func (n NodeListData) CopyNodeListData() []v1.Node {
-	temp := []v1.Node{}
-	n.NodeListMu.Lock()
-	defer n.NodeListMu.Unlock()
-	temp = append(temp, n.NodeList.Items...)
-	return temp
-}
+// func (n NodeListData) CopyNodeListData() []v1.Node {
+// 	temp := []v1.Node{}
+// 	n.NodeListMu.Lock()
+// 	defer n.NodeListMu.Unlock()
+// 	temp = append(temp, n.NodeList.Items...)
+// 	return temp
+// }

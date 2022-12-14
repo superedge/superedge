@@ -30,9 +30,9 @@ func NewCommunOptions() *CommunOptions {
 }
 
 func (o *CommunOptions) Default() {
-	o.CommunicatePeriod = 10
+	o.CommunicatePeriod = 60
 	o.CommunicateRetryTime = 1
-	o.CommunicateTimeout = 3
+	o.CommunicateTimeout = 2
 	o.CommunicateServerPort = 51005
 }
 
