@@ -19,6 +19,7 @@ package config
 import (
 	"crypto/tls"
 	"flag"
+
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -32,6 +33,7 @@ type Config struct {
 }
 
 var Kubeclient clientset.Interface
+var NodeAlwaysReachable bool
 
 func (c *Config) AddFlags() {
 	flag.StringVar(&c.CertFile, "admission-control-server-cert", c.CertFile, ""+
