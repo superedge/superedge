@@ -78,6 +78,10 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	} else {
 		uid := uuid.NewV4().String()
 		node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+		if node == nil {
+			klog.Errorf("Failed to get node %s", os.Getenv(util.NODE_NAME_ENV))
+			return
+		}
 		ch := context.GetContext().AddConn(uid)
 		node.BindNode(uid)
 		node.Send2Node(&proto.StreamMsg{

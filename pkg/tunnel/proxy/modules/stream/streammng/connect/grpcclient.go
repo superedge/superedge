@@ -48,7 +48,9 @@ func StartClient() (*grpc.ClientConn, ctx.Context, ctx.CancelFunc, error) {
 		klog.Errorf("failed to load credentials: %v", err)
 		return nil, nil, nil, err
 	}
-	opts := []grpc.DialOption{grpc.WithKeepaliveParams(kacp), grpc.WithStreamInterceptor(ClientStreamInterceptor), grpc.WithTransportCredentials(creds)}
+	opts := []grpc.DialOption{grpc.WithKeepaliveParams(kacp), grpc.WithStreamInterceptor(ClientStreamInterceptor), grpc.WithTransportCredentials(creds), grpc.WithConnectParams(grpc.ConnectParams{
+		MinConnectTimeout: 60 * time.Second,
+	})}
 	conn, err := grpc.Dial(conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.ServerName, opts...)
 	if err != nil {
 		klog.Error("edge start client fail !")
