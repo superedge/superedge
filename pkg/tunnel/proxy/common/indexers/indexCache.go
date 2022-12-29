@@ -36,6 +36,7 @@ var (
 	once                                                     sync.Once
 	ServiceLister                                            listersv1.ServiceLister
 	EndpointLister                                           listersv1.EndpointsLister
+	NodeLister                                               listersv1.NodeLister
 )
 
 //Index pods by podIp
@@ -95,6 +96,7 @@ func InitCache(path string, stopCh chan struct{}) {
 			return
 		}
 		nodeIndexer = nodeInformer.GetIndexer()
+		NodeLister = listersv1.NewNodeLister(nodeIndexer)
 
 		//initialize serviceIndexer、serviceLister
 		serviceInform := informerFactory.InformerFor(&v1.Service{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {

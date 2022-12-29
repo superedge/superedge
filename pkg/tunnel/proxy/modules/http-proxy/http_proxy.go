@@ -14,6 +14,7 @@ limitations under the License.
 package http_proxy
 
 import (
+	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
@@ -22,6 +23,8 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
+	"os"
+	"strconv"
 )
 
 type HttpProxy struct {
@@ -39,7 +42,7 @@ func (h HttpProxy) Start(mode string) {
 	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.HTTP_PROXY, handlers.FrontendHandler)
 	go func() {
 		if mode == util.EDGE {
-			listener, err := net.Listen("tcp", conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyIp+":"+conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyPort)
+			listener, err := net.Listen("tcp", conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyIP+":"+conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyPort)
 			if err != nil {
 				klog.Errorf("Failed to start http_proxy edge server, error: %v", err)
 				return
@@ -54,7 +57,7 @@ func (h HttpProxy) Start(mode string) {
 			}
 
 		} else if mode == util.CLOUD {
-			listener, err := net.Listen("tcp", "0.0.0.0:8080")
+			listener, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort))
 			if err != nil {
 				klog.Errorf("Failed to start http_proxy edge server, error: %v", err)
 				return
@@ -65,7 +68,17 @@ func (h HttpProxy) Start(mode string) {
 					klog.Errorf("http_proxy edge server accept failed, error: %v", err)
 					continue
 				}
-				go connect.HttpProxyCloudServer(conn)
+				//go connect.HttpProxyCloudServer(conn)
+				go handlers.HandleServerConn(conn, util.HTTP_PROXY, func(host string) error {
+					if os.Getenv(util.CloudProxy) != "" {
+						config := util.NewHttpProxyConfig(os.Getenv(util.CloudProxy))
+						if !config.UseProxy(host) {
+							klog.V(8).Infof("Forbid access to service %s in the cluster", host)
+							return fmt.Errorf("forbid access to service %s in the cluster", host)
+						}
+					}
+					return nil
+				})
 			}
 		}
 	}()

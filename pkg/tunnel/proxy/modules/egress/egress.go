@@ -19,9 +19,9 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/egress/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
+	"strconv"
 )
 
 type EgressSelector struct {
@@ -39,7 +39,7 @@ func (e EgressSelector) Start(mode string) {
 		if conf.TunnelConf.TunnlMode.Cloud.Egress == nil {
 			return
 		}
-		cert, err := tls.LoadX509KeyPair(conf.TunnelConf.TunnlMode.Cloud.Egress.ServerCert, conf.TunnelConf.TunnlMode.Cloud.Egress.ServerKey)
+		cert, err := tls.LoadX509KeyPair(util.EgressCertPath, util.EgressKeyPath)
 		if err != nil {
 			klog.Errorf("client load cert fail, error: %v", err)
 			return
@@ -48,7 +48,7 @@ func (e EgressSelector) Start(mode string) {
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: true,
 		}
-		listener, err := tls.Listen("tcp", "0.0.0.0:"+conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort, config)
+		listener, err := tls.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort), config)
 		if err != nil {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
 			return
@@ -60,7 +60,7 @@ func (e EgressSelector) Start(mode string) {
 					klog.Errorf("SSH Server accept failed, error: %v", err)
 					continue
 				}
-				go connect.HandleEgressConn(conn)
+				go handlers.HandleServerConn(conn, util.EGRESS, nil)
 			}
 		}()
 	}

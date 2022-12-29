@@ -41,10 +41,6 @@ func (stream *Stream) Start(mode string) {
 	if mode == util.CLOUD {
 		go connect.StartServer()
 		go connect.StartMetricsServer()
-		if !conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Debug {
-			go connect.SyncPodIP()
-			go connect.SyncEndPoints()
-		}
 		channelzAddr = conf.TunnelConf.TunnlMode.Cloud.Stream.Server.ChannelzAddr
 	} else {
 		go connect.StartSendClient()
@@ -62,14 +58,12 @@ func (stream *Stream) CleanUp() {
 
 func InitStream(mode string) {
 	if mode == util.CLOUD {
-		if !conf.TunnelConf.TunnlMode.Cloud.Stream.Dns.Debug {
-			err := connect.InitDNS()
-			if err != nil {
-				klog.Errorf("init client-go fail err = %v", err)
-				return
-			}
+		err := connect.InitRegister()
+		if err != nil {
+			klog.Errorf("init client-go fail err = %v", err)
+			return
 		}
-		err := token.InitTokenCache(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.TokenFile)
+		err = token.InitTokenCache(util.TunnelCloudTokenPath)
 		if err != nil {
 			klog.Error("Error loading token file ！")
 			return

@@ -64,3 +64,10 @@ func Ping(ip string) error {
 	}
 	return p.Run()
 }
+func WriteMsg(conn net.Conn, msg string) error {
+	_, err := conn.Write([]byte(msg))
+	if err != nil {
+		klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+	}
+	return err
+}

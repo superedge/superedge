@@ -42,7 +42,7 @@ const (
 	EdgeNodeType  TargetType = 3 //the target node is on the edge and cannot send requests directly
 )
 
-func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) {
+func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) error {
 	node := context.GetContext().GetNode(nodename)
 	if node != nil {
 		//If the edge node establishes a long connection with this pod, it will be forwarded directly
@@ -52,87 +52,56 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		_, err := proxyConn.Write([]byte(util.ConnectMsg))
 		if err != nil {
 			klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-			return
+			return err
 		}
 		go Read(proxyConn, node, category, util.TCP_FRONTEND, uid, host+":"+port)
 		Write(proxyConn, ch)
 	} else {
 		//From tunnel-coredns, query the pods of tunnel-cloud where edge nodes establish long-term connections
-		var remoteConn net.Conn
-		addrs, err := net.LookupHost(nodename)
-		if err != nil {
-			//LookupHost error, using host+port to build the connection
-			remoteConn, err = net.Dial(util.TCP, host+":"+port)
+		addr, ok := connect.Route.EdgeNode[nodename]
+		if ok {
+			/*
+				todo Supports sending requests through nodes within nodeunit at the edge
+			*/
+			//You can only proxy once between tunnel-cloud pods
+			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
+				klog.Errorf("Loop forwarding")
+				return fmt.Errorf("loop forwarding")
+			}
+			if category == util.EGRESS {
+				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
+			} else if category == util.SSH {
+				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
+			} else if category == util.HTTP_PROXY {
+				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
+			}
+			remoteConn, err := net.Dial(util.TCP, addr)
 			if err != nil {
-				klog.Errorf("Failed to build the connetion to %v:%v, error: %v", host, port, err)
-				_, err = proxyConn.Write([]byte(util.InternalServerError))
-				if err != nil {
-					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				}
-				return
+				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
+				return err
 			}
 
-			//Return 200 status code
-			_, err = proxyConn.Write([]byte(util.ConnectMsg))
+			//Forward HTTP_CONNECT request data
+			_, err = remoteConn.Write(req.Bytes())
 			if err != nil {
-				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				return
+				klog.Errorf("Failed to write data to remoteConn, error: %v", err)
+				return err
 			}
-		} else {
-			if !connect.IsEndpointIp(addrs[0]) {
-				remoteConn, err = net.Dial(util.TCP, host+":"+port)
-				if err != nil {
-					klog.Errorf("Failed to establish a connection with master node, error: %v", err)
-					return
+			defer remoteConn.Close()
+			go func() {
+				_, writeErr := io.Copy(remoteConn, proxyConn)
+				if writeErr != nil {
+					klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
 				}
-				_, err := proxyConn.Write([]byte(util.ConnectMsg))
-				if err != nil {
-					klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-					return
-				}
-			} else {
-				/*
-					todo Supports sending requests through nodes within nodeunit at the edge
-				*/
-
-				//You can only proxy once between tunnel-cloud pods
-				if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
-					klog.Errorf("Loop forwarding")
-					return
-				}
-				var addr string
-				if category == util.EGRESS {
-					addr = addrs[0] + ":" + conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort
-				} else if category == util.SSH {
-					addr = addrs[0] + ":22"
-				}
-				remoteConn, err = net.Dial(util.TCP, addr)
-				if err != nil {
-					klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
-					return
-				}
-
-				//Forward HTTP_CONNECT request data
-				_, err = remoteConn.Write(req.Bytes())
-				if err != nil {
-					klog.Errorf("Failed to write data to remoteConn, error: %v", err)
-					return
-				}
+			}()
+			_, err = io.Copy(proxyConn, remoteConn)
+			if err != nil {
+				klog.Errorf("Failed to read data from remoteConn, error: %v", err)
+				return err
 			}
-		}
-
-		defer remoteConn.Close()
-		go func() {
-			_, writeErr := io.Copy(remoteConn, proxyConn)
-			if writeErr != nil {
-				klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
-			}
-		}()
-		_, err = io.Copy(proxyConn, remoteConn)
-		if err != nil {
-			klog.Errorf("Failed to read data from remoteConn, error: %v", err)
 		}
 	}
+	return nil
 }
 
 func GetPodIpFromService(service string) (string, string, error) {
@@ -212,11 +181,11 @@ func GetTargetType(nodeName string) TargetType {
 func GetRemoteProxyServerPort(category string) string {
 	switch category {
 	case util.SSH:
-		return "22"
+		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
 	case util.EGRESS:
-		return conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort
+		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
 	case util.HTTP_PROXY:
-		return conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort
+		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
 	}
 	return "10250"
 }

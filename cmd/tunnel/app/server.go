@@ -24,10 +24,9 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/egress"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/http-proxy"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/https"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/tcp"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version"
@@ -54,6 +53,9 @@ func NewTunnelCommand() *cobra.Command {
 			if *option.TunnelMode == tunnelutil.CLOUD {
 				stop := make(chan struct{})
 				indexers.InitCache(*option.Kubeconfig, stop)
+				go connect.SyncPodIP()
+				go connect.SyncEndPoints()
+				go connect.SyncRoute(*option.Kubeconfig)
 				defer func() {
 					stop <- struct{}{}
 				}()
@@ -61,8 +63,6 @@ func NewTunnelCommand() *cobra.Command {
 			module.InitModules(*option.TunnelMode)
 			stream.InitStream(*option.TunnelMode)
 			egress.InitEgress()
-			tcp.InitTcp()
-			https.InitHttps()
 			ssh.InitSSH()
 			http_proxy.InitHttpProxy()
 			module.LoadModules(*option.TunnelMode)
