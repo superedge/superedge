@@ -43,7 +43,7 @@ var kacp = keepalive.ClientParameters{
 var streamConn *grpc.ClientConn
 
 func StartClient() (*grpc.ClientConn, ctx.Context, ctx.CancelFunc, error) {
-	creds, err := credentials.NewClientTLSFromFile(conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.Cert, conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.Dns)
+	creds, err := credentials.NewClientTLSFromFile(util.TunnelEdgeCAPath, conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.Dns)
 	if err != nil {
 		klog.Errorf("failed to load credentials: %v", err)
 		return nil, nil, nil, err
@@ -91,9 +91,8 @@ func StartSendClient() {
 			time.Sleep(1 * time.Second)
 		}
 	}(conn)
-	running := true
 	count := 0
-	for running {
+	for {
 		if conn.GetState() == connectivity.Ready {
 			cli := proto.NewStreamClient(conn)
 			stream2.Send(cli, clictx)

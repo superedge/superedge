@@ -14,13 +14,14 @@ limitations under the License.
 package ssh
 
 import (
+	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/ssh/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
+	"strconv"
 )
 
 type SSH struct {
@@ -35,11 +36,12 @@ func (s SSH) Start(mode string) {
 	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.SSH, handlers.DirectHandler)
 	context.GetContext().RegisterHandler(util.CLOSED, util.SSH, handlers.DirectHandler)
 	if mode == util.CLOUD {
-		listener, err := net.Listen(util.TCP, "0.0.0.0:22")
+		listener, err := net.Listen(util.TCP, "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort))
 		if err != nil {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
 			return
 		}
+		klog.Infof("the ssh server of the cloud tunnel listen on %s", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort))
 		go func() {
 			for {
 				conn, err := listener.Accept()
@@ -47,7 +49,7 @@ func (s SSH) Start(mode string) {
 					klog.Errorf("SSH Server accept failed, error: %v", err)
 					continue
 				}
-				go connect.HandleServerConn(conn)
+				go handlers.HandleServerConn(conn, util.SSH, nil)
 			}
 		}()
 	}

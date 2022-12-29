@@ -55,7 +55,7 @@ var kasp = keepalive.ServerParameters{
 }
 
 func StartServer() {
-	creds, err := credentials.NewServerTLSFromFile(conf.TunnelConf.TunnlMode.Cloud.Stream.Server.Cert, conf.TunnelConf.TunnlMode.Cloud.Stream.Server.Key)
+	creds, err := credentials.NewServerTLSFromFile(tunnelutil.TunnelCloudCertPath, tunnelutil.TunnelCloudKeyPath)
 	if err != nil {
 		klog.Errorf("failed to create credentials: %v", err)
 		return

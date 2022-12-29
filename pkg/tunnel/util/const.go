@@ -23,7 +23,6 @@ const (
 const (
 	TCP_FRONTEND = "frontend"
 	TCP_BACKEND  = "backend"
-	TCP_CONTROL  = "control"
 )
 const (
 	HTTP_PROXY_ACCESS = "access"
@@ -32,7 +31,6 @@ const (
 const (
 	STREAM     = "stream"
 	TCP        = "tcp"
-	HTTPS      = "https"
 	SSH        = "ssh"
 	EGRESS     = "egress"
 	HTTP_PROXY = "httpProxy"
@@ -50,14 +48,10 @@ const (
 )
 
 const (
-	CONNECTING   = "connecting"
-	CONNECTED    = "connected"
-	TRANSMISSION = "transmission"
-	CLOSED       = "closed"
+	CLOSED = "closed"
 )
 
 const (
-	MaxResponseSize = 16384
 	TIMEOUT_EXIT    = 180
 	MSG_CHANNEL_CAP = 1000
 )
@@ -68,6 +62,7 @@ const (
 	POD_IP_ENV          = "POD_IP"
 	POD_NAME            = "POD_NAME"
 	POD_NAMESPACE_ENV   = "POD_NAMESPACE"
+	USER_NAMESPACE_ENV  = "USER_NAMESPACE"
 	CustomStart         = "#CustomStart"
 	CustomEnd           = "#CustomEnd"
 	EdgeNoProxy         = "EDGE_NO_PROXY"
@@ -75,11 +70,40 @@ const (
 )
 
 const (
-	MODULE_DEBUG = "debug"
-)
-
-const (
 	ConnectMsg          = "HTTP/1.1 200 Connection established\r\n\r\n"
 	BadGateway          = "HTTP/1.1 502 Tunnel not established\r\n\r\n"
 	InternalServerError = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+)
+
+const (
+	HostsConfig = "tunnel-nodes"
+	CacheConfig = "tunnel-cache"
+	CachePath   = "/etc/tunnel/cache"
+	Certspath   = "/etc/tunnel/certs"
+)
+
+const (
+	EdgeNodesFile   = "edge_nodes"
+	CloudNodesFile  = "cloud_nodes"
+	ServicesFile    = "services"
+	UserServiceFile = "user_services"
+	TunnelCloudCert = "cloud.crt"
+	TunnelCloudKey  = "cloud.key"
+	EgressCert      = "egress.crt"
+	EgressKey       = "egress.key"
+	TunnelEdgeCA    = "ca.crt"
+)
+
+const (
+	HostsPath            = "/etc/tunnel/nodes/hosts"
+	TunnelCloudTokenPath = "/etc/tunnel/token/token"
+	TunnelCloudCertPath  = Certspath + "/" + TunnelCloudCert
+	TunnelCloudKeyPath   = Certspath + "/" + TunnelCloudKey
+	EgressCertPath       = Certspath + "/" + EgressCert
+	EgressKeyPath        = Certspath + "/" + EgressKey
+	EdgeNodesFilePath    = CachePath + "/" + EdgeNodesFile
+	CloudNodesFilePath   = CachePath + "/" + CloudNodesFile
+	ServicesFilePath     = CachePath + "/" + ServicesFile
+	UserServiceFilepath  = CachePath + "/" + UserServiceFile
+	TunnelEdgeCAPath     = Certspath + "/" + TunnelEdgeCA
 )

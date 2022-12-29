@@ -33,11 +33,10 @@ type TunnelMode struct {
 }
 
 type TunnelCloud struct {
-	Https     *HttpsServer      `toml:"https"`
-	Stream    *StreamCloud      `toml:"stream"`
-	Tcp       map[string]string `toml:"tcp"`
-	Egress    *EgressServer     `toml:"egress"`
-	HttpProxy *HttpProxyServer  `toml:"httpproxy"`
+	Stream    *StreamCloud     `toml:"stream"`
+	Egress    *EgressServer    `toml:"egress"`
+	HttpProxy *HttpProxyServer `toml:"http_proxy"`
+	SSH       *SSHServer       `toml:"ssh"`
 }
 
 type HttpsServer struct {
@@ -47,46 +46,34 @@ type HttpsServer struct {
 }
 
 type StreamCloud struct {
-	Server *StreamServer `toml:"server"`
-	Dns    *Dns          `toml:"dns"`
+	Server   *StreamServer `toml:"server"`
+	Register *Register     `toml:"register"`
 }
 
 type StreamServer struct {
-	TokenFile    string `toml:"tokenfile"`
-	Key          string `toml:"key"`
-	Cert         string `toml:"cert"`
-	GrpcPort     int    `toml:"grpcport"`
-	LogPort      int    `toml:"logport"`
-	MetricsPort  int    `toml:"metricsport"`
-	ChannelzAddr string `toml:"channelzaddr"`
+	GrpcPort     int    `toml:"grpc_port"`
+	LogPort      int    `toml:"log_port"`
+	MetricsPort  int    `toml:"metrics_port"`
+	ChannelzAddr string `toml:"channelz_addr"`
 }
 
 type EgressServer struct {
-	ServerCert string `toml:"servercert"`
-	ServerKey  string `toml:"serverkey"`
-	EgressPort string `toml:"egressport"`
+	EgressPort int `toml:"port"`
 }
 type HttpProxyServer struct {
-	ProxyPort string `toml:"proxyport"`
-	ProxyIp   string `toml:"proxyip"`
+	ProxyPort int `toml:"port"`
+}
+type SSHServer struct {
+	SSHPort int `toml:"port"`
 }
 
-type Dns struct {
-	Configmap string `toml:"configmap"`
-	Hosts     string `toml:"hosts"`
-	Service   string `toml:"service"`
-	Debug     bool   `toml:"debug"`
+type Register struct {
+	Service string `toml:"service"`
 }
 
 type TunnelEdge struct {
-	Https      *HttpsClient    `toml:"https"`
-	StreamEdge StreamEdge      `toml:"stream"`
-	HttpProxy  HttpProxyServer `toml:"httpproxy"`
-}
-
-type HttpsClient struct {
-	Cert string `toml:"cert"`
-	Key  string `toml:"key"`
+	StreamEdge StreamEdge          `toml:"stream"`
+	HttpProxy  HttpProxyEdgeServer `toml:"http_proxy"`
 }
 
 type HttpProxyEdgeServer struct {
@@ -100,11 +87,10 @@ type StreamEdge struct {
 
 type StreamClient struct {
 	Token        string `toml:"token"`
-	Cert         string `toml:"cert"`
 	Dns          string `toml:"dns"`
-	ServerName   string `toml:"servername"`
-	LogPort      int    `toml:"logport"`
-	ChannelzAddr string `toml:"channelzaddr"`
+	ServerName   string `toml:"server_name"`
+	LogPort      int    `toml:"log_port"`
+	ChannelzAddr string `toml:"channelz_addr"`
 }
 
 type Config struct {
