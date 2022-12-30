@@ -80,7 +80,8 @@ func (d EdgeDaemon) Run(ctx context.Context) {
 	check := checkpkg.NewCheckEdge(checkplugin.PluginInfo.Plugins, d.HealthCheckPeriod, d.HealthCheckScoreLine)
 
 	//TODO: Template pattern
-	go checkpkg.NewNodeController(common.ClientSet).Run(ctx)
+	go checkpkg.NewNodeMetaController(common.MetadataClientSet).Run(ctx)
+	go checkpkg.NewPodController(common.ClientSet).Run(ctx)
 	go checkpkg.NewConfigMapController(common.ClientSet).Run(ctx)
 	go wait.Until(check.GetNodeList, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())
 	go wait.Until(check.Check, time.Duration(check.GetHealthCheckPeriod())*time.Second, ctx.Done())

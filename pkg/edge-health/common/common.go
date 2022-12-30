@@ -17,23 +17,36 @@ limitations under the License.
 package common
 
 import (
-	"k8s.io/client-go/kubernetes"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
 )
 
 const (
-	CmdName         = "edge-health"
-	TopologyZone    = "superedgehealth/topology-zone"
-	TaintZoneConfig = "edge-health-zone-config"
-	HmacConfig      = "hmac-config"
-	HmacKey         = "hmackey"
-	MasterLabel     = "node-role.kubernetes.io/master"
-	TokenFile       = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	ReListTime      = 2 * time.Minute
+	CmdName                 = "edge-health"
+	TopologyZone            = "superedgehealth/topology-zone"
+	HealthCheckUnitsKey     = "superedge.io/check-units"
+	HealthCheckUnitEnable   = "superedge.io/unit-internal-check"
+	EdgeHealthConfigMapName = "edge-health-config"
+	HmacConfig              = "hmac-config"
+	HmacKey                 = "hmackey"
+	// if without hmac-config configmap and without hmackey, it will use default hmac key
+	DefaultHmacKey   = "hSZbJsKAVmWTxRPi"
+	MasterLabel      = "node-role.kubernetes.io/master"
+	TokenFile        = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	ReListTime       = 2 * time.Minute
+	DefaultNamespace = "kube-system"
 )
 
 var (
-	HostName  string
+	Namespace string
+	PodName   string
+	PodIP     string
+
+	NodeName  string
+	NodeIP    string
 	ClientSet *kubernetes.Clientset
-	LocalIp   string
+	// watch node only use metadata client, it will reduce a lot of apiserver bandwidth
+	MetadataClientSet metadata.Interface
 )

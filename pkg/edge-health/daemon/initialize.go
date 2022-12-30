@@ -17,16 +17,16 @@ limitations under the License.
 package daemon
 
 import (
-	"context"
-	"github.com/superedge/superedge/pkg/edge-health/common"
-	"github.com/superedge/superedge/pkg/edge-health/data"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	"os"
 	"strings"
+
+	"github.com/superedge/superedge/pkg/edge-health/common"
+	"github.com/superedge/superedge/pkg/edge-health/data"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"k8s.io/klog/v2"
 )
 
 func initialize(masterUrl, kubeconfigPath, hostName string) {
@@ -34,6 +34,13 @@ func initialize(masterUrl, kubeconfigPath, hostName string) {
 	initHostName(hostName)
 	initLocalIp()
 	initData()
+	klog.InfoS("init common", "PodIP", common.PodIP, "PodName", common.PodName, "NodeIP", common.NodeIP, "NodeName", common.NodeName)
+	if common.PodIP == "" || common.PodName == "" || common.NodeIP == "" || common.NodeName == "" {
+		panic("need pod and node information through downward api env POD_IP,POD_NAME,NODE_IP,NODE_NAME")
+	}
+	if common.Namespace == "" {
+		common.Namespace = common.DefaultNamespace
+	}
 }
 
 func initClientSet(masterUrl, kubeconfigPath string) {
@@ -42,35 +49,26 @@ func initClientSet(masterUrl, kubeconfigPath string) {
 	if err != nil {
 		klog.Fatalf("Init: Error building kubeconfig: %s", err.Error())
 	}
-	common.ClientSet, err = kubernetes.NewForConfig(kubeconfig)
-	if err != nil {
-		klog.Fatalf("Init: Error building clientset: %s", err.Error())
-	}
+	common.MetadataClientSet = metadata.NewForConfigOrDie(kubeconfig)
+	common.ClientSet = kubernetes.NewForConfigOrDie(kubeconfig)
 }
 
 func initHostName(hostName string) {
 	if hostName == "" {
-		common.HostName = os.Getenv("NODE_NAME")
-		common.HostName = strings.Replace(common.HostName, "\n", "", -1)
-		common.HostName = strings.Replace(common.HostName, " ", "", -1)
-		klog.V(2).Infof("Init: Host name is %s", common.HostName)
+		common.NodeName = os.Getenv("NODE_NAME")
+		common.NodeName = strings.Replace(common.NodeName, "\n", "", -1)
+		common.NodeName = strings.Replace(common.NodeName, " ", "", -1)
+		klog.V(2).Infof("Init: Host name is %s", common.NodeName)
 	} else {
-		common.HostName = hostName
+		common.NodeName = hostName
 	}
+	common.PodName = os.Getenv("POD_NAME")
+	common.Namespace = os.Getenv("NAMESPACE")
 }
 
 func initLocalIp() {
-	klog.V(2).Infof("common.hostname is %s", common.HostName)
-	if host, err := common.ClientSet.CoreV1().Nodes().Get(context.TODO(), common.HostName, metav1.GetOptions{}); err != nil {
-		klog.Fatalf("Init: Error getting hostname node: %s", err.Error())
-	} else {
-		for _, v := range host.Status.Addresses {
-			if v.Type == v1.NodeInternalIP {
-				common.LocalIp = v.Address
-				klog.V(2).Infof("Init: host ip is %s", common.LocalIp)
-			}
-		}
-	}
+	common.PodIP = os.Getenv("POD_IP")
+	common.NodeIP = os.Getenv("NODE_IP")
 }
 
 func initData() {

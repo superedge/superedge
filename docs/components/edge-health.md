@@ -29,18 +29,21 @@ It introduces distributed health check for the first time to achieve independent
 
 ### Multi-region Detection
 - Turn On
-  - Label the nodes according to the region with `superedgehealth/topology-zone:<zone>`
-  - Create a configmap named `edge-health-zone-config` in the `edge-system` namespace, specify the value of `TaintZoneAdmission` as `true`, you can directly use the following yaml to create
-             ```yaml
-             apiVersion: v1
-             kind: ConfigMap
-             metadata:
-               name: edge-health-zone-config
-               namespace: edge-system
-             data:
-               TaintZoneAdmission: true
-             ```
+  - Label the nodes according to the region with `superedge.io/check-units:<units>`, `<units>` can specify multi node unit name, split by ',' like `superedge.io/check-units: unit1,unit2,unit3`.
+  - Create a configmap named `edge-health-config` in the `edge-system` namespace, specify the value of `superedge.io/unit-internal-check` as `true`, you can directly use the following yaml to create
+          ```yaml
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: edge-health-config
+            namespace: edge-system
+          labels:
+            name: edge-health
+          data:
+            superedge.io/unit-internal-check: true
+            superedge.io/check-units: unit1,unit2,unit3
+          ```
 - Turn Off
- - Change the value of `TaintZoneAdmission` to `false` or delete the configmap of `edge-health-zone-config`
+ - Change the value of `superedge.io/unit-internal-check` to `false` or delete the configmap of `edge-health-config`
 
 > Note: If multiple regions are enabled but the node is not marked with a region label, the node will only detect itself when detecting

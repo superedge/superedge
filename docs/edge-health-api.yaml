@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Superedge edge-health API - OpenAPI 3.0
+  description: |-
+    edge-health network api, include probe and info
+  termsOfService: https://superedge.io/
+  contact:
+    email: superedge@superedge.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.1
+externalDocs:
+  description: Find out more about in https://github.com/superedge/superedge
+  url: https://superedge.io/
+servers:
+  - url: https://localhost:51005/api/v3
+tags:
+  - name: result
+    description: Operations about result
+  - name: probe
+    description: Operations about probe
+  - name: info
+    description: Operations about info
+
+paths:
+  /result:
+    put:
+      tags:
+        - result
+      summary: communicate each other in edge-health pods
+      description: Superedge edge-health pod need use non host network, and this api will set self info to other edge-health pods.
+      operationId: setResult
+      requestBody:
+        description: communication data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunicateData'
+      responses:
+        '200':
+          description: successful operation
+        '402':
+          description: Invalid Body
+        '403':
+          description: Invalid Body
+        '500':
+          description: InternalError
+
+  /probe:
+    post:
+      tags:
+        - probe
+      summary: probe network
+      description: 'probe network'
+      operationId: probeNetwork
+      requestBody:
+        description: communication data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Probe'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeResp'          
+        '400':
+          description: Invalid Input
+        '500':
+          description: InternalError
+
+  /localinfo:
+    get:
+      tags:
+        - info
+      summary: get auto probe information
+      description: 'local information'
+      operationId: localInfo
+      parameters:
+        - name: fullmesh
+          in: query
+          description: if need all node information
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalInfoResp'          
+        '400':
+          description: Invalid Input
+        '500':
+          description: InternalError
+
+components:
+  schemas:
+    CommunicateData:
+      type: object
+      properties:
+        sourceIP:
+          type: string
+          example: '192.1.1.1'
+        resultDetail:
+          type: object
+          example: '192.168.2.1'
+          additionalProperties:
+            $ref: '#/components/schemas/ResultDetail'
+        hmac:
+          type: string
+          example: xxxx1111bbb
+          description: sha256 checksum for request data
+    Probe:
+      type: object
+      properties:
+        targets:
+          type: array
+          items: 
+            $ref: '#/components/schemas/Target'
+    Target:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'mytarget'
+          maxLength: 128
+        ip:
+          type: string
+          example: '192.1.1.1'
+        port:
+          type: integer
+          format: int32
+          example: 8080
+        protocol:
+          type: string
+          example: 'tcp'
+    ResultDetail:
+      type: object
+      properties:
+        normal:
+          type: boolean
+          example: true
+        hmac:
+          type: string
+          example: 111xxxxxx
+        time:
+          type: integer
+          format: int64
+          example: 1670397978
+    ProbeResp:
+      type: object
+      properties:
+        targets:
+          type: array
+          items: 
+            $ref: '#/components/schemas/TargetResp'
+        sourcePodIP:
+          type: string
+          example: '192.1.1.1'
+        sourcePodName:
+          type: string
+          example: 'edge-health-xxxxx'
+        sourceNodeIP:
+          type: string
+          example: '10.1.1.1'
+        sourceNodeName:
+          type: string
+          example: 'wenode'
+    TargetResp:
+      type: object
+      properties:
+        ip:
+          type: string
+          example: '192.1.1.1'
+        port:
+          type: integer
+          format: int32
+          example: 8080
+        protocol:
+          type: string
+          example: 'tcp'
+        normal:
+          type: boolean
+          example: true
+    LocalInfoResp:
+      type: object
+      properties:
+        localInfo:
+          type: object
+          example: '192.168.1.1'
+          additionalProperties:
+            type: object
+            example: '192.168.2.1'
+            additionalProperties:
+              $ref: '#/components/schemas/ResultDetail'
+        sourcePodIP:
+          type: string
+          example: '192.1.1.1'
+        sourcePodName:
+          type: string
+          example: 'edge-health-xxxxx'
+        sourceNodeIP:
+          type: string
+          example: '10.1.1.1'
+        sourceNodeName:
+          type: string
+          example: 'wenode'

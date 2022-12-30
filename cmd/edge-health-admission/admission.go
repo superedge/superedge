@@ -18,14 +18,15 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	"time"
+
 	"github.com/superedge/superedge/pkg/edge-health-admission/admission"
 	"github.com/superedge/superedge/pkg/edge-health-admission/config"
 	"github.com/superedge/superedge/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"net/http"
-	"time"
 )
 
 var (
@@ -35,6 +36,7 @@ var (
 
 func init() {
 	flag.StringVar(&admissionControlListenAddr, "adminssion-control-listen-addr", ":8443", "")
+	flag.BoolVar(&config.NodeAlwaysReachable, "always-reachable", false, "set true addmision will forbidden apiserver set Unreachable taint, when node can't access apiserver")
 }
 
 func main() {

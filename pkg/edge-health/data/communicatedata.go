@@ -17,7 +17,7 @@ limitations under the License.
 package data
 
 type CommunicateData struct {
-	SourceIP     string                  //clientIP，checker ip
-	ResultDetail map[string]ResultDetail //checdedip checkdetail
-	Hmac         string
+	SourceIP     string                  `json:"sourceIP,omitempty"`     //clientIP，checker ip
+	ResultDetail map[string]ResultDetail `json:"resultDetail,omitempty"` //checdedip checkdetail
+	Hmac         string                  `json:"hmac,omitempty"`
 }

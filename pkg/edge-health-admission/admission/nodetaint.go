@@ -19,11 +19,12 @@ package admission
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
+	"github.com/superedge/superedge/pkg/edge-health-admission/config"
 	"github.com/superedge/superedge/pkg/edge-health-admission/util"
 	edgeutil "github.com/superedge/superedge/pkg/util"
-	"io/ioutil"
 	admissionv1 "k8s.io/api/admission/v1"
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -46,9 +47,9 @@ func NodeTaint(w http.ResponseWriter, r *http.Request) {
 func nodeTaint(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	var nodeNew, nodeOld corev1.Node
 
-	UnreachNoExecuteTaint := &v1.Taint{
+	UnreachNoExecuteTaint := &corev1.Taint{
 		Key:    corev1.TaintNodeUnreachable,
-		Effect: v1.TaintEffectNoExecute,
+		Effect: corev1.TaintEffectNoExecute,
 	}
 
 	klog.V(7).Info("admitting nodes")
@@ -74,10 +75,10 @@ func nodeTaint(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	}
 	klog.V(4).Infof("nodeOld is %s", edgeutil.ToJson(nodeOld))
 
-	_, condition := util.GetNodeCondition(&nodeNew.Status, v1.NodeReady)
+	_, condition := util.GetNodeCondition(&nodeNew.Status, corev1.NodeReady)
 	patches := []*Patch{}
-	if condition.Status == v1.ConditionUnknown {
-		if _, ok := nodeNew.Annotations["nodeunhealth"]; !ok {
+	if condition.Status == corev1.ConditionUnknown {
+		if _, ok := nodeNew.Annotations["nodeunhealth"]; !ok || config.NodeAlwaysReachable {
 			taintsToAdd, _ := util.TaintSetDiff(nodeNew.Spec.Taints, nodeOld.Spec.Taints)
 			if _, flag := util.TaintExistsPosition(taintsToAdd, UnreachNoExecuteTaint); flag {
 				index, _ := util.TaintExistsPosition(nodeNew.Spec.Taints, UnreachNoExecuteTaint)

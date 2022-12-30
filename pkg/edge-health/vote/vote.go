@@ -18,15 +18,21 @@ package vote
 
 import (
 	"context"
-	admissionutil "github.com/superedge/superedge/pkg/edge-health-admission/util"
+	"fmt"
+	"time"
+
 	"github.com/superedge/superedge/pkg/edge-health/check"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
-	"github.com/superedge/superedge/pkg/edge-health/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	log "k8s.io/klog/v2"
-	"time"
+)
+
+const (
+	NodeAnnotationPatchAddUpdateTemplate = `{"apiVersion": "v1", "kind": "Node", "metadata:": {"annotations": {"%s": "%s"}}`
+	NodeAnnotationPatchDeleteTemplate    = `{"apiVersion": "v1", "kind": "Node", "metadata:": {"annotations": {"%s": null}}`
 )
 
 var UnreachNoExecuteTaint = &corev1.Taint{
@@ -65,9 +71,11 @@ func (vote VoteEdge) Vote() {
 	healthNodeMap := make(map[string]string)
 
 	tempNodeStatus := data.Result.CopyResultDataAll() //map[string]map[string]ResultDetail string:checker ip string:checked ip bool:noraml
-	for k, v := range tempNodeStatus {                //k is checker ip
+	nowUTC := time.Now().UTC()
+	for k, v := range tempNodeStatus { //k is checker ip
 		for ip, resultdetail := range v { //ip is checked ip
-			if k == common.LocalIp || (k != common.LocalIp && !time.Now().After(resultdetail.Time.Add(time.Duration(vote.GetVoteTimeout())*time.Second))) {
+			rtime := time.Unix(resultdetail.Time, 0).UTC()
+			if k == common.NodeIP || (k != common.NodeIP && !nowUTC.After(rtime.Add(time.Duration(vote.GetVoteTimeout())*time.Second))) {
 				healthNodeMap[k] = "" //node is a health node if it has at least one valid check
 				if _, ok := voteCountMap[ip]; !ok {
 					voteCountMap[ip] = make(map[string]int)
@@ -98,23 +106,20 @@ func (vote VoteEdge) Vote() {
 		if _, ok := v["yes"]; ok {
 			if float64(v["yes"]) >= num {
 				log.V(4).Infof("vote: vote yes to master begin")
-				name := util.GetNodeNameByIp(data.NodeList.NodeList.Items, ip)
-				if node, err := check.NodeManager.NodeLister.Get(name); err == nil && name != "" {
+				name, err := check.PodManager.GetNodeNameByNodeIP(ip)
+				if err != nil {
+					log.ErrorS(err, "GetNodeNameByNodeIP error")
+					continue
+				}
+				if nodeObject, err := check.NodeMetaManager.NodeMetaILister.Get(name); err == nil && name != "" {
+					node := nodeObject.(*metav1.PartialObjectMetadata)
 					if _, ok := node.Annotations["nodeunhealth"]; ok {
-						nodenew := node.DeepCopy()
-						delete(nodenew.Annotations, "nodeunhealth")
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("update yes vote to master error: %v ", err)
+						// delete nodeunhealth annotation
+						patchBytes := []byte(fmt.Sprintf(NodeAnnotationPatchDeleteTemplate, "nodeunhealth"))
+						if _, err := common.ClientSet.CoreV1().Nodes().Patch(context.TODO(), node.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{}); err != nil {
+							log.Errorf("patch yes vote to master error: %v ", err)
 						} else {
-							log.V(2).Infof("update yes vote of %s to master", nodenew.Name)
-						}
-					} else if index, flag := admissionutil.TaintExistsPosition(node.Spec.Taints, UnreachNoExecuteTaint); flag {
-						nodenew := node.DeepCopy()
-						nodenew.Spec.Taints = append(nodenew.Spec.Taints[:index], nodenew.Spec.Taints[index+1:]...)
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("remove no excute taint for health node error: %v ", err)
-						} else {
-							log.V(2).Infof("remove no excute taint for health node: %s to master", nodenew.Name)
+							log.V(2).Infof("patch yes vote of %s to master", node.Name)
 						}
 					}
 				}
@@ -123,15 +128,20 @@ func (vote VoteEdge) Vote() {
 		if _, ok := v["no"]; ok {
 			if float64(v["no"]) >= num {
 				log.V(4).Infof("vote: vote no to master begin")
-				name := util.GetNodeNameByIp(data.NodeList.NodeList.Items, ip)
-				if node, err := check.NodeManager.NodeLister.Get(name); err == nil && name != "" {
+				name, err := check.PodManager.GetNodeNameByNodeIP(ip)
+				if err != nil {
+					log.ErrorS(err, "GetNodeNameByNodeIP error")
+					continue
+				}
+				if nodeObject, err := check.NodeMetaManager.NodeMetaILister.Get(name); err == nil && name != "" {
+					node := nodeObject.(*metav1.PartialObjectMetadata)
 					if _, ok := node.Annotations["nodeunhealth"]; !ok {
-						nodenew := node.DeepCopy()
-						nodenew.Annotations["nodeunhealth"] = "yes"
-						if _, err := common.ClientSet.CoreV1().Nodes().Update(context.TODO(), nodenew, metav1.UpdateOptions{}); err != nil {
-							log.Errorf("update no vote to master error: %v ", err)
+
+						patchBytes := []byte(fmt.Sprintf(NodeAnnotationPatchAddUpdateTemplate, "nodeunhealth", "yes"))
+						if _, err := common.ClientSet.CoreV1().Nodes().Patch(context.TODO(), node.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{}); err != nil {
+							log.Errorf("patch no vote to master error: %v ", err)
 						} else {
-							log.V(2).Infof("update no vote of %s to master", nodenew.Name)
+							log.V(2).Infof("patch no vote of %s to master", node.Name)
 						}
 					}
 				}
