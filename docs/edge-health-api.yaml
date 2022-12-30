@@ -125,6 +125,10 @@ components:
     Target:
       type: object
       properties:
+        name:
+          type: string
+          example: 'mytarget'
+          maxLength: 128
         ip:
           type: string
           example: '192.1.1.1'

@@ -20,8 +20,8 @@ func TestHandleProbe(t *testing.T) {
 			name: "tcp connect a ip port",
 			req: &Probe{Targets: []*Target{
 				{
-					IP:       "127.0.0.1",
-					Port:     36000,
+					IP:       "129.29.29.29",
+					Port:     53,
 					Protocol: "tcp",
 				},
 			}},
@@ -31,13 +31,13 @@ func TestHandleProbe(t *testing.T) {
 			name: "tcp connect multiple ip port",
 			req: &Probe{Targets: []*Target{
 				{
-					IP:       "127.0.0.1",
-					Port:     36000,
+					IP:       "129.29.29.29",
+					Port:     53,
 					Protocol: "tcp",
 				},
 				{
 					IP:       "127.0.0.1",
-					Port:     36001,
+					Port:     60934,
 					Protocol: "tcp",
 				},
 			}},
@@ -48,7 +48,7 @@ func TestHandleProbe(t *testing.T) {
 			req: &Probe{Targets: []*Target{
 				{
 					IP:       "127.0.0.1",
-					Port:     36001,
+					Port:     60934,
 					Protocol: "tcp",
 				},
 			}},

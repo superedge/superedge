@@ -31,17 +31,21 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
 func GenerateHmac(communicatedata data.CommunicateData) (string, error) {
 	part1byte, _ := json.Marshal(communicatedata.SourceIP)
 	part2byte, _ := json.Marshal(communicatedata.ResultDetail)
 	hmacBefore := string(part1byte) + string(part2byte)
-	if hmacconf, err := check.ConfigMapManager.ConfigMapLister.ConfigMaps(common.Namespace).Get(common.HmacConfig); err != nil {
-		return "", err
+	var hmacKey string
+	if hmacconf, err := check.ConfigMapManager.ConfigMapLister.ConfigMaps(common.Namespace).Get(common.HmacConfig); err != nil || hmacconf.Data[common.HmacKey] == "" {
+		klog.V(6).InfoS("could not find hmac-config configmap, will use default hmac key")
+		hmacKey = common.DefaultHmacKey
 	} else {
-		return GetHmacCode(hmacBefore, hmacconf.Data[common.HmacKey])
+		hmacKey = hmacconf.Data[common.HmacKey]
 	}
+	return GetHmacCode(hmacBefore, hmacKey)
 }
 
 func GetHmacCode(s, key string) (string, error) {

@@ -95,6 +95,11 @@ func (c *CommunicateEdge) HandleProbe(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		if len(t.Name) > MaxTargetName {
+			klog.ErrorS(err, "Invalid Target Name", "target name", t.Name)
+			http.Error(w, "Invalid Target Name"+t.Name, http.StatusBadRequest)
+			return
+		}
 	}
 
 	pieces := len(probe.Targets)

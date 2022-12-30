@@ -17,17 +17,16 @@ limitations under the License.
 package check
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/superedge/superedge/pkg/edge-health/checkplugin"
 	"github.com/superedge/superedge/pkg/edge-health/common"
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	siteconst "github.com/superedge/superedge/pkg/site-manager/constant"
-	"github.com/superedge/superedge/pkg/util"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -77,7 +76,7 @@ func (c CheckEdge) GetNodeList() {
 		return
 	}
 	host = hostObject.(*metav1.PartialObjectMetadata)
-	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(util.PodNamespace).Get(common.TaintZoneConfig); err != nil { //multi-region cm not found
+	if config, err := ConfigMapManager.ConfigMapLister.ConfigMaps(common.Namespace).Get(common.EdgeHealthConfigMapName); err != nil { //multi-region cm not found
 		if apierrors.IsNotFound(err) {
 			if NodeList, err := NodeMetaManager.NodeMetaILister.List(masterSelector); err != nil {
 				klog.Errorf("config not exist, get nodes err: %v", err)
@@ -86,20 +85,21 @@ func (c CheckEdge) GetNodeList() {
 				data.NodeList.SetNodeListDataByNodeSlice(NodeList)
 			}
 		} else {
-			klog.Errorf("get ConfigMaps edge-health-zone-config err %v", err)
+			klog.Errorf("get ConfigMaps edge-health-config err %v", err)
 			return
 		}
 	} else { //node unit check cm found
-		klog.V(4).Infof("cm value is %s", config.Data["TaintZoneAdmission"])
-		if config.Data["TaintZoneAdmission"] == "false" { //close multi-region check
+		klog.V(4).Infof("cm value is %s", config.Data[common.HealthCheckUnitEnable])
+		if config.Data[common.HealthCheckUnitEnable] == "false" { // unit check closed
 			if NodeList, err := NodeMetaManager.NodeMetaILister.List(masterSelector); err != nil {
 				klog.Errorf("config exist, false, get nodes err : %v", err)
 				return
 			} else {
 				data.NodeList.SetNodeListDataByNodeSlice(NodeList)
 			}
-		} else { //open node unit check
-			// only check same unit node
+		} else {
+			// open node unit check only check unit interanl node
+			var nodeSelector labels.Selector
 			unitLabel := make(map[string]string, 1)
 			for k, v := range host.Labels {
 				if v == siteconst.NodeUnitSuperedge {
@@ -107,29 +107,36 @@ func (c CheckEdge) GetNodeList() {
 				}
 			}
 			klog.V(6).Infof("unitLabel is %s", unitLabel)
-
-			if len(unitLabel) > 0 {
-				labelSelector := &metav1.LabelSelector{
-					MatchLabels: unitLabel,
+			if units, ok := config.Data[common.HealthCheckUnitsKey]; !ok || units == "" {
+				nodeSelector = labels.Nothing()
+			} else {
+				nodeSelectorLabel := make(map[string]string, 1)
+				unitSlice := strings.Split(units, ",")
+				for _, u := range unitSlice {
+					trimName := strings.TrimSpace(u)
+					if v, ok := unitLabel[trimName]; ok {
+						nodeSelectorLabel[trimName] = v
+					}
 				}
-				selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+				labelSelector := &metav1.LabelSelector{
+					MatchLabels: nodeSelectorLabel,
+				}
+				nodeSelector, err = metav1.LabelSelectorAsSelector(labelSelector)
 				if err != nil {
 					klog.ErrorS(err, "metav1.LabelSelectorAsSelector error")
 					return
 				}
 
-				if NodeList, err := NodeMetaManager.NodeMetaILister.List(selector); err != nil {
-					klog.Errorf("config exist, true, host has zone label, get nodes err: %v", err)
-					return
-				} else {
-					data.NodeList.SetNodeListDataByNodeSlice(NodeList)
-				}
-				klog.V(6).Infof("nodelist len is %d", data.NodeList.GetLenListData())
-
-			} else {
-				// could not find unit label, ondy check self
-				data.NodeList.SetNodeListDataByNodeSlice([]runtime.Object{hostObject})
 			}
+
+			if NodeList, err := NodeMetaManager.NodeMetaILister.List(nodeSelector); err != nil {
+				klog.Errorf("config exist, true, host has zone label, get nodes err: %v", err)
+				return
+			} else {
+				data.NodeList.SetNodeListDataByNodeSlice(NodeList)
+			}
+			klog.V(6).Infof("nodelist len is %d", data.NodeList.GetLenListData())
+
 		}
 	}
 	// TODO get ip list from node meta and pod hostIP

@@ -24,11 +24,15 @@ import (
 )
 
 const (
-	CmdName          = "edge-health"
-	TopologyZone     = "superedgehealth/topology-zone"
-	TaintZoneConfig  = "edge-health-zone-config"
-	HmacConfig       = "hmac-config"
-	HmacKey          = "hmackey"
+	CmdName                 = "edge-health"
+	TopologyZone            = "superedgehealth/topology-zone"
+	HealthCheckUnitsKey     = "superedge.io/check-units"
+	HealthCheckUnitEnable   = "superedge.io/unit-internal-check"
+	EdgeHealthConfigMapName = "edge-health-config"
+	HmacConfig              = "hmac-config"
+	HmacKey                 = "hmackey"
+	// if without hmac-config configmap and without hmackey, it will use default hmac key
+	DefaultHmacKey   = "hSZbJsKAVmWTxRPi"
 	MasterLabel      = "node-role.kubernetes.io/master"
 	TokenFile        = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	ReListTime       = 2 * time.Minute

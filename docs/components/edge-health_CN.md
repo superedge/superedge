@@ -45,19 +45,22 @@ edge-health运行在每个边缘节点上，用于节点存活性探测
 
 ### 多地域探测
 - 开启:
-    - 将节点按照地域打上`superedgehealth/topology-zone:<zone>`的label
-    - 在`edge-system`命名空间创建名为`edge-health-zone-config`的configmap，`TaintZoneAdmission`的值指定为`true`,可以直接使用如下yaml进行创建
+    - 将节点按照地域打上`superedge.io/check-units:<units>`的label, 其中`<units>`可以指定多个站点名称，以半角逗号`,`分割, 例如`superedge.io/check-units: unit1,unit2,unit3`.
+    - 在`edge-system`命名空间创建名为`edge-health-config`的configmap，`superedge.io/unit-internal-check`的值指定为`true`,可以直接使用如下yaml进行创建
         ```yaml
         apiVersion: v1
         kind: ConfigMap
         metadata:
-          name: edge-health-zone-config
+          name: edge-health-config
           namespace: edge-system
+        labels:
+          name: edge-health
         data:
-          TaintZoneAdmission: true 
+          superedge.io/unit-internal-check: true
+          superedge.io/check-units: unit1,unit2,unit3
         ```
 
 - 关闭
-    - 将`TaintZoneAdmission`的值改为`false`或者删除`edge-health-zone-config`的configmap
+    - 将`superedge.io/unit-internal-check`的值改为`false`或者删除`edge-health-config`的configmap
     
 > 注意：如果开启了多地域但是没有给节点打上地域标签，则该节点探测时只会检测自己
