@@ -29,8 +29,8 @@ It introduces distributed health check for the first time to achieve independent
 
 ### Multi-region Detection
 - Turn On
-  - Label the nodes according to the region with `superedge.io/check-units:<units>`, `<units>` can specify multi node unit name, split by ',' like `superedge.io/check-units: unit1,unit2,unit3`.
-  - Create a configmap named `edge-health-config` in the `edge-system` namespace, specify the value of `superedge.io/unit-internal-check` as `true`, you can directly use the following yaml to create
+  - Label the nodes according to the region with `check-units:<units>`, `<units>` can specify multi node unit name, split by ',' like `check-units: unit1,unit2,unit3`.
+  - Create a configmap named `edge-health-config` in the `edge-system` namespace, specify the value of `unit-internal-check` as `true`, you can directly use the following yaml to create
           ```yaml
           apiVersion: v1
           kind: ConfigMap
@@ -40,10 +40,10 @@ It introduces distributed health check for the first time to achieve independent
           labels:
             name: edge-health
           data:
-            superedge.io/unit-internal-check: true
-            superedge.io/check-units: unit1,unit2,unit3
+            unit-internal-check: true
+            check-units: unit1,unit2,unit3
           ```
 - Turn Off
- - Change the value of `superedge.io/unit-internal-check` to `false` or delete the configmap of `edge-health-config`
+ - Change the value of `unit-internal-check` to `false` or delete the configmap of `edge-health-config`
 
 > Note: If multiple regions are enabled but the node is not marked with a region label, the node will only detect itself when detecting
