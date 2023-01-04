@@ -26,8 +26,8 @@ import (
 const (
 	CmdName                 = "edge-health"
 	TopologyZone            = "superedgehealth/topology-zone"
-	HealthCheckUnitsKey     = "superedge.io/check-units"
-	HealthCheckUnitEnable   = "superedge.io/unit-internal-check"
+	HealthCheckUnitsKey     = "check-units"
+	HealthCheckUnitEnable   = "unit-internal-check"
 	EdgeHealthConfigMapName = "edge-health-config"
 	HmacConfig              = "hmac-config"
 	HmacKey                 = "hmackey"
