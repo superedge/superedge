@@ -209,8 +209,8 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 
 	restMapperRes, err := restmapper.GetAPIGroupResources(client.Discovery())
 	if err != nil {
-		_, err = client.DiscoveryV1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
-		if err == nil {
+		epsv1, err := client.DiscoveryV1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
+		if err == nil && len(epsv1.Items) != 0 {
 			klog.Info("start v1.EndpointSlices informer")
 			endpointSliceV1Informer := informerFactory.Discovery().V1().EndpointSlices().Informer()
 			endpointSliceV1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1EventHandler(), resyncPeriod)
@@ -219,8 +219,8 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				return fmt.Errorf("can't sync endpointslice informers")
 			}
 		} else {
-			_, err = client.DiscoveryV1beta1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
-			if err == nil {
+			epsv1beta1, err := client.DiscoveryV1beta1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
+			if err == nil && len(epsv1beta1.Items) != 0 {
 				klog.Info("start v1beta1.EndpointSlices informer")
 				endpointSliceV1Beta1Informer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
 				endpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1Beta1EventHandler(), resyncPeriod)
