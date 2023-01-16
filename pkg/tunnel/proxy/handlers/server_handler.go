@@ -19,7 +19,6 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	"net"
@@ -66,7 +65,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 		if err == nil {
 			//cloud
 			if v, ok := connect.Route.CloudNode[node.Name]; ok {
-				err = dailDirect(v, port, category, proxyConn)
+				err = common.DailDirect(v, port, category, proxyConn)
 				if err != nil {
 					klog.Errorf("Failed to forward the request of the user-defined cloud service, error:%v", node.Name, err)
 				}
@@ -91,7 +90,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 		//serviceName
 		if v, ok := connect.Route.UserServicesMap[host]; ok {
 			if v == util.CLOUD {
-				err = dailDirect(host, port, category, proxyConn)
+				err = common.DailDirect(host, port, category, proxyConn)
 				if err != nil {
 					klog.Errorf("Failed to forward user-defined cloud service %s request, error:%v", host, err)
 				}
@@ -113,7 +112,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 
 		if v, ok := connect.Route.ServicesMap[host]; ok {
 			if v == util.CLOUD {
-				err = dailDirect(host, port, category, proxyConn)
+				err = common.DailDirect(host, port, category, proxyConn)
 				if err != nil {
 					klog.Errorf("Failed to forward  cloud service %s request, error:%v", host, err)
 					return
@@ -131,7 +130,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 		}
 
 		//domain
-		err = dailDirect(host, port, category, proxyConn)
+		err = common.DailDirect(host, port, category, proxyConn)
 		if err != nil {
 			klog.Errorf("Forward request failed, host:%s, error:%v", host, err)
 			return
@@ -153,7 +152,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 			// cloud service
 			if v, ok := connect.Route.UserServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)]; ok {
 				if v == util.CLOUD {
-					err = dailDirect(host, port, category, proxyConn)
+					err = common.DailDirect(host, port, category, proxyConn)
 					if err != nil {
 						klog.Errorf("Failed to forward user-defined cloud service %s request, error:%v", host, err)
 						return
@@ -170,7 +169,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 
 			if v, ok := connect.Route.ServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)]; ok {
 				if v == util.CLOUD {
-					err = dailDirect(host, port, category, proxyConn)
+					err = common.DailDirect(host, port, category, proxyConn)
 					if err != nil {
 						klog.Errorf("Failed to forward  cloud service %s request, error:%v", host, err)
 						return
@@ -191,7 +190,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 		node, err := indexers.GetNodeByPodIP(host)
 		if err != nil {
 			//Handling access to out-of-cluster ip
-			err = dailDirect(host, port, category, proxyConn)
+			err = common.DailDirect(host, port, category, proxyConn)
 			if err != nil {
 				klog.Errorf("Failed to forward IP %s requests outside the cluster, error: %v", host, err)
 			}
@@ -217,40 +216,4 @@ func getNodeName(service string) (podIp, port, nodeName string, err error) {
 		return
 	}
 	return
-}
-
-func dailDirect(host, port, category string, proxyConn net.Conn) error {
-	//Handling access to out-of-cluster ip
-	pingErr := util.Ping(host)
-	if pingErr == nil {
-		remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, port))
-		if err != nil {
-			klog.Errorf("Failed to establish tcp connection with server outside the cluster, error: %v", err)
-			return err
-		}
-		err = util.WriteMsg(proxyConn, util.ConnectMsg)
-		if err != nil {
-			if err != nil {
-				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				return err
-			}
-		}
-		defer remoteConn.Close()
-		go func() {
-			_, writeErr := io.Copy(remoteConn, proxyConn)
-			if writeErr != nil {
-				klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
-			}
-		}()
-		_, err = io.Copy(proxyConn, remoteConn)
-		if err != nil {
-			klog.Errorf("Failed to read data from remoteConn, error: %v", err)
-			return err
-		}
-
-	} else {
-		klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", category, pingErr)
-		return pingErr
-	}
-	return nil
 }

@@ -100,6 +100,11 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 				return err
 			}
 		}
+
+		_, cloudOk := connect.Route.CloudNode[nodename]
+		if cloudOk {
+			return DailDirect(host, port, category, proxyConn)
+		}
 	}
 	return nil
 }
@@ -201,4 +206,40 @@ func GetRemoteConn(nodeName, category string) (net.Conn, error) {
 		return nil, err
 	}
 	return remoteConn, nil
+}
+
+func DailDirect(host, port, category string, proxyConn net.Conn) error {
+	//Handling access to out-of-cluster ip
+	pingErr := util.Ping(host)
+	if pingErr == nil {
+		remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, port))
+		if err != nil {
+			klog.Errorf("Failed to establish tcp connection with server outside the cluster, error: %v", err)
+			return err
+		}
+		err = util.WriteMsg(proxyConn, util.ConnectMsg)
+		if err != nil {
+			if err != nil {
+				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+				return err
+			}
+		}
+		defer remoteConn.Close()
+		go func() {
+			_, writeErr := io.Copy(remoteConn, proxyConn)
+			if writeErr != nil {
+				klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
+			}
+		}()
+		_, err = io.Copy(proxyConn, remoteConn)
+		if err != nil {
+			klog.Errorf("Failed to read data from remoteConn, error: %v", err)
+			return err
+		}
+
+	} else {
+		klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", category, pingErr)
+		return pingErr
+	}
+	return nil
 }

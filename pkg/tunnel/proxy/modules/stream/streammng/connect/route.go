@@ -275,7 +275,7 @@ func loadCache() error {
 					break
 				}
 				if cloudFlag {
-					Route.ServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = tunnelutil.EDGE
+					Route.ServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = tunnelutil.CLOUD
 				}
 			}
 		}
