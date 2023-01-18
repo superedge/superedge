@@ -68,13 +68,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 				klog.Errorf("Loop forwarding")
 				return fmt.Errorf("loop forwarding")
 			}
-			if category == util.EGRESS {
-				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
-			} else if category == util.SSH {
-				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
-			} else if category == util.HTTP_PROXY {
-				addr = fmt.Sprintf("%s:%d", addr, conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
-			}
+			addr = GetRemoteAddr(addr, category)
 			remoteConn, err := net.Dial(util.TCP, addr)
 			if err != nil {
 				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
@@ -107,6 +101,18 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		}
 	}
 	return nil
+}
+
+func GetRemoteAddr(host, category string) string {
+	switch category {
+	case util.EGRESS:
+		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
+	case util.SSH:
+		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
+	case util.HTTP_PROXY:
+		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
+	}
+	return host
 }
 
 func GetPodIpFromService(service string) (string, string, error) {

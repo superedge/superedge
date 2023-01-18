@@ -171,7 +171,7 @@ func loadCache() error {
 
 	//check cloud node
 
-	r, err := labels.NewRequirement(util.CloudNodeLabelKey, selection.Equals, []string{"true"})
+	r, err := labels.NewRequirement(util.CloudNodeLabelKey, selection.Equals, []string{"enable"})
 	if err != nil {
 		//todo
 		return err
