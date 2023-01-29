@@ -17,6 +17,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
@@ -27,8 +30,6 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
-	"os"
-	"time"
 )
 
 var Route *RouteCache
@@ -181,7 +182,10 @@ func loadCache() error {
 		//todo
 		return err
 	}
-	for _, n := range nodes {
+
+	nodesMap := make(map[string]int)
+	for i, n := range nodes {
+		nodesMap[n.Name] = i
 		var interIp string
 		for _, addr := range n.Status.Addresses {
 			if addr.Type == "InternalIP" {
@@ -198,13 +202,27 @@ func loadCache() error {
 			Route.CloudNode[n.Name] = interIp
 		}
 	}
+
+	//筛选 cache 中 已经写入的node 已经被删除的情况，这时也需要进行更新；例如 cloud 节点被 delete
+	for name := range Route.CloudNode {
+		if _, ok := nodesMap[name]; ok {
+			//实际 node 存在，什么也不做
+		} else {
+			//实际 node 已经删除，需要更新Route.CloudNode
+			updateFlag = true
+			delete(Route.CloudNode, name)
+		}
+	}
+
 	//check service
 	svcs, err := indexers.ServiceLister.List(labels.Everything())
 	if err != nil {
 		//todo
 		return err
 	}
-	for _, svc := range svcs {
+	svcMaps := make(map[string]int)
+	for i, svc := range svcs {
+		svcMaps[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = i
 		eps, err := indexers.EndpointLister.Endpoints(svc.Namespace).Get(svc.Name)
 		if err != nil {
 			//klog.Errorf("Failed to get endpoints %s, error:%v", fmt.Sprintf("%s.%s", svc.Name, svc.Namespace), err)
@@ -264,6 +282,7 @@ func loadCache() error {
 			}
 
 			if edgeFlag {
+				updateFlag = true
 				Route.ServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = tunnelutil.EDGE
 			} else {
 				cloudFlag := true
@@ -275,9 +294,18 @@ func loadCache() error {
 					break
 				}
 				if cloudFlag {
+					updateFlag = true
 					Route.ServicesMap[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = tunnelutil.CLOUD
 				}
 			}
+		}
+	}
+
+	for svc := range Route.ServicesMap {
+		if _, ok := svcMaps[svc]; !ok {
+			//configmap中的 services 存在，实际 svc 已经被删除，需要删除 Route.ServicesMap
+			updateFlag = true
+			delete(Route.ServicesMap, svc)
 		}
 	}
 
