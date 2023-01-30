@@ -114,11 +114,14 @@ data:
       - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_endpoint_port_name]
         action: keep
         regex: edge-system;tunnel-metrics
-    - job_name: node-cadvisor
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token 
+      job_name: node-cadvisor
       kubernetes_sd_configs:
       - role: node
       scheme: https
+      proxy_url: http://tunnel-cloud.edge-system.svc.cluster.local:8080
       tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         insecure_skip_verify: true
       relabel_configs:
       - source_labels: [__meta_kubernetes_node_name]
@@ -135,9 +138,8 @@ data:
     - job_name: node-exporter
       kubernetes_sd_configs:
       - role: node
-      scheme: https
-      tls_config:
-        insecure_skip_verify: true
+      scheme: http
+      proxy_url: http://tunnel-cloud.edge-system.svc.cluster.local:8080
       relabel_configs:
       - source_labels: [__meta_kubernetes_node_name]
         regex: (.+)
@@ -322,17 +324,7 @@ spec:
           volumeMounts:
             - mountPath: /etc/config
               name: config-volume
-      dnsConfig:
-        nameservers:
-          - <tunnel-coredns的clusterip>
-        options:
-          - name: ndots
-            value: "5"
-        searches:
-          - edge-system.svc.cluster.local
-          - svc.cluster.local
-          - cluster.local
-      dnsPolicy: None
+      dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -369,4 +361,4 @@ spec:
     app: prometheus
     component: server
     release: prometheus
-  type: ClusterIP
+  type: NodePort
