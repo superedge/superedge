@@ -30,13 +30,6 @@ const (
 	OtherNodeUnit  NodeUnitType = "other"
 )
 
-// NodeUnitSpec defines the desired state of NodeUnit
-type NodeSelector struct {
-	// Type of nodeunit， vaule: Cloud、Edge
-	// +optional
-	Type NodeUnitType `json:"type,omitempty" protobuf:"bytes,2,rep,name=type"`
-}
-
 type Selector struct {
 	// matchLabels is a map of {key,value} pairs.
 	// +optional

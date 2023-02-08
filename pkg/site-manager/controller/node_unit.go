@@ -52,7 +52,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	sitev1alpha2 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
+	"github.com/superedge/superedge/pkg/site-manager/controller/unitcluster"
 	"github.com/superedge/superedge/pkg/site-manager/utils"
+
 	"github.com/superedge/superedge/pkg/util"
 )
 
@@ -74,6 +76,7 @@ type NodeUnitController struct {
 	syncHandler     func(key string) error
 	enqueueNodeUnit func(name string)
 	nodeUnitDeleter *deleter.NodeUnitDeleter
+	kinsController  *unitcluster.KinsController
 }
 
 func NewNodeUnitController(
@@ -132,6 +135,13 @@ func NewNodeUnitController(
 		nodeInformer.Informer().HasSynced,
 		NodeUnitFinalizerID,
 		workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "nodeunit-deleter"),
+	)
+	nodeUnitController.kinsController = unitcluster.NewKinsController(
+		kubeClient,
+		crdClient,
+		nodeInformer.Lister(),
+		dsInformer.Lister(),
+		nodeUnitInformer.Lister(),
 	)
 	klog.V(4).Infof("Site-manager set handler success")
 
@@ -408,6 +418,9 @@ func (c *NodeUnitController) reconcileNodeUnit(nu *sitev1alpha2.NodeUnit) error 
 
 	// 0. list nodemap and nodeset belong to current node unit
 	unitNodeSet, nodeMap, err := utils.GetNodesByUnit(c.nodeLister, nu)
+	if err != nil {
+		return err
+	}
 	// 1. check nodes which should not belong to this unit, clear them(this will use gc)
 
 	currentNodeSet := sets.NewString()
@@ -438,6 +451,12 @@ func (c *NodeUnitController) reconcileNodeUnit(nu *sitev1alpha2.NodeUnit) error 
 	for _, gcNode := range needGCNodes.UnsortedList() {
 		gcNodeMap[gcNode] = currentNodeMap[gcNode]
 	}
+	klog.V(5).InfoS("get node after node selector",
+		"ensure nodes", unitNodeSet.UnsortedList(),
+		"current nodes", currentNodeSet.UnsortedList(),
+		"need gc nodes", needGCNodes.UnsortedList(),
+	)
+
 	if err := utils.DeleteNodesFromSetNode(c.kubeClient, nu, gcNodeMap); err != nil {
 		return err
 	}
@@ -463,11 +482,33 @@ func (c *NodeUnitController) reconcileNodeUnit(nu *sitev1alpha2.NodeUnit) error 
 	if err := utils.SetNodeToNodes(c.kubeClient, nu, nodeMap); err != nil {
 		return err
 	}
+
+	// 2.3 check node unit autonomy level if need install/uninstall unit cluster
+	ucerr := c.kinsController.ReconcileUnitCluster(nu)
 	// 3. caculate node unit status
 	newStatus, err := utils.CaculateNodeUnitStatus(nodeMap, nu)
 	if err != nil {
 		return nil
 	}
+	// 3.1 update node unit cluster status
+	ucStatus, err := c.kinsController.UpdateUnitClusterStatus(nu)
+	if err != nil {
+		klog.ErrorS(err, "Update node unit cluster status error", "node unit", nu.Name)
+		return err
+	}
+	if ucerr != nil {
+		klog.ErrorS(ucerr, "ReconcileUnitCluster error", "node unit", nu.Name)
+		ucStatus.Phase = sitev1alpha2.ClusterFailed
+		ucStatus.Conditions = []sitev1alpha2.ClusterCondition{
+			{
+				Type:          "Init",
+				Status:        sitev1alpha2.ConditionFalse,
+				LastProbeTime: metav1.Now(),
+				Message:       ucerr.Error(),
+			},
+		}
+	}
+	newStatus.UnitCluster = *ucStatus
 
 	if !reflect.DeepEqual(newStatus, &nu.Status) || !reflect.DeepEqual(newStatus, &nu.Status) {
 		nu.Status = *newStatus

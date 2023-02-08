@@ -17,15 +17,11 @@ limitations under the License.
 package controller
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-
 	"k8s.io/client-go/tools/cache"
 )
 
 var (
 	KeyFunc              = cache.DeletionHandlingMetaNamespaceKeyFunc
-	controllerKind       = appsv1.SchemeGroupVersion.WithKind("site-manager-daemon")
 	NodeUnitFinalizerID  = "site.superedge.io/nodeunit"
 	NodeGroupFinalizerID = "site.superedge.io/finalizer"
-	DefaultKinsNamespace = "kins-system"
 )

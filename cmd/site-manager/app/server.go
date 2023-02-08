@@ -73,20 +73,31 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 			}
 
 			runConfig := func(ctx context.Context) {
-				stop := ctx.Done()
 				if siteOptions.EnsureCrd {
 					wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
-						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, "")
-						utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, "")
-						time.Sleep(5 * time.Second)
-						if err := utils.CreateDefaultUnit(crdClient); err != nil {
-							klog.Errorf("Create default unit error: %#v", err)
+						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, ""); err != nil {
+							klog.ErrorS(err, "Create node unit crd error")
+							return false, nil
 						}
+						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, ""); err != nil {
+							klog.ErrorS(err, "Create node group crd error")
+							return false, nil
+						}
+
 						return true, nil
-					}, stop)
+
+					}, wait.NeverStop)
 				}
+				// default create unit and verison migration
+				wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
+					if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
+						klog.Errorf("InitAllRosource error: %#v", err)
+						return false, nil
+					}
+					return true, nil
+				}, wait.NeverStop)
 			}
-			go runConfig(context.TODO())
+			runConfig(context.TODO())
 
 			// not leade elect
 			if !siteOptions.LeaderElect {

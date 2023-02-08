@@ -245,14 +245,6 @@ type ClusterResource struct {
 	// +optional
 	Allocated ResourceList `json:"allocated,omitempty"`
 }
-
-// NodeUnitSpec defines the desired state of NodeUnit
-type NodeSelector struct {
-	// Type of nodeunit， vaule: Cloud、Edge
-	// +optional
-	Type NodeUnitType `json:"type,omitempty"`
-}
-
 type Selector struct {
 	// matchLabels is a map of {key,value} pairs.
 	// +optional
@@ -279,20 +271,19 @@ type SetNode struct {
 	Taints []corev1.Taint `json:"taints,omitempty"`
 }
 
-type UnitClusterStorageSpec struct {
+// UnitClusterInfoSpec defines the information when unit cluster creating
+type UnitClusterInfoSpec struct {
 	// StorageType support sqlite(one master node) and built-in etcd(three master node)
 	// default is etcd
 	// +optional
 	StorageType string `json:"storageType,omitempty"`
-	// Parameters holds the parameters for the provisioner that should
-	// create volumes of this storage class.
-	// +optional
+	// Parameters holds the parameters for the unit cluster create information
 	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
 // NodeUnitSpec defines the desired state of NodeUnit
 type NodeUnitSpec struct {
-	// Type of nodeunit， vaule: Cloud、Edge
+	// Type of nodeunit, vaule: cloud, edge, master, other
 	// +optional
 	//+kubebuilder:default=edge
 	Type NodeUnitType `json:"type"`
@@ -313,9 +304,6 @@ type NodeUnitSpec struct {
 	// If specified, set the relevant properties to the node of nodeunit.
 	// +optional
 	SetNode SetNode `json:"setNode,omitempty"`
-	// If specified, allow to set taints to nodeunit for the scheduler to choose
-	// +optional
-	Taints []corev1.Taint `json:"taints,omitempty"`
 
 	// AutonomyLevel represent the current node unit autonomous capability, L3(default)'s autonomous area is node,
 	// L4's autonomous area is unit. If AutonomyLevel larger than L3, it will create a independent control plane in unit.
@@ -325,11 +313,11 @@ type NodeUnitSpec struct {
 	// UnitCredentialConfigMapRef for isolate sensitive NodeUnit credential.
 	// site-manager will create one after controller-plane ready
 	// +optional
-	UnitCredentialConfigMapRef *corev1.SecretReference `json:"unitCredentialConfigMapRef,omitempty"`
+	UnitCredentialConfigMapRef *corev1.ObjectReference `json:"unitCredentialConfigMapRef,omitempty"`
 
-	// UnitClusterStorage holds configuration for unit cluster storage information.
+	// UnitClusterInfo holds configuration for unit cluster information.
 	// +optional
-	UnitClusterStorage *UnitClusterStorageSpec `json:"unitClusterStorage,omitempty"`
+	UnitClusterInfo *UnitClusterInfoSpec `json:"unitClusterInfo,omitempty"`
 }
 
 type UnitClusterStatus struct {

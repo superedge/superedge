@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -216,19 +215,18 @@ func GetNodesByUnit(nodeLister corelisters.NodeLister, nu *sitev1.NodeUnit) (set
 		unitNodeSet.Insert(node.Name)
 	}
 	if len(nu.Spec.Nodes) > 0 {
-		nodeSelector := labels.NewSelector()
-		nRequire, err := labels.NewRequirement(
-			corev1.LabelHostname,
-			selection.In,
-			nu.Spec.Nodes,
-		)
-		if err != nil {
-			return nil, nil, err
+		for _, nodeName := range nu.Spec.Nodes {
+			node, err := nodeLister.Get(nodeName)
+			if err != nil && errors.IsNotFound(err) {
+				klog.V(4).InfoS("NodeUnit node not found", "node unit", nu.Name, "node", nodeName)
+				continue
+			} else if err != nil {
+				return nil, nil, err
+			}
+			nodeMap[nodeName] = node
+			unitNodeSet.Insert(nodeName)
 		}
-		nodeSelector.Add(*nRequire)
-		ListNodeFromLister(nodeLister, nodeSelector, appendFunc)
 	}
-
 	if nu.Spec.Selector != nil {
 		labelSelector := &metav1.LabelSelector{
 			MatchLabels:      nu.Spec.Selector.MatchLabels,
@@ -238,8 +236,13 @@ func GetNodesByUnit(nodeLister corelisters.NodeLister, nu *sitev1.NodeUnit) (set
 		if err != nil {
 			return nil, nil, err
 		}
+		if (nu.Spec.Selector.MatchLabels == nil || len(nu.Spec.Selector.MatchLabels) == 0) &&
+			(nu.Spec.Selector.MatchExpressions == nil || len(nu.Spec.Selector.MatchExpressions) == 0) {
+			nodeSelector = labels.Nothing()
+		}
 		ListNodeFromLister(nodeLister, nodeSelector, appendFunc)
 	}
+
 	return unitNodeSet, nodeMap, nil
 }
 
@@ -329,7 +332,7 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, nu *sitev1.NodeUnit,
 		newNode := node.DeepCopy()
 		if nu.Spec.SetNode.Labels != nil {
 			if newNode.Labels != nil {
-				for k, _ := range nu.Spec.SetNode.Labels {
+				for k := range nu.Spec.SetNode.Labels {
 					delete(newNode.Labels, k)
 				}
 			}
@@ -337,7 +340,7 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, nu *sitev1.NodeUnit,
 
 		if nu.Spec.SetNode.Annotations != nil {
 			if newNode.Annotations != nil {
-				for k, _ := range nu.Spec.SetNode.Annotations {
+				for k := range nu.Spec.SetNode.Annotations {
 					delete(newNode.Annotations, k)
 				}
 			}

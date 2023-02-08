@@ -19,6 +19,7 @@ package constant
 const CRDNodeUnitDefinitionYamlFileName = "site.superedge.io_nodeunits.yaml"
 
 const CRDNodeUnitDefinitionYaml = `
+
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -356,47 +357,19 @@ spec:
                       type: object
                     type: array
                 type: object
-              taints:
-                description: If specified, allow to set taints to nodeunit for the
-                  scheduler to choose
-                items:
-                  description: The node this Taint is attached to has the "effect"
-                    on any pod that does not tolerate the Taint.
-                  properties:
-                    effect:
-                      description: Required. The effect of the taint on pods that
-                        do not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule
-                        and NoExecute.
-                      type: string
-                    key:
-                      description: Required. The taint key to be applied to a node.
-                      type: string
-                    timeAdded:
-                      description: TimeAdded represents the time at which the taint
-                        was added. It is only written for NoExecute taints.
-                      format: date-time
-                      type: string
-                    value:
-                      description: The taint value corresponding to the taint key.
-                      type: string
-                  required:
-                  - effect
-                  - key
-                  type: object
-                type: array
               type:
                 default: edge
-                description: 'Type of nodeunit， vaule: Cloud、Edge'
+                description: 'Type of nodeunit, vaule: cloud, edge, master, other'
                 type: string
-              unitClusterStorage:
-                description: UnitClusterStorage holds configuration for unit cluster
-                  storage information.
+              unitClusterInfo:
+                description: UnitClusterInfo holds configuration for unit cluster
+                  information.
                 properties:
                   parameters:
                     additionalProperties:
                       type: string
-                    description: Parameters holds the parameters for the provisioner
-                      that should create volumes of this storage class.
+                    description: Parameters holds the parameters for the unit cluster
+                      create information
                     type: object
                   storageType:
                     description: StorageType support sqlite(one master node) and built-in
@@ -408,13 +381,37 @@ spec:
                   credential. site-manager will create one after controller-plane
                   ready
                 properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
                   name:
-                    description: Name is unique within a namespace to reference a
-                      secret resource.
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
-                      name must be unique.
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
               unschedulable:

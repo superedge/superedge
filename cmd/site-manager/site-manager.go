@@ -28,11 +28,11 @@ import (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 
 	goflag.Set("alsologtostderr", "true")
 	klogFlags := goflag.NewFlagSet("klog", goflag.ExitOnError)
 	klog.InitFlags(klogFlags)
-	rand.Seed(time.Now().UnixNano())
 
 	defer klog.Flush()
 
