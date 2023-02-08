@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	NodeAnnotationPatchAddUpdateTemplate = `{"apiVersion": "v1", "kind": "Node", "metadata:": {"annotations": {"%s": "%s"}}`
-	NodeAnnotationPatchDeleteTemplate    = `{"apiVersion": "v1", "kind": "Node", "metadata:": {"annotations": {"%s": null}}`
+	NodeAnnotationPatchAddUpdateTemplate = `{"metadata":{"annotations":{"%s":"%s"}}}`
+	NodeAnnotationPatchDeleteTemplate    = `{"metadata":{"annotations":{"%s":null}}}`
 )
 
 var UnreachNoExecuteTaint = &corev1.Taint{
