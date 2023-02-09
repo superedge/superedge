@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package controller
 
 import (
 	"testing"
@@ -58,7 +58,7 @@ func TestCheckifcontains(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		include, result, _ := checkifcontains(tc.nodelabel, tc.keyslices)
+		include, result, _ := checkIfContains(tc.nodelabel, tc.keyslices)
 		if include != tc.expectinclude || result != tc.expectresult {
 			t.Fatal("not as expected", include, tc.expectinclude, result, tc.expectresult)
 		}

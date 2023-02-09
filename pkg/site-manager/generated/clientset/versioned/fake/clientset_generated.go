@@ -22,6 +22,8 @@ import (
 	clientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
 	sitev1alpha1 "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned/typed/site.superedge.io/v1alpha1"
 	fakesitev1alpha1 "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned/typed/site.superedge.io/v1alpha1/fake"
+	sitev1alpha2 "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned/typed/site.superedge.io/v1alpha2"
+	fakesitev1alpha2 "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned/typed/site.superedge.io/v1alpha2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -74,9 +76,17 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
 // SiteV1alpha1 retrieves the SiteV1alpha1Client
 func (c *Clientset) SiteV1alpha1() sitev1alpha1.SiteV1alpha1Interface {
 	return &fakesitev1alpha1.FakeSiteV1alpha1{Fake: &c.Fake}
+}
+
+// SiteV1alpha2 retrieves the SiteV1alpha2Client
+func (c *Clientset) SiteV1alpha2() sitev1alpha2.SiteV1alpha2Interface {
+	return &fakesitev1alpha2.FakeSiteV1alpha2{Fake: &c.Fake}
 }

@@ -2,73 +2,220 @@ package utils
 
 import (
 	"context"
-	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
+	"time"
+
+	sitev1alpha2 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
 	crdClientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
+	"github.com/superedge/superedge/pkg/util"
+	extensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"k8s.io/klog/v2"
 )
 
 const (
-	AllNodeUnit    = "unit-node-all"
-	EdgeNodeUnit   = "unit-node-edge"
-	CloudNodeUnit  = "unit-node-cloud"
-	MasterNodeUnit = "unit-node-master"
+	AllNodeUnit            = "unit-node-all"
+	EdgeNodeUnit           = "unit-node-edge"
+	CloudNodeUnit          = "unit-node-cloud"
+	MasterNodeUnit         = "unit-node-master"
+	MigrationCompletedAnno = "site.superedge.io/migration-done"
+	NodeUnitCRDName        = "nodeunits.site.superedge.io"
+	NodeGroupCRDName       = "nodegroups.site.superedge.io"
 )
 
-func CreateDefaultUnit(crdClient *crdClientset.Clientset) error {
+func CreateDefaultUnit(ctx context.Context, crdClient *crdClientset.Clientset) error {
 	// All Node Unit
-	allNodeUnitSelector := &sitev1.Selector{
-		MatchLabels: map[string]string{
-			"kubernetes.io/os": "linux",
-		},
-	}
-	allNodeUnit := &sitev1.NodeUnit{
+	allNodeUnit := &sitev1alpha2.NodeUnit{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "site.superedge.io/v1alpha1",
+			APIVersion: "site.superedge.io/v1alpha2",
 			Kind:       "NodeUnit",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: AllNodeUnit,
 		},
-		Spec: sitev1.NodeUnitSpec{
-			Type:     sitev1.OtherNodeUnit,
-			Selector: allNodeUnitSelector,
+		Spec: sitev1alpha2.NodeUnitSpec{
+			Type: sitev1alpha2.OtherNodeUnit,
+			Selector: &sitev1alpha2.Selector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/os": "linux",
+				},
+			},
 		},
 	}
 
-	if _, err := crdClient.SiteV1alpha1().NodeUnits().Create(context.TODO(), allNodeUnit, metav1.CreateOptions{}); err != nil {
-		klog.Warningf("Create default %s unit error : %#v", AllNodeUnit, err)
+	if _, err := crdClient.SiteV1alpha2().NodeUnits().Create(ctx, allNodeUnit, metav1.CreateOptions{}); err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
 	}
 
 	return nil
 }
 
-func InitUnitToNode(kubeclient clientset.Interface, crdClient *crdClientset.Clientset) error {
-	nodes, err := kubeclient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+func Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
+	nuCrd, err := extentionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeUnitCRDName, metav1.GetOptions{})
 	if err != nil {
-		klog.Errorf("Get nodes by node name, error: %v", err)
+		return err
+	}
+	if nuCrd.Annotations != nil && nuCrd.Annotations[MigrationCompletedAnno] == "yes" {
+		// migration completed just return
+		return nil
+	}
+	// check v1alpha2 version is ready
+	wait.Poll(
+		wait.Jitter(2*time.Second, 1),
+		2*time.Minute,
+		func() (done bool, err error) {
+			if _, err := crdClient.SiteV1alpha2().NodeUnits().List(context.TODO(), metav1.ListOptions{}); err == nil {
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+	a1NuList, err := crdClient.SiteV1alpha1().NodeUnits().List(ctx, metav1.ListOptions{})
+	if err != nil {
 		return err
 	}
 
-	for _, node := range nodes.Items {
-		nodeUnits, err := GetUnitsByNode(crdClient, &node)
-		if err != nil {
-			klog.Errorf("Get nodeUnit by node, error： %#v", err)
-			return err
-		}
+	for _, a1nu := range a1NuList.Items {
 
-		var nodeUnitsName []string
-		for _, unit := range nodeUnits {
-			nodeUnitsName = append(nodeUnitsName, unit.Name)
+		a2nu := sitev1alpha2.NodeUnit{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              a1nu.Name,
+				Labels:            a1nu.Labels,
+				Annotations:       a1nu.Annotations,
+				Finalizers:        a1nu.Finalizers,
+				OwnerReferences:   a1nu.OwnerReferences,
+				ResourceVersion:   a1nu.ResourceVersion,
+				UID:               a1nu.UID,
+				CreationTimestamp: a1nu.CreationTimestamp,
+			},
+			Spec: sitev1alpha2.NodeUnitSpec{
+				Type:          sitev1alpha2.NodeUnitType(a1nu.Spec.Type),
+				Unschedulable: a1nu.Spec.Unschedulable,
+				Nodes:         a1nu.Spec.Nodes,
+				SetNode: sitev1alpha2.SetNode{
+					Labels:      a1nu.Spec.SetNode.Labels,
+					Annotations: a1nu.Spec.SetNode.Annotations,
+					Taints:      a1nu.Spec.SetNode.Taints,
+				},
+				AutonomyLevel: sitev1alpha2.AutonomyLevelL3,
+			},
 		}
-
-		// Processing stock node annotations
-		if err := ResetNodeUnitAnnotations(kubeclient, &node, nodeUnitsName); err != nil {
-			klog.Errorf("Node: %s add annotations error: %#v", node.Name, err)
+		if a1nu.Spec.Selector != nil {
+			a2nu.Spec.Selector = &sitev1alpha2.Selector{
+				MatchLabels:      a1nu.Spec.Selector.MatchLabels,
+				MatchExpressions: a1nu.Spec.Selector.MatchExpressions,
+				Annotations:      a1nu.Spec.Selector.Annotations,
+			}
+		}
+		klog.V(6).InfoS("migrate nodeunit v1alpha1 to v1alpha2", "old", util.ToJson(a1nu), "new", util.ToJson(a2nu))
+		if _, err := crdClient.SiteV1alpha2().NodeUnits().Update(ctx, &a2nu, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
+	// mark migration completed
+	if nuCrd.Annotations == nil {
+		nuCrd.Annotations = map[string]string{MigrationCompletedAnno: "yes"}
+	} else {
+		nuCrd.Annotations[MigrationCompletedAnno] = "yes"
+	}
+	if _, err = extentionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), nuCrd, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
+	ngCrd, err := extentionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeGroupCRDName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if ngCrd.Annotations != nil && ngCrd.Annotations[MigrationCompletedAnno] == "yes" {
+		// migration completed just return
+		return nil
+	}
+
+	// check v1alpha2 version is ready
+	wait.Poll(
+		wait.Jitter(2*time.Second, 1),
+		2*time.Minute,
+		func() (done bool, err error) {
+			if _, err := crdClient.SiteV1alpha2().NodeGroups().List(context.TODO(), metav1.ListOptions{}); err == nil {
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+	a1NgList, err := crdClient.SiteV1alpha1().NodeGroups().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, a1ng := range a1NgList.Items {
+		a2ng := sitev1alpha2.NodeGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              a1ng.Name,
+				Labels:            a1ng.Labels,
+				Annotations:       a1ng.Annotations,
+				Finalizers:        a1ng.Finalizers,
+				OwnerReferences:   a1ng.OwnerReferences,
+				ResourceVersion:   a1ng.ResourceVersion,
+				UID:               a1ng.UID,
+				CreationTimestamp: a1ng.CreationTimestamp,
+			},
+			Spec: sitev1alpha2.NodeGroupSpec{
+				NodeUnits: a1ng.Spec.NodeUnits,
+				Selector: &sitev1alpha2.Selector{
+					MatchLabels:      a1ng.Spec.Selector.MatchLabels,
+					MatchExpressions: a1ng.Spec.Selector.MatchExpressions,
+					Annotations:      a1ng.Spec.Selector.Annotations,
+				},
+				AutoFindNodeKeys: a1ng.Spec.AutoFindNodeKeys,
+			},
+		}
+		if a1ng.Spec.Selector != nil {
+			a2ng.Spec.Selector = &sitev1alpha2.Selector{
+				MatchLabels:      a1ng.Spec.Selector.MatchLabels,
+				MatchExpressions: a1ng.Spec.Selector.MatchExpressions,
+				Annotations:      a1ng.Spec.Selector.Annotations,
+			}
+		}
+
+		klog.V(6).InfoS("migrate nodegroup v1alpha1 to v1alpha2", "old", util.ToJson(a1ng), "new", util.ToJson(a2ng))
+		if _, err := crdClient.SiteV1alpha2().NodeGroups().Update(ctx, &a2ng, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+	// mark migration completed
+	if ngCrd.Annotations == nil {
+		ngCrd.Annotations = map[string]string{MigrationCompletedAnno: "yes"}
+	} else {
+		ngCrd.Annotations[MigrationCompletedAnno] = "yes"
+	}
+	if _, err = extentionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), ngCrd, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func InitAllRosource(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
+	if err := Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx, crdClient, extentionClient); err != nil {
+		klog.ErrorS(err, "Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit error")
+		return err
+	}
+	if err := Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx, crdClient, extentionClient); err != nil {
+		klog.ErrorS(err, "Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup error")
+		return err
+	}
+	if err := CreateDefaultUnit(ctx, crdClient); err != nil {
+		klog.ErrorS(err, "create default unit error")
+		return err
+	}
 	return nil
 }
