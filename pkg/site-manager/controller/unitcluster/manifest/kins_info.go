@@ -32,7 +32,7 @@ data:
     clusters:
     - cluster:
         insecure-skip-tls-verify: true
-        server: {{ .KinsServerEndpoint }}
+        server: https://{{ .KinsServiceClusterIP }}
       name: default
     contexts:
     - context:

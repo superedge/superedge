@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -337,6 +338,18 @@ func (kc *KinsController) creatSecret(nu *sitev1alpha2.NodeUnit) error {
 	} else {
 		knowToken = secret.StringData["known_tokens.csv"]
 	}
+	var clusterIP string
+
+	wait.PollUntil(3*time.Second, func() (done bool, err error) {
+		svc, err := kc.kubeClient.CoreV1().Services(DefaultKinsNamespace).Get(context.TODO(), buildKinsServiceName(nu.Name), metav1.GetOptions{})
+		if err != nil {
+			klog.ErrorS(err, "get kins service error", "service name", buildKinsServiceName(nu.Name))
+			return false, nil
+		}
+		clusterIP = svc.Spec.ClusterIP
+		return true, nil
+	}, wait.NeverStop)
+
 	// get or create configmap
 	if _, err := kc.kubeClient.CoreV1().ConfigMaps(DefaultKinsNamespace).Get(context.TODO(), buildKinsConfigMapName(nu.Name), metav1.GetOptions{}); err != nil {
 		if errors.IsNotFound(err) {
@@ -346,7 +359,7 @@ func (kc *KinsController) creatSecret(nu *sitev1alpha2.NodeUnit) error {
 				"UnitName":             nu.Name,
 				"NodeUnitSuperedge":    constant.NodeUnitSuperedge,
 				"KinsNamespace":        DefaultKinsNamespace,
-				"KinsServerEndpoint":   buildKinsServiceName(nu.Name),
+				"KinsServiceClusterIP": clusterIP,
 				"KnowToken":            strings.Split(knowToken, ",")[0],
 			}
 			if err := kubectl.CreateResourceWithFile(kc.kubeClient, manifest.KinsConfigMapTemplate, configmapOption); err != nil {
