@@ -82,20 +82,25 @@ func AccessHandler(msg *proto.StreamMsg) error {
 		return err
 	}
 	//与集群外的server建立连接
-	connectOutcluster := func(outClusterHost, outClusterPort string) error {
+	connectOutcluster := func(outClusterHost, outClusterPort, nodeName string) error {
+
+		node := context.GetContext().GetNode(nodeName)
+		if node == nil {
+			return fmt.Errorf("the node's tunnel is broken, nodeName: %s", nodeName)
+		}
 
 		remoteConn, err := net.Dial("tcp", net.JoinHostPort(outClusterHost, outClusterPort))
 		if err != nil {
 			klog.Errorf("Failed to establish connection with cloud pod, error: %v", err)
-			errMsg(localNode)
+			errMsg(node)
 			return err
 		}
 
 		//Return 200 status code
-		successMsg(localNode)
+		successMsg(node)
 		remoteCh := context.GetContext().AddConn(msg.GetTopic())
-		localNode.BindNode(msg.GetTopic())
-		go common.Read(remoteConn, localNode, util.HTTP_PROXY, util.TCP_BACKEND, msg.GetTopic(), msg.GetAddr())
+		node.BindNode(msg.GetTopic())
+		go common.Read(remoteConn, node, util.HTTP_PROXY, util.TCP_BACKEND, msg.GetTopic(), msg.GetAddr())
 		go common.Write(remoteConn, remoteCh)
 		return nil
 	}
@@ -123,7 +128,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 			return err
 		}
 		if domain != "" {
-			return connectOutcluster(domain, port)
+			return connectOutcluster(domain, port, msg.GetNode())
 		}
 		//Handling access to services in the cluster
 		podIP, port, err = common.GetPodIpFromService(req.Host)
@@ -138,7 +143,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 		//Handle access to ip outside the cluster
 		pingErr := util.Ping(podIP)
 		if pingErr == nil {
-			return connectOutcluster(podIP, port)
+			return connectOutcluster(podIP, port, msg.GetNode())
 		}
 		klog.Errorf("Error in ping ip %s outside the cluster, error: %v", podIP, err)
 		errMsg(localNode)
@@ -197,7 +202,7 @@ func AccessHandler(msg *proto.StreamMsg) error {
 
 	//CloudNodeType and EdgeNodeType are just to break down the reasons why they are not accessible
 	case common.CloudNodeType:
-		return connectOutcluster(podIP, port)
+		return connectOutcluster(podIP, port, msg.GetNode())
 	case common.EdgeNodeType:
 		klog.Errorf("The tunnel connection of the edge node %s is disconnected", nodeName)
 		errMsg(localNode)
