@@ -145,7 +145,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 			defer wg.Done()
 			klog.V(4).Infof("Creating statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			_, err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Create(context.TODO(), set, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 			}
 		}(adds[i])
@@ -167,7 +167,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 			defer wg.Done()
 			klog.V(4).Infof("Deleting statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Delete(context.TODO(), set.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 			}
 		}(deletes[i])

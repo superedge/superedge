@@ -151,7 +151,7 @@ func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*ap
 			defer wg.Done()
 			klog.V(4).Infof("Creating deployment %s/%s by syncDeployment", d.Namespace, d.Name)
 			_, err := dgc.kubeClient.AppsV1().Deployments(d.Namespace).Create(context.TODO(), d, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 			}
 		}(adds[i])
@@ -173,7 +173,7 @@ func (dgc *DeploymentGridController) syncDeployment(adds, updates, deletes []*ap
 			defer wg.Done()
 			klog.V(4).Infof("Deleting deployment %s/%s by syncDeployment", d.Namespace, d.Name)
 			err := dgc.kubeClient.AppsV1().Deployments(d.Namespace).Delete(context.TODO(), d.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 			}
 		}(deletes[i])
@@ -264,7 +264,7 @@ func (dgc *DeploymentGridController) syncDisDeploymentGrid(adds, updates, delete
 			defer wg.Done()
 			klog.V(4).Infof("Creating DisDeploymentGrid %s/%s by syncDisDeployment", d.Namespace, d.Name)
 			_, err := dgc.crdClient.SuperedgeV1().DeploymentGrids(d.Namespace).Create(context.TODO(), d, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 			}
 		}(adds[i])
@@ -286,7 +286,7 @@ func (dgc *DeploymentGridController) syncDisDeploymentGrid(adds, updates, delete
 			defer wg.Done()
 			klog.V(4).Infof("Deleting DisDeploymentGrid %s/%s by syncDisDeployment", d.Namespace, d.Name)
 			err := dgc.crdClient.SuperedgeV1().DeploymentGrids(d.Namespace).Delete(context.TODO(), d.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 			}
 		}(deletes[i])
