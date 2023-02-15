@@ -44,7 +44,7 @@ func GetRequestFromConn(conn net.Conn) (*http.Request, *bytes.Buffer, error) {
 	reqReader := bufio.NewReader(io.TeeReader(conn, rawRequest))
 	request, err := http.ReadRequest(reqReader)
 	if err != nil {
-		klog.Errorf("Failed to get http request, error: %v", err)
+		klog.V(8).Infof("Failed to get http request, error: %v", err)
 		return nil, nil, err
 	}
 	return request, rawRequest, nil
