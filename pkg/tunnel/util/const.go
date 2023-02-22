@@ -57,29 +57,32 @@ const (
 )
 
 const (
-	COREFILE_HOSTS_FILE = "hosts"
-	NODE_NAME_ENV       = "NODE_NAME"
-	POD_IP_ENV          = "POD_IP"
-	POD_NAME            = "POD_NAME"
-	POD_NAMESPACE_ENV   = "POD_NAMESPACE"
-	USER_NAMESPACE_ENV  = "USER_NAMESPACE"
-	CustomStart         = "#CustomStart"
-	CustomEnd           = "#CustomEnd"
-	EdgeNoProxy         = "EDGE_NO_PROXY"
-	CloudProxy          = "CLOUD_PROXY"
+	COREFILE_HOSTS_FILE     = "hosts"
+	NODE_NAME_ENV           = "NODE_NAME"
+	POD_IP_ENV              = "POD_IP"
+	POD_NAME                = "POD_NAME"
+	POD_NAMESPACE_ENV       = "POD_NAMESPACE"
+	USER_NAMESPACE_ENV      = "USER_NAMESPACE"
+	PROXY_AUTHORIZATION_ENV = "PROXY_AUTHORIZATION"
+	CustomStart             = "#CustomStart"
+	CustomEnd               = "#CustomEnd"
+	EdgeNoProxy             = "EDGE_NO_PROXY"
+	CloudProxy              = "CLOUD_PROXY"
 )
 
 const (
 	ConnectMsg          = "HTTP/1.1 200 Connection established\r\n\r\n"
-	BadGateway          = "HTTP/1.1 502 Tunnel not established\r\n\r\n"
+	Unauthorized        = "HTTP/1.1 401 No username and password provided\r\n\r\n"
+	Forbidden           = "HTTP/1.1 403 Username or Password error\r\n\r\n"
 	InternalServerError = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
 )
 
 const (
-	HostsConfig = "tunnel-nodes"
-	CacheConfig = "tunnel-cache"
-	CachePath   = "/etc/tunnel/cache"
-	Certspath   = "/etc/tunnel/certs"
+	HostsConfig       = "tunnel-nodes"
+	CacheConfig       = "tunnel-cache"
+	CachePath         = "/etc/tunnel/cache"
+	CertsPath         = "/etc/tunnel/certs"
+	AuthorizationPath = "/etc/tunnel/auth"
 )
 
 const (
@@ -97,13 +100,13 @@ const (
 const (
 	HostsPath            = "/etc/tunnel/nodes/hosts"
 	TunnelCloudTokenPath = "/etc/tunnel/token/token"
-	TunnelCloudCertPath  = Certspath + "/" + TunnelCloudCert
-	TunnelCloudKeyPath   = Certspath + "/" + TunnelCloudKey
-	EgressCertPath       = Certspath + "/" + EgressCert
-	EgressKeyPath        = Certspath + "/" + EgressKey
+	TunnelCloudCertPath  = CertsPath + "/" + TunnelCloudCert
+	TunnelCloudKeyPath   = CertsPath + "/" + TunnelCloudKey
+	EgressCertPath       = CertsPath + "/" + EgressCert
+	EgressKeyPath        = CertsPath + "/" + EgressKey
 	EdgeNodesFilePath    = CachePath + "/" + EdgeNodesFile
 	CloudNodesFilePath   = CachePath + "/" + CloudNodesFile
 	ServicesFilePath     = CachePath + "/" + ServicesFile
 	UserServiceFilepath  = CachePath + "/" + UserServiceFile
-	TunnelEdgeCAPath     = Certspath + "/" + TunnelEdgeCA
+	TunnelEdgeCAPath     = CertsPath + "/" + TunnelEdgeCA
 )

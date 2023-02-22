@@ -15,6 +15,7 @@ package handlers
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
@@ -26,6 +27,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 )
 
 func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host string) error) {
@@ -34,6 +37,45 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 	if err != nil {
 		klog.V(8).Infof("Failed to get http request, error: %v", err)
 		return
+	}
+	if os.Getenv(util.PROXY_AUTHORIZATION_ENV) == "true" {
+		if category == util.HTTP_PROXY {
+			proxyAuth := req.Header.Get("Proxy-Authorization")
+			if proxyAuth == "" {
+				util.WriteMsg(proxyConn, util.Unauthorized)
+				return
+			}
+			auths := strings.Split(proxyAuth, " ")
+			if len(auths) != 2 && auths[0] != "Basic" {
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+			infos, err := base64.StdEncoding.DecodeString(auths[1])
+			if err != nil {
+				klog.Error(err)
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+			userinfos := strings.Split(string(infos), ":")
+			_, err = os.Stat(util.AuthorizationPath + "/" + userinfos[0])
+			if err == nil {
+				pwd, err := os.ReadFile(util.AuthorizationPath + "/" + userinfos[0])
+				if err != nil {
+					klog.Error(err)
+					util.WriteMsg(proxyConn, util.Forbidden)
+					return
+				}
+				if string(pwd) != userinfos[1] {
+					klog.Errorf("Incorrect password, username: %s", userinfos[0])
+					util.WriteMsg(proxyConn, util.Forbidden)
+					return
+				}
+			} else {
+				klog.Errorf("Username does not exist")
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+		}
 	}
 	if req.Method != http.MethodConnect {
 		if category != util.HTTP_PROXY {
