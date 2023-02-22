@@ -336,7 +336,7 @@ func (kc *KinsController) creatSecret(nu *sitev1alpha2.NodeUnit) error {
 			return err
 		}
 	} else {
-		knowToken = secret.StringData["known_tokens.csv"]
+		knowToken = string(secret.Data["known_tokens.csv"])
 	}
 	var clusterIP string
 

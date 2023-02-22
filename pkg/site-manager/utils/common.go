@@ -169,12 +169,7 @@ func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdC
 				CreationTimestamp: a1ng.CreationTimestamp,
 			},
 			Spec: sitev1alpha2.NodeGroupSpec{
-				NodeUnits: a1ng.Spec.NodeUnits,
-				Selector: &sitev1alpha2.Selector{
-					MatchLabels:      a1ng.Spec.Selector.MatchLabels,
-					MatchExpressions: a1ng.Spec.Selector.MatchExpressions,
-					Annotations:      a1ng.Spec.Selector.Annotations,
-				},
+				NodeUnits:        a1ng.Spec.NodeUnits,
 				AutoFindNodeKeys: a1ng.Spec.AutoFindNodeKeys,
 			},
 		}
