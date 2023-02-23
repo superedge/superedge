@@ -18,7 +18,7 @@ volumeBindingMode: WaitForFirstConsumer
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: local-pv-{{ $i }}
+  name: {{ .UnitName }}-local-pv-{{ $i }}
   labels:
     {{ .KinsResourceLabelKey }}: "yes"
     {{ .UnitName }}: {{ .NodeUnitSuperedge }}
