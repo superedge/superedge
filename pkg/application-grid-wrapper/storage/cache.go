@@ -298,3 +298,7 @@ func (sc *storageCache) rebuildEndpointSliceV1Beta1Map() []watch.Event {
 	}
 	return evts
 }
+
+func (sc *storageCache) GetNodeName() string {
+	return sc.hostName
+}
