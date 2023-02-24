@@ -41,10 +41,10 @@ func (eh *endpointSliceV1Beta1Handler) add(endpointSlice *discoveryv1beta1.Endpo
 
 	sc.mu.Unlock()
 
-	sc.endpointSliceV1Beta1Chan <- watch.Event{
-		Type:   watch.Added,
-		Object: newEps,
-	}
+	sc.endpointSliceV1Beta1Boardcaster.ActionOrDrop(
+		watch.Added,
+		newEps)
+
 }
 
 func (eh *endpointSliceV1Beta1Handler) update(endpointSlice *discoveryv1beta1.EndpointSlice) {
@@ -69,10 +69,10 @@ func (eh *endpointSliceV1Beta1Handler) update(endpointSlice *discoveryv1beta1.En
 	sc.mu.Unlock()
 
 	if changed {
-		sc.endpointSliceV1Beta1Chan <- watch.Event{
-			Type:   watch.Modified,
-			Object: newEps,
-		}
+		sc.endpointSliceV1Beta1Boardcaster.ActionOrDrop(
+			watch.Modified,
+			newEps)
+
 	}
 }
 
@@ -93,10 +93,9 @@ func (eh *endpointSliceV1Beta1Handler) delete(endpointSlice *discoveryv1beta1.En
 
 	sc.mu.Unlock()
 
-	sc.endpointSliceV1Beta1Chan <- watch.Event{
-		Type:   watch.Deleted,
-		Object: endpointSliceContainer.modified,
-	}
+	sc.endpointSliceV1Beta1Boardcaster.ActionOrDrop(
+		watch.Deleted,
+		endpointSliceContainer.modified)
 }
 
 func (eh *endpointSliceV1Beta1Handler) OnAdd(obj interface{}) {

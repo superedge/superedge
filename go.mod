@@ -16,6 +16,7 @@ require (
 	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/pelletier/go-toml v1.2.0
+	github.com/pingcap/errors v0.11.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/satori/go.uuid v1.2.0
