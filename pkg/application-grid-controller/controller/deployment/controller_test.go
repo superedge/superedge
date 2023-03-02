@@ -18,8 +18,9 @@ package deployment
 
 import (
 	"flag"
-	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 	"testing"
+
+	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
