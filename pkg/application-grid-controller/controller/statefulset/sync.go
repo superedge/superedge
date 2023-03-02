@@ -19,6 +19,8 @@ package statefulset
 import (
 	"context"
 	"encoding/json"
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
@@ -30,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	"sync"
 )
 
 func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, setList []*appsv1.StatefulSet, gridValues []string) error {
@@ -96,7 +97,10 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 		if err != nil {
 			return err
 		}
-		if ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set) {
+		IsTemplateHashChanged, IsReplicasChanged := ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set), util.IsReplicasChanged(ssg, set)
+		klog.V(5).InfoS("template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
+
+		if IsTemplateHashChanged || IsReplicasChanged {
 			klog.Infof("statefulset %s template hash changed", set.Name)
 			updates = append(updates, StatefulSetToUpdate)
 			continue

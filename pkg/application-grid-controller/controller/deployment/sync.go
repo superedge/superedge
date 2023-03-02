@@ -19,8 +19,9 @@ package deployment
 import (
 	"context"
 	"encoding/json"
-	klog "k8s.io/klog/v2"
 	"sync"
+
+	klog "k8s.io/klog/v2"
 
 	"github.com/hashicorp/go-multierror"
 	appsv1 "k8s.io/api/apps/v1"
@@ -99,7 +100,9 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		if err != nil {
 			return err
 		}
-		if dgc.templateHasher.IsTemplateHashChanged(dg, v, dp) {
+		IsTemplateHashChanged, IsReplicasChanged := dgc.templateHasher.IsTemplateHashChanged(dg, v, dp), util.IsReplicasChanged(dg, dp)
+		klog.V(5).InfoS("template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
+		if IsTemplateHashChanged || IsReplicasChanged {
 			klog.Infof("deployment %s template hash changed", dp.Name)
 			updates = append(updates, DeploymentToUpdate)
 			continue
