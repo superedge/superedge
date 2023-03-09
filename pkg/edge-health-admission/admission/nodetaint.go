@@ -34,12 +34,6 @@ import (
 
 type admitFunc func(admissionv1.AdmissionReview) *admissionv1.AdmissionResponse
 
-type Patch struct {
-	OP    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
-}
-
 func NodeTaint(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, nodeTaint)
 }

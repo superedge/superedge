@@ -16,7 +16,6 @@ require (
 	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/pelletier/go-toml v1.9.3
-	github.com/pingcap/errors v0.11.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/satori/go.uuid v1.2.0
@@ -42,7 +41,7 @@ require (
 	k8s.io/client-go v0.23.5
 	k8s.io/cluster-bootstrap v0.22.3
 	k8s.io/component-base v0.23.5
-	k8s.io/klog/v2 v2.30.0
+	k8s.io/klog/v2 v2.90.0
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/yaml v1.3.0
 )
