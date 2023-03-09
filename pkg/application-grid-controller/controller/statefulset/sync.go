@@ -97,11 +97,11 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 		if err != nil {
 			return err
 		}
-		IsTemplateHashChanged, IsReplicasChanged := ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set), util.IsReplicasChanged(ssg, set)
-		klog.V(5).InfoS("template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
+		IsTemplateHashChanged, IsReplicasChanged := ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set), ssgc.templateHasher.IsReplicasChanged(ssg, v, set)
+		klog.V(5).InfoS("statefulsetgrid template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
 
 		if IsTemplateHashChanged || IsReplicasChanged {
-			klog.Infof("statefulset %s template hash changed", set.Name)
+			klog.InfoS("statefulset template hash changed", "sts name", set.Name)
 			updates = append(updates, StatefulSetToUpdate)
 			continue
 		} else {

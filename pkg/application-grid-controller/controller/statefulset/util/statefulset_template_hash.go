@@ -108,3 +108,13 @@ func (sth *StatefulsetTemplateHash) getStatefulsetTemplate(spec *crdv1.StatefulS
 		return nil, fmt.Errorf("template not found in templatePool")
 	}
 }
+
+func (sth *StatefulsetTemplateHash) IsReplicasChanged(ssg *crdv1.StatefulSetGrid, gridValues string, ss *appsv1.StatefulSet) bool {
+	template, err := sth.getStatefulsetTemplate(&ssg.Spec, gridValues)
+	if err != nil {
+		klog.Errorf("Failed to get statefulset template for %s from statefulsetGrid %s", ss.Name, ssg.Name)
+		return true
+	}
+
+	return !(*template.Replicas == *ss.Spec.Replicas)
+}
