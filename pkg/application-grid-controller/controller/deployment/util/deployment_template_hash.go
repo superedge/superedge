@@ -108,3 +108,12 @@ func (dth *DeploymentTemplateHash) getDeployTemplate(spec *crdv1.DeploymentGridS
 		return nil, fmt.Errorf("template not found in templatePool")
 	}
 }
+func (dth *DeploymentTemplateHash) IsReplicasChanged(dg *crdv1.DeploymentGrid, gridValues string, dp *appsv1.Deployment) bool {
+	template, err := dth.getDeployTemplate(&dg.Spec, gridValues)
+	if err != nil {
+		klog.Errorf("Failed to get deployment template for %s from deploymentGrid %s", dp.Name, dg.Name)
+		return true
+	}
+
+	return !(*template.Replicas == *dp.Spec.Replicas)
+}

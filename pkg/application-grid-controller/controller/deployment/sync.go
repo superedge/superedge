@@ -100,10 +100,10 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 		if err != nil {
 			return err
 		}
-		IsTemplateHashChanged, IsReplicasChanged := dgc.templateHasher.IsTemplateHashChanged(dg, v, dp), util.IsReplicasChanged(dg, dp)
-		klog.V(5).InfoS("template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
+		IsTemplateHashChanged, IsReplicasChanged := dgc.templateHasher.IsTemplateHashChanged(dg, v, dp), dgc.templateHasher.IsReplicasChanged(dg, v, dp)
+		klog.V(5).InfoS("deploymentgrid template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
 		if IsTemplateHashChanged || IsReplicasChanged {
-			klog.Infof("deployment %s template hash changed", dp.Name)
+			klog.InfoS("deployment template changed", "dp name", dp.Name)
 			updates = append(updates, DeploymentToUpdate)
 			continue
 		} else {

@@ -131,7 +131,3 @@ func KeepConsistence(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment, gridValue 
 
 	return copyObj
 }
-
-func IsReplicasChanged(dg *crdv1.DeploymentGrid, dp *appsv1.Deployment) bool {
-	return !(*dg.Spec.Template.Replicas == *dp.Spec.Replicas)
-}

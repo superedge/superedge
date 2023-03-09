@@ -115,7 +115,3 @@ func KeepConsistence(ssg *crdv1.StatefulSetGrid, set *appsv1.StatefulSet, gridVa
 
 	return copyObj
 }
-
-func IsReplicasChanged(ssg *crdv1.StatefulSetGrid, ss *appsv1.StatefulSet) bool {
-	return !(*ssg.Spec.Template.Replicas == *ss.Spec.Replicas)
-}
