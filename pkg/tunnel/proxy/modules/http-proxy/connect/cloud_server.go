@@ -23,7 +23,6 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
@@ -71,21 +70,6 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 		podIp = host
 		nodeName = node
 	} else {
-		internalIp, err := indexers.GetNodeIPByName(host)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				err = dailOutCluster(host, port, proxyConn)
-				if err != nil {
-					klog.Errorf("Failed to forward request, host: %s, error: %v", host, err)
-					return
-				}
-			} else {
-				klog.Errorf("Failed to get internalIp of node, error: %v", err)
-				common.ProxyEdgeNode(host, "127.0.0.1", port, util.EGRESS, proxyConn, raw)
-			}
-		} else {
-			common.ProxyEdgeNode(host, internalIp, port, util.EGRESS, proxyConn, raw)
-		}
 		getNodeName := func(service string) (string, error) {
 			podIp, port, err = common.GetPodIpFromService(service)
 			if err != nil {
@@ -101,10 +85,15 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 			}
 			return nodeName, nil
 		}
-		nodeName, err = getNodeName(req.Host)
-		if err != nil {
-			errMsg(proxyConn)
-			return
+		node := context.GetContext().GetNode(host)
+		if node != nil {
+			nodeName = node.GetName()
+		} else {
+			nodeName, err = getNodeName(req.Host)
+			if err != nil {
+				errMsg(proxyConn)
+				return
+			}
 		}
 	}
 
@@ -185,40 +174,4 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 		proxyConn.Close()
 	}
 
-}
-
-func dailOutCluster(host, port string, proxyConn net.Conn) error {
-	//Handling access to out-of-cluster ip
-	pingErr := util.Ping(host)
-	if pingErr == nil {
-		remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, port))
-		if err != nil {
-			klog.Errorf("Failed to establish tcp connection with server outside the cluster, error: %v", err)
-			return err
-		}
-		_, err = proxyConn.Write([]byte(util.ConnectMsg))
-		if err != nil {
-			if err != nil {
-				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				return err
-			}
-		}
-		defer remoteConn.Close()
-		go func() {
-			_, writeErr := io.Copy(remoteConn, proxyConn)
-			if writeErr != nil {
-				klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
-			}
-		}()
-		_, err = io.Copy(proxyConn, remoteConn)
-		if err != nil {
-			klog.Errorf("Failed to read data from remoteConn, error: %v", err)
-			return err
-		}
-
-	} else {
-		klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", util.EGRESS, pingErr)
-		return pingErr
-	}
-	return nil
 }
