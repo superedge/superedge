@@ -242,43 +242,42 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				}
 			}
 		}
-		return err
-	}
-
-	restMapper := restmapper.NewDiscoveryRESTMapper(restMapperRes)
-	_, err = restMapper.RESTMapping(apischema.GroupKind{
-		Group: discoveryv1.SchemeGroupVersion.Group,
-		Kind:  "EndpointSlice",
-	}, discoveryv1.SchemeGroupVersion.Version)
-	if err == nil {
-		klog.Info("mapper v1.EndpointSlices")
-		endpointSliceV1Informer := informerFactory.Discovery().V1().EndpointSlices().Informer()
-		endpointSliceV1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1EventHandler(), resyncPeriod)
-		go endpointSliceV1Informer.Run(stop)
-		if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Informer.HasSynced) {
-			return fmt.Errorf("can't sync endpointslice informers")
-		}
 	} else {
-		if _, ok := err.(*meta.NoKindMatchError); ok {
-			_, err = restMapper.RESTMapping(apischema.GroupKind{
-				Group: discoveryv1beta1.SchemeGroupVersion.Group,
-				Kind:  "EndpointSlice",
-			}, discoveryv1beta1.SchemeGroupVersion.Version)
-			if err == nil {
-				klog.Info("mapper v1beta1.EndpointSlices")
-				endpointSliceV1Beta1Informer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
-				endpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1Beta1EventHandler(), resyncPeriod)
-				go endpointSliceV1Beta1Informer.Run(stop)
-				if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Beta1Informer.HasSynced) {
-					return fmt.Errorf("can't sync endpointslice informers")
-				}
-			} else {
-				if _, ok := err.(*meta.NoKindMatchError); !ok {
-					return err
-				}
+		restMapper := restmapper.NewDiscoveryRESTMapper(restMapperRes)
+		_, err = restMapper.RESTMapping(apischema.GroupKind{
+			Group: discoveryv1.SchemeGroupVersion.Group,
+			Kind:  "EndpointSlice",
+		}, discoveryv1.SchemeGroupVersion.Version)
+		if err == nil {
+			klog.Info("mapper v1.EndpointSlices")
+			endpointSliceV1Informer := informerFactory.Discovery().V1().EndpointSlices().Informer()
+			endpointSliceV1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1EventHandler(), resyncPeriod)
+			go endpointSliceV1Informer.Run(stop)
+			if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Informer.HasSynced) {
+				return fmt.Errorf("can't sync endpointslice informers")
 			}
 		} else {
-			return err
+			if _, ok := err.(*meta.NoKindMatchError); ok {
+				_, err = restMapper.RESTMapping(apischema.GroupKind{
+					Group: discoveryv1beta1.SchemeGroupVersion.Group,
+					Kind:  "EndpointSlice",
+				}, discoveryv1beta1.SchemeGroupVersion.Version)
+				if err == nil {
+					klog.Info("mapper v1beta1.EndpointSlices")
+					endpointSliceV1Beta1Informer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
+					endpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(s.cache.EndpointSliceV1Beta1EventHandler(), resyncPeriod)
+					go endpointSliceV1Beta1Informer.Run(stop)
+					if !cache.WaitForNamedCacheSync("node", stop, endpointSliceV1Beta1Informer.HasSynced) {
+						return fmt.Errorf("can't sync endpointslice informers")
+					}
+				} else {
+					if _, ok := err.(*meta.NoKindMatchError); !ok {
+						return err
+					}
+				}
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -497,26 +496,8 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 
 			k3sRestMapperRes, err := restmapper.GetAPIGroupResources(k3sClient.Discovery())
 			if err != nil {
-				_, err = k3sClient.DiscoveryV1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
-				if err == nil {
-					err = setupEndpointSlicesV1Informer()
-					if err != nil {
-						klog.Error(err)
-						return err
-					}
-				} else {
-					_, err = k3sClient.DiscoveryV1beta1().EndpointSlices("").List(context.Background(), metav1.ListOptions{})
-					if err == nil {
-						err = setupEndpointSlicesV1beta1Informer()
-						if err != nil {
-							klog.Error(err)
-							return err
-						}
-					}
-				}
 				return err
 			}
-
 			k3sRestMapper := restmapper.NewDiscoveryRESTMapper(k3sRestMapperRes)
 			_, err = k3sRestMapper.RESTMapping(apischema.GroupKind{
 				Group: discoveryv1.SchemeGroupVersion.Group,
@@ -531,7 +512,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				}
 			} else {
 				if _, ok := err.(*meta.NoKindMatchError); ok {
-					_, err = restMapper.RESTMapping(apischema.GroupKind{
+					_, err = k3sRestMapper.RESTMapping(apischema.GroupKind{
 						Group: discoveryv1beta1.SchemeGroupVersion.Group,
 						Kind:  "EndpointSlice",
 					}, discoveryv1beta1.SchemeGroupVersion.Version)
@@ -570,7 +551,6 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 			}
 			for k, v := range node.Labels {
 				if v == siteconstant.NodeUnitSuperedge {
-					klog.Infof("label key = %s", k)
 					nu, err := crdClient.SiteV1alpha2().NodeUnits().Get(context.Background(), k, metav1.GetOptions{})
 					if err != nil {
 						klog.Errorf("Failed to get nodeUint %s, error: %v", k, err)
