@@ -17,15 +17,16 @@ limitations under the License.
 package statefulset
 
 import (
+	"context"
 	"fmt"
+	"time"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	appsv1 "k8s.io/api/apps/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 
-	"context"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
@@ -226,6 +227,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		if err != nil && !errors.IsConflict(err) {
 			return err
 		}
+		return nil
 	}
 
 	// get statefulset workload list of this grid
