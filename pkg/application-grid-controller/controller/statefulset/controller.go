@@ -223,11 +223,8 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		!apiequality.Semantic.DeepEqual(ssg.Spec.DefaultTemplateName, ssgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(ssg.Spec.TemplatePool, ssgCopy.Spec.TemplatePool) {
 		klog.Infof("Updating statefulsetGrid %s/%s template info", ssgCopy.Namespace, ssgCopy.Name)
-		ssg, err = ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
-		if err != nil && !errors.IsConflict(err) {
-			return err
-		}
-		return nil
+		_, err = ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+		return err
 	}
 
 	// get statefulset workload list of this grid

@@ -245,11 +245,8 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 		!apiequality.Semantic.DeepEqual(dg.Spec.DefaultTemplateName, dgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(dg.Spec.TemplatePool, dgCopy.Spec.TemplatePool) {
 		klog.Infof("Updating deploymentGrid %s/%s template", dgCopy.Namespace, dgCopy.Name)
-		dg, err = dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
-		if err != nil && !errors.IsConflict(err) {
-			return err
-		}
-		return nil
+		_, err = dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
+		return err
 	}
 
 	// get deployment workload list of this grid
