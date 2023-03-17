@@ -19,14 +19,13 @@ limitations under the License.
 package v1alpha1
 
 import (
-	superedge "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: superedge.GroupName, Version: superedge.Version}
+var SchemeGroupVersion = schema.GroupVersion{Group: "site.superedge.io", Version: "v1alpha1"}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {
@@ -39,8 +38,9 @@ func Resource(resource string) schema.GroupResource {
 }
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes, registerDefaults)
+	localSchemeBuilder = &SchemeBuilder
+	AddToScheme        = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to Scheme.
@@ -53,4 +53,55 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
+}
+
+func registerDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&NodeUnit{}, func(obj interface{}) { SetObjectDefaults_NodeUnit(obj.(*NodeUnit)) })
+	scheme.AddTypeDefaultingFunc(&NodeUnitList{}, func(obj interface{}) { SetObjectDefaults_NodeUnitList(obj.(*NodeUnitList)) })
+	scheme.AddTypeDefaultingFunc(&NodeGroup{}, func(obj interface{}) { SetObjectDefaults_NodeGroup(obj.(*NodeGroup)) })
+	scheme.AddTypeDefaultingFunc(&NodeGroupList{}, func(obj interface{}) { SetObjectDefaults_NodeGroupList(obj.(*NodeGroupList)) })
+	return nil
+}
+
+func SetObjectDefaults_NodeUnit(in *NodeUnit) {
+
+	SetDefaults_NodeUnitTypeMeta(in)
+}
+
+func SetDefaults_NodeUnitTypeMeta(in *NodeUnit) {
+	in.APIVersion = SchemeGroupVersion.String()
+	in.Kind = "NodeUnit"
+
+}
+
+func SetObjectDefaults_NodeUnitList(in *NodeUnitList) {
+	SetDefaults_NodeUnitListTypeMeta(in)
+}
+
+func SetDefaults_NodeUnitListTypeMeta(in *NodeUnitList) {
+	in.APIVersion = SchemeGroupVersion.String()
+	in.Kind = "NodeUnitList"
+
+}
+
+func SetObjectDefaults_NodeGroup(in *NodeGroup) {
+
+	SetDefaults_NodeGroupTypeMeta(in)
+}
+
+func SetDefaults_NodeGroupTypeMeta(in *NodeGroup) {
+	in.APIVersion = SchemeGroupVersion.String()
+	in.Kind = "NodeGroup"
+
+}
+
+func SetObjectDefaults_NodeGroupList(in *NodeGroupList) {
+
+	SetDefaults_NodeGroupListTypeMeta(in)
+}
+
+func SetDefaults_NodeGroupListTypeMeta(in *NodeGroupList) {
+	in.APIVersion = SchemeGroupVersion.String()
+	in.Kind = "NodeGroupList"
+
 }

@@ -18,4 +18,6 @@ limitations under the License.
 
 // +k8s:deepcopy-gen=package
 // +groupName=site.superedge.io
+// +k8s:conversion-gen=github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io
+// +k8s:defaulter-gen=TypeMeta
 package v1alpha2

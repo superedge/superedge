@@ -38,6 +38,13 @@ spec:
     - nu
     singular: nodeunit
   scope: Cluster
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        url: {{ .ConvertWebhookServer }}
+        caBundle: {{ .CaCrt}}
+      conversionReviewVersions: ["v1"]
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.type
