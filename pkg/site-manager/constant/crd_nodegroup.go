@@ -40,6 +40,13 @@ spec:
     - ng
     singular: nodegroup
   scope: Cluster
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        url: {{ .ConvertWebhookServer }}
+        caBundle: {{ .CaCrt}}
+      conversionReviewVersions: ["v1"]
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.unitnumber

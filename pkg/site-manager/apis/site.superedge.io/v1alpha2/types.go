@@ -309,14 +309,17 @@ type NodeUnitSpec struct {
 	// L4's autonomous area is unit. If AutonomyLevel larger than L3, it will create a independent control plane in unit.
 	// +optional
 	//+kubebuilder:default=L3
+	//+k8s:conversion-gen=false
 	AutonomyLevel AutonomyLevelType `json:"autonomyLevel,omitempty"`
 	// UnitCredentialConfigMapRef for isolate sensitive NodeUnit credential.
 	// site-manager will create one after controller-plane ready
 	// +optional
+	//+k8s:conversion-gen=false
 	UnitCredentialConfigMapRef *corev1.ObjectReference `json:"unitCredentialConfigMapRef,omitempty"`
 
 	// UnitClusterInfo holds configuration for unit cluster information.
 	// +optional
+	//+k8s:conversion-gen=false
 	UnitClusterInfo *UnitClusterInfoSpec `json:"unitClusterInfo,omitempty"`
 }
 
@@ -353,6 +356,7 @@ type NodeUnitStatus struct {
 
 	// UnitClusterStatus is not nil, when AutonomyLevel is larger than L3
 	// +optional
+	//+k8s:conversion-gen=false
 	UnitCluster UnitClusterStatus `json:"unitClusterStatus,omitempty"`
 }
 

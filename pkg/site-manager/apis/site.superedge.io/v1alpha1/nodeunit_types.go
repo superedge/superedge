@@ -81,6 +81,7 @@ type NodeUnitSpec struct {
 	SetNode SetNode `json:"setnode,omitempty" protobuf:"bytes,12,opt,name=setnode"`
 	// If specified, allow to set taints to nodeunit for the scheduler to choose
 	// +optional
+	//+k8s:conversion-gen=false
 	Taints []corev1.Taint `json:"taints,omitempty" protobuf:"bytes,5,opt,name=taints"`
 }
 

@@ -18,6 +18,8 @@ package app
 
 import (
 	"context"
+	"github.com/superedge/superedge/pkg/site-manager/webhook"
+	"net/http"
 	"os"
 	"time"
 
@@ -41,11 +43,15 @@ import (
 	"github.com/superedge/superedge/pkg/site-manager/constant"
 	"github.com/superedge/superedge/pkg/site-manager/controller"
 	crdclientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
-	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/util"
 	utilkubeclient "github.com/superedge/superedge/pkg/util/kubeclient"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
+)
+
+const (
+	serverCrt = "/etc/site-manager/certs/webhook_server.crt"
+	serverKey = "/etc/site-manager/certs/webhook_server.key"
 )
 
 func NewSiteManagerDaemonCommand() *cobra.Command {
@@ -75,11 +81,17 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 			runConfig := func(ctx context.Context) {
 				if siteOptions.EnsureCrd {
 					wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
-						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, ""); err != nil {
+						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodeUnitDefinitionYaml, map[string]interface{}{
+							"ConvertWebhookServer": os.Getenv("CONVERT_WEBHOOK_SERVER"),
+							"CaCrt":                os.Getenv("CA_CRT"),
+						}); err != nil {
 							klog.ErrorS(err, "Create node unit crd error")
 							return false, nil
 						}
-						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, ""); err != nil {
+						if err := utilkubeclient.CreateOrUpdateCustomResourceDefinition(extensionsClient, constant.CRDNodegroupDefinitionYaml, map[string]interface{}{
+							"ConvertWebhookServer": os.Getenv("CONVERT_WEBHOOK_SERVER"),
+							"CaCrt":                os.Getenv("CA_CRT"),
+						}); err != nil {
 							klog.ErrorS(err, "Create node group crd error")
 							return false, nil
 						}
@@ -88,17 +100,27 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 
 					}, wait.NeverStop)
 				}
-				// default create unit and verison migration
-				wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
-					if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
-						klog.Errorf("InitAllRosource error: %#v", err)
-						return false, nil
-					}
-					return true, nil
-				}, wait.NeverStop)
+				//// default create unit and verison migration
+				//wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
+				//	if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
+				//		klog.Errorf("InitAllRosource error: %#v", err)
+				//		return false, nil
+				//	}
+				//	return true, nil
+				//}, wait.NeverStop)
 			}
 			runConfig(context.TODO())
 
+			// crd convert webhook server
+			go func() {
+				mux := &http.ServeMux{}
+				mux.HandleFunc("/v1", webhook.V1Handler)
+				server := http.Server{Handler: mux, Addr: "0.0.0.0:9000"}
+				err = server.ListenAndServeTLS(serverCrt, serverKey)
+				if err != nil {
+					klog.Error(err)
+				}
+			}()
 			// not leade elect
 			if !siteOptions.LeaderElect {
 				runController(context.TODO(), kubeClient, crdClient, siteOptions.Worker, siteOptions.SyncPeriod, siteOptions.SyncPeriodAsWhole)

@@ -31,3 +31,17 @@ bash ${SCRIPT_ROOT}/ven/k8s.io/code-generator/generate-groups.sh all \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" -v=9
 # To use your own boilerplate text append:
 #   --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt
+
+deepcopy-gen --input-dirs github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io \
+  -O zz_generated.deepcopy \
+  --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" -v=9
+
+
+
+conversion-gen --input-dirs  github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1 \
+  -O zz_generated.conversion \
+  --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt"
+
+conversion-gen --input-dirs  github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2 \
+  -O zz_generated.conversion \
+  --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt"

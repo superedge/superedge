@@ -74,7 +74,10 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
 // SuperedgeV1 retrieves the SuperedgeV1Client
 func (c *Clientset) SuperedgeV1() superedgev1.SuperedgeV1Interface {
