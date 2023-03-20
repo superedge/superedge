@@ -295,6 +295,9 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 			if err != nil {
 				return nil, err
 			}
+			if len(eps.Subsets) == 0 {
+				return nil, fmt.Errorf("all replicas of apiserver are unavailable, service: %s", fmt.Sprintf("%s.%s", k3sService.Name, k3sService.Namespace))
+			}
 			for _, ep := range eps.Subsets[0].Addresses {
 				conn, err := net.Dial("tcp", fmt.Sprintf("%s:6443", ep.IP))
 				if err == nil {
