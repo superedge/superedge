@@ -107,6 +107,7 @@ type NodeUnitStatus struct {
 //+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
 //+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readyrate`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:printcolumn:name="DELETING",type="date",JSONPath=".metadata.deletionTimestamp"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeUnit is the Schema for the nodeunits API
