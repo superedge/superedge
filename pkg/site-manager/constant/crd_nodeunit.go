@@ -56,6 +56,9 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
+    - jsonPath: .metadata.deletionTimestamp
+      name: DELETING
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -241,6 +244,9 @@ spec:
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
+      type: date
+    - jsonPath: .metadata.deletionTimestamp
+      name: DELETING
       type: date
     name: v1alpha2
     schema:

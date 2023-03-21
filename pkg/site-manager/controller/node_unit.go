@@ -94,6 +94,10 @@ func NewNodeUnitController(
 		Interface: kubeClient.CoreV1().Events(""),
 	})
 
+	err := sitev1alpha2.AddToScheme(scheme.Scheme)
+	if err != nil {
+		klog.Error(err)
+	}
 	nodeUnitController := &NodeUnitController{
 		kubeClient:    kubeClient,
 		crdClient:     crdClient,
@@ -390,6 +394,15 @@ func (c *NodeUnitController) syncUnit(key string) error {
 	} else {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(nu, NodeUnitFinalizerID) {
+			if nu.Spec.AutonomyLevel != "L3" {
+				c.eventRecorder.Event(nu, corev1.EventTypeWarning, fmt.Sprintf("The nodeunit whose autonomyLevel is %s is not allowed to be deleted", nu.Spec.AutonomyLevel), "Before deleting, please adjust the autonomyLevel of nodeunit to L3")
+				return fmt.Errorf("the nodeunit whose autonomyLevel is %s is not allowed to be deleted, nodeunit:%s", nu.Spec.AutonomyLevel, nu.Name)
+			}
+
+			err = c.reconcileNodeUnit(nu)
+			if err != nil {
+				return err
+			}
 			// our finalizer is present, so lets handle any external dependency
 			if err := c.nodeUnitDeleter.Delete(nu); err != nil {
 				// if fail to delete the external dependency here, return with error
