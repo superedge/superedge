@@ -396,7 +396,7 @@ func (c *NodeUnitController) syncUnit(key string) error {
 		if controllerutil.ContainsFinalizer(nu, NodeUnitFinalizerID) {
 			if nu.Spec.AutonomyLevel != "L3" {
 				c.eventRecorder.Event(nu, corev1.EventTypeWarning, fmt.Sprintf("The nodeunit whose autonomyLevel is %s is not allowed to be deleted", nu.Spec.AutonomyLevel), "Before deleting, please adjust the autonomyLevel of nodeunit to L3")
-				return fmt.Errorf("the nodeunit whose autonomyLevel is %s is not allowed to be deleted, nodeunit:%s", nu.Spec.AutonomyLevel, nu.Name)
+				return nil
 			}
 
 			err = c.reconcileNodeUnit(nu)
