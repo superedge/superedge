@@ -16,5 +16,6 @@ spec:
     targetPort: 6443
     protocol: TCP
   selector:
+    site.superedge.io/nodeunit: {{ .UnitName }}
     {{ .KinsRoleLabelKey }}: {{ .KinsRoleLabelServer }}
 `

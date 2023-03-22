@@ -15,6 +15,7 @@ spec:
     name: https
   clusterIP: None
   selector:
+    site.superedge.io/nodeunit: {{ .UnitName }}
     site.superedge.io/kins-role: server
     site.superedge.io/server-type: init
 ---
@@ -36,6 +37,7 @@ spec:
   template:
     metadata:
       labels:
+        site.superedge.io/nodeunit: {{ .UnitName }}
         site.superedge.io/kins-role: server
         site.superedge.io/server-type: init
       name: k3s-server

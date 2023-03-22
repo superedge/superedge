@@ -14,11 +14,13 @@ spec:
   serviceName: {{ .KinsServerName }}-join
   selector:
     matchLabels:
+      site.superedge.io/nodeunit: {{ .UnitName }}
       site.superedge.io/kins-role: server
       site.superedge.io/server-type: join      
   template:
     metadata:
       labels:
+		site.superedge.io/nodeunit: {{ .UnitName }}
         site.superedge.io/kins-role: server
         site.superedge.io/server-type: join        
       name: k3s-server-join
