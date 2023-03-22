@@ -26,6 +26,7 @@ import (
 	"github.com/superedge/superedge/pkg/edge-health/data"
 	"github.com/superedge/superedge/pkg/site-manager/controller/unitcluster"
 	"io/ioutil"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	informcorev1 "k8s.io/client-go/informers/core/v1"
 	listerscorev1 "k8s.io/client-go/listers/core/v1"
@@ -327,7 +328,16 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 					s.nodeBoradcaster.ActionOrDrop(watch.Added, obj.(*v1.Node))
 				},
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					s.nodeBoradcaster.ActionOrDrop(watch.Modified, newObj.(*v1.Node))
+					updateNode := newObj.(*v1.Node)
+					_, nodeErr := nodeLister.Get(updateNode.Name)
+					if apierrors.IsNotFound(nodeErr) {
+						deleteErr := k3sClient.CoreV1().Nodes().Delete(context.TODO(), updateNode.Name, metav1.DeleteOptions{})
+						if err != nil {
+							klog.Error(deleteErr)
+						}
+					} else {
+						s.nodeBoradcaster.ActionOrDrop(watch.Modified, updateNode)
+					}
 				},
 				DeleteFunc: func(obj interface{}) {
 					s.nodeBoradcaster.ActionOrDrop(watch.Deleted, obj.(*v1.Node))
