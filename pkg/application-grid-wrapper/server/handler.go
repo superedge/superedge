@@ -333,6 +333,7 @@ func (s *interceptorServer) interceptEndpointSliceV1Request(handler http.Handler
 				for _, epsV1 := range s.k3sEndpointSliceV1Informer.GetStore().List() {
 					k3sEpsV1 := epsV1.(*discoveryv1.EndpointSlice)
 					superedgeEpsV1 := k3sEpsV1.DeepCopy()
+					superedgeEpsV1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1.Name)
 					superedgeEpsV1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1.Labels["kubernetes.io/service-name"])
 					epsItems = append(epsItems, *superedgeEpsV1)
 				}
@@ -430,7 +431,11 @@ func (s *interceptorServer) interceptEndpointSliceV1Beta1Request(handler http.Ha
 			//添加endpointsliceV1Beta
 			if s.k3sEndpointSliceV1Beta1Informer != nil {
 				for _, epsV1Beta := range s.k3sEndpointSliceV1Beta1Informer.GetStore().List() {
-					epsItems = append(epsItems, *epsV1Beta.(*discoveryv1beta1.EndpointSlice))
+					k3sEpsV1beta1 := epsV1Beta.(*discoveryv1beta1.EndpointSlice)
+					superedgeEpsV1beta1 := k3sEpsV1beta1.DeepCopy()
+					superedgeEpsV1beta1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Name)
+					superedgeEpsV1beta1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Labels["kubernetes.io/service-name"])
+					epsItems = append(epsItems, *superedgeEpsV1beta1)
 				}
 			}
 			epsList := &discoveryv1beta1.EndpointSliceList{
