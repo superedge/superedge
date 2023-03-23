@@ -439,18 +439,21 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 					AddFunc: func(obj interface{}) {
 						k3sEpsV1 := obj.(*discoveryv1.EndpointSlice)
 						superedgeEpsV1 := k3sEpsV1.DeepCopy()
+						superedgeEpsV1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1.Name)
 						superedgeEpsV1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1.Labels["kubernetes.io/service-name"])
 						s.endpointSliceV1WatchBroadcaster.ActionOrDrop(watch.Added, superedgeEpsV1)
 					},
 					UpdateFunc: func(oldObj, newObj interface{}) {
 						k3sEpsV1 := newObj.(*discoveryv1.EndpointSlice)
 						superedgeEpsV1 := k3sEpsV1.DeepCopy()
+						superedgeEpsV1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1.Name)
 						superedgeEpsV1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1.Labels["kubernetes.io/service-name"])
 						s.endpointSliceV1WatchBroadcaster.ActionOrDrop(watch.Modified, superedgeEpsV1)
 					},
 					DeleteFunc: func(obj interface{}) {
 						k3sEpsV1 := obj.(*discoveryv1.EndpointSlice)
 						superedgeEpsV1 := k3sEpsV1.DeepCopy()
+						superedgeEpsV1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1.Name)
 						superedgeEpsV1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1.Labels["kubernetes.io/service-name"])
 						s.endpointSliceV1WatchBroadcaster.ActionOrDrop(watch.Deleted, superedgeEpsV1)
 					},
@@ -483,20 +486,37 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				//eventHandler
 				k3sEndpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 					AddFunc: func(obj interface{}) {
-						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Added, obj.(*discoveryv1beta1.EndpointSlice))
+						k3sEpsV1beta1 := obj.(*discoveryv1beta1.EndpointSlice)
+						superedgeEpsV1beta1 := k3sEpsV1beta1.DeepCopy()
+						superedgeEpsV1beta1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Name)
+						superedgeEpsV1beta1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Labels["kubernetes.io/service-name"])
+						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Added, superedgeEpsV1beta1)
 					},
 					UpdateFunc: func(oldObj, newObj interface{}) {
-						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Modified, newObj.(*discoveryv1beta1.EndpointSlice))
+						k3sEpsV1beta1 := newObj.(*discoveryv1beta1.EndpointSlice)
+						superedgeEpsV1beta1 := k3sEpsV1beta1.DeepCopy()
+						superedgeEpsV1beta1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Name)
+						superedgeEpsV1beta1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Labels["kubernetes.io/service-name"])
+						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Modified, superedgeEpsV1beta1)
 					},
 					DeleteFunc: func(obj interface{}) {
-						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Deleted, obj.(*discoveryv1beta1.EndpointSlice))
+						k3sEpsV1beta1 := obj.(*discoveryv1beta1.EndpointSlice)
+						superedgeEpsV1beta1 := k3sEpsV1beta1.DeepCopy()
+						superedgeEpsV1beta1.Name = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Name)
+						superedgeEpsV1beta1.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", superedgeEpsV1beta1.Labels["kubernetes.io/service-name"])
+						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Deleted, superedgeEpsV1beta1)
 					},
 				}, resyncPeriod)
 				//errorEventHandler
 				k3sEndpointSliceV1Beta1Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 					for _, v := range k3sEndpointSliceV1Beta1Informer.GetStore().List() {
 						k3sEndpointSliceV1Beta1Informer.GetStore().Delete(v)
-						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Deleted, v.(*discoveryv1beta1.EndpointSlice))
+
+						eps := v.(*discoveryv1beta1.EndpointSlice)
+						k3sEps := eps.DeepCopy()
+						k3sEps.Labels["kubernetes.io/service-name"] = fmt.Sprintf("k3s-%s", eps.Labels["kubernetes.io/service-name"])
+						k3sEps.Name = fmt.Sprintf("k3s-%s", eps.Name)
+						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Deleted, k3sEps)
 					}
 				})
 				go k3sEndpointSliceV1Beta1Informer.Run(k3sStop)
