@@ -30,7 +30,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: kins-localvolume
   hostPath:
-    path: /date/edge/rancher-root
+    path: /data/edge/rancher-root
     type: DirectoryOrCreate
   nodeAffinity:
     required:

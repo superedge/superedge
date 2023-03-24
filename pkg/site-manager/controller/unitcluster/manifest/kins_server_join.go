@@ -10,6 +10,7 @@ metadata:
   name: {{ .KinsServerName }}-join
   namespace: {{ .KinsNamespace }}
 spec:
+  podManagementPolicy: Parallel
   replicas: 2
   serviceName: {{ .KinsServerName }}-join
   selector:
@@ -20,7 +21,7 @@ spec:
   template:
     metadata:
       labels:
-		site.superedge.io/nodeunit: {{ .UnitName }}
+        site.superedge.io/nodeunit: {{ .UnitName }}
         site.superedge.io/kins-role: server
         site.superedge.io/server-type: join        
       name: k3s-server-join
@@ -65,12 +66,6 @@ spec:
             do
               mkdir -p /sys/fs/cgroup/$d/edgek3s
             done
-            if [ -d "/var/lib/rancher/k3s/server/db-old" ]; then
-              rm -fr /var/lib/rancher/k3s/server/db-old
-            fi
-            if [ -d "/var/lib/rancher/k3s/server/db" ]; then
-              mv /var/lib/rancher/k3s/server/db /var/lib/rancher/k3s/server/db-old
-            fi
         volumeMounts:
           - name: host-sys
             mountPath: /sys

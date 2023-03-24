@@ -89,10 +89,6 @@ spec:
             do
               mkdir -p /sys/fs/cgroup/$d/edgek3s
             done
-            SNAPFILE=$(ls -t1  /var/lib/rancher/k3s/server/db/snapshots/etcd-snapshot-* | head -n1)
-            if [ $? -eq 0 ]; then
-              /k3s server --cluster-reset --cluster-reset-restore-path=$SNAPFILE
-            fi
         volumeMounts:
           - name: host-sys
             mountPath: /sys
