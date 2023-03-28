@@ -200,14 +200,14 @@ func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdC
 }
 
 func InitAllRosource(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
-	if err := Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx, crdClient, extentionClient); err != nil {
-		klog.ErrorS(err, "Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit error")
-		return err
-	}
-	if err := Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx, crdClient, extentionClient); err != nil {
-		klog.ErrorS(err, "Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup error")
-		return err
-	}
+	//if err := Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx, crdClient, extentionClient); err != nil {
+	//	klog.ErrorS(err, "Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit error")
+	//	return err
+	//}
+	//if err := Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx, crdClient, extentionClient); err != nil {
+	//	klog.ErrorS(err, "Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup error")
+	//	return err
+	//}
 	if err := CreateDefaultUnit(ctx, crdClient); err != nil {
 		klog.ErrorS(err, "create default unit error")
 		return err
