@@ -18,6 +18,7 @@ package app
 
 import (
 	"context"
+	"github.com/superedge/superedge/pkg/site-manager/utils"
 	"github.com/superedge/superedge/pkg/site-manager/webhook"
 	"net/http"
 	"os"
@@ -100,14 +101,14 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 
 					}, wait.NeverStop)
 				}
-				//// default create unit and verison migration
-				//wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
-				//	if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
-				//		klog.Errorf("InitAllRosource error: %#v", err)
-				//		return false, nil
-				//	}
-				//	return true, nil
-				//}, wait.NeverStop)
+				// default create unit and verison migration
+				wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
+					if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
+						klog.Errorf("InitAllRosource error: %#v", err)
+						return false, nil
+					}
+					return true, nil
+				}, wait.NeverStop)
 			}
 			runConfig(context.TODO())
 

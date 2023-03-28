@@ -284,7 +284,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 
 	crdClient := crdclientset.NewForConfigOrDie(s.restConfig)
 	nodeLister := listerscorev1.NewNodeLister(nodeInformer.GetIndexer())
-	setupK3sInformer := func(kubeconfig string, k3sService *v1.Service, k3sStop <-chan struct{}) error {
+	setupK3sInformer := func(kubeconfig, nodeunit string, k3sService *v1.Service, k3sStop <-chan struct{}) error {
 		k3sRestConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
 		if err != nil {
 			klog.Errorf("Failed to get k3s kubeclient restConfig, error: %v", err)
@@ -329,14 +329,23 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				},
 				UpdateFunc: func(oldObj, newObj interface{}) {
 					updateNode := newObj.(*v1.Node)
-					_, nodeErr := nodeLister.Get(updateNode.Name)
+					node, nodeErr := nodeLister.Get(updateNode.Name)
 					if apierrors.IsNotFound(nodeErr) {
 						deleteErr := k3sClient.CoreV1().Nodes().Delete(context.TODO(), updateNode.Name, metav1.DeleteOptions{})
 						if err != nil {
 							klog.Error(deleteErr)
 						}
 					} else {
-						s.nodeBoradcaster.ActionOrDrop(watch.Modified, updateNode)
+						if v, ok := node.Labels[nodeunit]; ok {
+							if v == siteconstant.NodeUnitSuperedge {
+								s.nodeBoradcaster.ActionOrDrop(watch.Modified, updateNode)
+								return
+							}
+						}
+						deleteErr := k3sClient.CoreV1().Nodes().Delete(context.TODO(), updateNode.Name, metav1.DeleteOptions{})
+						if err != nil {
+							klog.Error(deleteErr)
+						}
 					}
 				},
 				DeleteFunc: func(obj interface{}) {
@@ -650,7 +659,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 						} else {
 							k3sInfomerStop <- struct{}{}
 						}
-						err = setupK3sInformer(kubeconf.Data["kubeconfig.conf"], k3sSvc, k3sInfomerStop)
+						err = setupK3sInformer(kubeconf.Data["kubeconfig.conf"], k, k3sSvc, k3sInfomerStop)
 						if err != nil {
 							klog.Errorf("Failed to setupK3sInformer, error: %v", err)
 						} else {
