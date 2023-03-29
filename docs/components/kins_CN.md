@@ -48,6 +48,7 @@ spec:
 <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/eff56348dff846f4d364eb95a36a366e.jpg" alt="节点列表" width="641">
 
 观察相应的 Pod 已经启动：
+
 <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/6580929e7bbe4a8db7593ef4df8ae4e2.jpg" alt="节点列表" width="641">
 
 > 注解：
@@ -73,6 +74,7 @@ kubectl get cm test-cm-kins -n kins-system -o=jsonpath='{.data.kubeconfig\.conf}
 ```
 
 获取 kubeconfig 信息如下：
+
 <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/d9a919e83befdae6eb4125be9bbc3abf.jpg" alt="节点列表" width="718">
 
 保存 kubeconfig 文件到需要的边缘节点，例如本例中拷贝到 edge3 节点，即可在 edge3 节点上访问边缘集群，如下：
