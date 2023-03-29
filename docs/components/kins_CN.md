@@ -87,16 +87,17 @@ kubectl get cm test-cm-kins -n kins-system -o=jsonpath='{.data.kubeconfig\.conf}
 
 - 通过集群中 `tunnel-cloud`的 svc 信息，从 tunnel-cloud 的 svc 种获取云端代理配置，如下图：
 
-        <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/299a628d7192f7b9939de510c639e623.jpg" alt="节点列表" width="565">
+<img title="" src="https://qcloudimg.tencent-cloud.cn/raw/299a628d7192f7b9939de510c639e623.jpg" alt="节点列表" width="565">
 
 > 记录 http-proxy 的端口，集群内可以用 tunnel-cloud 的svc-ip:8080访问；如果需要从集群外访问，可以如上图，使用 master 的节点 IP:31469访问
 
 - 确认边缘k3s集群的 svc 信息
-
-        通过 service 确认需要访问的边缘 k3s 集群在集群内的 svc 访问地址，如下图
-        <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/1532b1e81b2bc31c76db8ad00a3f324a.jpg" alt="节点列表" width="524">
-
-        我们需要访问的 svc 地址即为<NodeUnit>-svc-kins，此例为`test-svc-kins`，可以使用 svc 名称或者 svc ip 访问均可
+  
+  通过 service 确认需要访问的边缘 k3s 集群在集群内的 svc 访问地址，如下图
+  
+  <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/1532b1e81b2bc31c76db8ad00a3f324a.jpg" alt="节点列表" width="524">
+  
+  我们需要访问的 svc 地址即为<NodeUnit>-svc-kins，此例为`test-svc-kins`，可以使用 svc 名称或者 svc ip 访问均可
 
 - 修改 4.1 节边缘侧的 kubeconfig 文件，如下：
   
@@ -125,8 +126,6 @@ kubectl get cm test-cm-kins -n kins-system -o=jsonpath='{.data.kubeconfig\.conf}
 - 通过上述的 kubeconfig 文件，可以从 master 节点访问边缘侧 K3s 集群：
   
   <img title="" src="https://qcloudimg.tencent-cloud.cn/raw/13fc3f5c41af12103d8339c148737556.jpg" alt="节点列表" width="524">
-
-
 
 ### 5. 降级/删除边缘侧 K3s 集群
 
