@@ -17,14 +17,14 @@ limitations under the License.
 package app
 
 import (
+	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/server"
 	"github.com/superedge/superedge/pkg/util"
 	"github.com/superedge/superedge/pkg/version/verflag"
-
-	"github.com/spf13/cobra"
 )
 
 func NewWrapperProxyCommand() *cobra.Command {
@@ -36,8 +36,14 @@ func NewWrapperProxyCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			verflag.PrintAndExitIfRequested()
 			util.PrintFlags(cmd.Flags())
-
-			server := server.NewInterceptorServer(o.KubeConfig, o.HostName, o.WrapperInCluster,
+			restConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
+			if err != nil {
+				klog.Errorf("can't build rest config, %v", err)
+				return
+			}
+			restConfig.QPS = o.QPS
+			restConfig.Burst = o.Burst
+			server := server.NewInterceptorServer(restConfig, o.HostName, o.WrapperInCluster,
 				o.NotifyChannelSize, o.ServiceAutonomyEnhancementOption, o.SupportEndpointSlice)
 			if server == nil {
 				return

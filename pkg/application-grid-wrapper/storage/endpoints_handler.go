@@ -100,12 +100,20 @@ func (eh *endpointsHandler) OnAdd(obj interface{}) {
 	eh.add(eps)
 }
 
-func (eh *endpointsHandler) OnUpdate(_, newObj interface{}) {
-	eps, ok := newObj.(*v1.Endpoints)
+func (eh *endpointsHandler) OnUpdate(oldObj, newObj interface{}) {
+	oldEps, ok := oldObj.(*v1.Endpoints)
 	if !ok {
 		return
 	}
-	eh.update(eps)
+	newEps, ok := newObj.(*v1.Endpoints)
+	if !ok {
+		return
+	}
+	if apiequality.Semantic.DeepEqual(oldEps.Subsets, newEps.Subsets) {
+		return
+	}
+
+	eh.update(newEps)
 }
 
 func (eh *endpointsHandler) OnDelete(obj interface{}) {
