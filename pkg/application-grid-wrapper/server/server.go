@@ -22,43 +22,43 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
-	"github.com/superedge/superedge/pkg/edge-health/data"
-	"github.com/superedge/superedge/pkg/site-manager/controller/unitcluster"
 	"io/ioutil"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
-	informcorev1 "k8s.io/client-go/informers/core/v1"
-	listerscorev1 "k8s.io/client-go/listers/core/v1"
-	listersv1 "k8s.io/client-go/listers/core/v1"
 	"net"
 	"net/http"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apischema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
+	informcorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	listerscorev1 "k8s.io/client-go/listers/core/v1"
+	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
+	"github.com/superedge/superedge/cmd/application-grid-wrapper/app/options"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/server/apis"
 	"github.com/superedge/superedge/pkg/application-grid-wrapper/storage"
+	"github.com/superedge/superedge/pkg/edge-health/data"
 	sitev1alpha2 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
 	siteconstant "github.com/superedge/superedge/pkg/site-manager/constant"
+	"github.com/superedge/superedge/pkg/site-manager/controller/unitcluster"
 	crdclientset "github.com/superedge/superedge/pkg/site-manager/generated/clientset/versioned"
-	discoveryv1 "k8s.io/api/discovery/v1"
-	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
-	apischema "k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/restmapper"
 )
 
 const (
@@ -95,13 +95,7 @@ func NodeLabelsFunc(obj interface{}) ([]string, error) {
 	}
 	return []string{}, nil
 }
-func NewInterceptorServer(kubeconfig string, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions, supportEndpointSlice bool) *interceptorServer {
-	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		klog.Errorf("can't build rest config, %v", err)
-		return nil
-	}
-
+func NewInterceptorServer(restConfig *rest.Config, hostName string, wrapperInCluster bool, channelSize int, serviceAutonomyEnhancement options.ServiceAutonomyEnhancementOptions, supportEndpointSlice bool) *interceptorServer {
 	serviceBroadcaster := watch.NewLongQueueBroadcaster(channelSize, watch.DropIfChannelFull)
 	endpointBroadcaster := watch.NewLongQueueBroadcaster(channelSize, watch.DropIfChannelFull)
 	endpointSliceV1Broadcaster := watch.NewLongQueueBroadcaster(channelSize, watch.DropIfChannelFull)
@@ -322,7 +316,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 			k3sServiceInformer := k3sInformerFactory.Core().V1().Services().Informer()
 			k3sEndpointsInformer := k3sInformerFactory.Core().V1().Endpoints().Informer()
 
-			//node eventHandler
+			// node eventHandler
 			k3sNodeInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 				AddFunc: func(obj interface{}) {
 					s.nodeBoradcaster.ActionOrDrop(watch.Added, obj.(*v1.Node))
@@ -352,7 +346,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 					s.nodeBoradcaster.ActionOrDrop(watch.Deleted, obj.(*v1.Node))
 				},
 			}, resyncPeriod)
-			//node errorEventHandler
+			// node errorEventHandler
 			k3sNodeInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 				for _, v := range k3sNodeInformer.GetStore().List() {
 					k3sNodeInformer.GetStore().Delete(v)
@@ -360,7 +354,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				}
 			})
 
-			//service eventHandler
+			// service eventHandler
 			k3sServiceInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 				AddFunc: func(obj interface{}) {
 					svc := obj.(*v1.Service)
@@ -382,7 +376,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				},
 			}, resyncPeriod)
 
-			//service errorEventHandler
+			// service errorEventHandler
 			k3sServiceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 				for _, v := range k3sServiceInformer.GetStore().List() {
 					k3sServiceInformer.GetStore().Delete(v)
@@ -393,7 +387,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				}
 			})
 
-			//endpoint eventHandler
+			// endpoint eventHandler
 			k3sEndpointsInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 				AddFunc: func(obj interface{}) {
 					eps := obj.(*v1.Endpoints)
@@ -414,7 +408,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 					s.endpointsBroadcaster.ActionOrDrop(watch.Deleted, k3sEps)
 				},
 			}, resyncPeriod)
-			//endpoint errEventHandler
+			// endpoint errEventHandler
 			k3sEndpointsInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 				for _, v := range k3sEndpointsInformer.GetStore().List() {
 					k3sEndpointsInformer.GetStore().Delete(v)
@@ -443,7 +437,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				klog.Info("k3s start v1.EndpointSlices informer")
 				k3sEndpointSliceV1Informer := k3sInformerFactory.Discovery().V1().EndpointSlices().Informer()
 
-				//eventHandler
+				// eventHandler
 				k3sEndpointSliceV1Informer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 					AddFunc: func(obj interface{}) {
 						k3sEpsV1 := obj.(*discoveryv1.EndpointSlice)
@@ -468,7 +462,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 					},
 				}, resyncPeriod)
 
-				//errorEventHandler
+				// errorEventHandler
 				k3sEndpointSliceV1Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 					for _, v := range k3sEndpointSliceV1Informer.GetStore().List() {
 						k3sEndpointSliceV1Informer.GetStore().Delete(v)
@@ -492,7 +486,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 				klog.Info("k3s start v1beta1.EndpointSlices informer")
 				k3sEndpointSliceV1Beta1Informer := informerFactory.Discovery().V1beta1().EndpointSlices().Informer()
 
-				//eventHandler
+				// eventHandler
 				k3sEndpointSliceV1Beta1Informer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 					AddFunc: func(obj interface{}) {
 						k3sEpsV1beta1 := obj.(*discoveryv1beta1.EndpointSlice)
@@ -516,7 +510,7 @@ func (s *interceptorServer) setupInformers(stop <-chan struct{}) error {
 						s.endpointSliceV1Beta1WatchBroadcaster.ActionOrDrop(watch.Deleted, superedgeEpsV1beta1)
 					},
 				}, resyncPeriod)
-				//errorEventHandler
+				// errorEventHandler
 				k3sEndpointSliceV1Beta1Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 					for _, v := range k3sEndpointSliceV1Beta1Informer.GetStore().List() {
 						k3sEndpointSliceV1Beta1Informer.GetStore().Delete(v)
