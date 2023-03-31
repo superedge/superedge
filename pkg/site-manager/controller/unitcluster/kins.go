@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"net"
 	"reflect"
 	"strings"
@@ -36,6 +37,13 @@ import (
 
 	kubectl "github.com/superedge/superedge/pkg/util/kubeclient"
 )
+
+const ServerLabel = `
+{"metadata":{"labels":{"site.superedge.io/kins-role":null}}}
+`
+const Finalizers = `
+{"metadata":{"finalizers":null}}
+`
 
 type KinsController struct {
 	kubeClient     clientset.Interface
@@ -216,8 +224,6 @@ func (kc *KinsController) createServerStorage(nu *sitev1alpha2.NodeUnit, serverN
 	// TODO: retkink error when pv create or update error
 	scOption := map[string]interface{}{
 		"KinsResourceLabelKey": KinsResourceLabelKey,
-		"UnitName":             nu.Name,
-		"NodeUnitSuperedge":    constant.NodeUnitSuperedge,
 	}
 
 	if err := kubectl.CreateResourceWithFile(kc.kubeClient, manifest.KinsStorageClassTemplate, scOption); err != nil {
@@ -481,6 +487,61 @@ func (kc *KinsController) recoverNodeUnit(nu *sitev1alpha2.NodeUnit) error {
 	); err != nil && !errors.IsNotFound(err) {
 		klog.V(4).ErrorS(err, "Delete kins secret error", "node unit", nu.Name)
 		return err
+	}
+
+	//delete pv
+	pvs, err := kc.kubeClient.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{LabelSelector: unitResourceLabel.String()})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.V(4).ErrorS(err, "Get kins pv error", "node unit", nu.Name)
+		return err
+	}
+	for _, pv := range pvs.Items {
+		_, err = kc.kubeClient.CoreV1().PersistentVolumes().Patch(context.TODO(), pv.Name, types.StrategicMergePatchType, []byte(Finalizers), metav1.PatchOptions{})
+		if err != nil {
+			klog.V(4).ErrorS(err, "Patch kins pv error", "node unit", nu.Name)
+		}
+	}
+	if err := kc.kubeClient.CoreV1().PersistentVolumes().DeleteCollection(
+		context.TODO(), metav1.DeleteOptions{},
+		metav1.ListOptions{LabelSelector: unitResourceLabel.String()},
+	); err != nil && !errors.IsNotFound(err) {
+		klog.V(4).ErrorS(err, "Delete kins pv error", "node unit", nu.Name)
+		return err
+	}
+
+	//delete pvc
+	pvcLabel := labels.SelectorFromSet(labels.Set(map[string]string{"site.superedge.io/nodeunit": nu.Name}))
+	pvcs, err := kc.kubeClient.CoreV1().PersistentVolumeClaims(DefaultKinsNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: pvcLabel.String()})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.V(4).ErrorS(err, "Get kins pvc error", "node unit", nu.Name)
+		return err
+	}
+	for _, pvc := range pvcs.Items {
+		_, err = kc.kubeClient.CoreV1().PersistentVolumeClaims(pvc.Namespace).Patch(context.TODO(), pvc.Name, types.StrategicMergePatchType, []byte(Finalizers), metav1.PatchOptions{})
+		if err != nil {
+			klog.V(4).ErrorS(err, "Patch kins pvc error", "node unit", nu.Name)
+		}
+	}
+	if err := kc.kubeClient.CoreV1().PersistentVolumeClaims(DefaultKinsNamespace).DeleteCollection(
+		context.TODO(), metav1.DeleteOptions{},
+		metav1.ListOptions{LabelSelector: pvcLabel.String()},
+	); err != nil && !errors.IsNotFound(err) {
+		klog.V(4).ErrorS(err, "Delete kins pvc error", "node unit", nu.Name)
+		return err
+	}
+
+	for _, name := range nu.Spec.Nodes {
+		node, err := kc.nodeLister.Get(name)
+		if err == nil {
+			if _, ok := node.Labels[KinsRoleLabelKey]; ok {
+				_, err = kc.kubeClient.CoreV1().Nodes().Patch(context.TODO(), name, types.StrategicMergePatchType, []byte(ServerLabel), metav1.PatchOptions{})
+				if err != nil {
+					klog.V(4).ErrorS(err, "Delete server label error", "node unit", nu.Name)
+					return err
+				}
+			}
+
+		}
 	}
 
 	// recover node unit setnode
