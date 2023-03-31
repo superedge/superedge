@@ -64,7 +64,7 @@ func SyncRoute(path string) {
 			Identity: id,
 		})
 	if err != nil {
-		//todo
+		// todo
 		return
 	}
 
@@ -118,23 +118,23 @@ func loadCache() error {
 	}
 	edgeNodeFile, err := os.Open(tunnelutil.EdgeNodesFilePath)
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 	cloudNodeFile, err := os.Open(tunnelutil.CloudNodesFilePath)
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 
 	servicesFile, err := os.Open(tunnelutil.ServicesFilePath)
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 	userServiceFile, err := os.Open(tunnelutil.UserServiceFilepath)
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 
@@ -156,7 +156,7 @@ func loadCache() error {
 
 	updateFlag := false
 
-	//check edge node
+	// check edge node
 	edgeNodes := hosts2Array(edgeNodeFile)
 	if len(edgeNodes) != len(Route.EdgeNode) {
 		updateFlag = true
@@ -170,17 +170,31 @@ func loadCache() error {
 		}
 	}
 
-	//check cloud node
+	// check cloud node
 
 	r, err := labels.NewRequirement(util.CloudNodeLabelKey, selection.Equals, []string{"enable"})
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 	nodes, err := indexers.NodeLister.List(labels.NewSelector().Add(*r))
 	if err != nil {
-		//todo
+		// todo
 		return err
+	}
+
+	// by default, add masters to the cloud node
+	ls, err := labels.NewRequirement(util.KubernetesDefaultRoleLabel, selection.Exists, []string{})
+	if err != nil {
+		// todo
+		return err
+	}
+	masters, err := indexers.NodeLister.List(labels.NewSelector().Add(*ls))
+	if err != nil {
+		return err
+	}
+	if len(masters) != 0 {
+		nodes = append(nodes, masters...)
 	}
 
 	nodesMap := make(map[string]int)
@@ -203,21 +217,21 @@ func loadCache() error {
 		}
 	}
 
-	//筛选 cache 中 已经写入的node 已经被删除的情况，这时也需要进行更新；例如 cloud 节点被 delete
+	// 筛选 cache 中 已经写入的node 已经被删除的情况，这时也需要进行更新；例如 cloud 节点被 delete
 	for name := range Route.CloudNode {
 		if _, ok := nodesMap[name]; ok {
-			//实际 node 存在，什么也不做
+			// 实际 node 存在，什么也不做
 		} else {
-			//实际 node 已经删除，需要更新Route.CloudNode
+			// 实际 node 已经删除，需要更新Route.CloudNode
 			updateFlag = true
 			delete(Route.CloudNode, name)
 		}
 	}
 
-	//check service
+	// check service
 	svcs, err := indexers.ServiceLister.List(labels.Everything())
 	if err != nil {
-		//todo
+		// todo
 		return err
 	}
 	svcMaps := make(map[string]int)
@@ -225,7 +239,7 @@ func loadCache() error {
 		svcMaps[fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)] = i
 		eps, err := indexers.EndpointLister.Endpoints(svc.Namespace).Get(svc.Name)
 		if err != nil {
-			//klog.Errorf("Failed to get endpoints %s, error:%v", fmt.Sprintf("%s.%s", svc.Name, svc.Namespace), err)
+			// klog.Errorf("Failed to get endpoints %s, error:%v", fmt.Sprintf("%s.%s", svc.Name, svc.Namespace), err)
 			continue
 		}
 		if len(eps.Subsets) == 0 {
@@ -303,7 +317,7 @@ func loadCache() error {
 
 	for svc := range Route.ServicesMap {
 		if _, ok := svcMaps[svc]; !ok {
-			//configmap中的 services 存在，实际 svc 已经被删除，需要删除 Route.ServicesMap
+			// configmap中的 services 存在，实际 svc 已经被删除，需要删除 Route.ServicesMap
 			updateFlag = true
 			delete(Route.ServicesMap, svc)
 		}
@@ -312,7 +326,7 @@ func loadCache() error {
 	if updateFlag {
 		cfg, err := register.ClientSet.CoreV1().ConfigMaps(os.Getenv(tunnelutil.POD_NAMESPACE_ENV)).Get(context.Background(), tunnelutil.CacheConfig, metav1.GetOptions{})
 		if err != nil {
-			//todo
+			// todo
 			return err
 		}
 		edgeNodeBuffer := &bytes.Buffer{}
@@ -341,7 +355,7 @@ func loadCache() error {
 		cfg.Data[tunnelutil.ServicesFile] = serviceBuffer.String()
 		_, err = register.ClientSet.CoreV1().ConfigMaps(os.Getenv(tunnelutil.POD_NAMESPACE_ENV)).Update(context.Background(), cfg, metav1.UpdateOptions{})
 		if err != nil {
-			//todo
+			// todo
 			return err
 		}
 
