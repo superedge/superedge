@@ -18,8 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
@@ -257,15 +255,16 @@ func (kc *KinsController) createServerStorage(nu *sitev1alpha2.NodeUnit, serverN
 }
 
 func (kc *KinsController) createServer(nu *sitev1alpha2.NodeUnit) error {
-	var existUnitCluster int32
+	existUnitCluster := int32(0)
 	// caculate service cidr nodeport range and coredns IP
-	if nuList, err := kc.nodeUnitLister.List(labels.Everything()); err != nil {
-		for _, nu := range nuList {
-			if nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL4 || nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL5 {
-				existUnitCluster += 1
-			}
-		}
-	}
+	//todo
+	//if nuList, err := kc.nodeUnitLister.List(labels.Everything()); err != nil {
+	//	for _, nu := range nuList {
+	//		if nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL4 || nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL5 {
+	//			existUnitCluster += 1
+	//		}
+	//	}
+	//}
 
 	uclusterServiceCIDR, uclusterDNSIP := caculateKinsServiceCIDRAndCoreDNSIP(nu, existUnitCluster)
 
@@ -344,17 +343,17 @@ func (kc *KinsController) creatSecret(nu *sitev1alpha2.NodeUnit) error {
 	} else {
 		knowToken = string(secret.Data["known_tokens.csv"])
 	}
-	var clusterIP string
-
-	wait.PollUntil(3*time.Second, func() (done bool, err error) {
-		svc, err := kc.kubeClient.CoreV1().Services(DefaultKinsNamespace).Get(context.TODO(), buildKinsServiceName(nu.Name), metav1.GetOptions{})
-		if err != nil {
-			klog.ErrorS(err, "get kins service error", "service name", buildKinsServiceName(nu.Name))
-			return false, nil
-		}
-		clusterIP = svc.Spec.ClusterIP
-		return true, nil
-	}, wait.NeverStop)
+	//var clusterIP string
+	//
+	//wait.PollUntil(3*time.Second, func() (done bool, err error) {
+	//	svc, err := kc.kubeClient.CoreV1().Services(DefaultKinsNamespace).Get(context.TODO(), buildKinsServiceName(nu.Name), metav1.GetOptions{})
+	//	if err != nil {
+	//		klog.ErrorS(err, "get kins service error", "service name", buildKinsServiceName(nu.Name))
+	//		return false, nil
+	//	}
+	//	clusterIP = svc.Spec.ClusterIP
+	//	return true, nil
+	//}, wait.NeverStop)
 
 	// get or create configmap
 	if _, err := kc.kubeClient.CoreV1().ConfigMaps(DefaultKinsNamespace).Get(context.TODO(), buildKinsConfigMapName(nu.Name), metav1.GetOptions{}); err != nil {
@@ -365,7 +364,7 @@ func (kc *KinsController) creatSecret(nu *sitev1alpha2.NodeUnit) error {
 				"UnitName":             nu.Name,
 				"NodeUnitSuperedge":    constant.NodeUnitSuperedge,
 				"KinsNamespace":        DefaultKinsNamespace,
-				"KinsServiceClusterIP": clusterIP,
+				"KinsServiceClusterIP": fmt.Sprintf(DefaultKinsServiceCIDR, 0, "1"),
 				"KnowToken":            strings.Split(knowToken, ",")[0],
 			}
 			if err := kubectl.CreateResourceWithFile(kc.kubeClient, manifest.KinsConfigMapTemplate, configmapOption); err != nil {
