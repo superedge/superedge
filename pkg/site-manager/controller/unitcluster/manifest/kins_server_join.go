@@ -103,6 +103,25 @@ spec:
         - --kubelet-arg=--cgroup-root=/edgek3s
         - --kubelet-arg=--root-dir=/data/edge/rancher-kubelet
         - --server=https://{{ .KinsServerName }}-0.{{ .KinsServerName }}-init.{{ .KinsNamespace }}.svc:6443
+        lifecycle: 
+          preStop:
+            exec:
+              command: 
+                - /bin/sh
+                - -c
+                - |
+                  for node in $(/k3s kubectl get nodes | awk 'NR == 1 {next} {print $1}')
+                  do
+                    /k3s kubectl cordon  ${node}
+                  done
+                  for ns in $(/k3s kubectl get ns | awk 'NR == 1 {next} {print $1}')
+                  do
+                    /k3s kubectl -n ${ns} delete pods --all --force --grace-period=0
+                  done
+                  rm -rf /var/lib/rancher/*
+                  rm -rf /etc/rancher/*
+                  rm -rf /data/edge/rancher-kubelet/*
+                  rm -rf /data/edge/log/*
         ports:
         - containerPort: 6443
         volumeMounts:

@@ -314,9 +314,17 @@ func SetNodeToNodes(kubeClient clientset.Interface, nu *sitev1.NodeUnit, nodeMap
 		// setNode taints
 		if nu.Spec.SetNode.Taints != nil {
 			if node.Spec.Taints == nil {
-				node.Spec.Taints = []corev1.Taint{}
+				node.Spec.Taints = nu.Spec.SetNode.Taints
+			} else {
+				tmp := []corev1.Taint{}
+				for _, setTaint := range nu.Spec.SetNode.Taints {
+					if !TaintInSlices(node.Spec.Taints, setTaint) {
+						tmp = append(tmp, setTaint)
+					}
+					node.Spec.Taints = append(node.Spec.Taints, tmp...)
+				}
 			}
-			node.Spec.Taints = append(node.Spec.Taints, nu.Spec.SetNode.Taints...)
+
 		}
 
 		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {

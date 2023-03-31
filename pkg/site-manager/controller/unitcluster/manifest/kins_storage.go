@@ -8,7 +8,6 @@ metadata:
   name: kins-localvolume
   labels:
     {{ .KinsResourceLabelKey }}: "yes"
-    {{ .UnitName }}: {{ .NodeUnitSuperedge }}
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 `
