@@ -34,6 +34,7 @@ import (
 	"github.com/superedge/superedge/pkg/site-manager/utils"
 
 	kubectl "github.com/superedge/superedge/pkg/util/kubeclient"
+	utilkube "github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 const ServerLabel = `
@@ -175,34 +176,60 @@ func (kc *KinsController) labelServerNode(nu *sitev1alpha2.NodeUnit) ([]string, 
 	}
 	// L4 level need at least one server node
 	if nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL4 && len(serverNodes) < 1 {
-		if len(nu.Status.ReadyNodes) > 0 {
-			serverNodes = append(serverNodes, nu.Status.ReadyNodes[0])
-		} else {
+		if len(nu.Status.ReadyNodes) < 1 {
 			klog.Errorf("Node unit=%s ready node insufficient", nu.Name)
 			return nil, fmt.Errorf("Insufficient Ready Node")
 		}
+		for _, nodeName := range nu.Status.ReadyNodes {
+			node, err := kc.nodeLister.Get(nodeName)
+			if err != nil {
+				klog.Errorf("Failed to get node %s, error: %v ", nodeName, err)
+				continue
+			}
 
-		nac := applycorev1.Node(nu.Status.ReadyNodes[0]).WithLabels(
-			map[string]string{
-				KinsRoleLabelKey: KinsRoleLabelServer,
-			},
-		)
-		if _, err := kc.kubeClient.CoreV1().Nodes().Apply(context.TODO(), nac, metav1.ApplyOptions{FieldManager: "application/apply-patch"}); err != nil {
-			klog.ErrorS(err, "Update node server label error,node unit %s", nu.Name)
-			return nil, err
+			if !utilkube.IsReadyNode(node) {
+				continue
+			}
+
+			nac := applycorev1.Node(nodeName).WithLabels(
+				map[string]string{
+					KinsRoleLabelKey: KinsRoleLabelServer,
+				},
+			)
+
+			if _, err := kc.kubeClient.CoreV1().Nodes().Apply(context.TODO(), nac, metav1.ApplyOptions{FieldManager: "application/apply-patch"}); err != nil {
+				klog.ErrorS(err, "Update node server label error,node unit %s", nu.Name)
+				return nil, err
+			}
+			serverNodes = append(serverNodes, *nac.Name)
+			break
 		}
-
+		if len(serverNodes) < 1 {
+			return nil, fmt.Errorf("the number of available nodes  is less than one")
+		}
 		return serverNodes, nil
 	}
 	if nu.Spec.AutonomyLevel == sitev1alpha2.AutonomyLevelL5 && len(serverNodes) < 3 {
-		if len(nu.Status.ReadyNodes) > 2 {
-			serverNodes = append(serverNodes, nu.Status.ReadyNodes[0:3]...)
-		} else {
+		if len(nu.Status.ReadyNodes) < 3 {
 			klog.Errorf("Node unit=%s ready node insufficient", nu.Name)
 			return nil, fmt.Errorf("Insufficient Ready Node")
 		}
 
-		for _, nodeName := range nu.Status.ReadyNodes[0:3] {
+		for _, nodeName := range nu.Status.ReadyNodes {
+			node, err := kc.nodeLister.Get(nodeName)
+			if err != nil {
+				klog.Errorf("Failed to get node %s, error: %v ", nodeName, err)
+				continue
+			}
+
+			if node.Labels[KinsRoleLabelKey] == KinsRoleLabelServer {
+				continue
+			}
+
+			if !utilkube.IsReadyNode(node) {
+				continue
+			}
+
 			nac := applycorev1.Node(nodeName).WithLabels(
 				map[string]string{
 					KinsRoleLabelKey: KinsRoleLabelServer,
@@ -212,6 +239,10 @@ func (kc *KinsController) labelServerNode(nu *sitev1alpha2.NodeUnit) ([]string, 
 				klog.ErrorS(err, "Update node server label error,node unit %s", nu.Name)
 				return nil, err
 			}
+			serverNodes = append(serverNodes, nodeName)
+		}
+		if len(serverNodes) < 3 {
+			return nil, fmt.Errorf("the number of available nodes %s is less than three", serverNodes)
 		}
 		return serverNodes, nil
 	}
