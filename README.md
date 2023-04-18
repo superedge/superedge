@@ -71,7 +71,7 @@ Please refer to the sub-project [**edgeadm**](https://github.com/superedge/edgea
   > 
   > - CPU arch [amd64, arm64], kubernetes version [1.22.6], version: v0.9.0
   > 
-  > - CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6], version: v0.8.2,
+  > - CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6], version: v0.8.2
   
   ```shell
   arch=amd64 version=v0.9.0 kubernetesVersion=1.22.6 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
