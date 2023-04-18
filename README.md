@@ -67,7 +67,11 @@ Please refer to the sub-project [**edgeadm**](https://github.com/superedge/edgea
 
 - Download the installation package
   
-  > Your can choose CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6, 1.18.2];
+  > The supported version:
+  > 
+  > - CPU arch [amd64, arm64], kubernetes version [1.22.6], version: v0.9.0
+  > 
+  > - CPU arch [amd64, arm64], kubernetes version [1.22.6, 1.20.6], version: v0.8.2,
   
   ```shell
   arch=amd64 version=v0.9.0 kubernetesVersion=1.22.6 && rm -rf edgeadm-linux-* && wget https://superedge-1253687700.cos.ap-guangzhou.myqcloud.com/$version/$arch/edgeadm-linux-$arch-$version-k8s-$kubernetesVersion.tgz && tar -xzvf edgeadm-linux-* && cd edgeadm-linux-$arch-$version-k8s-$kubernetesVersion && ./edgeadm
@@ -76,7 +80,7 @@ Please refer to the sub-project [**edgeadm**](https://github.com/superedge/edgea
 - Install edge Kubernetes master node
   
   ```shell
-  ./edgeadm init --kubernetes-version=1.22.6 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true
+  ./edgeadm init --kubernetes-version=1.22.6 --image-repository superedge.tencentcloudcr.com/superedge --service-cidr=10.96.0.0/12 --pod-network-cidr=192.168.0.0/16 --install-pkg-path ./kube-linux-*.tar.gz --apiserver-cert-extra-sans=<Master Public IP> --apiserver-advertise-address=<Master Intranet IP> --enable-edge=true --edge-version=0.9.0
   ```
 
 - Join edge node
