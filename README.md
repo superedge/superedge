@@ -12,7 +12,7 @@ English | [简体中文](./README_CN.md)
 
 ---
 
-> 👋 Now SuperEdge v0.9.0 has supported [Kins](docs/components/kins_CN.md) feature, which will proivion lightweight K3s cluster on edge NodeUnit and you can play it totally offline. Welcome to checkout and try [edgeadm](https://github.com/superedge/edgeadm/releases/tag/v0.9.0)
+> 👋 Now SuperEdge v0.9.0 has supported [Kins](docs/components/kins_CN.md) feature, which will provision lightweighted K3s cluster on edge NodeUnit and you can play it totally offline. Welcome to checkout and try [edgeadm](https://github.com/superedge/edgeadm/releases/tag/v0.9.0)
 
 ----
 
