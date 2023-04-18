@@ -24,11 +24,11 @@ SuperEdge has the following characteristics:
 
 * **Kubernetes-native**: SuperEdge extends the powerful container orchestration and scheduling capabilities of Kubernetes to the edge. It makes nonintrusive enhancements to Kubernetes and is fully compatible with all Kubernetes APIs and resources. Kubernetes users can leverage SuperEdge easily for edge environments with minimal learning.
 
-* **Edge autonomy**: Now SuperEdge provides L5 edge autonomy. 
+* **Edge autonomy**: Now SuperEdge provides L4/L5 edge autonomy. 
   
   L3: When the network connection between the edge and the cloud is unstable, or the edge node is offline, the node can still work independently. But at this time, edge node can't do anything associated with writing operation, such as create/delete/update.
   
-  L5: Now SuperEdge has released v0.9.0 which support [Kins](docs/components/kins_CN.md) Feature. Kins will provision a lightweight K3s cluster based on SuperEdge, which can be operated totally offline.
+  L4/L5: Now SuperEdge has released v0.9.0 which support [Kins](docs/components/kins_CN.md) Feature. Kins will provision a lightweight K3s cluster based on SuperEdge, which can be operated totally offline. L4 level will leverage the single master edge K3s cluster, and L5 level will provision 3 master edge K3s cluster.
 
 * **Distributed node health monitoring**: SuperEdge provides edge-side health monitoring capabilities. SuperEdge can continue to monitor the processes on the edge side and collect health information for faster and more accurate problem discovery and reporting. In addition, its distributed design can provide multi-region monitoring and management.
 
