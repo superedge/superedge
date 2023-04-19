@@ -240,6 +240,9 @@ func (kc *KinsController) labelServerNode(nu *sitev1alpha2.NodeUnit) ([]string, 
 				return nil, err
 			}
 			serverNodes = append(serverNodes, nodeName)
+			if len(serverNodes) == 3 {
+				break
+			}
 		}
 		if len(serverNodes) < 3 {
 			return nil, fmt.Errorf("the number of available nodes %s is less than three", serverNodes)

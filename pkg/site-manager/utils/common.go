@@ -23,6 +23,8 @@ const (
 	MigrationCompletedAnno = "site.superedge.io/migration-done"
 	NodeUnitCRDName        = "nodeunits.site.superedge.io"
 	NodeGroupCRDName       = "nodegroups.site.superedge.io"
+	KinsRoleLabelKey       = "site.superedge.io/kins-role"
+	KinsResourceLabelKey   = "site.superedge.io/kins-resource"
 )
 
 func CreateDefaultUnit(ctx context.Context, crdClient *crdClientset.Clientset) error {

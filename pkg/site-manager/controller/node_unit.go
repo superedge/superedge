@@ -449,7 +449,7 @@ func (c *NodeUnitController) reconcileNodeUnit(nu *sitev1alpha2.NodeUnit) error 
 	if err != nil {
 		return err
 	}
-	currentNodeSelector.Add(*nRequire)
+	currentNodeSelector = currentNodeSelector.Add(*nRequire)
 	utils.ListNodeFromLister(c.nodeLister, currentNodeSelector, func(n interface{}) {
 		node, ok := n.(*corev1.Node)
 		if !ok {

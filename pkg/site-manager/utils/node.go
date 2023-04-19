@@ -5,8 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"sort"
-
 	"github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
 	sitev1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
 	"github.com/superedge/superedge/pkg/site-manager/constant"
@@ -17,14 +15,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"sort"
 
 	"k8s.io/klog/v2"
 )
+
+const Finalizers = `
+{"metadata":{"finalizers":null}}
+`
 
 func CaculateNodeUnitStatus(nodeMap map[string]*corev1.Node, nu *sitev1.NodeUnit) (*sitev1.NodeUnitStatus, error) {
 	status := &sitev1.NodeUnitStatus{}
@@ -58,7 +63,10 @@ func ListNodeFromLister(nodeLister corelisters.NodeLister, selector labels.Selec
 	if err != nil {
 		return err
 	}
+
+	klog.Infof("selector = %v,", selector)
 	for _, n := range nodes {
+		klog.Infof("selector = %v, labels = %v", selector, n.Labels)
 		appendFn(n)
 	}
 	return nil
@@ -336,6 +344,9 @@ func SetNodeToNodes(kubeClient clientset.Interface, nu *sitev1.NodeUnit, nodeMap
 }
 
 func DeleteNodesFromSetNode(kubeClient clientset.Interface, nu *sitev1.NodeUnit, nodeMaps map[string]*corev1.Node) error {
+	if len(nu.Spec.Nodes) == 0 {
+		return nil
+	}
 	for _, node := range nodeMaps {
 		newNode := node.DeepCopy()
 		if nu.Spec.SetNode.Labels != nil {
@@ -343,6 +354,10 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, nu *sitev1.NodeUnit,
 				for k := range nu.Spec.SetNode.Labels {
 					delete(newNode.Labels, k)
 				}
+				if !FoundNode(nu.Spec.Nodes, node.Name) {
+					delete(newNode.Labels, KinsRoleLabelKey)
+				}
+
 			}
 		}
 
@@ -358,6 +373,47 @@ func DeleteNodesFromSetNode(kubeClient clientset.Interface, nu *sitev1.NodeUnit,
 		if _, err := kubeClient.CoreV1().Nodes().Update(context.TODO(), newNode, metav1.UpdateOptions{}); err != nil {
 			klog.Errorf("Update Node: %s, error: %#v", node.Name, err)
 			return err
+		}
+		if !FoundNode(nu.Spec.Nodes, node.Name) {
+			if _, ok := node.Labels[KinsRoleLabelKey]; ok {
+				//delete pv
+				pv, err := kubeClient.CoreV1().PersistentVolumes().Get(context.TODO(), fmt.Sprintf("%s-local-pv-%s", nu.Name, node.Name), metav1.GetOptions{})
+				if err != nil {
+					if !errors.IsNotFound(err) {
+						return err
+					}
+				} else {
+					_, err = kubeClient.CoreV1().PersistentVolumes().Patch(context.TODO(), pv.Name, types.StrategicMergePatchType, []byte(Finalizers), metav1.PatchOptions{})
+					if err != nil {
+						klog.V(4).ErrorS(err, "Patch kins pv error", "node unit", nu.Name)
+						return err
+					}
+					if err := kubeClient.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+						klog.V(4).ErrorS(err, "Delete kins pv error", "node unit", nu.Name)
+						return err
+					}
+					//delete pvc
+					if pv.Spec.ClaimRef != nil {
+						_, err = kubeClient.CoreV1().PersistentVolumeClaims(pv.Spec.ClaimRef.Namespace).Patch(context.TODO(), pv.Spec.ClaimRef.Name, types.StrategicMergePatchType, []byte(Finalizers), metav1.PatchOptions{})
+						if err != nil {
+							klog.V(4).ErrorS(err, "Patch kins pvc error", "node unit", nu.Name)
+							return err
+						}
+						if err := kubeClient.CoreV1().PersistentVolumeClaims(pv.Spec.ClaimRef.Namespace).Delete(context.TODO(), pv.Spec.ClaimRef.Name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+							klog.V(4).ErrorS(err, "Delete kins pvc error", "node unit", nu.Name)
+							return err
+						}
+					}
+				}
+				//delete pods
+				if err = kubeClient.CoreV1().Pods("kins-system").DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{
+					FieldSelector: fields.SelectorFromSet(map[string]string{"spec.nodeName": node.Name}).String(),
+					LabelSelector: labels.SelectorFromSet(labels.Set(map[string]string{KinsRoleLabelKey: "server"})).String(),
+				}); err != nil && !errors.IsNotFound(err) {
+					klog.V(4).ErrorS(err, "Delete node pods error", "node unit", nu.Name, "node name", node.Name)
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -423,4 +479,14 @@ func TaintInSlices(taintSlice []corev1.Taint, target corev1.Taint) bool {
 		}
 	}
 	return false
+}
+
+func FoundNode(nodes []string, node string) bool {
+	for _, v := range nodes {
+		if v == node {
+			return true
+		}
+	}
+	return false
+
 }
