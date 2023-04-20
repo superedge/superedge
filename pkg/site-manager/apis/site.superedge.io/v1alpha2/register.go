@@ -75,7 +75,11 @@ func SetDefaults_NodeUnitTypeMeta(in *NodeUnit) {
 }
 
 func SetDefaults_NodeUnitSpec(in *NodeUnit) {
-	if _, ok := in.Spec.SetNode.Labels[in.Name]; !ok {
+	if in.Spec.SetNode.Labels == nil {
+		in.Spec.SetNode.Labels = map[string]string{
+			in.Name: constant.NodeUnitSuperedge,
+		}
+	} else if _, ok := in.Spec.SetNode.Labels[in.Name]; !ok {
 		in.Spec.SetNode.Labels[in.Name] = constant.NodeUnitSuperedge
 	}
 	if in.Spec.AutonomyLevel == "" {
