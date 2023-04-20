@@ -110,14 +110,8 @@ spec:
                 - /bin/sh
                 - -c
                 - |
-                  for node in $(/k3s kubectl get nodes | awk 'NR == 1 {next} {print $1}')
-                  do
-                    /k3s kubectl cordon  ${node}
-                  done
-                  for ns in $(/k3s kubectl get ns | awk 'NR == 1 {next} {print $1}')
-                  do
-                    /k3s kubectl -n ${ns} delete pods --all --force --grace-period=0
-                  done
+                  set -x
+                  set -o pipefail
                   rm -rf /var/lib/rancher/*
                   rm -rf /etc/rancher/*
                   rm -rf /data/edge/rancher-kubelet/*
