@@ -2,7 +2,7 @@ English | [简体中文](./README_CN.md)
 
 # SuperEdge
 
-[![Version](https://img.shields.io/badge/SuperEdge-0.8.0-blue)](https://github.com/superedge/superedge/releases)
+[![Version](https://img.shields.io/badge/SuperEdge-0.9.0-blue)](https://github.com/superedge/superedge/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/superedge/superedge)](https://goreportcard.com/report/github.com/superedge/superedge)
 [![License](https://img.shields.io/badge/License-Apache--2.0-orange)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
@@ -12,7 +12,7 @@ English | [简体中文](./README_CN.md)
 
 ---
 
-> 👋 Now SuperEdge v0.9.0 has supported [Kins](docs/components/kins_CN.md) feature, which will provision lightweighted K3s cluster on edge NodeUnit and you can play it totally offline. Welcome to checkout and try [edgeadm](https://github.com/superedge/edgeadm/releases/tag/v0.9.0)
+> 👋 Now SuperEdge v0.9.0 has supported Kins [[English](docs/components/kins.md), [中文](docs/components/kins_CN.md)] feature, which will provision lightweighted K3s cluster on edge NodeUnit and you can play it totally offline. Welcome to checkout and try [edgeadm](https://github.com/superedge/edgeadm/releases/tag/v0.9.0)
 
 ----
 
@@ -28,7 +28,7 @@ SuperEdge has the following characteristics:
   
   L3: When the network connection between the edge and the cloud is unstable, or the edge node is offline, the node can still work independently. But at this time, edge node can't do anything associated with writing operation, such as create/delete/update.
   
-  L4/L5: Now SuperEdge has released v0.9.0 which support [Kins](docs/components/kins_CN.md) Feature. Kins will provision a lightweight K3s cluster based on SuperEdge, which can be operated totally offline. L4 level will leverage the single master edge K3s cluster, and L5 level will provision 3 master edge K3s cluster.
+  L4/L5: Now SuperEdge has released v0.9.0 which support Kins [[English](docs/components/kins.md), [中文](docs/components/kins_CN.md)] Feature. Kins will provision a lightweight K3s cluster based on SuperEdge, which can be operated totally offline. L4 level will leverage the single master edge K3s cluster, and L5 level will provision 3 master edge K3s cluster.
 
 * **Distributed node health monitoring**: SuperEdge provides edge-side health monitoring capabilities. SuperEdge can continue to monitor the processes on the edge side and collect health information for faster and more accurate problem discovery and reporting. In addition, its distributed design can provide multi-region monitoring and management.
 
