@@ -20,19 +20,25 @@ import (
 	"os"
 	"time"
 
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
-	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
+
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
+	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
-var Route *RouteCache
+var Route = &RouteCache{
+	EdgeNode:        map[string]string{},
+	CloudNode:       map[string]string{},
+	ServicesMap:     map[string]string{},
+	UserServicesMap: map[string]string{},
+}
 
 type RouteCache struct {
 	EdgeNode        map[string]string
@@ -42,13 +48,6 @@ type RouteCache struct {
 }
 
 func SyncRoute(path string) {
-	if Route == nil {
-		Route = &RouteCache{
-			EdgeNode:    map[string]string{},
-			CloudNode:   map[string]string{},
-			ServicesMap: map[string]string{},
-		}
-	}
 	userClient, err := kubeclient.GetInclusterClientSet(path)
 	if err != nil {
 		klog.Errorf("Failed to get kubeclient, error: %v", err)
@@ -84,11 +83,11 @@ func SyncRoute(path string) {
 			OnStartedLeading: func(ctx context.Context) {
 				// we're notified when we start - this is where you would
 				// usually put your code
-				klog.Info("start loadCache")
+				klog.Info("start syncCache")
 				for {
-					err = loadCache()
+					err = syncCache()
 					if err != nil {
-						klog.Errorf("Failed to loadCache, error:%v", err)
+						klog.Errorf("Failed to syncCache, error:%v", err)
 					}
 					time.Sleep(10 * time.Second)
 				}
@@ -111,51 +110,15 @@ func SyncRoute(path string) {
 	})
 }
 
-func loadCache() error {
-	hosts, err := os.Open(tunnelutil.HostsPath)
-	if err != nil {
-		return err
-	}
+func syncCache() error {
+	loadCacheFromLocalFile()
+
 	edgeNodeFile, err := os.Open(tunnelutil.EdgeNodesFilePath)
 	if err != nil {
 		// todo
 		return err
 	}
-	cloudNodeFile, err := os.Open(tunnelutil.CloudNodesFilePath)
-	if err != nil {
-		// todo
-		return err
-	}
-
-	servicesFile, err := os.Open(tunnelutil.ServicesFilePath)
-	if err != nil {
-		// todo
-		return err
-	}
-	userServiceFile, err := os.Open(tunnelutil.UserServiceFilepath)
-	if err != nil {
-		// todo
-		return err
-	}
-
-	for _, v := range hosts2Array(hosts) {
-		Route.EdgeNode[string(v[1])] = string(v[0])
-	}
-
-	for _, v := range hosts2Array(cloudNodeFile) {
-		Route.CloudNode[string(v[1])] = string(v[0])
-	}
-
-	for _, v := range hosts2Array(servicesFile) {
-		Route.ServicesMap[string(v[0])] = string(v[1])
-	}
-
-	for _, v := range hosts2Array(userServiceFile) {
-		Route.UserServicesMap[string(v[0])] = string(v[1])
-	}
-
 	updateFlag := false
-
 	// check edge node
 	edgeNodes := hosts2Array(edgeNodeFile)
 	if len(edgeNodes) != len(Route.EdgeNode) {
@@ -360,5 +323,47 @@ func loadCache() error {
 		}
 
 	}
+	return nil
+}
+
+func loadCacheFromLocalFile() error {
+	hosts, err := os.Open(tunnelutil.HostsPath)
+	if err != nil {
+		return err
+	}
+
+	cloudNodeFile, err := os.Open(tunnelutil.CloudNodesFilePath)
+	if err != nil {
+		// todo
+		return err
+	}
+
+	servicesFile, err := os.Open(tunnelutil.ServicesFilePath)
+	if err != nil {
+		// todo
+		return err
+	}
+	userServiceFile, err := os.Open(tunnelutil.UserServiceFilepath)
+	if err != nil {
+		// todo
+		return err
+	}
+
+	for _, v := range hosts2Array(hosts) {
+		Route.EdgeNode[string(v[1])] = string(v[0])
+	}
+
+	for _, v := range hosts2Array(cloudNodeFile) {
+		Route.CloudNode[string(v[1])] = string(v[0])
+	}
+
+	for _, v := range hosts2Array(servicesFile) {
+		Route.ServicesMap[string(v[0])] = string(v[1])
+	}
+
+	for _, v := range hosts2Array(userServiceFile) {
+		Route.UserServicesMap[string(v[0])] = string(v[1])
+	}
+
 	return nil
 }
