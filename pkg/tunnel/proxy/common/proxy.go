@@ -36,16 +36,16 @@ import (
 type TargetType int
 
 const (
-	LocalPodType  TargetType = 0 //transfer through the tunnel of this tunnel-cloud pod
-	RemotePodType TargetType = 1 //transfer through the tunnel of other tunnel-cloud pod
-	CloudNodeType TargetType = 2 //send requests directly in this tunnel-cloud pod
-	EdgeNodeType  TargetType = 3 //the target node is on the edge and cannot send requests directly
+	LocalPodType  TargetType = 0 // transfer through the tunnel of this tunnel-cloud pod
+	RemotePodType TargetType = 1 // transfer through the tunnel of other tunnel-cloud pod
+	CloudNodeType TargetType = 2 // send requests directly in this tunnel-cloud pod
+	EdgeNodeType  TargetType = 3 // the target node is on the edge and cannot send requests directly
 )
 
 func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) error {
 	node := context.GetContext().GetNode(nodename)
 	if node != nil {
-		//If the edge node establishes a long connection with this pod, it will be forwarded directly
+		// If the edge node establishes a long connection with this pod, it will be forwarded directly
 		uid := uuid.NewV4().String()
 		ch := context.GetContext().AddConn(uid)
 		node.BindNode(uid)
@@ -57,17 +57,18 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 		go Read(proxyConn, node, category, util.TCP_FRONTEND, uid, host+":"+port)
 		Write(proxyConn, ch)
 	} else {
-		//From tunnel-coredns, query the pods of tunnel-cloud where edge nodes establish long-term connections
+		// From tunnel-coredns, query the pods of tunnel-cloud where edge nodes establish long-term connections
 		addr, ok := connect.Route.EdgeNode[nodename]
 		if ok {
 			/*
 				todo Supports sending requests through nodes within nodeunit at the edge
 			*/
-			//You can only proxy once between tunnel-cloud pods
+			// You can only proxy once between tunnel-cloud pods
 			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
 				klog.Errorf("Loop forwarding")
 				return fmt.Errorf("loop forwarding")
 			}
+			// Proxy egress https request between tunnel-cloud pods should use http_proxy
 			addr = GetRemoteAddr(addr, category)
 			remoteConn, err := net.Dial(util.TCP, addr)
 			if err != nil {
@@ -75,7 +76,7 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 				return err
 			}
 
-			//Forward HTTP_CONNECT request data
+			// Forward HTTP_CONNECT request data
 			_, err = remoteConn.Write(req.Bytes())
 			if err != nil {
 				klog.Errorf("Failed to write data to remoteConn, error: %v", err)
@@ -105,11 +106,9 @@ func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, re
 
 func GetRemoteAddr(host, category string) string {
 	switch category {
-	case util.EGRESS:
-		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
 	case util.SSH:
 		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
-	case util.HTTP_PROXY:
+	case util.HTTP_PROXY, util.EGRESS:
 		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
 	}
 	return host
@@ -215,7 +214,7 @@ func GetRemoteConn(nodeName, category string) (net.Conn, error) {
 }
 
 func DailDirect(host, port, category string, proxyConn net.Conn) error {
-	//Handling access to out-of-cluster ip
+	// Handling access to out-of-cluster ip
 	pingErr := util.Ping(host)
 	if pingErr == nil {
 		remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, port))
