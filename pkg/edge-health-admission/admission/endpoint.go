@@ -18,12 +18,10 @@ package admission
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/superedge/superedge/pkg/edge-health-admission/config"
 	"github.com/superedge/superedge/pkg/edge-health-admission/util"
-	admissionv1 "k8s.io/api/admission/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -32,78 +30,42 @@ import (
 )
 
 func EndPoint(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, endPoint)
+	serve(w, r, endpoint)
 }
 
-func endPoint(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	var endpointNew corev1.Endpoints
+func endpoint(ar v1.AdmissionReview) *v1.AdmissionResponse {
+	logger := klog.NewKlogr().
+		WithValues("resource", ar.Request.Resource).
+		WithValues("name", ar.Request.Name).
+		WithValues("namespace", ar.Request.Namespace)
 
-	klog.V(7).Info("admitting endpoints")
+	logger.V(2).Info("admitting endpoints")
 	endpointResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "endpoints"}
-	reviewResponse := admissionv1.AdmissionResponse{}
 	if ar.Request.Resource != endpointResource {
-		//klog.V(4).Infof("Request is not nodes, ignore, is %s", ar.Request.Resource.String())
-		reviewResponse = admissionv1.AdmissionResponse{Allowed: true}
-		return &reviewResponse
+		logger.Error(fmt.Errorf("bad resource"), fmt.Sprintf("expect resource to be %s", endpointResource))
+		return Allow()
+	}
+	if ar.Request.Operation != v1.Update {
+		return Allow()
 	}
 
-	reviewResponseEndPoint, endpointNew, err := decodeRawEndPoint(ar, "new")
+	curr, err := decodeRawEndpoint(ar, "new")
 	if err != nil {
-		return reviewResponseEndPoint
+		logger.Error(err, "decode endpoint failed")
+		return DenyWithMessage(err.Error())
+	}
+	prev, err := decodeRawEndpoint(ar, "old")
+	if err != nil {
+		logger.Error(err, "decode endpoint failed")
+		return DenyWithMessage(err.Error())
 	}
 
-	patches := []*Patch{}
-
-	for i1, EndpointSubset := range endpointNew.Subsets {
-		if len(EndpointSubset.NotReadyAddresses) != 0 {
-			for i2, EndpointAddress := range EndpointSubset.NotReadyAddresses {
-				if node, err := config.Kubeclient.CoreV1().Nodes().Get(context.TODO(), *EndpointAddress.NodeName, metav1.GetOptions{}); err != nil {
-					klog.Errorf("can't get pod's node err: %v", err)
-				} else {
-					_, condition := util.GetNodeCondition(&node.Status, v1.NodeReady)
-					if _, ok := node.Annotations["nodeunhealth"]; !ok && condition.Status == v1.ConditionUnknown {
-
-						patches = append(patches, &Patch{
-							OP:   "remove",
-							Path: fmt.Sprintf("/subsets/%d/notReadyAddresses/%d", i1, i2),
-						})
-
-						TargetRef := map[string]interface{}{}
-						TargetRef["kind"] = EndpointAddress.TargetRef.Kind
-						TargetRef["namespace"] = EndpointAddress.TargetRef.Namespace
-						TargetRef["name"] = EndpointAddress.TargetRef.Name
-						TargetRef["uid"] = EndpointAddress.TargetRef.UID
-						TargetRef["apiVersion"] = EndpointAddress.TargetRef.APIVersion
-						TargetRef["resourceVersion"] = EndpointAddress.TargetRef.ResourceVersion
-						TargetRef["fieldPath"] = EndpointAddress.TargetRef.FieldPath
-
-						patches = append(patches, &Patch{
-							OP:   "add",
-							Path: fmt.Sprintf("/subsets/%d/addresses/%d", i1, i2),
-							Value: map[string]interface{}{
-								"ip":        EndpointAddress.IP,
-								"hostname":  EndpointAddress.Hostname,
-								"nodeName":  EndpointAddress.NodeName,
-								"targetRef": TargetRef,
-							},
-						})
-
-						if len(patches) != 0 {
-							bytes, _ := json.Marshal(patches)
-							reviewResponse.Patch = bytes
-							pt := admissionv1.PatchTypeJSONPatch
-							reviewResponse.PatchType = &pt
-						}
-					}
-				}
-			}
-		}
-	}
-	reviewResponse.Allowed = true
-	return &reviewResponse
+	patches := patchEndpoints(curr, prev)
+	logger.Info("Patch", patches)
+	return AllowWithJsonPatch(patches)
 }
 
-func decodeRawEndPoint(ar admissionv1.AdmissionReview, version string) (*admissionv1.AdmissionResponse, corev1.Endpoints, error) {
+func decodeRawEndpoint(ar v1.AdmissionReview, version string) (*corev1.Endpoints, error) {
 	var raw []byte
 	if version == "new" {
 		raw = ar.Request.Object.Raw
@@ -111,11 +73,105 @@ func decodeRawEndPoint(ar admissionv1.AdmissionReview, version string) (*admissi
 		raw = ar.Request.OldObject.Raw
 	}
 
-	endpoint := corev1.Endpoints{}
+	endpoint := &corev1.Endpoints{}
 	deserializer := Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(raw, nil, &endpoint); err != nil {
+	if _, _, err := deserializer.Decode(raw, nil, endpoint); err != nil {
 		klog.Error(err)
-		return toAdmissionResponse(err), endpoint, err
+		return nil, err
 	}
-	return nil, endpoint, nil
+	return endpoint, nil
+}
+
+func patchEndpoints(newEndpoints, oldEndpoints *corev1.Endpoints) []Patch {
+	var (
+		removeAllPatched  []Patch
+		removePatches     []Patch
+		addPatches        []Patch
+		oldReadyEndpoints = map[string]struct{}{}
+	)
+
+	for _, subset := range oldEndpoints.Subsets {
+		for _, endpoint := range subset.Addresses {
+			oldReadyEndpoints[endpoint.IP] = struct{}{}
+		}
+	}
+
+	for i, subset := range newEndpoints.Subsets {
+		addressesCreated := false
+		removeCount := 0
+		for j, address := range subset.NotReadyAddresses {
+			if address.NodeName == nil || !nodeNotReady(*address.NodeName) {
+				continue
+			}
+			if _, ok := oldReadyEndpoints[address.IP]; !ok {
+				continue
+			}
+			removeCount++
+			removePatches = append(removePatches, Patch{
+				OP:   "remove",
+				Path: fmt.Sprintf("/subsets/%d/notReadyAddresses/%d", i, j),
+			})
+
+			if len(subset.Addresses) == 0 && !addressesCreated {
+				addressesCreated = true
+				addPatches = append(addPatches, Patch{
+					OP:    "add",
+					Path:  fmt.Sprintf("/subsets/%d/addresses", i),
+					Value: []string{},
+				})
+			}
+
+			addPatches = append(addPatches, Patch{
+				OP:    "add",
+				Path:  fmt.Sprintf("/subsets/%d/addresses/-", i),
+				Value: marshal(&address),
+			})
+		}
+		if removeCount == len(subset.NotReadyAddresses) && removeCount > 0 {
+			removeAllPatched = append(removeAllPatched, Patch{
+				OP:   "remove",
+				Path: fmt.Sprintf("/subsets/%d/notReadyAddresses", i),
+			})
+		}
+	}
+	return append(append(addPatches, reverse(removePatches)...), removeAllPatched...)
+}
+
+func reverse(patches []Patch) []Patch {
+	i, j := 0, len(patches)-1
+	for i < j {
+		patches[i], patches[j] = patches[j], patches[i]
+		i++
+		j--
+	}
+	return patches
+}
+
+func marshal(address *corev1.EndpointAddress) map[string]interface{} {
+	return map[string]interface{}{
+		"ip":       address.IP,
+		"hostname": address.Hostname,
+		"nodeName": address.NodeName,
+		"targetRef": map[string]interface{}{
+			"kind":            address.TargetRef.Kind,
+			"namespace":       address.TargetRef.Namespace,
+			"name":            address.TargetRef.Name,
+			"uid":             address.TargetRef.UID,
+			"apiVersion":      address.TargetRef.APIVersion,
+			"resourceVersion": address.TargetRef.ResourceVersion,
+			"fieldPath":       address.TargetRef.FieldPath,
+		},
+	}
+}
+
+func nodeNotReady(name string) bool {
+	node, err := config.Kubeclient.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+
+	_, condition := util.GetNodeCondition(&node.Status, corev1.NodeReady)
+	_, ok := node.Annotations["nodeunhealth"]
+
+	return !ok && condition.Status == corev1.ConditionUnknown
 }
