@@ -17,7 +17,7 @@ limitations under the License.
 package module
 
 import (
-	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"k8s.io/klog/v2"
 	"os"
 	"os/signal"
@@ -27,7 +27,7 @@ import (
 func LoadModules(mode string) {
 	modules := GetModules()
 	for n, m := range modules {
-		context.GetContext().AddModule(n)
+		tunnelcontext.GetContext().AddModule(n)
 		klog.Infof("starting module:%s", m.Name())
 		m.Start(mode)
 		klog.Infof("start module:%s success !", m.Name())

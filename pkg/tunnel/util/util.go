@@ -50,6 +50,18 @@ func GetRequestFromConn(conn net.Conn) (*http.Request, *bytes.Buffer, error) {
 	return request, rawRequest, nil
 }
 
+func GetRespFromConn(conn net.Conn, req *http.Request) (*http.Response, *bytes.Buffer, error) {
+	rawResp := bytes.NewBuffer(make([]byte, RequestCache))
+	rawResp.Reset()
+	reqReader := bufio.NewReader(io.TeeReader(conn, rawResp))
+	resp, err := http.ReadResponse(reqReader, req)
+	if err != nil {
+		klog.V(8).Infof("Failed to get http request, error: %v", err)
+		return nil, nil, err
+	}
+	return resp, rawResp, nil
+}
+
 func Ping(ip string) error {
 	p := fastping.NewPinger()
 	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
@@ -64,10 +76,25 @@ func Ping(ip string) error {
 	}
 	return p.Run()
 }
-func WriteMsg(conn net.Conn, msg string) error {
-	_, err := conn.Write([]byte(msg))
-	if err != nil {
-		klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+
+func WriteResponseMsg(conn net.Conn, respMsg, tranceId, status string, statusCode int) error {
+	resp := http.Response{
+		Status:     status,
+		StatusCode: statusCode,
+		Header: map[string][]string{
+			STREAM_TRACE_ID: {tranceId},
+		},
+		Body:          io.NopCloser(strings.NewReader(respMsg)),
+		ContentLength: int64(len(respMsg)),
 	}
-	return err
+	err := resp.Write(conn)
+	if err != nil {
+		klog.ErrorS(err, "failed to write response data  to proxyConn", "response data", respMsg, STREAM_TRACE_ID, tranceId)
+		return err
+	}
+	return nil
+}
+
+func InternalServerErrorMsg(proxyConn net.Conn, respMsg, tranceId string) error {
+	return WriteResponseMsg(proxyConn, respMsg, tranceId, "Internal Server Error", http.StatusInternalServerError)
 }

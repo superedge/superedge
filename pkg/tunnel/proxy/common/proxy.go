@@ -14,236 +14,207 @@ limitations under the License.
 package common
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
-	"strconv"
+	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apiserver/pkg/util/proxy"
 	"k8s.io/klog/v2"
 )
 
 type TargetType int
 
 const (
-	LocalPodType  TargetType = 0 // transfer through the tunnel of this tunnel-cloud pod
-	RemotePodType TargetType = 1 // transfer through the tunnel of other tunnel-cloud pod
-	CloudNodeType TargetType = 2 // send requests directly in this tunnel-cloud pod
-	EdgeNodeType  TargetType = 3 // the target node is on the edge and cannot send requests directly
+	LocalPodType       TargetType = 0 //transfer through the tunnel of this tunnel-cloud pod
+	RemotePodType      TargetType = 1 //transfer through the tunnel of other tunnel-cloud pod
+	DisconnectNodeType TargetType = 2 //the target node is not registered in the route cache
 )
 
-func ProxyEdgeNode(nodename, host, port, category string, proxyConn net.Conn, req *bytes.Buffer) error {
-	node := context.GetContext().GetNode(nodename)
+func ForwardNode(nodename, host, port, category string, proxyConn net.Conn, ctx context.Context) error {
+	node := tunnelcontext.GetContext().GetNode(nodename)
+
+	//Direct forwarding edge nodes
 	if node != nil {
-		// If the edge node establishes a long connection with this pod, it will be forwarded directly
-		uid := uuid.NewV4().String()
-		ch := context.GetContext().AddConn(uid)
-		node.BindNode(uid)
-		_, err := proxyConn.Write([]byte(util.ConnectMsg))
-		if err != nil {
-			klog.Errorf("Failed to write data to proxyConn, error: %v", err)
+
+		//If the edge node establishes a long connection with this pod, it will be forwarded directly
+		conn, err := node.ConnectNode(category, net.JoinHostPort(host, port), ctx)
+		if err == nil {
+			_, err := proxyConn.Write([]byte(util.ConnectMsg))
+			if err != nil {
+				klog.ErrorS(err, "failed to write data to proxyConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+				return err
+			}
+
+			go Read(proxyConn, node, category, util.TCP_FORWARD, conn.GetUid())
+			Write(proxyConn, conn)
+
+		} else {
+			klog.ErrorS(err, "failed to connect edge node", "nodeName", nodename, util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+			respErr := util.InternalServerErrorMsg(proxyConn, err.Error(), ctx.Value(util.STREAM_TRACE_ID).(string))
+			if respErr != nil {
+				return respErr
+			}
 			return err
 		}
-		go Read(proxyConn, node, category, util.TCP_FRONTEND, uid, host+":"+port)
-		Write(proxyConn, ch)
-	} else {
-		// From tunnel-coredns, query the pods of tunnel-cloud where edge nodes establish long-term connections
-		addr, ok := connect.Route.EdgeNode[nodename]
-		if ok {
-			/*
-				todo Supports sending requests through nodes within nodeunit at the edge
-			*/
-			// You can only proxy once between tunnel-cloud pods
-			if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) {
-				klog.Errorf("Loop forwarding")
-				return fmt.Errorf("loop forwarding")
-			}
-			// Proxy egress https request between tunnel-cloud pods should use http_proxy
-			addr = GetRemoteAddr(addr, category)
-			remoteConn, err := net.Dial(util.TCP, addr)
-			if err != nil {
-				klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
-				return err
-			}
 
-			// Forward HTTP_CONNECT request data
-			_, err = remoteConn.Write(req.Bytes())
-			if err != nil {
-				klog.Errorf("Failed to write data to remoteConn, error: %v", err)
-				return err
-			}
-			defer remoteConn.Close()
-			go func() {
-				_, writeErr := io.Copy(remoteConn, proxyConn)
-				if writeErr != nil {
-					klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
-				}
-			}()
-			_, err = io.Copy(proxyConn, remoteConn)
-			if err != nil {
-				klog.Errorf("Failed to read data from remoteConn, error: %v", err)
-				return err
+	} else {
+
+		//From tunnel-coredns, query the pods of tunnel-cloud where edge nodes establish long-term connections
+		addr, ok := connect.Route.EdgeNode[nodename]
+
+		//forward cloud node
+		if !ok {
+			_, cloudOk := connect.Route.CloudNode[nodename]
+			if cloudOk {
+				return DirectDial(host, port, category, proxyConn, ctx)
 			}
 		}
 
-		_, cloudOk := connect.Route.CloudNode[nodename]
-		if cloudOk {
-			return DailDirect(host, port, category, proxyConn)
+		//forward edge node
+		/*
+			todo Supports sending requests through nodes within nodeunit at the edge
+		*/
+		//You can only proxy once between tunnel-cloud pods
+		if connect.IsEndpointIp(strings.Split(proxyConn.RemoteAddr().String(), ":")[0]) && !net.ParseIP(strings.Split(proxyConn.LocalAddr().String(), ":")[0]).IsLoopback() {
+			klog.InfoS("loop forwarding", "remoteAddr", proxyConn.RemoteAddr().String(), "localAddr", proxyConn.LocalAddr().String(), util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+
+			respErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("loop forwarding, remoteAddr:%s, localAddr:%s", proxyConn.RemoteAddr().String(), proxyConn.LocalAddr().String()), ctx.Value(util.STREAM_TRACE_ID).(string))
+			if respErr != nil {
+				return respErr
+			}
+
+			return fmt.Errorf("loop forwarding, remoteAddr:%s localAddr:%s, %s:%s", proxyConn.RemoteAddr().String(), proxyConn.LocalAddr().String(), util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+		}
+		remoteConn, err := GetRemoteConn(category, addr)
+		if err != nil {
+			klog.ErrorS(err, "failed to establish a connection between proxyServer and backendServer", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+
+			respErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("failed to establish a connection between proxyServer and backendServer, error: %v", err), ctx.Value(util.STREAM_TRACE_ID).(string))
+			if respErr != nil {
+				return respErr
+			}
+
+			return err
+		}
+
+		//Forward HTTP_CONNECT request data
+		remoteReq := &http.Request{
+			Method: http.MethodConnect,
+			URL:    &url.URL{Host: net.JoinHostPort(host, port)},
+			Header: map[string][]string{
+				util.STREAM_TRACE_ID: {ctx.Value(util.STREAM_TRACE_ID).(string)},
+			},
+		}
+		proxyCtx, cancle := context.WithTimeout(ctx, 5*time.Second)
+		defer cancle()
+		remoteReq = remoteReq.WithContext(proxyCtx)
+		err = remoteReq.Write(remoteConn)
+		if err != nil {
+			klog.ErrorS(err, "failed to write data to remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+
+			respErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("failed to write data to remoteConn, error: %v", err), ctx.Value(util.STREAM_TRACE_ID).(string))
+			if respErr != nil {
+				return respErr
+			}
+
+			return err
+		}
+
+		defer remoteConn.Close()
+		go func() {
+			_, writeErr := io.Copy(remoteConn, proxyConn)
+			if writeErr != nil {
+				klog.ErrorS(err, "failed to copy data to remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+			}
+		}()
+		_, err = io.Copy(proxyConn, remoteConn)
+		if err != nil {
+			klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+			return err
 		}
 	}
+
 	return nil
 }
 
-func GetRemoteAddr(host, category string) string {
+func GetRemoteAddr(category, host string) string {
 	switch category {
 	case util.SSH:
 		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
-	case util.HTTP_PROXY, util.EGRESS:
+	case util.EGRESS, util.HTTP_PROXY:
 		return fmt.Sprintf("%s:%d", host, conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
 	}
 	return host
 }
 
-func GetPodIpFromService(service string) (string, string, error) {
-	/*
-	   1. Directly forward to the node where the pod is located according to the podip(The received proxy request needs to be guaranteed to be in the form of podip, so as to avoid making another service-to-endpoint selection)
-	   2. serviceName first checks whether it is in the format of serviceName.nameSpace
-	   3. Support service types: ClusterIP, LoadBalancer, NodePort and externalName
-	*/
-	host, port, err := net.SplitHostPort(service)
-	if err != nil {
-		klog.Errorf("Failed to resolve host, error: %v", err)
-		return "", "", err
-	}
-	podIp := net.ParseIP(host)
-	if podIp == nil {
-		services := strings.Split(host, ".")
-		if len(services) < 2 {
-			klog.Errorf("Service %s format invalid", host)
-			return "", "", fmt.Errorf("Service %s format invalid", host)
-		}
-		portInt32, err := strconv.ParseInt(port, 10, 32)
-		if err != nil {
-			klog.Errorf("Failed to resolve port, error: %v", err)
-			return "", "", err
-		}
-		podUrl, err := proxy.ResolveEndpoint(indexers.ServiceLister, indexers.EndpointLister, services[1], services[0], int32(portInt32))
-		if err != nil {
-			klog.Errorf("Failed to get podIp from service, error: %v", err)
-			return "", "", err
-		}
-		return podUrl.Hostname(), podUrl.Port(), nil
-	}
-	return host, port, nil
-}
-
-func GetDomainFromHost(host string) (string, error) {
-	services := strings.Split(host, ".")
-	if len(services) > 2 {
-		return host, nil
-	}
-	targetService, err := indexers.ServiceLister.Services(services[1]).Get(services[0])
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return host, nil
-		}
-		klog.Errorf("Failed to get service %s from cluster, error: %v", host, err)
-		return "", err
-	}
-	if targetService.Spec.Type == v1.ServiceTypeExternalName {
-		return targetService.Spec.ExternalName, nil
-	}
-	return "", nil
-}
-
 func GetTargetType(nodeName string) TargetType {
-	node := context.GetContext().GetNode(nodeName)
+	node := tunnelcontext.GetContext().GetNode(nodeName)
 	if node != nil {
 		return LocalPodType
 	}
 
-	_, err := net.LookupHost(nodeName)
-	if err == nil {
+	if _, ok := connect.Route.EdgeNode[nodeName]; ok {
 		return RemotePodType
 	}
-
-	if dnsErr, ok := err.(*net.DNSError); ok {
-		if dnsErr.IsNotFound {
-			/*
-				todo It is necessary to determine whether the node node is an edge node without a cloud-edge tunnel established
-			*/
-			return CloudNodeType
-		}
-	}
-	return LocalPodType
+	return DisconnectNodeType
 }
 
-func GetRemoteProxyServerPort(category string) string {
-	switch category {
-	case util.SSH:
-		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort)
-	case util.EGRESS:
-		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort)
-	case util.HTTP_PROXY:
-		return strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort)
-	}
-	return "10250"
+func GetRemoteConn(category, addr string) (net.Conn, error) {
+	addr = GetRemoteAddr(category, addr)
+	remoteConn, err := net.Dial(util.TCP, addr)
+	return remoteConn, err
 }
 
-func GetRemoteConn(nodeName, category string) (net.Conn, error) {
-	addrs, err := net.LookupHost(nodeName)
-	if err != nil {
-		return nil, err
-	}
-	remoteConn, err := net.Dial(util.TCP, addrs[0]+":"+GetRemoteProxyServerPort(category))
-	if err != nil {
-		klog.Errorf("Failed to establish a connection between proxyServer and backendServer, error: %v", err)
-		return nil, err
-	}
-	return remoteConn, nil
-}
-
-func DailDirect(host, port, category string, proxyConn net.Conn) error {
-	// Handling access to out-of-cluster ip
+func DirectDial(host, port, category string, proxyConn net.Conn, ctx context.Context) error {
+	//Handling access to out-of-cluster ip
 	pingErr := util.Ping(host)
 	if pingErr == nil {
 		remoteConn, err := net.Dial("tcp", net.JoinHostPort(host, port))
 		if err != nil {
-			klog.Errorf("Failed to establish tcp connection with server outside the cluster, error: %v", err)
+			klog.ErrorS(err, "failed to establish tcp connection with server outside the cluster", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+
+			respErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("failed to establish tcp connection with server outside the cluster, error: %v", err), ctx.Value(util.STREAM_TRACE_ID).(string))
+			if respErr != nil {
+				return respErr
+			}
+
 			return err
 		}
-		err = util.WriteMsg(proxyConn, util.ConnectMsg)
+
+		_, err = proxyConn.Write([]byte(util.ConnectMsg))
 		if err != nil {
-			if err != nil {
-				klog.Errorf("Failed to write data to proxyConn, error: %v", err)
-				return err
-			}
+			klog.ErrorS(err, "failed to write data to proxyConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+			return err
 		}
 		defer remoteConn.Close()
 		go func() {
 			_, writeErr := io.Copy(remoteConn, proxyConn)
 			if writeErr != nil {
-				klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
+				klog.ErrorS(err, "failed to copy data to remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
 			}
 		}()
+
 		_, err = io.Copy(proxyConn, remoteConn)
 		if err != nil {
-			klog.Errorf("Failed to read data from remoteConn, error: %v", err)
+			klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
 			return err
 		}
 
 	} else {
-		klog.Errorf("Failed to get the node where the pod is located, module: %s, error: %v", category, pingErr)
+		klog.ErrorS(pingErr, "failed to get the node where the pod is located", "category", category, util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
+
+		respErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("failed to get the node where the pod is located, category: %s, error: %v", category, pingErr), ctx.Value(util.STREAM_TRACE_ID).(string))
+		if respErr != nil {
+			return respErr
+		}
 		return pingErr
 	}
 	return nil

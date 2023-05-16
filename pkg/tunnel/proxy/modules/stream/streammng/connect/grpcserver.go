@@ -21,10 +21,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/metrics"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
 	"google.golang.org/grpc"
@@ -85,7 +85,7 @@ func StartLogServer(mode string) {
 	if mode == tunnelutil.CLOUD {
 		mux.HandleFunc("/cloud/healthz", func(writer http.ResponseWriter, request *http.Request) {
 			if request.Method == http.MethodGet {
-				fmt.Fprintln(writer, context.GetContext().GetNodes())
+				fmt.Fprintln(writer, tunnelcontext.GetContext().GetNodes())
 			} else {
 				writer.WriteHeader(http.StatusMethodNotAllowed)
 				fmt.Fprintln(writer, "only supports GET method")

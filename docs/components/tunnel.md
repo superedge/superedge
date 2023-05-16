@@ -483,7 +483,7 @@ func Test_StreamServer(t *testing.T) {
 	model.InitModules(util.CLOUD)
 	InitStream(util.CLOUD)
 	model.LoadModules(util.CLOUD)
-	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	tunnelContext.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
 	model.ShutDown()
 
 }
@@ -507,11 +507,11 @@ func Test_StreamClient(t *testing.T) {
 	model.InitModules(util.EDGE)
 	InitStream(util.EDGE)
 	model.LoadModules(util.EDGE)
-	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	tunnelContext.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
 	go func() {
 		running := true
 		for running {
-			node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+			node := tunnelContext.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
 			if node != nil {
 				node.Send2Node(&proto.StreamMsg{
 					Node:     os.Getenv(util.NODE_NAME_ENV),

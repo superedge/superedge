@@ -16,10 +16,10 @@ package http_proxy
 import (
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/http-proxy/connect"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
@@ -37,11 +37,13 @@ func (h HttpProxy) Name() string {
 
 func (h HttpProxy) Start(mode string) {
 	//Handle HTTP_CONNECT requests for tunnel establishment
-	context.GetContext().RegisterHandler(util.HTTP_PROXY_ACCESS, util.HTTP_PROXY, handlers.AccessHandler)
-	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.HTTP_PROXY, handlers.DirectHandler)
-	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.HTTP_PROXY, handlers.FrontendHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.TCP_FORWARD, util.HTTP_PROXY, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_SUCCESSED, util.HTTP_PROXY, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_FAILED, util.HTTP_PROXY, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.CLOSED, util.HTTP_PROXY, handlers.DirectHandler)
 	go func() {
 		if mode == util.EDGE {
+			tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_REQ, util.HTTP_PROXY, handlers.ConnectingHandler)
 			listener, err := net.Listen("tcp", conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyIP+":"+conf.TunnelConf.TunnlMode.EDGE.HttpProxy.ProxyPort)
 			if err != nil {
 				klog.Errorf("Failed to start http_proxy edge server, error: %v", err)
@@ -57,6 +59,7 @@ func (h HttpProxy) Start(mode string) {
 			}
 
 		} else if mode == util.CLOUD {
+			tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_REQ, util.HTTP_PROXY, handlers.AccessHandler)
 			listener, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.HttpProxy.ProxyPort))
 			if err != nil {
 				klog.Errorf("Failed to start http_proxy edge server, error: %v", err)
@@ -87,7 +90,7 @@ func (h HttpProxy) Start(mode string) {
 
 func (h HttpProxy) CleanUp() {
 	h.stop <- struct{}{}
-	context.GetContext().RemoveModule(util.HTTP_PROXY)
+	tunnelcontext.GetContext().RemoveModule(util.HTTP_PROXY)
 }
 
 func InitHttpProxy() {

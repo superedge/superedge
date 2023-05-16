@@ -18,11 +18,11 @@ package stream
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammsg"
 	"github.com/superedge/superedge/pkg/tunnel/token"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"os"
@@ -36,7 +36,7 @@ func (stream *Stream) Name() string {
 }
 
 func (stream *Stream) Start(mode string) {
-	context.GetContext().RegisterHandler(util.STREAM_HEART_BEAT, util.STREAM, streammsg.HeartbeatHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.STREAM_HEART_BEAT, util.STREAM, streammsg.HeartbeatHandler)
 	var channelzAddr string
 	if mode == util.CLOUD {
 		go connect.StartServer()
@@ -53,7 +53,7 @@ func (stream *Stream) Start(mode string) {
 }
 
 func (stream *Stream) CleanUp() {
-	context.GetContext().RemoveModule(stream.Name())
+	tunnelcontext.GetContext().RemoveModule(stream.Name())
 }
 
 func InitStream(mode string) {

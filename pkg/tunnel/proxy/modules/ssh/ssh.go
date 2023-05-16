@@ -15,9 +15,9 @@ package ssh
 
 import (
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
@@ -32,9 +32,11 @@ func (s SSH) Name() string {
 }
 
 func (s SSH) Start(mode string) {
-	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.SSH, handlers.FrontendHandler)
-	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.SSH, handlers.DirectHandler)
-	context.GetContext().RegisterHandler(util.CLOSED, util.SSH, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_REQ, util.SSH, handlers.ConnectingHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.TCP_FORWARD, util.SSH, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.CLOSED, util.SSH, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_SUCCESSED, util.SSH, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_FAILED, util.SSH, handlers.DirectHandler)
 	if mode == util.CLOUD {
 		listener, err := net.Listen(util.TCP, "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.SSH.SSHPort))
 		if err != nil {
@@ -56,7 +58,7 @@ func (s SSH) Start(mode string) {
 }
 
 func (s SSH) CleanUp() {
-	context.GetContext().RemoveModule(s.Name())
+	tunnelcontext.GetContext().RemoveModule(s.Name())
 }
 
 func InitSSH() {
