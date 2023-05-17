@@ -47,14 +47,14 @@ type storageCache struct {
 	localNodeInfo           map[string]data.ResultDetail
 
 	// service watch channel
-	serviceChan chan<- watch.Event
+	serviceBroardcaster *watch.Broadcaster
 	// endpoints watch channel
 	endpointsBroadcaster *watch.Broadcaster
 	// endpointSlice watch channel
-	endpointSliceV1Chan chan<- watch.Event
+	endpointSliceV1Broardcaster *watch.Broadcaster
 
-	endpointSliceV1Beta1Chan chan<- watch.Event
-	nodeBroadcaster          *watch.Broadcaster
+	endpointSliceV1Beta1Boardcaster *watch.Broadcaster
+	nodeBroadcaster                 *watch.Broadcaster
 }
 
 // serviceContainer stores kubernetes service and its topologyKeys
@@ -87,7 +87,7 @@ type endpointSliceV1Beta1Container struct {
 
 var _ Cache = &storageCache{}
 
-func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceNotifier, endpointSliceV1Notifier, endpointSliceV1Beta1Notifier chan watch.Event, endpointBroadcaster, nodeBroadcaster *watch.Broadcaster, supportEndpointSlice bool) *storageCache {
+func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhancementEnabled bool, serviceBroadcaster, endpointSliceV1Broadcaster, endpointSliceV1Beta1Broadcaster, endpointBroadcaster, nodeBroadcaster *watch.Broadcaster, supportEndpointSlice bool) *storageCache {
 	msc := &storageCache{
 		hostName:                          hostName,
 		wrapperInCluster:                  wrapperInCluster,
@@ -98,10 +98,10 @@ func NewStorageCache(hostName string, wrapperInCluster, serviceAutonomyEnhanceme
 		endpointSliceV1Map:                make(map[types.NamespacedName]*endpointSliceV1Container),
 		endpointSliceV1Beta1Map:           make(map[types.NamespacedName]*endpointSliceV1Beta1Container),
 		nodesMap:                          make(map[types.NamespacedName]*nodeContainer),
-		serviceChan:                       serviceNotifier,
+		serviceBroardcaster:               serviceBroadcaster,
 		endpointsBroadcaster:              endpointBroadcaster,
-		endpointSliceV1Chan:               endpointSliceV1Notifier,
-		endpointSliceV1Beta1Chan:          endpointSliceV1Beta1Notifier,
+		endpointSliceV1Broardcaster:       endpointSliceV1Broadcaster,
+		endpointSliceV1Beta1Boardcaster:   endpointSliceV1Beta1Broadcaster,
 		nodeBroadcaster:                   nodeBroadcaster,
 		localNodeInfo:                     make(map[string]data.ResultDetail),
 	}
@@ -224,7 +224,7 @@ func (sc *storageCache) resync() {
 		changedEndpointSliceV1 := sc.rebuildEndpointSliceV1Map()
 		sc.mu.Unlock()
 		for _, eps := range changedEndpointSliceV1 {
-			sc.endpointSliceV1Chan <- eps
+			sc.endpointSliceV1Broardcaster.Action(eps.Type, eps.Object)
 		}
 	}
 
@@ -234,7 +234,7 @@ func (sc *storageCache) resync() {
 		changedEndpointSliceV1Beta1 := sc.rebuildEndpointSliceV1Beta1Map()
 		sc.mu.Unlock()
 		for _, eps := range changedEndpointSliceV1Beta1 {
-			sc.endpointSliceV1Chan <- eps
+			sc.endpointSliceV1Broardcaster.Action(eps.Type, eps.Object)
 		}
 	}
 
@@ -297,4 +297,8 @@ func (sc *storageCache) rebuildEndpointSliceV1Beta1Map() []watch.Event {
 		})
 	}
 	return evts
+}
+
+func (sc *storageCache) GetNodeName() string {
+	return sc.hostName
 }

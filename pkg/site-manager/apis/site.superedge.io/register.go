@@ -14,9 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package site_superedge_io
+package site
 
-const (
-	GroupName = "site.superedge.io"
-	Version   = "v1alpha1"
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = schema.GroupVersion{Group: "site.superedge.io", Version: runtime.APIVersionInternal}
+
+var (
+	// SchemeBuilder points to a list of functions added to Scheme.
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	// AddToScheme applies all the stored functions to the scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
+)
+
+// Kind takes an unqualified kind and returns a Group qualified GroupKind
+func Kind(kind string) schema.GroupKind {
+	return SchemeGroupVersion.WithKind(kind).GroupKind()
+}
+
+// Resource takes an unqualified resource and returns a Group qualified GroupResource
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
+
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&NodeUnit{},
+		&NodeUnitList{},
+		&NodeGroup{},
+		&NodeGroupList{},
+	)
+	return nil
+}

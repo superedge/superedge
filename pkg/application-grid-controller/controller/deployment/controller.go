@@ -20,6 +20,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/deployment/util"
@@ -43,7 +45,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	klog "k8s.io/klog/v2"
-	"time"
 
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 
@@ -70,9 +71,9 @@ type DeploymentGridController struct {
 	kubeClient    clientset.Interface
 	crdClient     crdclientset.Interface
 
-	//focus on dg in parent cluster
+	// focus on dg in parent cluster
 	FedDeploymentGridController *FedDeploymentGridController
-	//parent cluster namespace
+	// parent cluster namespace
 	dedicatedNameSpace string
 
 	// To allow injection of syncDeploymentGrid for testing.
@@ -244,10 +245,8 @@ func (dgc *DeploymentGridController) syncDeploymentGrid(key string) error {
 		!apiequality.Semantic.DeepEqual(dg.Spec.DefaultTemplateName, dgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(dg.Spec.TemplatePool, dgCopy.Spec.TemplatePool) {
 		klog.Infof("Updating deploymentGrid %s/%s template", dgCopy.Namespace, dgCopy.Name)
-		dg, err = dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
-		if err != nil && !errors.IsConflict(err) {
-			return err
-		}
+		_, err = dgc.crdClient.SuperedgeV1().DeploymentGrids(dgCopy.Namespace).Update(context.TODO(), dgCopy, metav1.UpdateOptions{})
+		return err
 	}
 
 	// get deployment workload list of this grid
@@ -347,7 +346,7 @@ func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interfa
 	}
 	dgc.enqueueDeploymentGrid(curDg)
 
-	//deploymentGrid in same cluster
+	// deploymentGrid in same cluster
 	_, fed := curDg.Labels[common.FedrationKey]
 	_, dis := curDg.Labels[common.FedrationDisKey]
 	if fed && dis {
@@ -357,7 +356,7 @@ func (dgc *DeploymentGridController) updateDeploymentGrid(oldObj, newObj interfa
 		}
 	}
 
-	//deploymentGrid in parent cluster
+	// deploymentGrid in parent cluster
 	if fed && !dis {
 		if dgc.FedDeploymentGridController != nil {
 			parentFedDg := dgc.getParentFedDeploymentGrid(curDg)

@@ -19,12 +19,13 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"sync"
+	"time"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	klog "k8s.io/klog/v2"
-	"sync"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	corev1 "k8s.io/api/core/v1"
@@ -87,7 +88,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 			klog.V(4).Infof("Creating service %s/%s by syncService", svc.Namespace, svc.Name)
 			sgCopy := sg.DeepCopy()
 			_, err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 				sgCopy.Status.Conditions = []metav1.Condition{{
 					Type:               common.CreateError,
@@ -103,8 +104,6 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 				if err != nil {
 					klog.Errorf("Updating add services %d when error occurred %v", svc.Name, err)
 				}
-			} else {
-				sgCopy.Status = svc.Status
 			}
 		}(adds[i])
 	}
@@ -142,8 +141,6 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 				if err != nil {
 					klog.Errorf("Updating update services %s when error occurred %v", svc.Name, err)
 				}
-			} else {
-				sgCopy.Status = svc.Status
 			}
 		}(updates[i])
 	}
@@ -154,7 +151,7 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 			klog.V(4).Infof("Deleting service %s/%s by syncService", svc.Namespace, svc.Name)
 			sgCopy := sg.DeepCopy()
 			err := sgc.kubeClient.CoreV1().Services(svc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 				sgCopy.Status.Conditions = []metav1.Condition{{
 					Type:               common.DeleteError,
@@ -170,8 +167,6 @@ func (sgc *ServiceGridController) syncService(sg *crdv1.ServiceGrid, adds, updat
 				if err != nil {
 					klog.Errorf("Updating delete services %d when error occurred %v", svc.Name, err)
 				}
-			} else {
-				sgCopy.Status = svc.Status
 			}
 		}(deletes[i])
 	}
@@ -256,7 +251,7 @@ func (sgc *ServiceGridController) syncDisServiceGrid(adds, updates, deletes []*c
 			defer wg.Done()
 			klog.V(4).Infof("Creating DisServiceGrid %s/%s by syncDisServiceGrid", s.Namespace, s.Name)
 			_, err := sgc.crdClient.SuperedgeV1().ServiceGrids(s.Namespace).Create(context.TODO(), s, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 			}
 		}(adds[i])
@@ -278,7 +273,7 @@ func (sgc *ServiceGridController) syncDisServiceGrid(adds, updates, deletes []*c
 			defer wg.Done()
 			klog.V(4).Infof("Deleting DisServiceGrid %s/%s by syncDisServiceGrid", s.Namespace, s.Name)
 			err := sgc.crdClient.SuperedgeV1().ServiceGrids(s.Namespace).Delete(context.TODO(), s.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 			}
 		}(deletes[i])

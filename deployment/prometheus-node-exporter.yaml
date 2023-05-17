@@ -11,10 +11,7 @@ metadata:
   name: prometheus-node-exporter-conf
   namespace: edge-system
 data:
-  config.yaml: |
-    tls_server_config:
-      cert_file: /home/certs/apiserver-kubelet-server.crt
-      key_file: /home/certs/apiserver-kubelet-server.key
+  config.yaml: ""
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -68,8 +65,6 @@ spec:
               readOnly: true
             - mountPath: /home/conf
               name: conf
-            - mountPath: /home/certs
-              name: certs
       dnsPolicy: ClusterFirst
       hostNetwork: true
       hostPID: true
@@ -100,7 +95,3 @@ spec:
             defaultMode: 420
             name: prometheus-node-exporter-conf
           name: conf
-        - name: certs
-          secret:
-            defaultMode: 420
-            secretName: tunnel-cloud-cert

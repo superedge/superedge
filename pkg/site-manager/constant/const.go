@@ -18,7 +18,9 @@ package constant
 
 // Annotations
 const (
-	NodeUnitSuperedge = "nodeunits.superedge.io"
+	NodeUnitSuperedge     = "nodeunits.superedge.io"
+	NodeGroupSuperedge    = "nodegroups.superedge.io"
+	NodeUnitAutoFindLabel = "site.superedge.io/node-group-auto-keys-hash"
 )
 
 const (

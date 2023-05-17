@@ -19,6 +19,8 @@ package statefulset
 import (
 	"context"
 	"encoding/json"
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
@@ -30,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	"sync"
 )
 
 func (ssgc *StatefulSetGridController) syncStatus(ssg *crdv1.StatefulSetGrid, setList []*appsv1.StatefulSet, gridValues []string) error {
@@ -96,8 +97,11 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 		if err != nil {
 			return err
 		}
-		if ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set) {
-			klog.Infof("statefulset %s template hash changed", set.Name)
+		IsTemplateHashChanged, IsReplicasChanged := ssgc.templateHasher.IsTemplateHashChanged(ssg, v, set), ssgc.templateHasher.IsReplicasChanged(ssg, v, set)
+		klog.V(5).InfoS("statefulsetgrid template change status", "IsTemplateHashChanged", IsTemplateHashChanged, "IsReplicasChanged", IsReplicasChanged)
+
+		if IsTemplateHashChanged || IsReplicasChanged {
+			klog.InfoS("statefulset template hash changed", "sts name", set.Name)
 			updates = append(updates, StatefulSetToUpdate)
 			continue
 		} else {
@@ -141,7 +145,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 			defer wg.Done()
 			klog.V(4).Infof("Creating statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			_, err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Create(context.TODO(), set, metav1.CreateOptions{})
-			if err != nil {
+			if err != nil && !errors.IsAlreadyExists(err) {
 				errCh <- err
 			}
 		}(adds[i])
@@ -163,7 +167,7 @@ func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []
 			defer wg.Done()
 			klog.V(4).Infof("Deleting statefulset %s/%s by syncStatefulSet", set.Namespace, set.Name)
 			err := ssgc.kubeClient.AppsV1().StatefulSets(set.Namespace).Delete(context.TODO(), set.Name, metav1.DeleteOptions{})
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
 				errCh <- err
 			}
 		}(deletes[i])

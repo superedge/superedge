@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha1"
+	v1alpha2 "github.com/superedge/superedge/pkg/site-manager/apis/site.superedge.io/v1alpha2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -57,6 +58,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Site().V1alpha1().NodeGroups().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("nodeunits"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Site().V1alpha1().NodeUnits().Informer()}, nil
+
+		// Group=site.superedge.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("nodegroups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Site().V1alpha2().NodeGroups().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("nodeunits"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Site().V1alpha2().NodeUnits().Informer()}, nil
 
 	}
 

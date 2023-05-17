@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	SiteManagerDaemonUserAgent = "site-manager-daemon"
+	SiteManagerDaemonUserAgent = "site-manager"
 )
 
 type Options struct {

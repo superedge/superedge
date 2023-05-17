@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/util"
@@ -80,6 +81,8 @@ func (dth *DeploymentTemplateHash) generateTemplateHash(template *appsv1.Deploym
 	copyTemplate := template.DeepCopy()
 	delete(meta.Labels, common.TemplateHashKey)
 	copyTemplate.Template.ObjectMeta = *meta
+	// replicas doesn't need hash caculation
+	copyTemplate.Replicas = nil
 	return fmt.Sprintf("%d", util.GenerateHash(copyTemplate))
 }
 
@@ -104,4 +107,13 @@ func (dth *DeploymentTemplateHash) getDeployTemplate(spec *crdv1.DeploymentGridS
 	} else {
 		return nil, fmt.Errorf("template not found in templatePool")
 	}
+}
+func (dth *DeploymentTemplateHash) IsReplicasChanged(dg *crdv1.DeploymentGrid, gridValues string, dp *appsv1.Deployment) bool {
+	template, err := dth.getDeployTemplate(&dg.Spec, gridValues)
+	if err != nil {
+		klog.Errorf("Failed to get deployment template for %s from deploymentGrid %s", dp.Name, dg.Name)
+		return true
+	}
+
+	return !(*template.Replicas == *dp.Spec.Replicas)
 }

@@ -21,6 +21,8 @@ import (
 )
 
 type Options struct {
+	QPS                              float32
+	Burst                            int
 	CAFile                           string
 	KeyFile                          string
 	CertFile                         string
@@ -37,6 +39,8 @@ type Options struct {
 
 func NewGridWrapperOptions() *Options {
 	return &Options{
+		QPS:               float32(1000),
+		Burst:             1000,
 		BindAddress:       "localhost:51006",
 		InsecureMode:      true,
 		NotifyChannelSize: 100,
@@ -51,6 +55,8 @@ func NewGridWrapperOptions() *Options {
 }
 
 func (sc *Options) AddFlags(fs *pflag.FlagSet) {
+	fs.Float32Var(&sc.QPS, "kube-qps", sc.QPS, "kubeconfig qps setting")
+	fs.IntVar(&sc.Burst, "kube-burst", sc.Burst, "kubeconfig burst setting")
 	fs.StringVar(&sc.CAFile, "ca-file", sc.CAFile,
 		"Certificate Authority file for communication between wrapper and kube-proxy")
 	fs.StringVar(&sc.KeyFile, "key-file", sc.KeyFile, "Private key file for communication between wrapper and kube-proxy")

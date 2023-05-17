@@ -18,10 +18,11 @@ package kubeclient
 
 import (
 	"bytes"
-	"k8s.io/klog/v2"
 	"reflect"
 	"regexp"
 	"text/template"
+
+	"k8s.io/klog/v2"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -64,6 +65,7 @@ func init() {
 	handlers["ClusterRoleBinding"] = createOrUpdateClusterRoleBinding
 	handlers["MutatingWebhookConfiguration"] = createOrUpdateMutatingWebhookConfiguration
 	handlers["ValidatingWebhookConfiguration"] = createOrUpdateValidatingWebhookConfiguration
+	handlers["PersistentVolume"] = createOrUpdatePersistentVolume
 }
 
 func createOrUpdateConfigMap(client kubernetes.Interface, data []byte) error {
@@ -312,6 +314,18 @@ func createOrUpdateMutatingWebhookConfiguration(client kubernetes.Interface, dat
 		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
 	}
 	err := CreateOrUpdateMutatingWebhookConfiguration(client, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createOrUpdatePersistentVolume(client kubernetes.Interface, data []byte) error {
+	obj := new(corev1.PersistentVolume)
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), data, obj); err != nil {
+		return errors.Wrapf(err, "unable to decode %s", reflect.TypeOf(obj).String())
+	}
+	err := CreateOrUpdatePersistentVolume(client, obj)
 	if err != nil {
 		return err
 	}

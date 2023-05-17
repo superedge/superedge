@@ -18,9 +18,10 @@ package util
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"k8s.io/klog/v2"
-	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

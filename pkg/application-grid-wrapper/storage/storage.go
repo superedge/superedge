@@ -28,6 +28,7 @@ type Cache interface {
 	CacheList
 	CacheEventHandler
 	LocalNodeInfoHandler
+	GetNodeName() string
 }
 
 type CacheList interface {

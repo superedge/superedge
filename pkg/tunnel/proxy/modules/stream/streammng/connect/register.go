@@ -20,20 +20,22 @@ import (
 	"bufio"
 	"bytes"
 	cctx "context"
-	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
+	"net"
+	"os"
+	"strings"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"net"
-	"os"
-	"strings"
-	"time"
+
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/context"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 )
 
 var register *RegisterNode
@@ -133,6 +135,10 @@ func SyncPodIP() {
 		if err != nil {
 			klog.Errorf("failed to synchronize hosts periodically err = %v", err)
 		}
+		err = loadCacheFromLocalFile()
+		if err != nil {
+			klog.Errorf("failed to load route from files, err = %v", err)
+		}
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -148,10 +154,10 @@ func SyncEndPoints() {
 	}
 }
 
-//Read the file by line, split each line of data read according to the space,
-//and the variable after splitting is a byte array
-//e: 127.0.0.1    localhsot
-//hostsArray = [[[49 50 55 46 48 46 48 46 49] [108 111 99 97 108 104 115 111 116]]]
+// Read the file by line, split each line of data read according to the space,
+// and the variable after splitting is a byte array
+// e: 127.0.0.1    localhsot
+// hostsArray = [[[49 50 55 46 48 46 48 46 49] [108 111 99 97 108 104 115 111 116]]]
 func hosts2Array(fileread io.Reader) [][][]byte {
 	scanner := bufio.NewScanner(fileread)
 	hostsArray := [][][]byte{}

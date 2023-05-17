@@ -269,34 +269,30 @@ func PatchNode(client clientset.Interface, nodeName string, patchFn func(*corev1
 
 // CreateOrUpdateService creates a service if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdateService(client clientset.Interface, svc *corev1.Service) error {
-	_, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
+	svcLive, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
 	if err == nil {
-		err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
+		svc.ResourceVersion = svcLive.ResourceVersion
+		_, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
-	}
-	if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrap(err, "unable to create service")
-		}
+	} else {
+		if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return errors.Wrap(err, "unable to create service")
+			}
 
-		if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{}); err != nil {
-			return errors.Wrap(err, "unable to update service")
+			if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{}); err != nil {
+				return errors.Wrap(err, "unable to update service")
+			}
 		}
 	}
+
 	return nil
 }
 
 // CreateOrUpdateStatefulSet creates a statefulSet if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdateStatefulSet(client clientset.Interface, sts *apps.StatefulSet) error {
-	_, err := client.AppsV1().StatefulSets(sts.ObjectMeta.Namespace).Get(context.TODO(), sts.Name, metav1.GetOptions{})
-	if err == nil {
-		err := client.AppsV1().StatefulSets(sts.ObjectMeta.Namespace).Delete(context.TODO(), sts.Name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
 	if _, err := client.AppsV1().StatefulSets(sts.ObjectMeta.Namespace).Create(context.TODO(), sts, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "unable to create statefulSet")
@@ -566,6 +562,25 @@ func CreateOrUpdateMutatingWebhookConfiguration(client clientset.Interface, obj 
 
 		if _, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
 			return errors.Wrap(err, "unable to update MutatingWebhookConfiguration")
+		}
+	}
+
+	return nil
+}
+
+// CreateOrUpdatePersistentVolume creates a PersistentVolume if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
+func CreateOrUpdatePersistentVolume(client clientset.Interface, obj *corev1.PersistentVolume) error {
+	if _, err := client.CoreV1().PersistentVolumes().Get(context.TODO(), obj.Name, metav1.GetOptions{}); err == nil {
+		// pv should not update
+		return nil
+	}
+	if _, err := client.CoreV1().PersistentVolumes().Create(context.TODO(), obj, metav1.CreateOptions{}); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrap(err, "unable to create PersistentVolume")
+		}
+
+		if _, err := client.CoreV1().PersistentVolumes().Update(context.TODO(), obj, metav1.UpdateOptions{}); err != nil {
+			return errors.Wrap(err, "unable to update PersistentVolume")
 		}
 	}
 

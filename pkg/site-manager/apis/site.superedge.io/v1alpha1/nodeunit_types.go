@@ -30,13 +30,6 @@ const (
 	OtherNodeUnit  NodeUnitType = "other"
 )
 
-// NodeUnitSpec defines the desired state of NodeUnit
-type NodeSelector struct {
-	// Type of nodeunit， vaule: Cloud、Edge
-	// +optional
-	Type NodeUnitType `json:"type,omitempty" protobuf:"bytes,2,rep,name=type"`
-}
-
 type Selector struct {
 	// matchLabels is a map of {key,value} pairs.
 	// +optional
@@ -88,6 +81,7 @@ type NodeUnitSpec struct {
 	SetNode SetNode `json:"setnode,omitempty" protobuf:"bytes,12,opt,name=setnode"`
 	// If specified, allow to set taints to nodeunit for the scheduler to choose
 	// +optional
+	//+k8s:conversion-gen=false
 	Taints []corev1.Taint `json:"taints,omitempty" protobuf:"bytes,5,opt,name=taints"`
 }
 
@@ -113,6 +107,7 @@ type NodeUnitStatus struct {
 //+kubebuilder:printcolumn:name="TYPE",type="string",JSONPath=`.spec.type`
 //+kubebuilder:printcolumn:name="READY",type="string",JSONPath=`.status.readyrate`
 //+kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:printcolumn:name="DELETING",type="date",JSONPath=".metadata.deletionTimestamp"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeUnit is the Schema for the nodeunits API

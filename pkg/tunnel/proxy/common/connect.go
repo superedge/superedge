@@ -43,6 +43,7 @@ func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr str
 					Category: category,
 					Type:     util.CLOSED,
 					Topic:    uuid,
+					Data:     []byte(err.Error()),
 				})
 			}
 			if err != io.EOF {
@@ -70,7 +71,11 @@ func Write(conn net.Conn, ch context.Conn) {
 		select {
 		case msg := <-ch.ConnRecv():
 			if msg.Type == util.CLOSED {
-				klog.V(4).Infof("Receive a close message")
+				klog.V(4).Infof("Receive a close message, error:%s", string(msg.Data))
+				err := conn.Close()
+				if err != nil {
+					klog.Errorf("Failed to close conn, msg= %v, error=%v", msg, err)
+				}
 				return
 			}
 			_, err := conn.Write(msg.Data)

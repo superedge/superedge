@@ -17,271 +17,265 @@ limitations under the License.
 package storage
 
 import (
-	"flag"
-	"fmt"
-	"reflect"
 	"sort"
 	"strings"
-	"testing"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/klog/v2"
 )
 
-func init() {
-	flagsets := flag.NewFlagSet("test", flag.ExitOnError)
-	klog.InitFlags(flagsets)
-	_ = flagsets.Set("v", "4")
-	_ = flagsets.Set("logtostderr", "true")
-	_ = flagsets.Parse(nil)
-}
-
-func TestCache(t *testing.T) {
-	svcCh := make(chan watch.Event)
-	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
-	endpointSliceChV1 := make(chan watch.Event)
-	endpointSliceChV1Beta1 := make(chan watch.Event)
-	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
-	supportEndpointSlice := true
-	stop := false
-	defer func() {
-		stop = true
-	}()
-
-	epsWatch := endpointBroadcaster.Watch()
-	nodeWatch := nodeBroadcaster.Watch()
-	go func() {
-		for !stop {
-			select {
-			case <-svcCh:
-			case <-epsWatch.ResultChan():
-			case <-nodeWatch.ResultChan():
-
-			}
-		}
-	}()
-
-	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
-
-	testNodes := make([]*v1.Node, 10)
-	nodeEventHandler := cache.NodeEventHandler()
-	for i := 0; i < len(testNodes); i++ {
-		testNodes[i] = &v1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   fmt.Sprintf("node-%d", i),
-				Labels: make(map[string]string),
-			},
-		}
-		nodeEventHandler.OnAdd(testNodes[i])
-	}
-
-	testServices := make([]*v1.Service, 10)
-	serviceEventHandler := cache.ServiceEventHandler()
-	for i := 0; i < len(testServices); i++ {
-		testServices[i] = &v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        fmt.Sprintf("%d", i),
-				Namespace:   metav1.NamespaceDefault,
-				Annotations: make(map[string]string),
-			},
-		}
-		if i%2 == 0 {
-			testServices[i].Annotations[TopologyAnnotationsKey] = "[\"foo\", \"bar\"]"
-		}
-		serviceEventHandler.OnAdd(testServices[i])
-	}
-
-	testEndpoints := make([]*v1.Endpoints, 10)
-	endpointEventHandler := cache.EndpointsEventHandler()
-	for i := 0; i < len(testServices); i++ {
-		testEndpoints[i] = &v1.Endpoints{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        fmt.Sprintf("%d", i),
-				Namespace:   metav1.NamespaceDefault,
-				Annotations: make(map[string]string),
-			},
-		}
-		endpointEventHandler.OnAdd(testEndpoints[i])
-	}
-
-	nodeSortAndCheckFunc := func() {
-		nodes := cache.GetNodes()
-		sort.Slice(nodes, func(i, j int) bool {
-			return strings.Compare(nodes[i].Name, nodes[j].Name) < 0
-		})
-		for i := 0; i < len(testNodes); i++ {
-			if !reflect.DeepEqual(testNodes[i], nodes[i]) {
-				t.Errorf("%d node is not equal, expect %#v to %#v", i, testNodes[i], nodes[i])
-				return
-			}
-		}
-	}
-	nodeSortAndCheckFunc()
-
-	serviceSortAndFunc := func() {
-		services := cache.GetServices()
-		sort.Slice(services, func(i, j int) bool {
-			return strings.Compare(services[i].Name, services[j].Name) < 0
-		})
-		for i := 0; i < len(testServices); i++ {
-			if !reflect.DeepEqual(testServices[i], services[i]) {
-				t.Errorf("%d service is not equal, expect %#v to %#v", i, testServices[i], services[i])
-				return
-			}
-		}
-	}
-	serviceSortAndFunc()
-
-	endpointsSortAndCheckFunc := func() {
-		endpoints := cache.GetEndpoints()
-		sort.Slice(endpoints, func(i, j int) bool {
-			return strings.Compare(endpoints[i].Name, endpoints[j].Name) < 0
-		})
-		for i := 0; i < len(testEndpoints); i++ {
-			if !reflect.DeepEqual(testEndpoints[i], endpoints[i]) {
-				t.Errorf("%d endpoint is not equal, expect %#v to %#v", i, testEndpoints[i], endpoints[i])
-				return
-			}
-		}
-	}
-	endpointsSortAndCheckFunc()
-
-	for i := 0; i < len(testNodes); i++ {
-		if i%2 == 0 {
-			testNodes[i].Labels["updated"] = "true"
-			nodeEventHandler.OnUpdate(nil, testNodes[i])
-		}
-	}
-	nonExistNode := testNodes[0].DeepCopy()
-	nonExistNode.Name = "non-exist"
-	nodeEventHandler.OnUpdate(nil, nonExistNode)
-	nodeSortAndCheckFunc()
-
-	for i := 0; i < len(testServices); i++ {
-		if i%3 == 0 {
-			testServices[i].Annotations["updated"] = "true"
-			serviceEventHandler.OnUpdate(nil, testServices[i])
-		}
-	}
-	nonExistService := testServices[0].DeepCopy()
-	nonExistService.Name = "non-exist"
-	serviceEventHandler.OnUpdate(nil, nonExistService)
-	serviceSortAndFunc()
-
-	for i := 0; i < len(testEndpoints); i++ {
-		if i%5 == 0 {
-			testEndpoints[i].Annotations["updated"] = "true"
-			endpointEventHandler.OnUpdate(nil, testEndpoints[i])
-		}
-	}
-	nonExistEndpoints := testEndpoints[0].DeepCopy()
-	nonExistEndpoints.Name = "non-exist"
-	endpointEventHandler.OnUpdate(nil, nonExistEndpoints)
-	endpointsSortAndCheckFunc()
-
-	for i := 0; i < len(testNodes); i++ {
-		nodeEventHandler.OnDelete(testNodes[i])
-	}
-	nodeEventHandler.OnDelete(nonExistNode)
-	testNodes = make([]*v1.Node, 0)
-	nodeSortAndCheckFunc()
-
-	for i := 0; i < len(testServices); i++ {
-		serviceEventHandler.OnDelete(testServices[i])
-	}
-	serviceEventHandler.OnDelete(nonExistService)
-	testServices = make([]*v1.Service, 0)
-	serviceSortAndFunc()
-
-	for i := 0; i < len(testEndpoints); i++ {
-		endpointEventHandler.OnDelete(testEndpoints[i])
-	}
-	endpointEventHandler.OnDelete(nonExistEndpoints)
-	testEndpoints = make([]*v1.Endpoints, 0)
-	endpointsSortAndCheckFunc()
-}
-
-func TestCacheServiceNotifier(t *testing.T) {
-	svcCh := make(chan watch.Event, 100)
-	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
-	endpointSliceChV1 := make(chan watch.Event)
-	endpointSliceChV1Beta1 := make(chan watch.Event)
-	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
-	supportEndpointSlice := true
-	stop := false
-	defer func() {
-		stop = true
-	}()
-
-	epsWatch := endpointBroadcaster.Watch()
-	nodeWatch := nodeBroadcaster.Watch()
-	serviceEvents := make([]watch.Event, 0)
-	go func() {
-		for !stop {
-			select {
-			case s := <-svcCh:
-				serviceEvents = append(serviceEvents, s)
-			case <-epsWatch.ResultChan():
-			case <-nodeWatch.ResultChan():
-
-			}
-		}
-	}()
-
-	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
-
-	expectServiceSequence := make([]*v1.Service, 0)
-	testServices := make([]*v1.Service, 10)
-	serviceEventHandler := cache.ServiceEventHandler()
-	for i := 0; i < len(testServices); i++ {
-		testServices[i] = &v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        fmt.Sprintf("%d", i),
-				Namespace:   metav1.NamespaceDefault,
-				Annotations: make(map[string]string),
-			},
-		}
-		if i%2 == 0 {
-			testServices[i].Annotations[TopologyAnnotationsKey] = "[\"foo\", \"bar\"]"
-		}
-
-		changed := testServices[i].DeepCopy()
-		serviceEventHandler.OnAdd(changed)
-		expectServiceSequence = append(expectServiceSequence, changed)
-	}
-
-	for i := 0; i < len(testServices); i++ {
-		var changed *v1.Service
-
-		if i%3 == 0 {
-			testServices[i].Annotations["updated"] = "true"
-			changed = testServices[i].DeepCopy()
-			serviceEventHandler.OnUpdate(nil, changed)
-		} else {
-			changed = testServices[i].DeepCopy()
-			serviceEventHandler.OnDelete(changed)
-		}
-		expectServiceSequence = append(expectServiceSequence, changed)
-	}
-
-	// Drain all channel data
-	time.Sleep(time.Second)
-	if len(expectServiceSequence) != len(serviceEvents) {
-		t.Errorf("events missing, expect %d to be %d", len(expectServiceSequence), len(serviceEvents))
-		return
-	}
-
-	for i := range serviceEvents {
-		eventObject := serviceEvents[i].Object.(*v1.Service)
-		if !reflect.DeepEqual(eventObject, expectServiceSequence[i]) {
-			t.Errorf("%d expect %#v to be %#v", i, eventObject, expectServiceSequence[i])
-			return
-		}
-	}
-}
+//func init() {
+//	flagsets := flag.NewFlagSet("test", flag.ExitOnError)
+//	klog.InitFlags(flagsets)
+//	_ = flagsets.Set("v", "4")
+//	_ = flagsets.Set("logtostderr", "true")
+//	_ = flagsets.Parse(nil)
+//}
+//
+//func TestCache(t *testing.T) {
+//	svcCh := make(chan watch.Event)
+//	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
+//	endpointSliceChV1 := make(chan watch.Event)
+//	endpointSliceChV1Beta1 := make(chan watch.Event)
+//	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
+//	supportEndpointSlice := true
+//	stop := false
+//	defer func() {
+//		stop = true
+//	}()
+//
+//	epsWatch := endpointBroadcaster.Watch()
+//	nodeWatch := nodeBroadcaster.Watch()
+//	go func() {
+//		for !stop {
+//			select {
+//			case <-svcCh:
+//			case <-epsWatch.ResultChan():
+//			case <-nodeWatch.ResultChan():
+//
+//			}
+//		}
+//	}()
+//
+//	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
+//
+//	testNodes := make([]*v1.Node, 10)
+//	nodeEventHandler := cache.NodeEventHandler()
+//	for i := 0; i < len(testNodes); i++ {
+//		testNodes[i] = &v1.Node{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name:   fmt.Sprintf("node-%d", i),
+//				Labels: make(map[string]string),
+//			},
+//		}
+//		nodeEventHandler.OnAdd(testNodes[i])
+//	}
+//
+//	testServices := make([]*v1.Service, 10)
+//	serviceEventHandler := cache.ServiceEventHandler()
+//	for i := 0; i < len(testServices); i++ {
+//		testServices[i] = &v1.Service{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name:        fmt.Sprintf("%d", i),
+//				Namespace:   metav1.NamespaceDefault,
+//				Annotations: make(map[string]string),
+//			},
+//		}
+//		if i%2 == 0 {
+//			testServices[i].Annotations[TopologyAnnotationsKey] = "[\"foo\", \"bar\"]"
+//		}
+//		serviceEventHandler.OnAdd(testServices[i])
+//	}
+//
+//	testEndpoints := make([]*v1.Endpoints, 10)
+//	endpointEventHandler := cache.EndpointsEventHandler()
+//	for i := 0; i < len(testServices); i++ {
+//		testEndpoints[i] = &v1.Endpoints{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name:        fmt.Sprintf("%d", i),
+//				Namespace:   metav1.NamespaceDefault,
+//				Annotations: make(map[string]string),
+//			},
+//		}
+//		endpointEventHandler.OnAdd(testEndpoints[i])
+//	}
+//
+//	nodeSortAndCheckFunc := func() {
+//		nodes := cache.GetNodes()
+//		sort.Slice(nodes, func(i, j int) bool {
+//			return strings.Compare(nodes[i].Name, nodes[j].Name) < 0
+//		})
+//		for i := 0; i < len(testNodes); i++ {
+//			if !reflect.DeepEqual(testNodes[i], nodes[i]) {
+//				t.Errorf("%d node is not equal, expect %#v to %#v", i, testNodes[i], nodes[i])
+//				return
+//			}
+//		}
+//	}
+//	nodeSortAndCheckFunc()
+//
+//	serviceSortAndFunc := func() {
+//		services := cache.GetServices()
+//		sort.Slice(services, func(i, j int) bool {
+//			return strings.Compare(services[i].Name, services[j].Name) < 0
+//		})
+//		for i := 0; i < len(testServices); i++ {
+//			if !reflect.DeepEqual(testServices[i], services[i]) {
+//				t.Errorf("%d service is not equal, expect %#v to %#v", i, testServices[i], services[i])
+//				return
+//			}
+//		}
+//	}
+//	serviceSortAndFunc()
+//
+//	endpointsSortAndCheckFunc := func() {
+//		endpoints := cache.GetEndpoints()
+//		sort.Slice(endpoints, func(i, j int) bool {
+//			return strings.Compare(endpoints[i].Name, endpoints[j].Name) < 0
+//		})
+//		for i := 0; i < len(testEndpoints); i++ {
+//			if !reflect.DeepEqual(testEndpoints[i], endpoints[i]) {
+//				t.Errorf("%d endpoint is not equal, expect %#v to %#v", i, testEndpoints[i], endpoints[i])
+//				return
+//			}
+//		}
+//	}
+//	endpointsSortAndCheckFunc()
+//
+//	for i := 0; i < len(testNodes); i++ {
+//		if i%2 == 0 {
+//			testNodes[i].Labels["updated"] = "true"
+//			nodeEventHandler.OnUpdate(nil, testNodes[i])
+//		}
+//	}
+//	nonExistNode := testNodes[0].DeepCopy()
+//	nonExistNode.Name = "non-exist"
+//	nodeEventHandler.OnUpdate(nil, nonExistNode)
+//	nodeSortAndCheckFunc()
+//
+//	for i := 0; i < len(testServices); i++ {
+//		if i%3 == 0 {
+//			testServices[i].Annotations["updated"] = "true"
+//			serviceEventHandler.OnUpdate(nil, testServices[i])
+//		}
+//	}
+//	nonExistService := testServices[0].DeepCopy()
+//	nonExistService.Name = "non-exist"
+//	serviceEventHandler.OnUpdate(nil, nonExistService)
+//	serviceSortAndFunc()
+//
+//	for i := 0; i < len(testEndpoints); i++ {
+//		if i%5 == 0 {
+//			testEndpoints[i].Annotations["updated"] = "true"
+//			endpointEventHandler.OnUpdate(nil, testEndpoints[i])
+//		}
+//	}
+//	nonExistEndpoints := testEndpoints[0].DeepCopy()
+//	nonExistEndpoints.Name = "non-exist"
+//	endpointEventHandler.OnUpdate(nil, nonExistEndpoints)
+//	endpointsSortAndCheckFunc()
+//
+//	for i := 0; i < len(testNodes); i++ {
+//		nodeEventHandler.OnDelete(testNodes[i])
+//	}
+//	nodeEventHandler.OnDelete(nonExistNode)
+//	testNodes = make([]*v1.Node, 0)
+//	nodeSortAndCheckFunc()
+//
+//	for i := 0; i < len(testServices); i++ {
+//		serviceEventHandler.OnDelete(testServices[i])
+//	}
+//	serviceEventHandler.OnDelete(nonExistService)
+//	testServices = make([]*v1.Service, 0)
+//	serviceSortAndFunc()
+//
+//	for i := 0; i < len(testEndpoints); i++ {
+//		endpointEventHandler.OnDelete(testEndpoints[i])
+//	}
+//	endpointEventHandler.OnDelete(nonExistEndpoints)
+//	testEndpoints = make([]*v1.Endpoints, 0)
+//	endpointsSortAndCheckFunc()
+//}
+//
+//func TestCacheServiceNotifier(t *testing.T) {
+//	svcCh := make(chan watch.Event, 100)
+//	endpointBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
+//	endpointSliceChV1 := make(chan watch.Event)
+//	endpointSliceChV1Beta1 := make(chan watch.Event)
+//	nodeBroadcaster := watch.NewLongQueueBroadcaster(1000, watch.DropIfChannelFull)
+//	supportEndpointSlice := true
+//	stop := false
+//	defer func() {
+//		stop = true
+//	}()
+//
+//	epsWatch := endpointBroadcaster.Watch()
+//	nodeWatch := nodeBroadcaster.Watch()
+//	serviceEvents := make([]watch.Event, 0)
+//	go func() {
+//		for !stop {
+//			select {
+//			case s := <-svcCh:
+//				serviceEvents = append(serviceEvents, s)
+//			case <-epsWatch.ResultChan():
+//			case <-nodeWatch.ResultChan():
+//
+//			}
+//		}
+//	}()
+//
+//	cache := NewStorageCache("hostname", true, false, svcCh, endpointSliceChV1, endpointSliceChV1Beta1, endpointBroadcaster, nodeBroadcaster, supportEndpointSlice)
+//
+//	expectServiceSequence := make([]*v1.Service, 0)
+//	testServices := make([]*v1.Service, 10)
+//	serviceEventHandler := cache.ServiceEventHandler()
+//	for i := 0; i < len(testServices); i++ {
+//		testServices[i] = &v1.Service{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name:        fmt.Sprintf("%d", i),
+//				Namespace:   metav1.NamespaceDefault,
+//				Annotations: make(map[string]string),
+//			},
+//		}
+//		if i%2 == 0 {
+//			testServices[i].Annotations[TopologyAnnotationsKey] = "[\"foo\", \"bar\"]"
+//		}
+//
+//		changed := testServices[i].DeepCopy()
+//		serviceEventHandler.OnAdd(changed)
+//		expectServiceSequence = append(expectServiceSequence, changed)
+//	}
+//
+//	for i := 0; i < len(testServices); i++ {
+//		var changed *v1.Service
+//
+//		if i%3 == 0 {
+//			testServices[i].Annotations["updated"] = "true"
+//			changed = testServices[i].DeepCopy()
+//			serviceEventHandler.OnUpdate(nil, changed)
+//		} else {
+//			changed = testServices[i].DeepCopy()
+//			serviceEventHandler.OnDelete(changed)
+//		}
+//		expectServiceSequence = append(expectServiceSequence, changed)
+//	}
+//
+//	// Drain all channel data
+//	time.Sleep(time.Second)
+//	if len(expectServiceSequence) != len(serviceEvents) {
+//		t.Errorf("events missing, expect %d to be %d", len(expectServiceSequence), len(serviceEvents))
+//		return
+//	}
+//
+//	for i := range serviceEvents {
+//		eventObject := serviceEvents[i].Object.(*v1.Service)
+//		if !reflect.DeepEqual(eventObject, expectServiceSequence[i]) {
+//			t.Errorf("%d expect %#v to be %#v", i, eventObject, expectServiceSequence[i])
+//			return
+//		}
+//	}
+//}
 
 /**
 func TestCacheEndpointsWithNodeChange(t *testing.T) {

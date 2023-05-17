@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+
 	crdv1 "github.com/superedge/superedge/pkg/application-grid-controller/apis/superedge.io/v1"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	"github.com/superedge/superedge/pkg/application-grid-controller/util"
@@ -80,6 +81,8 @@ func (sth *StatefulsetTemplateHash) generateTemplateHash(template *appsv1.Statef
 	copyTemplate := template.DeepCopy()
 	delete(meta.Labels, common.TemplateHashKey)
 	copyTemplate.Template.ObjectMeta = *meta
+	// replicas doesn't need hash caculation
+	copyTemplate.Replicas = nil
 	return fmt.Sprintf("%d", util.GenerateHash(copyTemplate))
 }
 
@@ -104,4 +107,14 @@ func (sth *StatefulsetTemplateHash) getStatefulsetTemplate(spec *crdv1.StatefulS
 	} else {
 		return nil, fmt.Errorf("template not found in templatePool")
 	}
+}
+
+func (sth *StatefulsetTemplateHash) IsReplicasChanged(ssg *crdv1.StatefulSetGrid, gridValues string, ss *appsv1.StatefulSet) bool {
+	template, err := sth.getStatefulsetTemplate(&ssg.Spec, gridValues)
+	if err != nil {
+		klog.Errorf("Failed to get statefulset template for %s from statefulsetGrid %s", ss.Name, ssg.Name)
+		return true
+	}
+
+	return !(*template.Replicas == *ss.Spec.Replicas)
 }

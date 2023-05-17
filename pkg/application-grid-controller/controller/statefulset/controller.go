@@ -17,15 +17,16 @@ limitations under the License.
 package statefulset
 
 import (
+	"context"
 	"fmt"
+	"time"
+
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller"
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/common"
 	appsv1 "k8s.io/api/apps/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 
-	"context"
 	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/application-grid-controller/generated/clientset/versioned/scheme"
@@ -222,10 +223,8 @@ func (ssgc *StatefulSetGridController) syncStatefulSetGrid(key string) error {
 		!apiequality.Semantic.DeepEqual(ssg.Spec.DefaultTemplateName, ssgCopy.Spec.DefaultTemplateName) ||
 		!apiequality.Semantic.DeepEqual(ssg.Spec.TemplatePool, ssgCopy.Spec.TemplatePool) {
 		klog.Infof("Updating statefulsetGrid %s/%s template info", ssgCopy.Namespace, ssgCopy.Name)
-		ssg, err = ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
-		if err != nil && !errors.IsConflict(err) {
-			return err
-		}
+		_, err = ssgc.crdClient.SuperedgeV1().StatefulSetGrids(ssgCopy.Namespace).Update(context.TODO(), ssgCopy, metav1.UpdateOptions{})
+		return err
 	}
 
 	// get statefulset workload list of this grid

@@ -14,15 +14,21 @@ limitations under the License.
 package handlers
 
 import (
+	"bufio"
+	"encoding/base64"
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
+	"io"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 )
 
 func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host string) error) {
@@ -32,8 +38,91 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 		klog.V(8).Infof("Failed to get http request, error: %v", err)
 		return
 	}
+	if os.Getenv(util.PROXY_AUTHORIZATION_ENV) == "true" {
+		if category == util.HTTP_PROXY {
+			proxyAuth := req.Header.Get("Proxy-Authorization")
+			if proxyAuth == "" {
+				util.WriteMsg(proxyConn, util.Unauthorized)
+				return
+			}
+			auths := strings.Split(proxyAuth, " ")
+			if len(auths) != 2 && auths[0] != "Basic" {
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+			infos, err := base64.StdEncoding.DecodeString(auths[1])
+			if err != nil {
+				klog.Error(err)
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+			userinfos := strings.Split(string(infos), ":")
+			_, err = os.Stat(util.AuthorizationPath + "/" + userinfos[0])
+			if err == nil {
+				pwd, err := os.ReadFile(util.AuthorizationPath + "/" + userinfos[0])
+				if err != nil {
+					klog.Error(err)
+					util.WriteMsg(proxyConn, util.Forbidden)
+					return
+				}
+				if string(pwd) != userinfos[1] {
+					klog.Errorf("Incorrect password, username: %s", userinfos[0])
+					util.WriteMsg(proxyConn, util.Forbidden)
+					return
+				}
+			} else {
+				klog.Errorf("Username does not exist")
+				util.WriteMsg(proxyConn, util.Forbidden)
+				return
+			}
+		}
+	}
 	if req.Method != http.MethodConnect {
-		klog.V(8).Infof("Only HTTP CONNECT requests are supported, request = %v", req)
+		if category != util.HTTP_PROXY {
+			return
+		}
+		localConn, err := net.Dial("tcp", common.GetRemoteAddr("127.0.0.1", category))
+		if err != nil {
+			klog.Errorf("Failed to forward http request through localhost [Dial], error:%v", err)
+			return
+		}
+
+		proxyReq := &http.Request{
+			Method: http.MethodConnect,
+			URL:    &url.URL{Host: req.Host},
+		}
+
+		err = proxyReq.Write(localConn)
+		if err != nil {
+			klog.Errorf("Failed to forward http request through localhost [Write Request], error:%v", err)
+			return
+		}
+		r := bufio.NewReader(localConn)
+		resp, err := http.ReadResponse(r, proxyReq)
+		if err != nil {
+			klog.Errorf("Failed to forward http request through localhost [Response], error:%v", err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			_, err = localConn.Write(raw.Bytes())
+			if err != nil {
+				klog.Errorf("Failed to forward http request through localhost [Write Origin Request], error:%v", err)
+				return
+			}
+			go func() {
+				_, writeErr := io.Copy(localConn, proxyConn)
+				if writeErr != nil {
+					klog.Errorf("Failed to copy data to remoteConn, error: %v", writeErr)
+					return
+				}
+			}()
+			_, err = io.Copy(proxyConn, localConn)
+			if err != nil {
+				klog.Errorf("Failed to read data from remoteConn, error: %v", err)
+				return
+			}
+		}
 		return
 	}
 

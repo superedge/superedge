@@ -28,12 +28,21 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 		chConn.Send2Conn(msg)
 		return nil
 	}
+	node := context.GetContext().GetNode(msg.Node)
 	conn, err := net.Dial(util.TCP, msg.Addr)
 	if err != nil {
 		klog.Errorf("The Edge TCP client failed to establish a TCP connection with the Edge Server, error: %v", err)
+		if node != nil {
+			node.Send2Node(&proto.StreamMsg{
+				Node:     node.GetName(),
+				Category: msg.Category,
+				Type:     util.CLOSED,
+				Topic:    msg.Topic,
+				Data:     []byte(err.Error()),
+			})
+		}
 		return err
 	}
-	node := context.GetContext().GetNode(msg.Node)
 	ch := context.GetContext().AddConn(msg.Topic)
 	node.BindNode(msg.Topic)
 	ch.Send2Conn(msg)
