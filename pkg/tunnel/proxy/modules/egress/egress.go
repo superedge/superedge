@@ -16,9 +16,9 @@ package egress
 import (
 	"crypto/tls"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"strconv"
@@ -32,9 +32,11 @@ func (e EgressSelector) Name() string {
 }
 
 func (e EgressSelector) Start(mode string) {
-	context.GetContext().RegisterHandler(util.TCP_FRONTEND, util.EGRESS, handlers.FrontendHandler)
-	context.GetContext().RegisterHandler(util.TCP_BACKEND, util.EGRESS, handlers.DirectHandler)
-	context.GetContext().RegisterHandler(util.CLOSED, util.EGRESS, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.TCP_FORWARD, util.EGRESS, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.CLOSED, util.EGRESS, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_REQ, util.EGRESS, handlers.ConnectingHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_SUCCESSED, util.EGRESS, handlers.DirectHandler)
+	tunnelcontext.GetContext().RegisterHandler(tunnelcontext.CONNECT_FAILED, util.EGRESS, handlers.DirectHandler)
 	if mode == util.CLOUD {
 		if conf.TunnelConf.TunnlMode.Cloud.Egress == nil {
 			return
@@ -60,14 +62,19 @@ func (e EgressSelector) Start(mode string) {
 					klog.Errorf("SSH Server accept failed, error: %v", err)
 					continue
 				}
-				go handlers.HandleServerConn(conn, util.EGRESS, nil)
+				go func() {
+					handlerErr := handlers.HandleServerConn(conn, util.EGRESS, nil)
+					if handlerErr != nil {
+						klog.Error(handlerErr)
+					}
+				}()
 			}
 		}()
 	}
 }
 
 func (e EgressSelector) CleanUp() {
-	context.GetContext().RemoveModule(e.Name())
+	tunnelcontext.GetContext().RemoveModule(e.Name())
 }
 
 func InitEgress() {

@@ -18,8 +18,8 @@ package stream
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"k8s.io/klog/v2"
 )
 
@@ -33,7 +33,7 @@ func Test_StreamServer(t *testing.T) {
 	module.InitModules(util.CLOUD)
 	InitStream(util.CLOUD)
 	module.LoadModules(util.CLOUD)
-	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
 	module.ShutDown()
 
 }
@@ -41,7 +41,7 @@ func Test_StreamServer(t *testing.T) {
 
 func StreamDebugHandler(msg *proto.StreamMsg) error {
 	klog.Infof("received the msg node = %s uuid = %s data = %s", msg.Node, msg.Topic, string(msg.Data))
-	node := context.GetContext().GetNode(msg.Node)
+	node := tunnelcontext.GetContext().GetNode(msg.Node)
 	if node == nil {
 		klog.Errorf("failed to send debug to edge node node: %s", msg.Node)
 		return fmt.Errorf("failed to send debug to edge node node: %s", msg.Node)
@@ -66,11 +66,11 @@ func Test_StreamClient(t *testing.T) {
 	module.InitModules(util.EDGE)
 	InitStream(util.EDGE)
 	module.LoadModules(util.EDGE)
-	context.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
+	tunnelcontext.GetContext().RegisterHandler(util.MODULE_DEBUG, util.STREAM, StreamDebugHandler)
 	go func() {
 		running := true
 		for running {
-			node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+			node := tunnelcontext.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
 			if node != nil {
 				node.Send2Node(&proto.StreamMsg{
 					Node:     os.Getenv(util.NODE_NAME_ENV),

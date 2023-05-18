@@ -14,8 +14,8 @@ limitations under the License.
 package common
 
 import (
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
 	"k8s.io/klog/v2"
@@ -26,28 +26,30 @@ const (
 	BuferSize = 1 * 1024
 )
 
-func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr string) {
+func Read(conn net.Conn, node tunnelcontext.Node, category, handleType, uuid string) {
 	defer func() {
 		node.UnbindNode(uuid)
-		context.GetContext().RemoveConn(uuid)
+		tunnelcontext.GetContext().RemoveConn(uuid)
 		conn.Close()
 	}()
 	for {
 		rb := make([]byte, BuferSize)
 		n, err := conn.Read(rb)
 		if err != nil {
-			ch := context.GetContext().GetConn(uuid)
+			ch := tunnelcontext.GetContext().GetConn(uuid)
 			if ch != nil {
-				ch.Send2Conn(&proto.StreamMsg{
+				closeMsg := &proto.StreamMsg{
 					Node:     node.GetName(),
 					Category: category,
 					Type:     util.CLOSED,
 					Topic:    uuid,
 					Data:     []byte(err.Error()),
-				})
+				}
+				ch.Send2Conn(closeMsg)
+				klog.V(2).InfoS("send closeMsg", "closeMsg", closeMsg)
 			}
 			if err != io.EOF {
-				klog.Errorf("Failed to read data, error: %v", err)
+				klog.ErrorS(err, "failed to read data", util.STREAM_TRACE_ID, uuid)
 			}
 			return
 		}
@@ -57,12 +59,11 @@ func Read(conn net.Conn, node context.Node, category, handleType, uuid, addr str
 			Type:     handleType,
 			Topic:    uuid,
 			Data:     rb[:n],
-			Addr:     addr,
 		})
 	}
 }
 
-func Write(conn net.Conn, ch context.Conn) {
+func Write(conn net.Conn, ch tunnelcontext.Conn) {
 	defer func() {
 		conn.Close()
 	}()
@@ -71,16 +72,12 @@ func Write(conn net.Conn, ch context.Conn) {
 		select {
 		case msg := <-ch.ConnRecv():
 			if msg.Type == util.CLOSED {
-				klog.V(4).Infof("Receive a close message, error:%s", string(msg.Data))
-				err := conn.Close()
-				if err != nil {
-					klog.Errorf("Failed to close conn, msg= %v, error=%v", msg, err)
-				}
+				klog.V(2).InfoS("receive a closeMsg", "closeMsg", msg)
 				return
 			}
 			_, err := conn.Write(msg.Data)
 			if err != nil {
-				klog.Errorf("Failed to write data, error: %v", err)
+				klog.ErrorS(err, "failed to write data", util.STREAM_TRACE_ID, msg.Topic)
 				return
 			}
 		}

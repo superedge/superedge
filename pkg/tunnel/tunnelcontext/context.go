@@ -14,9 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
+package tunnelcontext
 
-import "github.com/superedge/superedge/pkg/tunnel/proto"
+import (
+	"context"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+)
 
 type CallBack func(msg *proto.StreamMsg) error
 
@@ -40,6 +43,7 @@ type ConnMng interface {
 }
 
 type Node interface {
+	ConnectNode(category, addr string, ctx context.Context) (*conn, error)
 	Send2Node(msg *proto.StreamMsg)
 	BindNode(uid string)
 	UnbindNode(uid string)
@@ -70,7 +74,7 @@ type ProtocolContext interface {
 	ModuleMng
 }
 
-type Context struct {
+type TunnelContext struct {
 	nodes    NodeMng
 	conns    ConnMng
 	protocol ProtocolContext

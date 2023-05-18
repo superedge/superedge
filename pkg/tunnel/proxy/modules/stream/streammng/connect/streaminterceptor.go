@@ -19,9 +19,9 @@ package connect
 import (
 	"context"
 	"fmt"
-	ctx "github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/token"
+	ctx "github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"

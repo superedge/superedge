@@ -20,22 +20,20 @@ import (
 	"bufio"
 	"bytes"
 	cctx "context"
+	"github.com/superedge/superedge/pkg/tunnel/conf"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"io"
-	"net"
-	"os"
-	"strings"
-	"time"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-
-	"github.com/superedge/superedge/pkg/tunnel/conf"
-	"github.com/superedge/superedge/pkg/tunnel/context"
-	"github.com/superedge/superedge/pkg/tunnel/util"
+	"net"
+	"os"
+	"strings"
+	"time"
 )
 
 var register *RegisterNode
@@ -51,22 +49,22 @@ func InitRegister() error {
 	}
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		klog.Errorf("client-go get inclusterconfig  fail err = %v", err)
+		klog.ErrorS(err, "failed to get InClusterConfig")
 		return err
 	}
-	clientset, err := kubernetes.NewForConfig(config)
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		klog.Errorf("get client fail err = %v", err)
+		klog.ErrorS(err, "failed to get  clientSet")
 		return err
 	}
-	register.ClientSet = clientset
+	register.ClientSet = clientSet
 	return nil
 }
 
 func (registerNode *RegisterNode) syncPodIP() error {
 	file, err := os.Open(util.TunnelCloudTokenPath)
 	if err != nil {
-		klog.Errorf("load hosts fail! err = %v", err)
+		klog.ErrorS(err, "failed to load hosts")
 		return err
 	}
 	arrays := hosts2Array(file)
@@ -97,7 +95,7 @@ func (registerNode *RegisterNode) syncPodIP() error {
 }
 
 func (registerNode *RegisterNode) syncEndpoints() error {
-	file, err := os.Open(util.TunnelCloudTokenPath)
+	file, err := os.Open(util.HostsPath)
 	if err != nil {
 		klog.Errorf("load hosts fail! err = %v", err)
 		return err
@@ -110,7 +108,7 @@ func (registerNode *RegisterNode) syncEndpoints() error {
 	err = wait.Poll(5*time.Second, 30*time.Second, func() (done bool, err error) {
 		cm, err := registerNode.ClientSet.CoreV1().ConfigMaps(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.TODO(), util.HostsConfig, metav1.GetOptions{})
 		if err != nil {
-			klog.Errorf("get configmap fail err = %v", err)
+			klog.ErrorS(err, "failed to get configmap", "configmap", util.HostsConfig)
 			return false, err
 		}
 		arrays := hosts2Array(strings.NewReader(cm.Data[util.COREFILE_HOSTS_FILE]))
@@ -130,14 +128,14 @@ func (registerNode *RegisterNode) syncEndpoints() error {
 
 func SyncPodIP() {
 	for {
-		klog.V(8).Infof("connected node total = %d nodes = %v", len(context.GetContext().GetNodes()), context.GetContext().GetNodes())
+		klog.V(3).InfoS("connected node", "number", len(tunnelcontext.GetContext().GetNodes()), "nodes", tunnelcontext.GetContext().GetNodes())
 		err := register.syncPodIP()
 		if err != nil {
-			klog.Errorf("failed to synchronize hosts periodically err = %v", err)
+			klog.ErrorS(err, "failed to synchronize hosts periodically")
 		}
 		err = loadCacheFromLocalFile()
 		if err != nil {
-			klog.Errorf("failed to load route from files, err = %v", err)
+			klog.ErrorS(err, "failed to load route from files")
 		}
 		time.Sleep(60 * time.Second)
 	}
@@ -146,7 +144,7 @@ func SyncPodIP() {
 func SyncEndPoints() {
 	for {
 		time.Sleep(1 * time.Hour)
-		klog.V(8).Infof("connected node total = %d nodes = %v", len(context.GetContext().GetNodes()), context.GetContext().GetNodes())
+		klog.V(3).InfoS("connected node", "number", len(tunnelcontext.GetContext().GetNodes()), "nodes", tunnelcontext.GetContext().GetNodes())
 		err := register.syncEndpoints()
 		if err != nil {
 			klog.Errorf("failed to synchronize endpoints periodically err = %v", err)
@@ -176,62 +174,37 @@ func hosts2Array(fileread io.Reader) [][][]byte {
 	return hostsArray
 }
 
-func getCustomEndLine(hostsArray [][][]byte) int {
-	for k, v := range hostsArray {
-		if len(v) > 1 {
-			addr := parseIP(string(v[0]))
-			if addr != nil && k == 0 {
-				return k - 1
-			}
-		} else if len(v) == 1 {
-			if strings.Contains(string(v[0]), util.CustomEnd) {
-				return k
-			}
-		}
-	}
-	return -1
-}
-
 func filterEndpoint(hostsArray [][][]byte) (string, bool) {
 	var eps *v1.Endpoints
 	var err error
 	hostsBuffer := &bytes.Buffer{}
-	update := false
 	if register != nil {
 		eps, err = register.ClientSet.CoreV1().Endpoints(os.Getenv(util.POD_NAMESPACE_ENV)).Get(cctx.Background(), conf.TunnelConf.TunnlMode.Cloud.Stream.Register.Service, metav1.GetOptions{})
 		if err != nil {
-			klog.Errorf("Failed to get SVC:%s endpoints, error: %v", conf.TunnelConf.TunnlMode.Cloud.Stream.Register.Service, err)
-			return "", update
+			klog.ErrorS(err, "failed to get endpoints", "endpoints", conf.TunnelConf.TunnlMode.Cloud.Stream.Register.Service)
+			return "", false
 		}
 	}
-
-	linenum := getCustomEndLine(hostsArray)
-	for k, v := range hostsArray {
-		if k <= linenum {
-			writeLine(v, hostsBuffer)
-		} else {
-			if len(v) < 2 {
-				continue
-			}
-			addr := parseIP(string(v[0]))
-			if addr == nil {
-				continue
-			}
-			flag := func(ip net.IP, endpoints *v1.Endpoints) bool {
-				for _, ep := range eps.Subsets[0].Addresses {
-					if ep.IP == addr.String() {
-						writeLine(v, hostsBuffer)
-						return false
-					}
-				}
-				return true
-			}(addr, eps)
-			if flag && !update {
-				update = true
+	update := false
+	for _, v := range hostsArray {
+		if len(v) < 2 {
+			continue
+		}
+		addr := parseIP(string(v[0]))
+		if addr == nil {
+			continue
+		}
+		flag := true
+		for _, ep := range eps.Subsets[0].Addresses {
+			if ep.IP == addr.String() {
+				writeLine(v, hostsBuffer)
+				flag = false
 			}
 		}
+		if flag && !update {
+			update = true
+		}
 	}
-
 	if update {
 		return hostsBuffer.String(), update
 	}
@@ -240,39 +213,34 @@ func filterEndpoint(hostsArray [][][]byte) (string, bool) {
 }
 
 func filterPodIp(hostsArray [][][]byte) (string, bool) {
-	linenum := getCustomEndLine(hostsArray)
 	podIp := os.Getenv(util.POD_IP_ENV)
 	hostsBuffer := &bytes.Buffer{}
 	update := false
 	nodes := 0
 
-	for k, v := range hostsArray {
-		if k <= linenum {
-			writeLine(v, hostsBuffer)
-		} else {
-			if len(v) < 2 {
-				continue
-			}
-			addr := parseIP(string(v[0]))
-			if addr == nil {
-				continue
-			}
-			if addr.String() == podIp {
-				if context.GetContext().NodeIsExist(string(v[1])) {
-					nodes++
-				} else {
-					update = true
-				}
+	for _, v := range hostsArray {
+		if len(v) < 2 {
+			continue
+		}
+		addr := parseIP(string(v[0]))
+		if addr == nil {
+			continue
+		}
+		if addr.String() == podIp {
+			if tunnelcontext.GetContext().NodeIsExist(string(v[1])) {
+				nodes++
 			} else {
-				if context.GetContext().NodeIsExist(string(v[1])) {
-					continue
-				}
-				writeLine(v, hostsBuffer)
+				update = true
 			}
+		} else {
+			if tunnelcontext.GetContext().NodeIsExist(string(v[1])) {
+				continue
+			}
+			writeLine(v, hostsBuffer)
 		}
 	}
 
-	edgeNodes := context.GetContext().GetNodes()
+	edgeNodes := tunnelcontext.GetContext().GetNodes()
 	if update == false && nodes != len(edgeNodes) {
 		update = true
 	}

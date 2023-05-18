@@ -18,13 +18,13 @@ package streammsg
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"k8s.io/klog/v2"
 )
 
 func HeartbeatHandler(msg *proto.StreamMsg) error {
-	node := context.GetContext().GetNode(msg.Node)
+	node := tunnelcontext.GetContext().GetNode(msg.Node)
 	if node == nil {
 		klog.Errorf("failed to send heartbeat to edge node node: %s", msg.Node)
 		return fmt.Errorf("failed to send heartbeat to edge node node: %s", msg.Node)

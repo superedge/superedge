@@ -14,17 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
+package tunnelcontext
 
 import (
+	"context"
+	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/util"
+	"k8s.io/klog/v2"
 	"sync"
+	"time"
+)
+
+const (
+	CONNECT_REQ       = "connecting"
+	CONNECT_FAILED    = "connect-failed"
+	CONNECT_SUCCESSED = "connected"
 )
 
 type node struct {
 	name      string
 	ch        chan *proto.StreamMsg
-	conns     *[]string
+	conns     []string
 	connsLock sync.RWMutex
 	pairnodes map[string]string
 	nodesLock sync.RWMutex
@@ -33,7 +44,9 @@ type node struct {
 func (edge *node) BindNode(uuid string) {
 	edge.connsLock.Lock()
 	if edge.conns == nil {
-		edge.conns = &[]string{uuid}
+		edge.conns = []string{uuid}
+	} else {
+		edge.conns = append(edge.conns, uuid)
 	}
 	edge.connsLock.Unlock()
 }
@@ -41,9 +54,9 @@ func (edge *node) BindNode(uuid string) {
 func (edge *node) UnbindNode(uuid string) {
 	//删除连接绑定
 	edge.connsLock.Lock()
-	for k, v := range *edge.conns {
+	for k, v := range edge.conns {
 		if v == uuid {
-			*edge.conns = append((*edge.conns)[:k], (*edge.conns)[k+1:len(*edge.conns)]...)
+			edge.conns = append(edge.conns[:k], edge.conns[k+1:len(edge.conns)]...)
 		}
 	}
 	edge.connsLock.Unlock()
@@ -53,7 +66,45 @@ func (edge *node) UnbindNode(uuid string) {
 	edge.nodesLock.Unlock()
 }
 
+func (edge *node) ConnectNode(category, addr string, ctx context.Context) (*conn, error) {
+	uid := ctx.Value(util.STREAM_TRACE_ID).(string)
+	subCtx, cancle := context.WithTimeout(ctx, 5*time.Second)
+	defer cancle()
+	var err error
+	conn := tunnelContext.AddConn(uid)
+	edge.BindNode(uid)
+	defer func() {
+		if err != nil {
+			edge.UnbindNode(uid)
+			tunnelContext.RemoveConn(uid)
+		}
+	}()
+	edge.Send2Node(&proto.StreamMsg{
+		Node:     edge.name,
+		Category: category,
+		Type:     CONNECT_REQ,
+		Topic:    uid,
+		Data:     []byte(fmt.Sprintf("CONNECT %s HTTP/1.1\r\n\r\n\r\n", addr)),
+		Addr:     addr,
+	})
+	select {
+	case resp := <-conn.ch:
+		if resp.Type == CONNECT_SUCCESSED {
+			return conn, err
+		}
+		if resp.Type == CONNECT_FAILED {
+			err = fmt.Errorf("failed to connect target server %s, error:%s, %s:%s", addr, string(resp.Data), util.STREAM_TRACE_ID, uid)
+			return conn, err
+		}
+	case <-subCtx.Done():
+		err = fmt.Errorf("the connection to the target server %s of the edge node %s timed out, %s:%s", addr, edge.name, util.STREAM_TRACE_ID, uid)
+		return conn, err
+	}
+	return conn, err
+}
+
 func (edge *node) Send2Node(msg *proto.StreamMsg) {
+	klog.V(3).InfoS("node send msg", "nodeName", edge.name, "category", msg.GetCategory(), "type", msg.GetType(), "data", msg.GetData(), util.STREAM_TRACE_ID, msg.GetTopic())
 	edge.ch <- msg
 }
 
@@ -71,7 +122,7 @@ func (edge *node) GetBindConns() []string {
 	if edge.conns == nil {
 		return nil
 	}
-	return *edge.conns
+	return edge.conns
 }
 func (edge *node) GetChan() chan *proto.StreamMsg {
 	return edge.ch

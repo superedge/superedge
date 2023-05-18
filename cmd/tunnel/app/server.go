@@ -50,6 +50,9 @@ func NewTunnelCommand() *cobra.Command {
 				return
 			}
 
+			module.InitModules(*option.TunnelMode)
+			stream.InitStream(*option.TunnelMode)
+
 			if *option.TunnelMode == tunnelutil.CLOUD {
 				stop := make(chan struct{})
 				indexers.InitCache(*option.Kubeconfig, stop)
@@ -60,8 +63,6 @@ func NewTunnelCommand() *cobra.Command {
 					stop <- struct{}{}
 				}()
 			}
-			module.InitModules(*option.TunnelMode)
-			stream.InitStream(*option.TunnelMode)
 			egress.InitEgress()
 			ssh.InitSSH()
 			http_proxy.InitHttpProxy()

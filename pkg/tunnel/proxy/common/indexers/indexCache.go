@@ -66,13 +66,13 @@ func MetaNameIndexFunc(obj interface{}) ([]string, error) {
 
 func InitCache(path string, stopCh chan struct{}) {
 	once.Do(func() {
-		clientset, err := kubeclient.GetInclusterClientSet(path)
+		clientSet, err := kubeclient.GetInclusterClientSet(path)
 		if err != nil {
-			klog.Errorf("Failed to get kubeclient, error: %v", err)
+			klog.ErrorS(err, "failed to get kubeClient")
 			return
 		}
 
-		informerFactory := informers.NewSharedInformerFactory(clientset, 1*time.Minute)
+		informerFactory := informers.NewSharedInformerFactory(clientSet, 1*time.Minute)
 
 		//Initialize podIndexer
 		podInformer := informerFactory.InformerFor(&v1.Pod{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
@@ -81,7 +81,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		go podInformer.Run(stopCh)
 		// Wait for all involved caches to be synced, before processing items from the queue is started
 		if !cache.WaitForCacheSync(stopCh, podInformer.HasSynced) {
-			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+			runtime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 			return
 		}
 		podIndexer = podInformer.GetIndexer()
@@ -92,7 +92,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		})
 		go nodeInformer.Run(stopCh)
 		if !cache.WaitForCacheSync(stopCh, nodeInformer.HasSynced) {
-			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+			runtime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 			return
 		}
 		nodeIndexer = nodeInformer.GetIndexer()
@@ -104,7 +104,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		})
 		go serviceInform.Run(stopCh)
 		if !cache.WaitForCacheSync(stopCh, serviceInform.HasSynced) {
-			runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+			runtime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 			return
 		}
 		serviceIndexer = serviceInform.GetIndexer()
@@ -134,29 +134,9 @@ func GetNodeByPodIP(podIp string) (string, error) {
 	}
 
 	if len(pods) < 1 {
-		return "", fmt.Errorf("Failed to get pods by PodIP %s", podIp)
+		return "", apierrors.NewNotFound(schema.GroupResource{}, fmt.Sprintf("failed to get pods by PodIP %s", podIp))
 	}
 	return pods[0].(*v1.Pod).Spec.NodeName, nil
-}
-
-//Get the internalIp of the node based on the node name
-func GetNodeIPByName(name string) (string, error) {
-	if nodeIndexer == nil {
-		return "", fmt.Errorf("nodeIndexer is not initialized")
-	}
-	nodes, err := nodeIndexer.ByIndex(util.METANAME_INDEXER, name)
-	if err != nil {
-		return "", err
-	}
-	if len(nodes) < 1 {
-		return "", apierrors.NewNotFound(schema.GroupResource{}, name)
-	}
-	for _, addr := range nodes[0].(*v1.Node).Status.Addresses {
-		if addr.Type == "InternalIP" {
-			return addr.Address, nil
-		}
-	}
-	return "", fmt.Errorf("Failed to get internalIp from node.status.Addresses")
 }
 
 func GetServiceByClusterIP(clusterIp string) (*v1.Service, error) {

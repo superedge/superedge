@@ -14,23 +14,24 @@ limitations under the License.
 package connect
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
+	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
-
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
-	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
-	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 )
 
 var Route = &RouteCache{
@@ -50,7 +51,7 @@ type RouteCache struct {
 func SyncRoute(path string) {
 	userClient, err := kubeclient.GetInclusterClientSet(path)
 	if err != nil {
-		klog.Errorf("Failed to get kubeclient, error: %v", err)
+		klog.ErrorS(err, "failed to get kubeClient")
 		return
 	}
 	id := os.Getenv(tunnelutil.POD_NAME)
@@ -63,7 +64,7 @@ func SyncRoute(path string) {
 			Identity: id,
 		})
 	if err != nil {
-		// todo
+		klog.ErrorS(err, "Cache sync failed")
 		return
 	}
 
@@ -87,7 +88,7 @@ func SyncRoute(path string) {
 				for {
 					err = syncCache()
 					if err != nil {
-						klog.Errorf("Failed to syncCache, error:%v", err)
+						klog.ErrorS(err, "failed to syncCache")
 					}
 					time.Sleep(10 * time.Second)
 				}
@@ -95,7 +96,7 @@ func SyncRoute(path string) {
 			},
 			OnStoppedLeading: func() {
 				// we can do cleanup here
-				klog.Infof("leader lost: %s", id)
+				klog.InfoS("leader lost", "id", id)
 				os.Exit(0)
 			},
 			OnNewLeader: func(identity string) {
@@ -104,18 +105,19 @@ func SyncRoute(path string) {
 					// I just got the lock
 					return
 				}
-				klog.Infof("new leader elected: %s", identity)
+				klog.InfoS("new leader elected", "id", identity)
 			},
 		},
 	})
 }
 
 func syncCache() error {
-	loadCacheFromLocalFile()
-
+	err := loadCacheFromLocalFile()
+	if err != nil {
+		return err
+	}
 	edgeNodeFile, err := os.Open(tunnelutil.EdgeNodesFilePath)
 	if err != nil {
-		// todo
 		return err
 	}
 	updateFlag := false
@@ -124,11 +126,13 @@ func syncCache() error {
 	if len(edgeNodes) != len(Route.EdgeNode) {
 		updateFlag = true
 	} else {
-		for _, v := range hosts2Array(edgeNodeFile) {
-			if value, ok := Route.EdgeNode[string(v[0])]; ok {
-				if value != string(v[1]) {
+		for _, v := range edgeNodes {
+			if value, ok := Route.EdgeNode[string(v[1])]; ok {
+				if value != string(v[0]) {
 					updateFlag = true
 				}
+			} else {
+				updateFlag = true
 			}
 		}
 	}
@@ -137,19 +141,16 @@ func syncCache() error {
 
 	r, err := labels.NewRequirement(util.CloudNodeLabelKey, selection.Equals, []string{"enable"})
 	if err != nil {
-		// todo
 		return err
 	}
-	nodes, err := indexers.NodeLister.List(labels.NewSelector().Add(*r))
+	cloudNodes, err := indexers.NodeLister.List(labels.NewSelector().Add(*r))
 	if err != nil {
-		// todo
 		return err
 	}
 
 	// by default, add masters to the cloud node
 	ls, err := labels.NewRequirement(util.KubernetesDefaultRoleLabel, selection.Exists, []string{})
 	if err != nil {
-		// todo
 		return err
 	}
 	masters, err := indexers.NodeLister.List(labels.NewSelector().Add(*ls))
@@ -157,11 +158,11 @@ func syncCache() error {
 		return err
 	}
 	if len(masters) != 0 {
-		nodes = append(nodes, masters...)
+		cloudNodes = append(cloudNodes, masters...)
 	}
 
 	nodesMap := make(map[string]int)
-	for i, n := range nodes {
+	for i, n := range cloudNodes {
 		nodesMap[n.Name] = i
 		var interIp string
 		for _, addr := range n.Status.Addresses {
@@ -194,7 +195,6 @@ func syncCache() error {
 	// check service
 	svcs, err := indexers.ServiceLister.List(labels.Everything())
 	if err != nil {
-		// todo
 		return err
 	}
 	svcMaps := make(map[string]int)
@@ -289,7 +289,6 @@ func syncCache() error {
 	if updateFlag {
 		cfg, err := register.ClientSet.CoreV1().ConfigMaps(os.Getenv(tunnelutil.POD_NAMESPACE_ENV)).Get(context.Background(), tunnelutil.CacheConfig, metav1.GetOptions{})
 		if err != nil {
-			// todo
 			return err
 		}
 		edgeNodeBuffer := &bytes.Buffer{}
@@ -318,7 +317,7 @@ func syncCache() error {
 		cfg.Data[tunnelutil.ServicesFile] = serviceBuffer.String()
 		_, err = register.ClientSet.CoreV1().ConfigMaps(os.Getenv(tunnelutil.POD_NAMESPACE_ENV)).Update(context.Background(), cfg, metav1.UpdateOptions{})
 		if err != nil {
-			// todo
+			klog.ErrorS(err, "failed to update services of route cache")
 			return err
 		}
 
@@ -334,18 +333,15 @@ func loadCacheFromLocalFile() error {
 
 	cloudNodeFile, err := os.Open(tunnelutil.CloudNodesFilePath)
 	if err != nil {
-		// todo
 		return err
 	}
 
 	servicesFile, err := os.Open(tunnelutil.ServicesFilePath)
 	if err != nil {
-		// todo
 		return err
 	}
 	userServiceFile, err := os.Open(tunnelutil.UserServiceFilepath)
 	if err != nil {
-		// todo
 		return err
 	}
 
@@ -357,13 +353,24 @@ func loadCacheFromLocalFile() error {
 		Route.CloudNode[string(v[1])] = string(v[0])
 	}
 
-	for _, v := range hosts2Array(servicesFile) {
+	for _, v := range service2Array(servicesFile) {
 		Route.ServicesMap[string(v[0])] = string(v[1])
 	}
 
-	for _, v := range hosts2Array(userServiceFile) {
+	for _, v := range service2Array(userServiceFile) {
 		Route.UserServicesMap[string(v[0])] = string(v[1])
 	}
-
 	return nil
+}
+
+func service2Array(fileread io.Reader) [][][]byte {
+	scanner := bufio.NewScanner(fileread)
+	hostsArray := [][][]byte{}
+	for scanner.Scan() {
+		f := bytes.Fields(scanner.Bytes())
+		if len(f) == 2 {
+			hostsArray = append(hostsArray, f)
+		}
+	}
+	return hostsArray
 }

@@ -15,31 +15,68 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
+	"net"
 )
 
 func DirectHandler(msg *proto.StreamMsg) error {
-	context.GetContext().GetNode(msg.Node)
-	chConn := context.GetContext().GetConn(msg.Topic)
+	chConn := tunnelcontext.GetContext().GetConn(msg.Topic)
 	if chConn != nil {
 		chConn.Send2Conn(msg)
 	} else {
 		sendFlag := false
-		if localNode := context.GetContext().GetNode(msg.Node); localNode != nil {
+		if localNode := tunnelcontext.GetContext().GetNode(msg.Node); localNode != nil {
 			if remoteNodeName := localNode.GetPairNode(msg.GetTopic()); remoteNodeName != "" {
-				if remoteNode := context.GetContext().GetNode(remoteNodeName); remoteNode != nil {
+				if remoteNode := tunnelcontext.GetContext().GetNode(remoteNodeName); remoteNode != nil {
 					remoteNode.Send2Node(msg)
 					sendFlag = true
 				}
 			}
 		}
 		if !sendFlag {
-			klog.Errorf("%s connection has been disconnected", msg.Category)
-			return fmt.Errorf("Failed to get %s connection", msg.Category)
+			klog.InfoS("msg cannot be forwarded due to disconnection", "category", msg.Category, "type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
+			return fmt.Errorf("failed to get msgChannel, %s:%s", util.STREAM_TRACE_ID, msg.Topic)
 		}
 
 	}
+	return nil
+}
+
+func ConnectingHandler(msg *proto.StreamMsg) error {
+	chConn := tunnelcontext.GetContext().GetConn(msg.Topic)
+	if chConn != nil {
+		chConn.Send2Conn(msg)
+		return nil
+	}
+	node := tunnelcontext.GetContext().GetNode(msg.Node)
+	conn, err := net.Dial(util.TCP, msg.Addr)
+	if err != nil {
+		if node != nil {
+			node.Send2Node(&proto.StreamMsg{
+				Node:     node.GetName(),
+				Category: msg.Category,
+				Type:     tunnelcontext.CONNECT_FAILED,
+				Topic:    msg.Topic,
+				Data:     []byte(err.Error()),
+			})
+		}
+		return err
+	}
+	if node != nil {
+		node.Send2Node(&proto.StreamMsg{
+			Node:     node.GetName(),
+			Category: msg.Category,
+			Type:     tunnelcontext.CONNECT_SUCCESSED,
+			Topic:    msg.Topic,
+		})
+	}
+	ch := tunnelcontext.GetContext().AddConn(msg.Topic)
+	node.BindNode(msg.Topic)
+	go common.Read(conn, node, msg.Category, util.TCP_FORWARD, msg.Topic)
+	go common.Write(conn, ch)
 	return nil
 }

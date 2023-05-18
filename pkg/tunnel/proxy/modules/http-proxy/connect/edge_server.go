@@ -14,13 +14,12 @@ limitations under the License.
 package connect
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
-	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
 	"net"
@@ -32,9 +31,11 @@ import (
 func HttpProxyEdgeServer(conn net.Conn) {
 	req, raw, err := util.GetRequestFromConn(conn)
 	if err != nil {
-		klog.Errorf("Failed to read httpRequest, error: %v", err)
+		klog.V(2).ErrorS(err, "failed to get http request", "remoteAddr", conn.RemoteAddr(), "localAddr", conn.LocalAddr())
 		return
 	}
+	req = req.WithContext(context.WithValue(req.Context(), util.STREAM_TRACE_ID, uuid.NewV4().String()))
+	klog.V(3).InfoS("receive request", "method", req.Method, "host", req.Host, "remoteAddr", conn.RemoteAddr(), "localAddr", conn.LocalAddr(), "req", req)
 
 	host, port, err := net.SplitHostPort(req.Host)
 	if err != nil {
@@ -56,62 +57,61 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	if podIp == nil {
 		//校验serviceName的格式
 		if len(strings.Split(host, ".")) < 2 {
-			klog.Errorf("Please specify the nameSpace where the accessed service is located")
+			klog.Errorf("the service format is incorrect, the supported format: serviceName.nameSpace")
+			writeErr := util.InternalServerErrorMsg(conn, fmt.Sprintf("the service format is incorrect, the supported format: serviceName.nameSpace"), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			if writeErr != nil {
+				klog.Error(writeErr)
+			}
 			return
 		}
 	}
 	if req.Method == http.MethodConnect {
-		uid := uuid.NewV4().String()
-		node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
-		ch := context.GetContext().AddConn(uid)
-		node.BindNode(uid)
-		node.Send2Node(&proto.StreamMsg{
-			Node:     os.Getenv(util.NODE_NAME_ENV),
-			Category: util.HTTP_PROXY,
-			Type:     util.HTTP_PROXY_ACCESS,
-			Topic:    uid,
-			Data:     raw.Bytes(),
-			Addr:     net.JoinHostPort(host, port),
-		})
-		go common.Read(conn, node, util.HTTP_PROXY, util.TCP_BACKEND, uid, req.Host)
-		common.Write(conn, ch)
-	} else {
-		uid := uuid.NewV4().String()
-		node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
-		if node == nil {
-			klog.Errorf("Failed to get node %s", os.Getenv(util.NODE_NAME_ENV))
-			return
-		}
-		ch := context.GetContext().AddConn(uid)
-		node.BindNode(uid)
-		node.Send2Node(&proto.StreamMsg{
-			Node:     os.Getenv(util.NODE_NAME_ENV),
-			Category: util.HTTP_PROXY,
-			Type:     util.HTTP_PROXY_ACCESS,
-			Topic:    uid,
-			Data:     []byte(fmt.Sprintf("CONNECT %s HTTP/1.1\r\n\r\n\r\n", net.JoinHostPort(host, port))),
-			Addr:     net.JoinHostPort(host, port),
-		})
-		recv := <-ch.ConnRecv()
-		resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(recv.Data)), nil)
-		if err != nil {
-			klog.Errorf("Failed to parse httpRequest, error: %v", err)
-			conn.Close()
-			return
-		}
-		if resp.StatusCode == http.StatusOK {
-			node.Send2Node(&proto.StreamMsg{
-				Node:     os.Getenv(util.NODE_NAME_ENV),
-				Category: util.HTTP_PROXY,
-				Type:     util.TCP_BACKEND,
-				Topic:    uid,
-				Data:     raw.Bytes(),
-				Addr:     req.Host,
-			})
-			go common.Read(conn, node, util.HTTP_PROXY, util.TCP_BACKEND, uid, req.Host)
-			common.Write(conn, ch)
+		node := tunnelcontext.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+		if node != nil {
+			tunnelConn, err := node.ConnectNode(util.HTTP_PROXY, net.JoinHostPort(host, port), req.Context())
+			if err != nil {
+				err := util.InternalServerErrorMsg(conn, err.Error(), req.Context().Value(util.STREAM_TRACE_ID).(string))
+				if err != nil {
+					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
+				}
+			}
+			go common.Read(conn, node, util.HTTP_PROXY, util.TCP_FORWARD, tunnelConn.GetUid())
+			common.Write(conn, tunnelConn)
+		} else {
+			err := util.InternalServerErrorMsg(conn, fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			if err != nil {
+				klog.Errorf("failed to write resp msg, error:%v", err)
+			}
 		}
 
+	} else {
+		node := tunnelcontext.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+		if node == nil {
+			err := util.InternalServerErrorMsg(conn, fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			if err != nil {
+				klog.ErrorS(err, "failed to write resp msg", req.Context().Value(util.STREAM_TRACE_ID).(string))
+			}
+		} else {
+			tunnelConn, err := node.ConnectNode(util.HTTP_PROXY, net.JoinHostPort(host, port), req.Context())
+			if err != nil {
+				err := util.InternalServerErrorMsg(conn, err.Error(), req.Context().Value(util.STREAM_TRACE_ID).(string))
+				if err != nil {
+					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
+					return
+				}
+			} else {
+				node.Send2Node(&proto.StreamMsg{
+					Node:     os.Getenv(util.NODE_NAME_ENV),
+					Category: util.HTTP_PROXY,
+					Type:     util.TCP_FORWARD,
+					Topic:    req.Context().Value(util.STREAM_TRACE_ID).(string),
+					Data:     raw.Bytes(),
+					Addr:     req.Host,
+				})
+				go common.Read(conn, node, util.HTTP_PROXY, util.TCP_FORWARD, tunnelConn.GetUid())
+				common.Write(conn, tunnelConn)
+			}
+		}
 	}
 
 }

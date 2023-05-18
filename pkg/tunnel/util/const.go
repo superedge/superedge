@@ -18,14 +18,11 @@ package util
 
 const (
 	STREAM_HEART_BEAT = "heartbeat"
+	STREAM_TRACE_ID   = "Traceid"
 )
 
 const (
-	TCP_FRONTEND = "frontend"
-	TCP_BACKEND  = "backend"
-)
-const (
-	HTTP_PROXY_ACCESS = "access"
+	TCP_FORWARD = "tcp-forward"
 )
 
 const (
@@ -64,17 +61,12 @@ const (
 	POD_NAMESPACE_ENV       = "POD_NAMESPACE"
 	USER_NAMESPACE_ENV      = "USER_NAMESPACE"
 	PROXY_AUTHORIZATION_ENV = "PROXY_AUTHORIZATION"
-	CustomStart             = "#CustomStart"
-	CustomEnd               = "#CustomEnd"
 	EdgeNoProxy             = "EDGE_NO_PROXY"
 	CloudProxy              = "CLOUD_PROXY"
 )
 
 const (
-	ConnectMsg          = "HTTP/1.1 200 Connection established\r\n\r\n"
-	Unauthorized        = "HTTP/1.1 401 No username and password provided\r\n\r\n"
-	Forbidden           = "HTTP/1.1 403 Username or Password error\r\n\r\n"
-	InternalServerError = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+	ConnectMsg = "HTTP/1.1 200 Connection established\r\n\r\n"
 )
 
 const (
