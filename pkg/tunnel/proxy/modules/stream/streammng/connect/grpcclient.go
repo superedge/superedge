@@ -17,7 +17,7 @@ limitations under the License.
 package connect
 
 import (
-	ctx "context"
+	"context"
 	"fmt"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/klog/v2"
-	"math"
 	"net/http"
 	"os"
 	"time"
@@ -42,70 +41,37 @@ var kacp = keepalive.ClientParameters{
 
 var streamConn *grpc.ClientConn
 
-func StartClient() (*grpc.ClientConn, ctx.Context, ctx.CancelFunc, error) {
+func StartClient() (*grpc.ClientConn, error) {
 	creds, err := credentials.NewClientTLSFromFile(util.TunnelEdgeCAPath, conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.Dns)
 	if err != nil {
-		klog.Errorf("failed to load credentials: %v", err)
-		return nil, nil, nil, err
+		klog.ErrorS(err, "failed to load credentials")
+		return nil, err
 	}
 	opts := []grpc.DialOption{grpc.WithKeepaliveParams(kacp), grpc.WithStreamInterceptor(ClientStreamInterceptor), grpc.WithTransportCredentials(creds), grpc.WithConnectParams(grpc.ConnectParams{
 		MinConnectTimeout: 60 * time.Second,
-	})}
+	}), grpc.WithBlock()}
 	conn, err := grpc.Dial(conf.TunnelConf.TunnlMode.EDGE.StreamEdge.Client.ServerName, opts...)
 	if err != nil {
 		klog.Error("edge start client fail !")
-		return nil, nil, nil, err
+		return nil, err
 	}
-	clictx, cancle := ctx.WithTimeout(ctx.Background(), time.Duration(math.MaxInt64))
-	return conn, clictx, cancle, nil
+	return conn, nil
 }
 
 func StartSendClient() {
-	conn, clictx, cancle, err := StartClient()
+	conn, err := StartClient()
 	if err != nil {
-		klog.Error("edge start client error !")
-		klog.Flush()
+		klog.ErrorS(err, "edge start client error !")
 		os.Exit(1)
 	}
+	defer conn.Close()
 	streamConn = conn
-	defer func() {
-		conn.Close()
-		cancle()
-	}()
-
-	go func(monitor *grpc.ClientConn) {
-		mcount := 0
-		for {
-			if conn.GetState() == connectivity.Ready {
-				mcount = 0
-			} else {
-				mcount += 1
-			}
-			klog.V(8).Infof("grpc connection status = %s count = %v", conn.GetState(), mcount)
-			if mcount >= util.TIMEOUT_EXIT {
-				klog.Error("grpc connection rebuild timed out, container exited !")
-				klog.Flush()
-				os.Exit(1)
-			}
-			klog.V(8).Infof("grpc connection status of node = %v", conn.GetState())
-			time.Sleep(1 * time.Second)
-		}
-	}(conn)
-	count := 0
 	for {
 		if conn.GetState() == connectivity.Ready {
 			cli := proto.NewStreamClient(conn)
-			stream2.Send(cli, clictx)
-			count = 0
+			stream2.Send(cli, context.Background())
 		}
-		count += 1
-		klog.V(8).Infof("node connection status = %s count = %v", conn.GetState(), count)
 		time.Sleep(1 * time.Second)
-		if count >= util.TIMEOUT_EXIT {
-			klog.Error("the streamClient retrying to establish a connection timed out and the container exited !")
-			klog.Flush()
-			os.Exit(1)
-		}
 	}
 }
 
