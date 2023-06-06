@@ -101,7 +101,7 @@ func NewSiteManagerDaemonCommand() *cobra.Command {
 
 					}, wait.NeverStop)
 				}
-				// default create unit and verison migration
+				// default create unit and version migration
 				wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
 					if err := utils.InitAllRosource(ctx, crdClient, extensionsClient); err != nil {
 						klog.Errorf("InitAllRosource error: %#v", err)
