@@ -26,6 +26,7 @@ import (
 	"github.com/superedge/superedge/pkg/application-grid-controller/controller/statefulset/util"
 	commonutil "github.com/superedge/superedge/pkg/application-grid-controller/util"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,10 +129,17 @@ func (ssgc *StatefulSetGridController) reconcile(ssg *crdv1.StatefulSetGrid, set
 	}
 
 	if err := ssgc.syncStatefulSet(adds, updates, deletes); err != nil {
+		ssgc.eventRecorder.Eventf(ssg, corev1.EventTypeWarning, "SyncStatefulSetGridFailed",
+			"sync statefulSetGrid %s/%s failed because of %v", ssg.Name, ssg.Namespace, err)
 		return err
 	}
 
-	return ssgc.syncStatus(ssg, setList, gridValues)
+	err := ssgc.syncStatus(ssg, setList, gridValues)
+	if err != nil {
+		ssgc.eventRecorder.Eventf(ssg, corev1.EventTypeWarning, "SyncStatefulSetGridStatusFailed",
+			"sync statefulSetGridStatus %s/%s failed because of %v", ssg.Name, ssg.Namespace, err)
+	}
+	return err
 }
 
 func (ssgc *StatefulSetGridController) syncStatefulSet(adds, updates, deletes []*appsv1.StatefulSet) error {

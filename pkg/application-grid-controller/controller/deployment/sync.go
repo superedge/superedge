@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	klog "k8s.io/klog/v2"
 
 	"github.com/hashicorp/go-multierror"
@@ -130,11 +131,18 @@ func (dgc *DeploymentGridController) reconcile(dg *crdv1.DeploymentGrid, dpList 
 	}
 
 	if err := dgc.syncDeployment(adds, updates, deletes); err != nil {
+		dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "SyncDeploymentGridFailed",
+			"sync deploymentGrid %s/%s failed because of %v", dg.Name, dg.Namespace, err)
 		return err
 	}
 
 	if len(dpList) != 0 {
-		return dgc.syncStatus(dg, dpList, gridValues)
+		err := dgc.syncStatus(dg, dpList, gridValues)
+		if err != nil {
+			dgc.eventRecorder.Eventf(dg, corev1.EventTypeWarning, "SyncDeploymentGridStatusFailed",
+				"sync deploymentGridStatus %s/%s failed because of %v", dg.Name, dg.Namespace, err)
+		}
+		return err
 	}
 
 	return nil
