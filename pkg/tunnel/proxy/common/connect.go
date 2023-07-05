@@ -14,12 +14,13 @@ limitations under the License.
 package common
 
 import (
+	"io"
+	"net"
+
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
 	"k8s.io/klog/v2"
-	"net"
 )
 
 const (
@@ -36,18 +37,15 @@ func Read(conn net.Conn, node tunnelcontext.Node, category, handleType, uuid str
 		rb := make([]byte, BuferSize)
 		n, err := conn.Read(rb)
 		if err != nil {
-			ch := tunnelcontext.GetContext().GetConn(uuid)
-			if ch != nil {
-				closeMsg := &proto.StreamMsg{
-					Node:     node.GetName(),
-					Category: category,
-					Type:     util.CLOSED,
-					Topic:    uuid,
-					Data:     []byte(err.Error()),
-				}
-				ch.Send2Conn(closeMsg)
-				klog.V(2).InfoS("send closeMsg", "closeMsg", closeMsg)
+			closeMsg := &proto.StreamMsg{
+				Node:     node.GetName(),
+				Category: category,
+				Type:     util.CLOSED,
+				Topic:    uuid,
+				Data:     []byte(err.Error()),
 			}
+			node.Send2Node(closeMsg)
+			klog.V(2).InfoS("send closeMsg", "closeMsg", closeMsg, util.STREAM_TRACE_ID, uuid)
 			if err != io.EOF {
 				klog.ErrorS(err, "failed to read data", util.STREAM_TRACE_ID, uuid)
 			}

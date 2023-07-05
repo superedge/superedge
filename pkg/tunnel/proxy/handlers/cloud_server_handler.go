@@ -56,7 +56,9 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 	} else {
 		req = req.WithContext(context.WithValue(req.Context(), util.STREAM_TRACE_ID, uuid.NewV4().String()))
 	}
-	klog.V(3).InfoS("receive request", "method", req.Method, "category", category, "host", req.Host, "remoteAddr", proxyConn.RemoteAddr(), "localAddr", proxyConn.LocalAddr(), "req", req)
+	klog.V(2).InfoS("receive request", "method", req.Method, "category", category, "host",
+		req.Host, "remoteAddr", proxyConn.RemoteAddr(), "localAddr", proxyConn.LocalAddr(), "req", req,
+		util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID).(string))
 
 	if os.Getenv(util.PROXY_AUTHORIZATION_ENV) == "true" {
 		if category == util.HTTP_PROXY {
