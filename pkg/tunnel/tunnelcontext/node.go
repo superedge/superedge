@@ -19,11 +19,12 @@ package tunnelcontext
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
 const (
@@ -52,7 +53,7 @@ func (edge *node) BindNode(uuid string) {
 }
 
 func (edge *node) UnbindNode(uuid string) {
-	//删除连接绑定
+	// 删除连接绑定
 	edge.connsLock.Lock()
 	for k, v := range edge.conns {
 		if v == uuid {
@@ -60,7 +61,7 @@ func (edge *node) UnbindNode(uuid string) {
 		}
 	}
 	edge.connsLock.Unlock()
-	//删除节点绑定
+	// 删除节点绑定
 	edge.nodesLock.Lock()
 	delete(edge.pairnodes, uuid)
 	edge.nodesLock.Unlock()
@@ -104,7 +105,8 @@ func (edge *node) ConnectNode(category, addr string, ctx context.Context) (*conn
 }
 
 func (edge *node) Send2Node(msg *proto.StreamMsg) {
-	klog.V(3).InfoS("node send msg", "nodeName", edge.name, "category", msg.GetCategory(), "type", msg.GetType(), "data", msg.GetData(), util.STREAM_TRACE_ID, msg.GetTopic())
+	klog.V(3).InfoS("node send msg", "nodeName", edge.name, "category", msg.GetCategory(),
+		"type", msg.GetType(), util.STREAM_TRACE_ID, msg.GetTopic())
 	edge.ch <- msg
 }
 

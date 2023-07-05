@@ -17,10 +17,11 @@ limitations under the License.
 package tunnelcontext
 
 import (
+	"sync"
+
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"sync"
 )
 
 var (
@@ -143,8 +144,10 @@ func (ctx *TunnelContext) Handler(msg *proto.StreamMsg, key, module string) {
 	if f != nil {
 		err := f(msg)
 		if err != nil {
-			klog.ErrorS(err, "handler execution error", "category", msg.Category, "type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
+			klog.ErrorS(err, "handler execution error", "category", msg.Category,
+				"type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
 		}
 	}
-	klog.V(3).InfoS("get handler successfully", "category", msg.Category, "type", msg.Type, util.STREAM_TRACE_ID, msg.Topic, "data", string(msg.Data))
+	klog.V(3).InfoS("get handler successfully", "category", msg.Category,
+		"type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
 }

@@ -15,12 +15,13 @@ package handlers
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"net"
 )
 
 func DirectHandler(msg *proto.StreamMsg) error {
@@ -38,7 +39,21 @@ func DirectHandler(msg *proto.StreamMsg) error {
 			}
 		}
 		if !sendFlag {
-			klog.InfoS("msg cannot be forwarded due to disconnection", "category", msg.Category, "type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
+			// skip duplicate closed messages
+			if msg.Type == util.CLOSED {
+				return nil
+			}
+			if localNode := tunnelcontext.GetContext().GetNode(msg.Node); localNode != nil {
+				localNode.Send2Node(&proto.StreamMsg{
+					Node:     msg.Node,
+					Category: msg.Category,
+					Type:     util.CLOSED,
+					Topic:    msg.Topic,
+					Data:     []byte("msg cannot be forwarded due to disconnection"),
+				})
+			}
+			klog.InfoS("msg cannot be forwarded due to disconnection", "category", msg.Category,
+				"type", msg.Type, util.STREAM_TRACE_ID, msg.Topic)
 			return fmt.Errorf("failed to get msgChannel, %s:%s", util.STREAM_TRACE_ID, msg.Topic)
 		}
 

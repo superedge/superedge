@@ -16,26 +16,31 @@ package connect
 import (
 	"context"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
-	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
-	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
-	"github.com/superedge/superedge/pkg/tunnel/util"
-	"k8s.io/klog/v2"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+
+	uuid "github.com/satori/go.uuid"
+	"k8s.io/klog/v2"
+
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
+	"github.com/superedge/superedge/pkg/tunnel/util"
 )
 
 func HttpProxyEdgeServer(conn net.Conn) {
 	req, raw, err := util.GetRequestFromConn(conn)
 	if err != nil {
-		klog.V(2).ErrorS(err, "failed to get http request", "remoteAddr", conn.RemoteAddr(), "localAddr", conn.LocalAddr())
+		klog.V(2).ErrorS(err, "failed to get http request", "remoteAddr", conn.RemoteAddr(),
+			"localAddr", conn.LocalAddr())
 		return
 	}
-	req = req.WithContext(context.WithValue(req.Context(), util.STREAM_TRACE_ID, uuid.NewV4().String()))
-	klog.V(3).InfoS("receive request", "method", req.Method, "host", req.Host, "remoteAddr", conn.RemoteAddr(), "localAddr", conn.LocalAddr(), "req", req)
+	uuid := uuid.NewV4().String()
+	req = req.WithContext(context.WithValue(req.Context(), util.STREAM_TRACE_ID, uuid))
+	klog.V(2).InfoS("receive request", "method", req.Method, "host", req.Host,
+		"remoteAddr", conn.RemoteAddr(), "localAddr", conn.LocalAddr(), "req", req, util.STREAM_TRACE_ID, uuid)
 
 	host, port, err := net.SplitHostPort(req.Host)
 	if err != nil {
@@ -55,10 +60,11 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	}
 	podIp := net.ParseIP(host)
 	if podIp == nil {
-		//校验serviceName的格式
+		// 校验serviceName的格式
 		if len(strings.Split(host, ".")) < 2 {
 			klog.Errorf("the service format is incorrect, the supported format: serviceName.nameSpace")
-			writeErr := util.InternalServerErrorMsg(conn, fmt.Sprintf("the service format is incorrect, the supported format: serviceName.nameSpace"), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			writeErr := util.InternalServerErrorMsg(conn,
+				fmt.Sprintf("the service format is incorrect, supported format: serviceName.nameSpace"), uuid)
 			if writeErr != nil {
 				klog.Error(writeErr)
 			}
@@ -70,15 +76,25 @@ func HttpProxyEdgeServer(conn net.Conn) {
 		if node != nil {
 			tunnelConn, err := node.ConnectNode(util.HTTP_PROXY, net.JoinHostPort(host, port), req.Context())
 			if err != nil {
-				err := util.InternalServerErrorMsg(conn, err.Error(), req.Context().Value(util.STREAM_TRACE_ID).(string))
+				err := util.InternalServerErrorMsg(conn, err.Error(), uuid)
 				if err != nil {
-					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
+					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, uuid)
+					return
 				}
 			}
+
+			// Return 200 status code
+			_, err = conn.Write([]byte(util.ConnectMsg))
+			if err != nil {
+				klog.ErrorS(err, "failed to write data to proxyConn", util.STREAM_TRACE_ID, uuid)
+				return
+			}
+
 			go common.Read(conn, node, util.HTTP_PROXY, util.TCP_FORWARD, tunnelConn.GetUid())
 			common.Write(conn, tunnelConn)
 		} else {
-			err := util.InternalServerErrorMsg(conn, fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			err := util.InternalServerErrorMsg(conn,
+				fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), uuid)
 			if err != nil {
 				klog.Errorf("failed to write resp msg, error:%v", err)
 			}
@@ -87,16 +103,17 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	} else {
 		node := tunnelcontext.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
 		if node == nil {
-			err := util.InternalServerErrorMsg(conn, fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), req.Context().Value(util.STREAM_TRACE_ID).(string))
+			err := util.InternalServerErrorMsg(conn,
+				fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), uuid)
 			if err != nil {
-				klog.ErrorS(err, "failed to write resp msg", req.Context().Value(util.STREAM_TRACE_ID).(string))
+				klog.ErrorS(err, "failed to write resp msg", uuid)
 			}
 		} else {
 			tunnelConn, err := node.ConnectNode(util.HTTP_PROXY, net.JoinHostPort(host, port), req.Context())
 			if err != nil {
-				err := util.InternalServerErrorMsg(conn, err.Error(), req.Context().Value(util.STREAM_TRACE_ID).(string))
+				err := util.InternalServerErrorMsg(conn, err.Error(), uuid)
 				if err != nil {
-					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
+					klog.ErrorS(err, "failed to write resp msg", util.STREAM_TRACE_ID, uuid)
 					return
 				}
 			} else {
@@ -104,7 +121,7 @@ func HttpProxyEdgeServer(conn net.Conn) {
 					Node:     os.Getenv(util.NODE_NAME_ENV),
 					Category: util.HTTP_PROXY,
 					Type:     util.TCP_FORWARD,
-					Topic:    req.Context().Value(util.STREAM_TRACE_ID).(string),
+					Topic:    uuid,
 					Data:     raw.Bytes(),
 					Addr:     req.Host,
 				})
