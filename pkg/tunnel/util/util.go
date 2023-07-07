@@ -19,13 +19,16 @@ package util
 import (
 	"bufio"
 	"bytes"
-	"github.com/tatsushid/go-fastping"
+	"crypto/tls"
 	"io"
-	"k8s.io/klog/v2"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/superedge/superedge/pkg/util"
+	"github.com/tatsushid/go-fastping"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -97,4 +100,30 @@ func WriteResponseMsg(conn net.Conn, respMsg, tranceId, status string, statusCod
 
 func InternalServerErrorMsg(proxyConn net.Conn, respMsg, tranceId string) error {
 	return WriteResponseMsg(proxyConn, respMsg, tranceId, "Internal Server Error", http.StatusInternalServerError)
+}
+
+// LoadTLSConfig return tls config
+func LoadTLSConfig(certPath, keyPath, ciphers, mTLSVersion string, insecureSkipVerify bool) (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		klog.Errorf("failed to load certs: %v", err)
+		return nil, err
+	}
+	cipherSuites, err := util.TLSCipherSuites(strings.Split(ciphers, ","))
+	if err != nil {
+		klog.Errorf("failed to load tls cipherSuites: %v, tls cipherSuites: %s", err, ciphers)
+		return nil, err
+	}
+	minTLSVersion, err := util.TLSVersion(mTLSVersion)
+	if err != nil {
+		klog.Errorf("failed to load tls min version: %v, tls version config: %s", err, mTLSVersion)
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		CipherSuites:       cipherSuites,
+		MinVersion:         minTLSVersion,
+		InsecureSkipVerify: insecureSkipVerify,
+	}, nil
 }

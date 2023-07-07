@@ -37,6 +37,7 @@ type TunnelCloud struct {
 	Egress    *EgressServer    `toml:"egress"`
 	HttpProxy *HttpProxyServer `toml:"http_proxy"`
 	SSH       *SSHServer       `toml:"ssh"`
+	TLS       *TLSConfig       `toml:"tls"`
 }
 
 type HttpsServer struct {
@@ -55,6 +56,11 @@ type StreamServer struct {
 	LogPort      int    `toml:"log_port"`
 	MetricsPort  int    `toml:"metrics_port"`
 	ChannelzAddr string `toml:"channelz_addr"`
+}
+
+type TLSConfig struct {
+	CipherSuites  string `toml:"tls_cipher_suites"`
+	MinTLSVersion string `toml:"tls_min_version"`
 }
 
 type EgressServer struct {

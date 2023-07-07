@@ -15,13 +15,14 @@ package egress
 
 import (
 	"crypto/tls"
+	"strconv"
+
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/module"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"strconv"
 )
 
 type EgressSelector struct {
@@ -41,15 +42,12 @@ func (e EgressSelector) Start(mode string) {
 		if conf.TunnelConf.TunnlMode.Cloud.Egress == nil {
 			return
 		}
-		cert, err := tls.LoadX509KeyPair(util.EgressCertPath, util.EgressKeyPath)
+		config, err := util.LoadTLSConfig(util.EgressCertPath, util.EgressKeyPath,
+			conf.TunnelConf.TunnlMode.Cloud.TLS.CipherSuites, conf.TunnelConf.TunnlMode.Cloud.TLS.MinTLSVersion, true)
 		if err != nil {
-			klog.Errorf("client load cert fail, error: %v", err)
 			return
 		}
-		config := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			InsecureSkipVerify: true,
-		}
+
 		listener, err := tls.Listen("tcp", "0.0.0.0:"+strconv.Itoa(conf.TunnelConf.TunnlMode.Cloud.Egress.EgressPort), config)
 		if err != nil {
 			klog.Errorf("Failed to start SSH Server, error:%v", err)
