@@ -18,6 +18,13 @@ package connect
 
 import (
 	"fmt"
+	"math"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
@@ -33,12 +40,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"k8s.io/klog/v2"
-	"math"
-	"net"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
 )
 
 var kaep = keepalive.EnforcementPolicy{
@@ -55,11 +56,13 @@ var kasp = keepalive.ServerParameters{
 }
 
 func StartServer() {
-	creds, err := credentials.NewServerTLSFromFile(tunnelutil.TunnelCloudCertPath, tunnelutil.TunnelCloudKeyPath)
+	tlsConfig, err := tunnelutil.LoadTLSConfig(tunnelutil.TunnelCloudCertPath, tunnelutil.TunnelCloudKeyPath,
+		conf.TunnelConf.TunnlMode.Cloud.TLS.CipherSuites, conf.TunnelConf.TunnlMode.Cloud.TLS.MinTLSVersion, false)
 	if err != nil {
-		klog.Errorf("failed to create credentials: %v", err)
 		return
 	}
+	creds := credentials.NewTLS(tlsConfig)
+
 	opts := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(kaep), grpc.KeepaliveParams(kasp), grpc.StreamInterceptor(ServerStreamInterceptor), grpc.Creds(creds)}
 	s := grpc.NewServer(opts...)
 	proto.RegisterStreamServer(s, &stream.Server{})
