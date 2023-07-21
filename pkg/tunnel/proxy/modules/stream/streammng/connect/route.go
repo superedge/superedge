@@ -210,6 +210,11 @@ func syncCache() error {
 		}
 		epnodes := []string{}
 		for _, ep := range eps.Subsets[0].Addresses {
+			// endpoints kubernetes.default subsets has no field NodeName
+			if eps.Name == "kubernetes" {
+				epnodes = append(epnodes, ep.IP)
+				continue
+			}
 			if ep.NodeName == nil {
 				continue
 			}
