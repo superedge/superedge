@@ -18,7 +18,6 @@ package server
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/watch"
 	"net/http"
 	"net/http/httputil"
 	"net/http/pprof"
@@ -26,16 +25,18 @@ import (
 	"strings"
 	"time"
 
-	siteconstant "github.com/superedge/superedge/pkg/site-manager/constant"
 	v1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	restclientwatch "k8s.io/client-go/rest/watch"
 	"k8s.io/klog/v2"
+
+	siteconstant "github.com/superedge/superedge/pkg/site-manager/constant"
 )
 
 const (
@@ -518,7 +519,8 @@ func (s *interceptorServer) interceptIngressRequest(handler http.Handler) http.H
 }
 func (s *interceptorServer) interceptIngressEndpointsRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(SuperEdgeIngress) != "" && !strings.Contains(r.URL.Path, "/api/v1/endpoints") {
+		// header SuperEdgeIngress 不为空且 path 是 /api/v1/endpoints 的请求需要处理，否则直接返回即可
+		if r.Header.Get(SuperEdgeIngress) == "" || !strings.Contains(r.URL.Path, "/api/v1/endpoints") {
 			handler.ServeHTTP(w, r)
 			return
 		}
@@ -603,7 +605,7 @@ func (s *interceptorServer) interceptIngressEndpointsRequest(handler http.Handle
 			case evt := <-endpointsWatch.ResultChan():
 				klog.V(4).Infof("Send endpoint watch event: %+#v", evt)
 
-				//Filter endpoints based on nodeunit nodes
+				// Filter endpoints based on nodeunit nodes
 				if ep, ok := evt.Object.(*v1.Endpoints); ok {
 					deepEp := ep.DeepCopy()
 					s.filerIngressEndpoints(deepEp, r.Header.Get(SuperEdgeIngress), siteconstant.NodeUnitSuperedge)
@@ -652,7 +654,7 @@ func (s *interceptorServer) interceptIngressEndpointsRequest(handler http.Handle
 }
 
 func (s *interceptorServer) filerIngressEndpoints(ep *v1.Endpoints, key, value string) {
-	//Get the node of the nodeunit where nginx-ingress-controller is located
+	// Get the node of the nodeunit where nginx-ingress-controller is located
 	unitnodes, err := s.nodeIndexer.ByIndex(NODELABELS_INDEXER, fmt.Sprintf("%s=%s", key, value))
 	if err != nil {
 		klog.Errorf("Failed to get unit %s nodes, error: %v", fmt.Sprintf("%s=%s", key, value), err)
@@ -662,7 +664,7 @@ func (s *interceptorServer) filerIngressEndpoints(ep *v1.Endpoints, key, value s
 			filterAddress := []v1.EndpointAddress{}
 			for _, addr := range subset.Addresses {
 				if addr.NodeName != nil {
-					//Filter by node name
+					// Filter by node name
 					nodeName := addr.NodeName
 					addflag := false
 					for _, node := range unitnodes {
