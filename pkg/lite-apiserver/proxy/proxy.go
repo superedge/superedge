@@ -20,17 +20,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/munnerz/goautoneg"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"io"
 	"io/ioutil"
-	authenticationv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/v2"
 	"mime"
 	"net"
 	"net/http"
@@ -39,6 +30,16 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/munnerz/goautoneg"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 
 	"github.com/superedge/superedge/pkg/lite-apiserver/cache"
 	"github.com/superedge/superedge/pkg/lite-apiserver/constant"
@@ -302,6 +303,9 @@ func needCache(r *http.Request) (needCache bool) {
 				needCache = false
 			}
 		}
+	} else if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/version") {
+		// add cache /version request
+		return true
 	} else {
 		klog.Errorf("no RequestInfo found in the context")
 	}

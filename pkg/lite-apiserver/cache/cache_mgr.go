@@ -278,6 +278,11 @@ func (c CacheManager) handleQuery(key string, verb string) (*EdgeCache, error) {
 
 func cacheKey(userAgent string, info *apirequest.RequestInfo) string {
 	keys := []string{userAgent, info.Namespace, info.Resource, info.Name, info.Subresource}
+	if info.IsResourceRequest {
+		keys = []string{userAgent, info.Namespace, info.Resource, info.Name, info.Subresource}
+	} else {
+		keys = []string{userAgent, strings.ReplaceAll(info.Path, "/", "-")}
+	}
 	key := strings.Join(keys, "_")
 	return key
 }
