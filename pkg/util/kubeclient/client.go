@@ -20,13 +20,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
-	restclient "k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,8 +99,10 @@ func GetKubeConfig(kubeConfigPath string) (*restclient.Config, error) {
 	return config, nil
 }
 
-func GetInclusterClientSet(kubeConfigPath string) (*kubernetes.Clientset, error) {
+func GetInclusterClientSet(kubeConfigPath string, qps float32, burst int) (*kubernetes.Clientset, error) {
 	clientConfig, err := GetKubeConfig(kubeConfigPath)
+	clientConfig.QPS = qps
+	clientConfig.Burst = burst
 	if err != nil {
 		return nil, err
 	}

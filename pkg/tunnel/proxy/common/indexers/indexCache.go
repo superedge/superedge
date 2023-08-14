@@ -15,8 +15,10 @@ package indexers
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,9 +28,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
 var (
@@ -39,7 +38,7 @@ var (
 	NodeLister                                               listersv1.NodeLister
 )
 
-//Index pods by podIp
+// Index pods by podIp
 func PodIPKeyFunc(obj interface{}) ([]string, error) {
 	pod, ok := obj.(*v1.Pod)
 	if ok {
@@ -64,17 +63,11 @@ func MetaNameIndexFunc(obj interface{}) ([]string, error) {
 	return []string{key}, nil
 }
 
-func InitCache(path string, stopCh chan struct{}) {
+func InitCache(clientSet kubernetes.Interface, stopCh chan struct{}) {
 	once.Do(func() {
-		clientSet, err := kubeclient.GetInclusterClientSet(path)
-		if err != nil {
-			klog.ErrorS(err, "failed to get kubeClient")
-			return
-		}
-
 		informerFactory := informers.NewSharedInformerFactory(clientSet, 1*time.Minute)
 
-		//Initialize podIndexer
+		// Initialize podIndexer
 		podInformer := informerFactory.InformerFor(&v1.Pod{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
 			return informcorev1.NewPodInformer(k, "", duration, cache.Indexers{util.PODIP_INDEXER: PodIPKeyFunc})
 		})
@@ -86,7 +79,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		}
 		podIndexer = podInformer.GetIndexer()
 
-		//initialize nodeIndexer
+		// initialize nodeIndexer
 		nodeInformer := informerFactory.InformerFor(&v1.Node{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
 			return informcorev1.NewNodeInformer(k, duration, cache.Indexers{util.METANAME_INDEXER: MetaNameIndexFunc})
 		})
@@ -98,7 +91,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		nodeIndexer = nodeInformer.GetIndexer()
 		NodeLister = listersv1.NewNodeLister(nodeIndexer)
 
-		//initialize serviceIndexer、serviceLister
+		// initialize serviceIndexer、serviceLister
 		serviceInform := informerFactory.InformerFor(&v1.Service{}, func(k kubernetes.Interface, duration time.Duration) cache.SharedIndexInformer {
 			return informcorev1.NewServiceInformer(k, "", duration, cache.Indexers{util.SERVICEIP_INDEXER: ServiceIPKeyFunc})
 		})
@@ -110,7 +103,7 @@ func InitCache(path string, stopCh chan struct{}) {
 		serviceIndexer = serviceInform.GetIndexer()
 		ServiceLister = listersv1.NewServiceLister(serviceIndexer)
 
-		//initialize endpointIndexer、endpointLister
+		// initialize endpointIndexer、endpointLister
 		endpointInform := informerFactory.Core().V1().Endpoints().Informer()
 		go endpointInform.Run(stopCh)
 		if !cache.WaitForCacheSync(stopCh, endpointInform.HasSynced) {
@@ -123,7 +116,7 @@ func InitCache(path string, stopCh chan struct{}) {
 
 }
 
-//Get the name of the node where the pod is located based on podIp
+// Get the name of the node where the pod is located based on podIp
 func GetNodeByPodIP(podIp string) (string, error) {
 	if podIndexer == nil {
 		return "", fmt.Errorf("podIndexer is not initialized")

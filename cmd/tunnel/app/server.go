@@ -29,6 +29,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
+	"github.com/superedge/superedge/pkg/util/kubeclient"
 	"github.com/superedge/superedge/pkg/version"
 	"github.com/superedge/superedge/pkg/version/verflag"
 	"k8s.io/klog/v2"
@@ -54,11 +55,17 @@ func NewTunnelCommand() *cobra.Command {
 			stream.InitStream(*option.TunnelMode)
 
 			if *option.TunnelMode == tunnelutil.CLOUD {
+				klog.Infof("tunnel kubernetes client qps: %v, burst: %v", option.QPS, option.Burst)
+				clientSet, err := kubeclient.GetInclusterClientSet(*option.Kubeconfig, option.QPS, option.Burst)
+				if err != nil {
+					klog.ErrorS(err, "failed to get kubeClient")
+					return
+				}
 				stop := make(chan struct{})
-				indexers.InitCache(*option.Kubeconfig, stop)
+				indexers.InitCache(clientSet, stop)
 				go connect.SyncPodIP()
 				go connect.SyncEndPoints()
-				go connect.SyncRoute(*option.Kubeconfig)
+				go connect.SyncRoute(clientSet)
 				defer func() {
 					stop <- struct{}{}
 				}()
