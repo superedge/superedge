@@ -25,10 +25,10 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	tunnelutil "github.com/superedge/superedge/pkg/tunnel/util"
 	"github.com/superedge/superedge/pkg/util"
-	"github.com/superedge/superedge/pkg/util/kubeclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
@@ -48,12 +48,7 @@ type RouteCache struct {
 	UserServicesMap map[string]string
 }
 
-func SyncRoute(path string) {
-	userClient, err := kubeclient.GetInclusterClientSet(path)
-	if err != nil {
-		klog.ErrorS(err, "failed to get kubeClient")
-		return
-	}
+func SyncRoute(userClient kubernetes.Interface) {
 	id := os.Getenv(tunnelutil.POD_NAME)
 	lock, err := resourcelock.New(resourcelock.EndpointsResourceLock,
 		os.Getenv(tunnelutil.USER_NAMESPACE_ENV),

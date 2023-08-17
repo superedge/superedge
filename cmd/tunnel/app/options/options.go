@@ -25,6 +25,8 @@ type TunnelOption struct {
 	TunnelConf *string
 	Kubeconfig *string
 	Debug      *bool
+	QPS        float32
+	Burst      int
 }
 
 func NewTunnelOption() *TunnelOption {
@@ -37,6 +39,8 @@ func NewTunnelOption() *TunnelOption {
 		TunnelConf: &c,
 		Kubeconfig: &k,
 		Debug:      &d,
+		QPS:        1000,
+		Burst:      1000,
 	}
 }
 func (option *TunnelOption) Addflag() (fsSet cliflag.NamedFlagSets) {
@@ -44,5 +48,7 @@ func (option *TunnelOption) Addflag() (fsSet cliflag.NamedFlagSets) {
 	fs.StringVar(option.TunnelMode, "m", *option.TunnelMode, "Specify the edge proxy or cloud proxy")
 	fs.StringVar(option.TunnelConf, "c", *option.TunnelConf, "Specify the configuration file path")
 	fs.StringVar(option.Kubeconfig, "k", *option.Kubeconfig, "Specify the kubeconfig")
+	fs.Float32Var(&option.QPS, "kube-qps", option.QPS, "kubeconfig qps setting")
+	fs.IntVar(&option.Burst, "kube-burst", option.Burst, "kubeconfig burst setting")
 	return
 }
