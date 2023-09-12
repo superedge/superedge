@@ -1,9 +1,12 @@
 package util
 
 import (
+	"io"
 	"net"
 	"regexp"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 type Config struct {
@@ -170,4 +173,26 @@ func (cfg *Config) UseProxy(addr string) bool {
 		}
 	}
 	return true
+}
+
+// ConnCopyAndClose process conn copy and close conn
+func ConnCopyAndClose(dst, src net.Conn, uuid string) error {
+	// copy data to remoteConn
+	go func() {
+		_, writeErr := io.Copy(dst, src)
+		if writeErr != nil {
+			klog.ErrorS(writeErr, "failed to copy data to remoteConn", STREAM_TRACE_ID, uuid)
+		}
+		dst.Close()
+	}()
+
+	// read data from remoteConn
+	_, err := io.Copy(src, dst)
+	if err != nil {
+		klog.ErrorS(err, "failed to read data from remoteConn", STREAM_TRACE_ID, uuid)
+		return err
+	}
+	src.Close()
+
+	return nil
 }

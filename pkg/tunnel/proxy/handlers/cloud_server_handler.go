@@ -17,18 +17,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
-	"github.com/superedge/superedge/pkg/tunnel/proto"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
-	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
-	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
-	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apiserver/pkg/util/proxy"
-	"k8s.io/klog/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -36,6 +24,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
+	"github.com/superedge/superedge/pkg/tunnel/proto"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
+	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
+	"github.com/superedge/superedge/pkg/tunnel/tunnelcontext"
+	"github.com/superedge/superedge/pkg/tunnel/util"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/util/proxy"
+	"k8s.io/klog/v2"
 )
 
 type forwardInfo struct {
@@ -202,18 +202,9 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 				}
 				return err
 			}
-			go func() {
-				_, writeErr := io.Copy(remoteConn, proxyConn)
-				if writeErr != nil {
-					klog.ErrorS(err, "failed to copy data to localConn", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
-				}
-			}()
 
-			_, err = io.Copy(proxyConn, remoteConn)
-			if err != nil {
-				klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
-				return err
-			}
+			// copy data and close conn
+			return util.ConnCopyAndClose(remoteConn, proxyConn, req.Context().Value(util.STREAM_TRACE_ID).(string))
 		}
 
 		// Forward to edge node
@@ -241,7 +232,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 			}
 		} else {
 			tunnelCloudPodIp, ok := connect.Route.EdgeNode[info.nodeName]
-			//Forwarding through tunnel-cloud
+			// Forwarding through tunnel-cloud
 			if ok {
 				remoteConn, err := net.Dial("tcp", common.GetRemoteAddr(category, tunnelCloudPodIp))
 				if err != nil {
@@ -252,6 +243,7 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 					}
 					return err
 				}
+				defer remoteConn.Close()
 
 				proxyReq := &http.Request{
 					Method: http.MethodConnect,
@@ -293,18 +285,9 @@ func HandleServerConn(proxyConn net.Conn, category string, noAccess func(host st
 						}
 						return err
 					}
-					go func() {
-						_, writeErr := io.Copy(remoteConn, proxyConn)
-						if writeErr != nil {
-							klog.ErrorS(writeErr, "failed to copy data to remoteConn", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
-						}
-					}()
-					_, err = io.Copy(proxyConn, remoteConn)
-					if err != nil {
-						klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
-						return err
-					}
-					return nil
+
+					// copy data and close conn
+					return util.ConnCopyAndClose(remoteConn, proxyConn, req.Context().Value(util.STREAM_TRACE_ID).(string))
 				} else {
 					klog.Errorf("failed to establish a connection with the target server of the edge node, nodeName:%s, Addr:%s, errorResponse:%s, %s:%s", info.nodeName, net.JoinHostPort(info.podIp, info.port), respRawData.String(), util.STREAM_TRACE_ID, req.Context().Value(util.STREAM_TRACE_ID))
 					writeErr := util.InternalServerErrorMsg(proxyConn, fmt.Sprintf("failed to establish a connection with the target server of the edge node, nodeName:%s, Addr:%s, errorResponse:%s", info.nodeName, net.JoinHostPort(info.podIp, info.port), respRawData.String()), "")
@@ -337,7 +320,7 @@ func getForwardInfoFromEdgeService(svc *v1.Service, port string) (*forwardInfo, 
 		klog.ErrorS(err, "failed to get podIp from service")
 		return nil, err
 	}
-	//Only handle access within the cluster
+	// Only handle access within the cluster
 	nodeName, err := indexers.GetNodeByPodIP(podUrl.Hostname())
 	if err != nil {
 		klog.ErrorS(err, "failed to get the node name where the pod is located")
@@ -368,7 +351,7 @@ func getForwardInfo(host, port string) (*forwardInfo, bool, error) {
 				}
 			}
 
-			//cloud
+			// cloud
 			if _, ok := connect.Route.CloudNode[node.Name]; ok {
 				return &forwardInfo{
 					podIp:    interIp,
@@ -377,7 +360,7 @@ func getForwardInfo(host, port string) (*forwardInfo, bool, error) {
 				}, true, nil
 			}
 
-			//edge
+			// edge
 			if _, ok := connect.Route.EdgeNode[node.Name]; ok {
 				return &forwardInfo{
 					podIp:    interIp,
@@ -405,7 +388,7 @@ func getForwardInfo(host, port string) (*forwardInfo, bool, error) {
 		  2. podIp
 		*/
 
-		//clusterIp
+		// clusterIp
 		svc, err := indexers.GetServiceByClusterIP(host)
 		if err != nil && !apierrors.IsNotFound(err) {
 			klog.ErrorS(err, "failed to get service by clusterIp", "clusterIp", host)
@@ -416,7 +399,7 @@ func getForwardInfo(host, port string) (*forwardInfo, bool, error) {
 			return resolvForwardInfo(svc, port)
 		}
 
-		//Request pods on edge nodes
+		// Request pods on edge nodes
 		nodeName, err := indexers.GetNodeByPodIP(host)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -436,7 +419,7 @@ func getForwardInfo(host, port string) (*forwardInfo, bool, error) {
 
 func resolvForwardInfo(svc *v1.Service, port string) (*forwardInfo, bool, error) {
 
-	//externalName service
+	// externalName service
 	if svc.Spec.Type == v1.ServiceTypeExternalName {
 		return &forwardInfo{
 			podIp:    svc.Spec.ExternalName,
