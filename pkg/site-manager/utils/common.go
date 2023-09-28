@@ -57,8 +57,8 @@ func CreateDefaultUnit(ctx context.Context, crdClient *crdClientset.Clientset) e
 	return nil
 }
 
-func Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
-	nuCrd, err := extentionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeUnitCRDName, metav1.GetOptions{})
+func Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx context.Context, crdClient *crdClientset.Clientset, extensionClient extensionclientset.Interface) error {
+	nuCrd, err := extensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeUnitCRDName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -125,15 +125,15 @@ func Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx context.Context, crdCli
 	} else {
 		nuCrd.Annotations[MigrationCompletedAnno] = "yes"
 	}
-	if _, err = extentionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), nuCrd, metav1.UpdateOptions{}); err != nil {
+	if _, err = extensionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), nuCrd, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
-	ngCrd, err := extentionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeGroupCRDName, metav1.GetOptions{})
+func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdClient *crdClientset.Clientset, extensionClient extensionclientset.Interface) error {
+	ngCrd, err := extensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), NodeGroupCRDName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -194,19 +194,19 @@ func Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx context.Context, crdC
 	} else {
 		ngCrd.Annotations[MigrationCompletedAnno] = "yes"
 	}
-	if _, err = extentionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), ngCrd, metav1.UpdateOptions{}); err != nil {
+	if _, err = extensionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), ngCrd, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func InitAllRosource(ctx context.Context, crdClient *crdClientset.Clientset, extentionClient extensionclientset.Interface) error {
-	//if err := Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx, crdClient, extentionClient); err != nil {
+func InitAllRosource(ctx context.Context, crdClient *crdClientset.Clientset, extensionClient extensionclientset.Interface) error {
+	//if err := Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit(ctx, crdClient, extensionClient); err != nil {
 	//	klog.ErrorS(err, "Migrator_v1alpha1_NodeUnit_To_v1alpha2_NodeUnit error")
 	//	return err
 	//}
-	//if err := Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx, crdClient, extentionClient); err != nil {
+	//if err := Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup(ctx, crdClient, extensionClient); err != nil {
 	//	klog.ErrorS(err, "Migrator_v1alpha1_NodeGroup_To_v1alpha2_NodeGroup error")
 	//	return err
 	//}
