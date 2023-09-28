@@ -64,7 +64,7 @@ func HttpProxyEdgeServer(conn net.Conn) {
 		if len(strings.Split(host, ".")) < 2 {
 			klog.Errorf("the service format is incorrect, the supported format: serviceName.nameSpace")
 			writeErr := util.InternalServerErrorMsg(conn,
-				fmt.Sprintf("the service format is incorrect, supported format: serviceName.nameSpace"), uuid)
+				"the service format is incorrect, supported format: serviceName.nameSpace", uuid)
 			if writeErr != nil {
 				klog.Error(writeErr)
 			}
