@@ -17,6 +17,8 @@ limitations under the License.
 package tcp
 
 import (
+	"net"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/context"
@@ -25,7 +27,6 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/handlers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"net"
 )
 
 type TcpProxy struct {
@@ -69,6 +70,10 @@ func (tcp *TcpProxy) Start(mode string) {
 					node := nodes[0]
 					tcpConn := context.GetContext().AddConn(uuid)
 					nodeConn := context.GetContext().GetNode(node)
+					if nodeConn == nil {
+						klog.Errorf("failed to get edge node: %s", node)
+						continue
+					}
 					nodeConn.BindNode(uuid)
 					go common.Read(rawConn, nodeConn, util.TCP, util.TCP_FRONTEND, uuid, backend)
 					go common.Write(rawConn, tcpConn)

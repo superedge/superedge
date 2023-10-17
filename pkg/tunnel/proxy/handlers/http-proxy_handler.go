@@ -17,16 +17,18 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"net/http"
-	"os"
+
+	"net"
 
 	"k8s.io/klog/v2"
-	"net"
 )
 
 func AccessHandler(msg *proto.StreamMsg) error {
@@ -66,10 +68,13 @@ func AccessHandler(msg *proto.StreamMsg) error {
 				Data:     []byte(util.ConnectMsg),
 			})
 		}
-
 	}
 
 	localNode := context.GetContext().GetNode(msg.GetNode())
+	if localNode == nil {
+		klog.Errorf("failed to get edge node: %s", msg.GetNode())
+		return fmt.Errorf("failed to get edge node: %s", msg.GetNode())
+	}
 	req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(msg.Data)))
 	if err != nil {
 		klog.Errorf("Failed to parse httpRequest, error: %v", err)
@@ -152,6 +157,10 @@ func AccessHandler(msg *proto.StreamMsg) error {
 		successMsg(localNode)
 
 		remoteNode := context.GetContext().GetNode(nodeName)
+		if localNode == nil {
+			klog.Errorf("failed to get edge node: %s", nodeName)
+			return fmt.Errorf("failed to get edge node: %s", nodeName)
+		}
 		remoteNode.AddPairNode(msg.GetTopic(), localNode.GetName())
 		localNode.AddPairNode(msg.GetTopic(), remoteNode.GetName())
 		remoteNode.Send2Node(&proto.StreamMsg{

@@ -14,12 +14,14 @@ limitations under the License.
 package handlers
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"net"
 )
 
 func FrontendHandler(msg *proto.StreamMsg) error {
@@ -34,6 +36,10 @@ func FrontendHandler(msg *proto.StreamMsg) error {
 		return err
 	}
 	node := context.GetContext().GetNode(msg.Node)
+	if node == nil {
+		klog.Errorf("failed to get edge node: %s", msg.GetNode())
+		return fmt.Errorf("failed to get edge node: %s", msg.GetNode())
+	}
 	ch := context.GetContext().AddConn(msg.Topic)
 	node.BindNode(msg.Topic)
 	ch.Send2Conn(msg)

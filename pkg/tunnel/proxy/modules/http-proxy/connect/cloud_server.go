@@ -15,6 +15,12 @@ package connect
 
 import (
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
@@ -22,12 +28,7 @@ import (
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common/indexers"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/connect"
 	"github.com/superedge/superedge/pkg/tunnel/util"
-	"io"
 	"k8s.io/klog/v2"
-	"net"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func HttpProxyCloudServer(proxyConn net.Conn) {
@@ -114,6 +115,10 @@ func HttpProxyCloudServer(proxyConn net.Conn) {
 		uid := uuid.NewV4().String()
 		ch := context.GetContext().AddConn(uid)
 		remoteNode := context.GetContext().GetNode(nodeName)
+		if remoteNode == nil {
+			klog.Errorf("failed to get edge node: %s", nodeName)
+			return
+		}
 		remoteNode.BindNode(uid)
 		if req.Method == http.MethodConnect {
 			err := successMsg(proxyConn)

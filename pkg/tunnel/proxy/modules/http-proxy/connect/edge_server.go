@@ -17,16 +17,17 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/superedge/superedge/pkg/tunnel/context"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	"github.com/superedge/superedge/pkg/tunnel/proxy/common"
 	"github.com/superedge/superedge/pkg/tunnel/util"
 	"k8s.io/klog/v2"
-	"net"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func HttpProxyEdgeServer(conn net.Conn) {
@@ -63,6 +64,10 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	if req.Method == http.MethodConnect {
 		uid := uuid.NewV4().String()
 		node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+		if node == nil {
+			klog.Errorf("failed to get edge node: %s", os.Getenv(util.NODE_NAME_ENV))
+			return
+		}
 		ch := context.GetContext().AddConn(uid)
 		node.BindNode(uid)
 		node.Send2Node(&proto.StreamMsg{
@@ -78,6 +83,10 @@ func HttpProxyEdgeServer(conn net.Conn) {
 	} else {
 		uid := uuid.NewV4().String()
 		node := context.GetContext().GetNode(os.Getenv(util.NODE_NAME_ENV))
+		if node == nil {
+			klog.Errorf("failed to get edge node: %s", os.Getenv(util.NODE_NAME_ENV))
+			return
+		}
 		ch := context.GetContext().AddConn(uid)
 		node.BindNode(uid)
 		node.Send2Node(&proto.StreamMsg{
