@@ -97,6 +97,7 @@ func HttpProxyEdgeServer(conn net.Conn) {
 				fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), uuid)
 			if err != nil {
 				klog.Errorf("failed to write resp msg, error:%v", err)
+				return
 			}
 		}
 
@@ -107,6 +108,7 @@ func HttpProxyEdgeServer(conn net.Conn) {
 				fmt.Sprintf("failed to get edge node %s", os.Getenv(util.NODE_NAME_ENV)), uuid)
 			if err != nil {
 				klog.ErrorS(err, "failed to write resp msg", uuid)
+				return
 			}
 		} else {
 			tunnelConn, err := node.ConnectNode(util.HTTP_PROXY, net.JoinHostPort(host, port), req.Context())
