@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestK8sVerisonInt(t *testing.T) {
+func TestK8sVersionInt(t *testing.T) {
 	type args struct {
 		version string
 	}
@@ -23,10 +23,10 @@ func TestK8sVerisonInt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			k8sVersionInt, err := k8sVersionInt(tt.args.version)
 			if err != nil {
-				t.Errorf("k8sVerisonInt testName: %s, intPut: %s, error: %v", tt.name, tt.args, err)
+				t.Errorf("k8sVersionInt testName: %s, intPut: %s, error: %v", tt.name, tt.args, err)
 			}
 			if k8sVersionInt != tt.k8sversion {
-				t.Errorf("k8sVerisonInt testname: %s, "+
+				t.Errorf("k8sVersionInt testname: %s, "+
 					"inPut: %s, want: %d, res: %d", tt.name, tt.args, tt.k8sversion, k8sVersionInt)
 			}
 		})
