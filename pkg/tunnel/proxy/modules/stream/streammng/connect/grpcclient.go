@@ -18,7 +18,10 @@ package connect
 
 import (
 	"context"
-	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/superedge/superedge/pkg/tunnel/conf"
 	"github.com/superedge/superedge/pkg/tunnel/proto"
 	stream2 "github.com/superedge/superedge/pkg/tunnel/proxy/modules/stream/streammng/stream"
@@ -28,9 +31,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/klog/v2"
-	"net/http"
-	"os"
-	"time"
 )
 
 var kacp = keepalive.ClientParameters{
@@ -79,17 +79,21 @@ func EdgeHealthCheck(writer http.ResponseWriter, request *http.Request) {
 	if request.Method == http.MethodGet {
 		if streamConn == nil {
 			writer.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintln(writer, "Edge node connection is not established")
+			klog.Error("Edge node connection is not established")
+			return
 		}
 		if streamConn.GetState() == connectivity.Ready {
 			writer.WriteHeader(http.StatusOK)
-			fmt.Fprintf(writer, "the connection of the node is being established status = %s", streamConn.GetState())
+			klog.Infof("the connection of the node is being established status = %s", streamConn.GetState())
+			return
 		} else {
 			writer.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(writer, "the connection of the node is abnormal status = %s", streamConn.GetState())
+			klog.Errorf("the connection of the node is abnormal status = %s", streamConn.GetState())
+			return
 		}
 	} else {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintln(writer, "only supports GET method")
+		klog.Error("only supports GET method")
+		return
 	}
 }

@@ -171,7 +171,7 @@ func (handler *mutatingHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			admissionReview.Response = &admissionv1.AdmissionResponse{
 				Allowed: false,
 				UID:     admissionReview.Request.UID,
-				Result:  &metav1.Status{Message: fmt.Sprintf("nodetask does not support update")},
+				Result:  &metav1.Status{Message: "nodetask does not support update"},
 			}
 			writeResponse(admissionReview, w)
 			return
@@ -346,7 +346,7 @@ func (handler *mutatingHandler) validate(nt *v1beta1.NodeTask) []error {
 		_, pwdOk := loginSecret.Data[constants.PassWd]
 		_, sshOk := loginSecret.Data[constants.SshKey]
 		if !(pwdOk || sshOk) {
-			errs = append(errs, errors.New(fmt.Sprint("Failed to obtain login password (passwd) or private key (sshkey) from secret")))
+			errs = append(errs, errors.New("Failed to obtain login password (passwd) or private key (sshkey) from secret"))
 		}
 	}
 

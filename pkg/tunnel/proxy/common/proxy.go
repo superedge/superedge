@@ -16,7 +16,6 @@ package common
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -104,6 +103,7 @@ func ForwardNode(nodename, host, port, category string, proxyConn net.Conn, ctx 
 
 			return err
 		}
+		defer remoteConn.Close()
 
 		//Forward HTTP_CONNECT request data
 		remoteReq := &http.Request{
@@ -128,18 +128,8 @@ func ForwardNode(nodename, host, port, category string, proxyConn net.Conn, ctx 
 			return err
 		}
 
-		defer remoteConn.Close()
-		go func() {
-			_, writeErr := io.Copy(remoteConn, proxyConn)
-			if writeErr != nil {
-				klog.ErrorS(err, "failed to copy data to remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
-			}
-		}()
-		_, err = io.Copy(proxyConn, remoteConn)
-		if err != nil {
-			klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
-			return err
-		}
+		// copy data and close conn
+		return util.ConnCopyAndClose(remoteConn, proxyConn, ctx.Value(util.STREAM_TRACE_ID).(string))
 	}
 
 	return nil
@@ -188,26 +178,16 @@ func DirectDial(host, port, category string, proxyConn net.Conn, ctx context.Con
 
 			return err
 		}
+		defer remoteConn.Close()
 
 		_, err = proxyConn.Write([]byte(util.ConnectMsg))
 		if err != nil {
 			klog.ErrorS(err, "failed to write data to proxyConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
 			return err
 		}
-		defer remoteConn.Close()
-		go func() {
-			_, writeErr := io.Copy(remoteConn, proxyConn)
-			if writeErr != nil {
-				klog.ErrorS(err, "failed to copy data to remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
-			}
-		}()
 
-		_, err = io.Copy(proxyConn, remoteConn)
-		if err != nil {
-			klog.ErrorS(err, "failed to read data from remoteConn", util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
-			return err
-		}
-
+		// copy data and close conn
+		return util.ConnCopyAndClose(remoteConn, proxyConn, ctx.Value(util.STREAM_TRACE_ID).(string))
 	} else {
 		klog.ErrorS(pingErr, "failed to get the node where the pod is located", "category", category, util.STREAM_TRACE_ID, ctx.Value(util.STREAM_TRACE_ID))
 
@@ -217,5 +197,4 @@ func DirectDial(host, port, category string, proxyConn net.Conn, ctx context.Con
 		}
 		return pingErr
 	}
-	return nil
 }

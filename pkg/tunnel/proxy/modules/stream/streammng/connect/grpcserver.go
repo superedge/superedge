@@ -21,6 +21,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"strconv"
 	"time"
@@ -82,6 +83,12 @@ func StartServer() {
 func StartLogServer(mode string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/flags/v", util.UpdateLogLevel)
+	// profiling
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	ser := &http.Server{
 		Handler: mux,
 	}
