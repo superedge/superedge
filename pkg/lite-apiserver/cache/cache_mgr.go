@@ -99,7 +99,7 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 			return err
 		}
 
-		klog.V(6).Infof("new watch event, type=%s, obj=%v", eventType, obj)
+		klog.V(6).Infof("new watch event, key=%s, type=%s, obj=%v", key, eventType, obj)
 
 		switch eventType {
 		case watch.Bookmark:
@@ -187,7 +187,6 @@ func (c CacheManager) cacheWatch(key string, body io.ReadCloser) error {
 				return err
 			}
 			listCache.Body = buffer.Bytes()
-
 			// update cache
 			data, err := MarshalEdgeCache(listCache)
 			if err != nil {
@@ -220,6 +219,16 @@ func (c CacheManager) cacheGet(key string, code int, header http.Header, body []
 }
 
 func (c CacheManager) cacheList(key string, code int, header http.Header, body []byte) error {
+	var err error
+	// decode gzip data
+	if header.Get("Content-Encoding") == "gzip" {
+		body, err = gzipDecode(body)
+		if err != nil {
+			klog.Errorf("read gzip body from list cache failed, key:%s, err: %v", key, err)
+			return err
+		}
+		header.Del("Content-Encoding")
+	}
 	cache := NewEdgeCache(code, header, body)
 	data, err := MarshalEdgeCache(cache)
 	if err != nil {
@@ -233,6 +242,31 @@ func (c CacheManager) cacheList(key string, code int, header http.Header, body [
 		return err
 	}
 	return nil
+}
+
+func (c CacheManager) queryList(key string) (*EdgeCache, error) {
+	data, err := c.storage.LoadList(key)
+	if err != nil {
+		return nil, err
+	}
+
+	cache, err := UnmarshalEdgeCache(data)
+	if err != nil {
+		klog.Errorf("unmarshal key %s error: %v", key, err)
+		return nil, err
+	}
+
+	// compress data to gzip
+	if len(cache.Body) > defaultGzipThresholdBytes && cache.Header.Get("Content-Encoding") == "" {
+		body, err := gzipEncode(cache.Body)
+		if err != nil {
+			return nil, err
+		}
+		cache.Body = body
+		cache.Header.Set("Content-Encoding", "gzip")
+	}
+
+	return cache, err
 }
 
 func (c CacheManager) Query(req *http.Request) (*EdgeCache, error) {
@@ -254,7 +288,7 @@ func (c CacheManager) handleQuery(key string, verb string) (*EdgeCache, error) {
 
 	switch verb {
 	case constant.VerbList:
-		data, err = c.storage.LoadList(key)
+		return c.queryList(key)
 	case constant.VerbGet:
 		data, err = c.storage.LoadOne(key)
 	case constant.VerbWatch:
