@@ -27,6 +27,11 @@ import (
 
 func main() {
 	klog.InitFlags(nil)
+
+	// Opt into fixed stderrthreshold behavior (kubernetes/klog#212).
+	_ = goflag.Set("legacy_stderr_threshold_behavior", "false")
+	_ = goflag.Set("stderrthreshold", "INFO")
+
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	defer klog.Flush()

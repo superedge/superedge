@@ -34,6 +34,10 @@ func main() {
 	klogFlags := goflag.NewFlagSet("klog", goflag.ExitOnError)
 	klog.InitFlags(klogFlags)
 
+	// Opt into fixed stderrthreshold behavior (kubernetes/klog#212).
+	_ = klogFlags.Set("legacy_stderr_threshold_behavior", "false")
+	_ = klogFlags.Set("stderrthreshold", "INFO")
+
 	defer klog.Flush()
 
 	command := app.NewSiteManagerDaemonCommand()
