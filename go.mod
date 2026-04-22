@@ -1,6 +1,8 @@
 module github.com/superedge/superedge
 
-go 1.17
+go 1.21
+
+toolchain go1.24.6
 
 require (
 	github.com/BurntSushi/toml v1.1.0
@@ -37,7 +39,7 @@ require (
 	k8s.io/client-go v0.22.3
 	k8s.io/cluster-bootstrap v0.22.3
 	k8s.io/component-base v0.22.3
-	k8s.io/klog/v2 v2.9.0
+	k8s.io/klog/v2 v2.140.0
 	sigs.k8s.io/controller-runtime v0.10.3
 	sigs.k8s.io/yaml v1.2.0
 )
@@ -64,7 +66,7 @@ require (
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
-	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
